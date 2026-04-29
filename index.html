@@ -28,7 +28,10 @@
     touch-action: manipulation;
     user-select: none;
     height: 100dvh;
+    height: -webkit-fill-available; /* iOS Safari fallback */
     width: 100vw;
+    position: fixed; /* ป้องกัน iOS scroll bounce */
+    top: 0; left: 0;
   }
 
   /* ─── BACKGROUND ─── */
@@ -234,6 +237,453 @@
   #ingameCoin {
     position:fixed; top:12px; right:14px; z-index:12;
     font-size:12px; color:var(--gold); letter-spacing:2px; display:none;
+  }
+  #soundToggleBtn {
+    position:fixed; bottom:18px; right:16px;
+    background:rgba(0,0,0,0.6); border:1px solid #555;
+    border-radius:50%; width:40px; height:40px;
+    font-size:20px; color:white; z-index:25;
+    cursor:pointer; display:none;
+    line-height:1; padding:0; touch-action:manipulation;
+  }
+
+  /* ─── OVERDRIVE LEVEL INDICATOR ─── */
+  #godLevelWrap {
+    position:fixed; top:50%; right:14px;
+    transform:translateY(-50%);
+    z-index:10; pointer-events:none; text-align:right;
+    display:none;
+  }
+  #godLevelNum { font-size:clamp(36px,12vw,65px); line-height:1; text-shadow:0 0 30px currentColor; }
+  #godLevelLabel { font-size:9px; letter-spacing:3px; color:#777; }
+  #godLevelName { font-size:10px; letter-spacing:2px; margin-top:3px; }
+  #godTimer2 { font-size:11px; letter-spacing:2px; color:#666; margin-top:3px; }
+
+  /* ─── COMBO ─── */
+  #comboWrap {
+    position:fixed; left:14px; top:50%;
+    transform:translateY(-50%);
+    z-index:10; pointer-events:none;
+  }
+  #bigCombo { font-size:clamp(60px,22vw,120px); line-height:1; color:white; text-shadow:3px 3px 0 rgba(0,0,0,0.5); transition:color 0.1s; }
+  #comboLabel { font-size:10px; letter-spacing:3px; color:#444; margin-top:-4px; }
+  .combo-hot #bigCombo { color:var(--gold); }
+  .combo-max #bigCombo { color:var(--red); animation:flash 0.25s infinite alternate; text-shadow:0 0 30px rgba(255,0,0,0.8); }
+
+  /* ─── MULTIPLIER ─── */
+  #multiBadge {
+    position:fixed; right:14px; bottom:90px;
+    z-index:10; text-align:right; pointer-events:none;
+    opacity:0; transition:opacity 0.3s;
+  }
+  #multiBadge.show { opacity:1; }
+  #multiNum { font-size:clamp(24px,8vw,46px); color:var(--gold); line-height:1; text-shadow:0 0 20px rgba(255,204,0,0.8); }
+  #multiLabel { font-size:9px; letter-spacing:2px; color:#666; }
+
+  /* ─── BOSS BAR ─── */
+  #bossBar {
+    position:fixed; bottom:65px; left:50%;
+    transform:translateX(-50%);
+    width:min(360px,88vw); z-index:10; pointer-events:none; display:none;
+  }
+  #bossLabel { font-size:10px; letter-spacing:3px; color:#888; text-align:center; margin-bottom:3px; }
+  #bossName { font-size:17px; color:var(--red); text-align:center; margin-bottom:5px; letter-spacing:2px; }
+  #bossHpWrap { background:#1a1a1a; border-radius:2px; height:11px; overflow:hidden; }
+  #bossHpFill { height:100%; width:100%; background:linear-gradient(90deg,#990000,var(--red)); border-radius:2px; transition:width 0.1s; }
+  #bossPhaseTag { font-size:9px; letter-spacing:2px; color:#ff4400; text-align:center; margin-top:3px; }
+
+  /* ─── FIGHTER ─── */
+  #fighter {
+    position:fixed; bottom:55px; left:50%;
+    transform:translateX(-50%);
+    width:min(360px,83vw); z-index:5; pointer-events:none;
+    display:none;
+  }
+  #boxer { width:100%; display:block; filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)); will-change:transform; -webkit-transform:translateZ(0); transform:translateZ(0); }
+  #gun { position:absolute; width:65%; left:55%; top:62%; transform:translate(-50%,-50%) rotate(-10deg); display:none; will-change:transform; }
+
+  .recoil { animation:recoilAnim 0.12s ease-out; }
+  .recoil-god { animation:recoilGun 0.08s ease-out; }
+  @keyframes recoilAnim { 30%{transform:translateX(-50%) translateY(-8px) rotate(-2deg);} }
+  @keyframes recoilGun  { 30%{transform:translateX(-50%) translateY(-5px);} }
+
+  /* ─── HIT NUMBER ─── */
+  .hit-num {
+    position:fixed; font-family:'Oswald',sans-serif; font-weight:700;
+    pointer-events:none; z-index:20;
+    animation:floatUp 0.6s forwards;
+    text-shadow:1px 1px 0 rgba(0,0,0,0.6);
+  }
+  @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1);} 100%{opacity:0;transform:translateY(-70px) scale(0.7);} }
+
+  /* ─── SPLASHES ─── */
+  #godSplash {
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(0);
+    width:min(260px,60vw); opacity:0; z-index:50;
+    filter:drop-shadow(0 0 30px cyan); pointer-events:none;
+  }
+  #wp5Splash {
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(0);
+    width:min(260px,60vw); opacity:0; z-index:50;
+    filter:drop-shadow(0 0 30px #ff00ff); pointer-events:none;
+  }
+  #wpRoundLabel {
+    font-size:10px; letter-spacing:3px; color:#ffcc00;
+    margin-top:2px; text-align:center;
+  }
+  .showSplash { animation:splash 0.55s forwards !important; }
+  @keyframes splash {
+    0%  {transform:translate(-50%,-50%) scale(0.3);opacity:0;}
+    20% {transform:translate(-50%,-50%) scale(1.05);opacity:0.9;}
+    70% {opacity:0.85;}
+    100%{transform:translate(-50%,-50%) scale(1);opacity:0;}
+  }
+
+  /* bigSplash — ย้ายไปบนซ้าย ไม่บังกลางจอ */
+  #bigSplashText {
+    position:fixed; top:18%; left:50%;
+    transform:translate(-50%,-50%);
+    z-index:50; pointer-events:none; text-align:center; opacity:0;
+  }
+  #bigSplashText.show { animation:bigSplashAnim 0.75s forwards; }
+  /* splash สำคัญ (lv3/boss) แสดงกลางจอ */
+  #bigSplashText.show-center { animation:bigSplashAnimCenter 0.85s forwards; }
+  .splash-main { font-size:clamp(14px,4.5vw,28px); letter-spacing:3px; line-height:1; }
+  .splash-sub  { font-size:clamp(9px,2.5vw,13px); letter-spacing:4px; color:#888; margin-top:3px; }
+  @keyframes bigSplashAnim {
+    0%  {opacity:0;transform:translate(-50%,-50%) scale(0.85);}
+    15% {opacity:1;transform:translate(-50%,-50%) scale(1.02);}
+    65% {opacity:1;transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0;transform:translate(-50%,-55%);}
+  }
+  @keyframes bigSplashAnimCenter {
+    0%  {opacity:0;transform:translate(-50%,-50%) scale(0.8);}
+    15% {opacity:1;transform:translate(-50%,-50%) scale(1.05);}
+    65% {opacity:1;}
+    100%{opacity:0;transform:translate(-50%,-55%);}
+  }
+
+  /* ─── ANNIHILATION FLASH ─── */
+  #annihilationFlash { position:fixed; inset:0; z-index:60; pointer-events:none; opacity:0; background:white; }
+  #annihilationFlash.boom { animation:anniBoom 0.9s forwards; }
+  @keyframes anniBoom { 0%{opacity:0.9;} 30%{opacity:0.6;background:#ff2233;} 60%{opacity:0.3;background:#ffcc00;} 100%{opacity:0;} }
+
+  /* boss arrival */
+  #bossArrival {
+    position:fixed; top:36%; left:50%;
+    transform:translate(-50%,-50%);
+    z-index:51; pointer-events:none; text-align:center; opacity:0;
+  }
+  #bossArrival.show { animation:bossArrive 1.5s forwards; }
+  .boss-name-big { font-size:clamp(22px,7vw,44px); color:var(--red); letter-spacing:3px; text-shadow:0 0 30px #ff0000; }
+  .boss-phase-tag { font-size:10px; letter-spacing:4px; color:#ff4400; margin-top:4px; }
+  @keyframes bossArrive {
+    0%{opacity:0;transform:translate(-50%,-50%) scale(1.3);}
+    20%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+    70%{opacity:1;} 100%{opacity:0;}
+  }
+
+  /* ─── SCREEN FLASH ─── */
+  #screenFlash { position:fixed; inset:0; z-index:30; pointer-events:none; opacity:0; }
+  .flash-punch { animation:sfPunch 0.12s forwards; }
+  .flash-god   { animation:sfGod   0.18s forwards; }
+  .flash-god2  { animation:sfGod2  0.2s  forwards; }
+  .flash-god3  { animation:sfGod3  0.25s forwards; }
+  .flash-boss  { animation:sfBoss  0.15s forwards; }
+  @keyframes sfPunch { 0%{opacity:0.12;background:white;} 100%{opacity:0;} }
+  @keyframes sfGod   { 0%{opacity:0.25;background:cyan;} 100%{opacity:0;} }
+  @keyframes sfGod2  { 0%{opacity:0.3;background:#4488ff;} 100%{opacity:0;} }
+  @keyframes sfGod3  { 0%{opacity:0.35;background:#ff2233;} 100%{opacity:0;} }
+  @keyframes sfBoss  { 0%{opacity:0.2;background:#660000;} 100%{opacity:0;} }
+
+  /* ─── FX ─── */
+  #fxLayer { position:fixed; inset:0; pointer-events:none; z-index:15; -webkit-transform:translateZ(0); transform:translateZ(0); will-change:contents; }
+  .impact {
+    position:absolute; border-radius:50%;
+    transform:translate(-50%,-50%);
+    will-change:transform,opacity;
+    animation:impact 0.22s forwards;
+  }
+  @keyframes impact {
+    0%  {width:20px;height:20px;opacity:1;border:3px solid white;}
+    100%{width:80px;height:80px;opacity:0;border:3px solid white;}
+  }
+  .particle {
+    position:absolute; border-radius:50%;
+    transform:translate(-50%,-50%);
+    will-change:transform,opacity;
+    animation:particle 0.3s forwards;
+  }
+  @keyframes particle {
+    to{transform:translate3d(calc(-50% + var(--dx)),calc(-50% + var(--dy)),0);opacity:0;}
+  }
+
+  /* ─── SCREEN SHAKE ─── */
+  @keyframes screenShake {
+    0%{transform:translate(0,0);}10%{transform:translate(-6px,4px);}20%{transform:translate(6px,-4px);}
+    30%{transform:translate(-5px,5px);}40%{transform:translate(5px,-3px);}50%{transform:translate(-4px,4px);}
+    60%{transform:translate(4px,-2px);}80%{transform:translate(-2px,2px);}100%{transform:translate(0,0);}
+  }
+  body.shake { animation:screenShake 0.5s ease-out; }
+  body.shake-wp { animation:screenShakeWp 0.3s ease-out; }
+  @keyframes screenShakeWp {
+    0%{transform:translate(0,0);}20%{transform:translate(-4px,3px);}40%{transform:translate(4px,-3px);}
+    60%{transform:translate(-3px,2px);}80%{transform:translate(2px,-1px);}100%{transform:translate(0,0);}
+  }
+
+
+
+  /* ─── TAP ZONE ─── */
+  #tapZone {
+    position:fixed; inset:0; z-index:8; cursor:crosshair; display:none;
+    touch-action:none; /* ตัด iOS 300ms delay และป้องกัน scroll interrupt */
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+  }
+  #streakLabel { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); font-size:10px; letter-spacing:3px; color:#333; z-index:10; pointer-events:none; display:none; }
+
+  /* ─── COIN POPUP ─── */
+  .coin-popup {
+    position:fixed; font-size:15px; color:var(--gold);
+    font-family:'Oswald',sans-serif; pointer-events:none; z-index:25;
+    animation:floatUp 0.9s forwards; text-shadow:0 0 10px var(--gold);
+  }
+
+  /* ─── WEAK POINT ─── */
+  #weakPoint {
+    position:fixed;
+    width:70px; height:70px;
+    border-radius:50%;
+    border:3px solid #ff2233;
+    box-shadow:0 0 18px 6px rgba(255,34width 0.05s; }
+
+  /* coin in game */
+  #ingameCoin {
+    position:fixed; top:12px; right:14px; z-index:12;
+    font-size:12px; color:var(--gold); letter-spacing:2px; display:none;
+  }
+  #soundToggleBtn {
+    position:fixed; bottom:18px; right:16px;
+    background:rgba(0,0,0,0.6); border:1px solid #555;
+    border-radius:50%; width:40px; height:40px;
+    font-size:20px; color:white; z-index:25;
+    cursor:pointer; display:none;
+    line-height:1; padding:0; touch-action:manipulation;
+  }
+
+  /* ─── OVERDRIVE LEVEL INDICATOR ─── */
+  #godLevelWrap {
+    position:fixed; top:50%; right:14px;
+    transform:translateY(-50%);
+    z-index:10; pointer-events:none; text-align:right;
+    display:none;
+  }
+  #godLevelNum { font-size:clamp(36px,12vw,65px); line-height:1; text-shadow:0 0 30px currentColor; }
+  #godLevelLabel { font-size:9px; letter-spacing:3px; color:#777; }
+  #godLevelName { font-size:10px; letter-spacing:2px; margin-top:3px; }
+  #godTimer2 { font-size:11px; letter-spacing:2px; color:#666; margin-top:3px; }
+
+  /* ─── COMBO ─── */
+  #comboWrap {
+    position:fixed; left:14px; top:50%;
+    transform:translateY(-50%);
+    z-index:10; pointer-events:none;
+  }
+  #bigCombo { font-size:clamp(60px,22vw,120px); line-height:1; color:white; text-shadow:3px 3px 0 rgba(0,0,0,0.5); transition:color 0.1s; }
+  #comboLabel { font-size:10px; letter-spacing:3px; color:#444; margin-top:-4px; }
+  .combo-hot #bigCombo { color:var(--gold); }
+  .combo-max #bigCombo { color:var(--red); animation:flash 0.25s infinite alternate; text-shadow:0 0 30px rgba(255,0,0,0.8); }
+
+  /* ─── MULTIPLIER ─── */
+  #multiBadge {
+    position:fixed; right:14px; bottom:90px;
+    z-index:10; text-align:right; pointer-events:none;
+    opacity:0; transition:opacity 0.3s;
+  }
+  #multiBadge.show { opacity:1; }
+  #multiNum { font-size:clamp(24px,8vw,46px); color:var(--gold); line-height:1; text-shadow:0 0 20px rgba(255,204,0,0.8); }
+  #multiLabel { font-size:9px; letter-spacing:2px; color:#666; }
+
+  /* ─── BOSS BAR ─── */
+  #bossBar {
+    position:fixed; bottom:65px; left:50%;
+    transform:translateX(-50%);
+    width:min(360px,88vw); z-index:10; pointer-events:none; display:none;
+  }
+  #bossLabel { font-size:10px; letter-spacing:3px; color:#888; text-align:center; margin-bottom:3px; }
+  #bossName { font-size:17px; color:var(--red); text-align:center; margin-bottom:5px; letter-spacing:2px; }
+  #bossHpWrap { background:#1a1a1a; border-radius:2px; height:11px; overflow:hidden; }
+  #bossHpFill { height:100%; width:100%; background:linear-gradient(90deg,#990000,var(--red)); border-radius:2px; transition:width 0.1s; }
+  #bossPhaseTag { font-size:9px; letter-spacing:2px; color:#ff4400; text-align:center; margin-top:3px; }
+
+  /* ─── FIGHTER ─── */
+  #fighter {
+    position:fixed; bottom:55px; left:50%;
+    transform:translateX(-50%);
+    width:min(360px,83vw); z-index:5; pointer-events:none;
+    display:none;
+  }
+  #boxer { width:100%; display:block; filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)); will-change:transform; -webkit-transform:translateZ(0); transform:translateZ(0); }
+  #gun { position:absolute; width:65%; left:55%; top:62%; transform:translate(-50%,-50%) rotate(-10deg); display:none; will-change:transform; }
+
+  .recoil { animation:recoilAnim 0.12s ease-out; }
+  .recoil-god { animation:recoilGun 0.08s ease-out; }
+  @keyframes recoilAnim { 30%{transform:translateX(-50%) translateY(-8px) rotate(-2deg);} }
+  @keyframes recoilGun  { 30%{transform:translateX(-50%) translateY(-5px);} }
+
+  /* ─── HIT NUMBER ─── */
+  .hit-num {
+    position:fixed; font-family:'Oswald',sans-serif; font-weight:700;
+    pointer-events:none; z-index:20;
+    animation:floatUp 0.6s forwards;
+    text-shadow:1px 1px 0 rgba(0,0,0,0.6);
+  }
+  @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1);} 100%{opacity:0;transform:translateY(-70px) scale(0.7);} }
+
+  /* ─── SPLASHES ─── */
+  #godSplash {
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(0);
+    width:min(260px,60vw); opacity:0; z-index:50;
+    filter:drop-shadow(0 0 30px cyan); pointer-events:none;
+  }
+  #wp5Splash {
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(0);
+    width:min(260px,60vw); opacity:0; z-index:50;
+    filter:drop-shadow(0 0 30px #ff00ff); pointer-events:none;
+  }
+  #wpRoundLabel {
+    font-size:10px; letter-spacing:3px; color:#ffcc00;
+    margin-top:2px; text-align:center;
+  }
+  .showSplash { animation:splash 0.55s forwards !important; }
+  @keyframes splash {
+    0%  {transform:translate(-50%,-50%) scale(0.3);opacity:0;}
+    20% {transform:translate(-50%,-50%) scale(1.05);opacity:0.9;}
+    70% {opacity:0.85;}
+    100%{transform:translate(-50%,-50%) scale(1);opacity:0;}
+  }
+
+  /* bigSplash — ย้ายไปบนซ้าย ไม่บังกลางจอ */
+  #bigSplashText {
+    position:fixed; top:18%; left:50%;
+    transform:translate(-50%,-50%);
+    z-index:50; pointer-events:none; text-align:center; opacity:0;
+  }
+  #bigSplashText.show { animation:bigSplashAnim 0.75s forwards; }
+  /* splash สำคัญ (lv3/boss) แสดงกลางจอ */
+  #bigSplashText.show-center { animation:bigSplashAnimCenter 0.85s forwards; }
+  .splash-main { font-size:clamp(14px,4.5vw,28px); letter-spacing:3px; line-height:1; }
+  .splash-sub  { font-size:clamp(9px,2.5vw,13px); letter-spacing:4px; color:#888; margin-top:3px; }
+  @keyframes bigSplashAnim {
+    0%  {opacity:0;transform:translate(-50%,-50%) scale(0.85);}
+    15% {opacity:1;transform:translate(-50%,-50%) scale(1.02);}
+    65% {opacity:1;transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0;transform:translate(-50%,-55%);}
+  }
+  @keyframes bigSplashAnimCenter {
+    0%  {opacity:0;transform:translate(-50%,-50%) scale(0.8);}
+    15% {opacity:1;transform:translate(-50%,-50%) scale(1.05);}
+    65% {opacity:1;}
+    100%{opacity:0;transform:translate(-50%,-55%);}
+  }
+
+  /* ─── ANNIHILATION FLASH ─── */
+  #annihilationFlash { position:fixed; inset:0; z-index:60; pointer-events:none; opacity:0; background:white; }
+  #annihilationFlash.boom { animation:anniBoom 0.9s forwards; }
+  @keyframes anniBoom { 0%{opacity:0.9;} 30%{opacity:0.6;background:#ff2233;} 60%{opacity:0.3;background:#ffcc00;} 100%{opacity:0;} }
+
+  /* boss arrival */
+  #bossArrival {
+    position:fixed; top:36%; left:50%;
+    transform:translate(-50%,-50%);
+    z-index:51; pointer-events:none; text-align:center; opacity:0;
+  }
+  #bossArrival.show { animation:bossArrive 1.5s forwards; }
+  .boss-name-big { font-size:clamp(22px,7vw,44px); color:var(--red); letter-spacing:3px; text-shadow:0 0 30px #ff0000; }
+  .boss-phase-tag { font-size:10px; letter-spacing:4px; color:#ff4400; margin-top:4px; }
+  @keyframes bossArrive {
+    0%{opacity:0;transform:translate(-50%,-50%) scale(1.3);}
+    20%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+    70%{opacity:1;} 100%{opacity:0;}
+  }
+
+  /* ─── SCREEN FLASH ─── */
+  #screenFlash { position:fixed; inset:0; z-index:30; pointer-events:none; opacity:0; }
+  .flash-punch { animation:sfPunch 0.12s forwards; }
+  .flash-god   { animation:sfGod   0.18s forwards; }
+  .flash-god2  { animation:sfGod2  0.2s  forwards; }
+  .flash-god3  { animation:sfGod3  0.25s forwards; }
+  .flash-boss  { animation:sfBoss  0.15s forwards; }
+  @keyframes sfPunch { 0%{opacity:0.12;background:white;} 100%{opacity:0;} }
+  @keyframes sfGod   { 0%{opacity:0.25;background:cyan;} 100%{opacity:0;} }
+  @keyframes sfGod2  { 0%{opacity:0.3;background:#4488ff;} 100%{opacity:0;} }
+  @keyframes sfGod3  { 0%{opacity:0.35;background:#ff2233;} 100%{opacity:0;} }
+  @keyframes sfBoss  { 0%{opacity:0.2;background:#660000;} 100%{opacity:0;} }
+
+  /* ─── FX ─── */
+  #fxLayer { position:fixed; inset:0; pointer-events:none; z-index:15; -webkit-transform:translateZ(0); transform:translateZ(0); will-change:contents; }
+  .impact {
+    position:absolute; border-radius:50%;
+    transform:translate(-50%,-50%);
+    will-change:transform,opacity;
+    animation:impact 0.22s forwards;
+  }
+  @keyframes impact {
+    0%  {width:20px;height:20px;opacity:1;border:3px solid white;}
+    100%{width:80px;height:80px;opacity:0;border:3px solid white;}
+  }
+  .particle {
+    position:absolute; border-radius:50%;
+    transform:translate(-50%,-50%);
+    will-change:transform,opacity;
+    animation:particle 0.3s forwards;
+  }
+  @keyframes particle {
+    to{transform:translate3d(calc(-50% + var(--dx)),calc(-50% + var(--dy)),0);opacity:0;}
+  }
+
+  /* ─── SCREEN SHAKE ─── */
+  @keyframes screenShake {
+    0%{transform:translate(0,0);}10%{transform:translate(-6px,4px);}20%{transform:translate(6px,-4px);}
+    30%{transform:translate(-5px,5px);}40%{transform:translate(5px,-3px);}50%{transform:translate(-4px,4px);}
+    60%{transform:translate(4px,-2px);}80%{transform:translate(-2px,2px);}100%{transform:translate(0,0);}
+  }
+  body.shake { animation:screenShake 0.5s ease-out; }
+  body.shake-wp { animation:screenShakeWp 0.3s ease-out; }
+  @keyframes screenShakeWp {
+    0%{transform:translate(0,0);}20%{transform:translate(-4px,3px);}40%{transform:translate(4px,-3px);}
+    60%{transform:translate(-3px,2px);}80%{transform:translate(2px,-1px);}100%{transform:translate(0,0);}
+  }
+
+
+
+  /* ─── TAP ZONE ─── */
+  #tapZone {
+    position:fixed; inset:0; z-index:8; cursor:crosshair; display:none;
+    touch-action:none; /* ตัด iOS 300ms delay และป้องกัน scroll interrupt */
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+  }
+  #streakLabel { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); font-size:10px; letter-spacing:3px; color:#333; z-index:10; pointer-events:none; display:none; }
+
+  /* ─── COIN POPUP ─── */
+  .coin-popup {
+    position:fixed; font-size:15px; color:var(--gold);
+    font-family:'Oswald',sans-serif; pointer-events:none; z-index:25;
+    animation:floatUp 0.9s forwards; text-shadow:0 0 10px var(--gold);
+  }
+
+  /* ─── WEAK POINT ─── */
+  #weakPoint {
+    position:fixed;
+    width:70px; height:70px;
+    border-radius:50%;
+    border:3px solid #ff2233;
+    box-shadow:0 0 18px 6px rgba(255,34(--gold); letter-spacing:2px; display:none;
   }
   #soundToggleBtn {
     position:fixed; bottom:18px; right:16px;
