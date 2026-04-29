@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>NOCTISAK47: OVERDRIVE RAMPAGE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Sarabun:wght@400;700&display=swap');
+
+  :root {
+    --red: #ff2233;
+    --gold: #ffcc00;
+    --cyan: #00ffee;
+    --blue: #4488ff;
+    --dark: #0a0a0a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Oswald', sans-serif;
+    background: var(--dark);
+    color: white;
+    overflow: hidden;
+    touch-action: manipulation;
+    user-select: none;
+    height: 100dvh;
+    width: 100vw;
+  }
+
+  /* ─── BACKGROUND ─── */
+  #bg {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse at 50% 80%, rgba(26,0,0,0.7), rgba(0,0,0,0.95)),
+      url("bg.jpg") center/cover no-repeat;
+  }
+  #bg::after { content:''; position:absolute; inset:0; background:rgba(0,0,0,0.4); }
+  #bg::before {
+    content:''; position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,0,0,0.03) 40px, rgba(255,0,0,0.03) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,0,0,0.03) 40px, rgba(255,0,0,0.03) 41px);
+  }
+
+  /* ─── PRELOADER ─── */
+  #preloader {
+    position:fixed; inset:0; z-index:1000;
+    display:flex; flex-direction:column;
+    justify-content:center; align-items:center;
+    background:#000; gap:20px;
+  }
+  #preloader h1 { font-size:clamp(40px,13vw,100px); letter-spacing:-2px; color:white; line-height:1; text-align:center; }
+  #preloader h1 span { color:var(--red); }
+  #loadBarWrap { width:min(300px,75vw); height:6px; background:#1a1a1a; border-radius:3px; overflow:hidden; }
+  #loadBar { height:100%; width:0%; background:linear-gradient(90deg,var(--red),var(--gold)); border-radius:3px; transition:width 0.15s ease; }
+  #loadText { font-size:11px; letter-spacing:3px; color:#555; text-align:center; }
+  #loadPct { font-size:28px; color:var(--gold); letter-spacing:2px; }
+
+  /* ─── MAIN MENU ─── */
+  #mainMenu {
+    position:fixed; inset:0; z-index:999;
+    display:none; flex-direction:column;
+    justify-content:center; align-items:center;
+    background:#000; gap:0;
+  }
+  #mainMenu h1 {
+    font-size:clamp(38px,13vw,100px);
+    letter-spacing:-2px; color:white; line-height:1; text-align:center;
+    margin-bottom:4px;
+  }
+  #mainMenu h1 span { color:var(--red); }
+  #mainMenu .sub-title {
+    font-size:10px; letter-spacing:5px; color:#444; margin-bottom:32px;
+  }
+  #mainMenu .coin-bar {
+    font-size:16px; color:var(--gold); letter-spacing:3px; margin-bottom:28px;
+  }
+  .menu-btn-group { display:flex; flex-direction:column; gap:12px; align-items:center; width:min(280px,85vw); }
+  .menu-btn {
+    width:100%; padding:16px 0;
+    font-family:'Oswald',sans-serif; font-size:20px; letter-spacing:4px;
+    cursor:pointer; border:none; transition:all 0.15s;
+    clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+  }
+  .menu-btn:active { transform:scale(0.97); }
+  .menu-btn-play {
+    background:var(--red); color:white;
+    animation:pulse-btn 1.5s ease-in-out infinite;
+  }
+  .menu-btn-shop {
+    background:transparent; color:var(--gold);
+    border:2px solid var(--gold); clip-path:none;
+  }
+  .menu-btn-shop:active { background:rgba(255,204,0,0.1); }
+  @keyframes pulse-btn { 0%,100%{box-shadow:0 0 20px rgba(255,34,51,0.4);} 50%{box-shadow:0 0 40px rgba(255,34,51,0.9);} }
+
+  /* ─── SHOP SCREEN ─── */
+  #shopScreen {
+    position:fixed; inset:0; z-index:998;
+    display:none; flex-direction:column;
+    align-items:center;
+    background:#000;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .shop-header {
+    position:sticky; top:0; left:0; right:0;
+    background:#000; z-index:10;
+    padding:16px 16px 10px;
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom:1px solid #1a1a1a;
+  }
+  .shop-title { font-size:clamp(20px,7vw,40px); color:var(--gold); letter-spacing:3px; }
+  .shop-coin-count { font-size:15px; color:var(--cyan); letter-spacing:2px; }
+  #shopBackBtn {
+    background:transparent; border:1px solid #444; color:#888;
+    font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:2px;
+    padding:8px 18px; cursor:pointer;
+  }
+  #shopBackBtn:active { background:#1a1a1a; }
+
+  .shop-body { padding:14px 14px 40px; width:100%; max-width:440px; }
+
+  /* Item card */
+  .shop-card {
+    background:#0d0d0d; border:1px solid #222;
+    margin-bottom:14px; overflow:hidden;
+  }
+  .shop-card-header {
+    padding:12px 14px 10px;
+    display:flex; align-items:center; gap:12px;
+    border-bottom:1px solid #1a1a1a;
+  }
+  .shop-card-icon { font-size:28px; flex-shrink:0; }
+  .shop-card-name { font-size:15px; color:var(--gold); letter-spacing:1px; }
+  .shop-card-tagline { font-family:'Sarabun',sans-serif; font-size:11px; color:#555; margin-top:2px; }
+
+  .shop-levels { display:flex; flex-direction:column; gap:0; }
+  .shop-level-row {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; border-bottom:1px solid #111;
+    cursor:pointer; transition:background 0.1s;
+    position:relative;
+  }
+  .shop-level-row:last-child { border-bottom:none; }
+  .shop-level-row:active { background:#1a1a1a; }
+  .shop-level-row.current { background:#111; }
+  .shop-level-row.locked { opacity:0.4; pointer-events:none; }
+  .shop-level-row.maxed { pointer-events:none; }
+
+  .slr-left { display:flex; align-items:center; gap:10px; }
+  .slr-lv {
+    font-size:11px; letter-spacing:2px;
+    width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid #333; color:#555; flex-shrink:0;
+    font-size:12px;
+  }
+  .slr-lv.active { border-color:var(--gold); color:var(--gold); }
+  .slr-lv.done { border-color:#00ff88; color:#00ff88; background:rgba(0,255,136,0.08); }
+
+  .slr-desc { font-family:'Sarabun',sans-serif; font-size:11px; color:#888; line-height:1.5; }
+  .slr-desc strong { color:#ccc; font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; }
+
+  .slr-right { text-align:right; flex-shrink:0; margin-left:8px; }
+  .slr-cost { font-size:14px; color:var(--cyan); white-space:nowrap; }
+  .slr-cost.cant { color:#444; }
+  .slr-owned { font-size:11px; color:#00ff88; letter-spacing:1px; }
+  .slr-buy-btn {
+    font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:2px;
+    padding:5px 12px; border:1px solid var(--cyan); color:var(--cyan);
+    background:transparent; cursor:pointer; margin-top:4px;
+  }
+  .slr-buy-btn:active { background:rgba(0,255,238,0.1); }
+  .slr-buy-btn.cant-afford { border-color:#333; color:#444; pointer-events:none; }
+  .slr-current-tag {
+    position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    font-size:9px; letter-spacing:2px; color:var(--gold);
+    display:none;
+  }
+
+  /* ─── RESULT SCREEN ─── */
+  #resultScreen {
+    position:fixed; inset:0; z-index:997;
+    display:none; flex-direction:column;
+    justify-content:center; align-items:center;
+    background:rgba(0,0,0,0.96); gap:10px;
+    padding:20px;
+  }
+  #resultScreen h2 { font-size:clamp(24px,8vw,50px); color:var(--gold); letter-spacing:4px; }
+  .result-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:min(340px,85vw); margin:8px 0; }
+  .result-cell { background:#0d0d0d; padding:12px; text-align:center; border:1px solid #1a1a1a; }
+  .result-cell-label { font-size:9px; letter-spacing:2px; color:#555; margin-bottom:4px; }
+  .result-cell-val { font-size:22px; color:white; }
+  .result-cell-val.gold { color:var(--gold); }
+  .result-cell-val.cyan { color:var(--cyan); }
+  #coinsEarned { font-size:18px; color:var(--gold); letter-spacing:2px; padding:10px 20px; border:1px solid #2a2000; background:#0d0800; }
+  .result-btns { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
+  .res-btn {
+    padding:13px 28px;
+    font-family:'Oswald',sans-serif; font-size:15px; letter-spacing:3px; cursor:pointer;
+    border:2px solid var(--gold); color:var(--gold); background:transparent;
+    transition:all 0.2s;
+  }
+  .res-btn:active { background:var(--gold); color:#000; }
+  .res-btn.cyan-btn { border-color:var(--cyan); color:var(--cyan); }
+  .res-btn.cyan-btn:active { background:var(--cyan); color:#000; }
+
+  /* ─── TOP UI ─── */
+  #topUI {
+    position:fixed; top:0; left:0; right:0; z-index:10;
+    padding:10px 14px 12px;
+    background:linear-gradient(to bottom,rgba(0,0,0,0.9),transparent);
+    display:none;
+  }
+  .ui-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  #koDisplay { font-size:13px; color:#aaa; letter-spacing:2px; }
+  #koDisplay span { color:var(--red); font-size:20px; }
+  #timerDisplay { font-size:28px; color:white; letter-spacing:2px; min-width:80px; text-align:center; }
+  #timerDisplay.urgent { color:var(--red); animation:flash 0.4s infinite alternate; }
+  #scoreDisplay { font-size:12px; color:#aaa; letter-spacing:1px; text-align:right; }
+  #scoreDisplay span { color:var(--gold); font-size:18px; display:block; }
+  .bar-label { font-size:9px; letter-spacing:2px; color:#555; margin-bottom:3px; }
+  .bar-wrap { background:#1a1a1a; border-radius:2px; height:8px; overflow:hidden; }
+  #hpFill { height:100%; width:100%; background:linear-gradient(90deg,#cc0011,var(--red)); border-radius:2px; transition:width 0.1s; }
+  #godBar { margin-top:5px; }
+  #godFill { height:100%; width:0%; background:linear-gradient(90deg,#004444,var(--cyan)); border-radius:2px; transition:width 0.05s; }
+
+  /* coin in game */
+  #ingameCoin {
+    position:fixed; top:12px; right:14px; z-index:12;
+    font-size:12px; color:var(--gold); letter-spacing:2px; display:none;
+  }
+  #soundToggleBtn {
+    position:fixed; bottom:18px; right:16px;
+    background:rgba(0,0,0,0.6); border:1px solid #555;
+    border-radius:50%; width:40px; height:40px;
+    font-size:20px; color:white; z-index:25;
+    cursor:pointer; display:none;
+    line-height:1; padding:0; touch-action:manipulation;
+  }
+
+  /* ─── OVERDRIVE LEVEL INDICATOR ─── */
+  #godLevelWrap {
+    position:fixed; top:50%; right:14px;
+    transform:translateY(-50%);
+    z-index:10; pointer-events:none; text-align:right;
+    display:none;
+  }
+  #godLevelNum { font-size:clamp(36px,12vw,65px); line-height:1; text-shadow:0 0 30px currentColor; }
+  #godLevelLabel { font-size:9px; letter-spacing:3px; color:#777; }
+  #godLevelName { font-size:10px; letter-spacing:2px; margin-top:3px; }
+  #godTimer2 { font-size:11px; letter-spacing:2px; color:#666; margin-top:3px; }
+
+  /* ─── COMBO ─── */
+  #comboWrap {
+    position:fixed; left:14px; top:50%;
+    transform:translateY(-50%);
+    z-index:10; pointer-events:none;
+  }
+  #bigCombo { font-size:clamp(60px,22vw,120px); line-height:1; color:white; text-shadow:3px 3px 0 rgba(0,0,0,0.5); transition:color 0.1s; }
+  #comboLabel { font-size:10px; letter-spacing:3px; color:#444; margin-top:-4px; }
+  .combo-hot #bigCombo { color:var(--gold); }
+  .combo-max #bigCombo { color:var(--red); animation:flash 0.25s infinite alternate; text-shadow:0 0 30px rgba(255,0,0,0.8); }
+
+  /* ─── MULTIPLIER ─── */
+  #multiBadge {
+    position:fixed; right:14px; bottom:90px;
+    z-index:10; text-align:right; pointer-events:none;
+    opacity:0; transition:opacity 0.3s;
+  }
+  #multiBadge.show { opacity:1; }
+  #multiNum { font-size:clamp(24px,8vw,46px); color:var(--gold); line-height:1; text-shadow:0 0 20px rgba(255,204,0,0.8); }
+  #multiLabel { font-size:9px; letter-spacing:2px; color:#666; }
+
+  /* ─── BOSS BAR ─── */
+  #bossBar {
+    position:fixed; bottom:65px; left:50%;
+    transform:translateX(-50%);
+    width:min(360px,88vw); z-index:10; pointer-events:none; display:none;
+  }
+  #bossLabel { font-size:10px; letter-spacing:3px; color:#888; text-align:center; margin-bottom:3px; }
+  #bossName { font-size:17px; color:var(--red); text-align:center; margin-bottom:5px; letter-spacing:2px; }
+  #bossHpWrap { background:#1a1a1a; border-radius:2px; height:11px; overflow:hidden; }
+  #bossHpFill { height:100%; width:100%; background:linear-gradient(90deg,#990000,var(--red)); border-radius:2px; transition:width 0.1s; }
+  #bossPhaseTag { font-size:9px; letter-spacing:2px; color:#ff4400; text-align:center; margin-top:3px; }
+
+  /* ─── FIGHTER ─── */
+  #fighter {
+    position:fixed; bottom:55px; left:50%;
+    transform:translateX(-50%);
+    width:min(360px,83vw); z-index:5; pointer-events:none;
+    display:none;
+  }
+  #boxer { width:100%; display:block; filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)); will-change:transform; -webkit-transform:translateZ(0); transform:translateZ(0); }
+  #gun { position:absolute; width:65%; left:55%; top:62%; transform:translate(-50%,-50%) rotate(-10deg); display:none; will-change:transform; }
+
+  .recoil { animation:recoilAnim 0.12s ease-out; }
+  .recoil-god { animation:recoilGun 0.08s ease-out; }
+  @keyframes recoilAnim { 30%{transform:translateX(-50%) translateY(-8px) rotate(-2deg);} }
+  @keyframes recoilGun  { 30%{transform:translateX(-50%) translateY(-5px);} }
+
+  /* ─── HIT NUMBER ─── */
+  .hit-num {
+    position:fixed; font-family:'Oswald',sans-serif; font-weight:700;
+    pointer-events:none; z-index:20;
+    animation:floatUp 0.6s forwards;
+    text-shadow:1px 1px 0 rgba(0,0,0,0.6);
+  }
+  @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1);} 100%{opacity:0;transform:translateY(-70px) scale(0.7);} }
+
+  /* ─── SPLASHES ─── */
+  #godSplash {
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(0);
+    width:min(260px,60vw); opacity:0; z-index:50;
+    filter:drop-shadow(0 0 30px cyan); pointer-events:none;
+  }
+  #wp5Splash {
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(0);
+    width:min(260px,60vw); opacity:0; z-index:50;
+    filter:drop-shadow(0 0 30px #ff00ff); pointer-events:none;
+  }
+  #wpRoundLabel {
+    font-size:10px; letter-spacing:3px; color:#ffcc00;
+    margin-top:2px; text-align:center;
+  }
+  .showSplash { animation:splash 0.55s forwards !important; }
+  @keyframes splash {
+    0%  {transform:translate(-50%,-50%) scale(0.3);opacity:0;}
+    20% {transform:translate(-50%,-50%) scale(1.05);opacity:0.9;}
+    70% {opacity:0.85;}
+    100%{transform:translate(-50%,-50%) scale(1);opacity:0;}
+  }
+
+  /* bigSplash — ย้ายไปบนซ้าย ไม่บังกลางจอ */
+  #bigSplashText {
+    position:fixed; top:18%; left:50%;
+    transform:translate(-50%,-50%);
+    z-index:50; pointer-events:none; text-align:center; opacity:0;
+  }
+  #bigSplashText.show { animation:bigSplashAnim 0.75s forwards; }
+  /* splash สำคัญ (lv3/boss) แสดงกลางจอ */
+  #bigSplashText.show-center { animation:bigSplashAnimCenter 0.85s forwards; }
+  .splash-main { font-size:clamp(14px,4.5vw,28px); letter-spacing:3px; line-height:1; }
+  .splash-sub  { font-size:clamp(9px,2.5vw,13px); letter-spacing:4px; color:#888; margin-top:3px; }
+  @keyframes bigSplashAnim {
+    0%  {opacity:0;transform:translate(-50%,-50%) scale(0.85);}
+    15% {opacity:1;transform:translate(-50%,-50%) scale(1.02);}
+    65% {opacity:1;transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0;transform:translate(-50%,-55%);}
+  }
+  @keyframes bigSplashAnimCenter {
+    0%  {opacity:0;transform:translate(-50%,-50%) scale(0.8);}
+    15% {opacity:1;transform:translate(-50%,-50%) scale(1.05);}
+    65% {opacity:1;}
+    100%{opacity:0;transform:translate(-50%,-55%);}
+  }
+
+  /* ─── ANNIHILATION FLASH ─── */
+  #annihilationFlash { position:fixed; inset:0; z-index:60; pointer-events:none; opacity:0; background:white; }
+  #annihilationFlash.boom { animation:anniBoom 0.9s forwards; }
+  @keyframes anniBoom { 0%{opacity:0.9;} 30%{opacity:0.6;background:#ff2233;} 60%{opacity:0.3;background:#ffcc00;} 100%{opacity:0;} }
+
+  /* boss arrival */
+  #bossArrival {
+    position:fixed; top:36%; left:50%;
+    transform:translate(-50%,-50%);
+    z-index:51; pointer-events:none; text-align:center; opacity:0;
+  }
+  #bossArrival.show { animation:bossArrive 1.5s forwards; }
+  .boss-name-big { font-size:clamp(22px,7vw,44px); color:var(--red); letter-spacing:3px; text-shadow:0 0 30px #ff0000; }
+  .boss-phase-tag { font-size:10px; letter-spacing:4px; color:#ff4400; margin-top:4px; }
+  @keyframes bossArrive {
+    0%{opacity:0;transform:translate(-50%,-50%) scale(1.3);}
+    20%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+    70%{opacity:1;} 100%{opacity:0;}
+  }
+
+  /* ─── SCREEN FLASH ─── */
+  #screenFlash { position:fixed; inset:0; z-index:30; pointer-events:none; opacity:0; }
+  .flash-punch { animation:sfPunch 0.12s forwards; }
+  .flash-god   { animation:sfGod   0.18s forwards; }
+  .flash-god2  { animation:sfGod2  0.2s  forwards; }
+  .flash-god3  { animation:sfGod3  0.25s forwards; }
+  .flash-boss  { animation:sfBoss  0.15s forwards; }
+  @keyframes sfPunch { 0%{opacity:0.12;background:white;} 100%{opacity:0;} }
+  @keyframes sfGod   { 0%{opacity:0.25;background:cyan;} 100%{opacity:0;} }
+  @keyframes sfGod2  { 0%{opacity:0.3;background:#4488ff;} 100%{opacity:0;} }
+  @keyframes sfGod3  { 0%{opacity:0.35;background:#ff2233;} 100%{opacity:0;} }
+  @keyframes sfBoss  { 0%{opacity:0.2;background:#660000;} 100%{opacity:0;} }
+
+  /* ─── FX ─── */
+  #fxLayer { position:fixed; inset:0; pointer-events:none; z-index:15; -webkit-transform:translateZ(0); transform:translateZ(0); will-change:contents; }
+  .impact {
+    position:absolute; border-radius:50%;
+    transform:translate(-50%,-50%);
+    will-change:transform,opacity;
+    animation:impact 0.22s forwards;
+  }
+  @keyframes impact {
+    0%  {width:20px;height:20px;opacity:1;border:3px solid white;}
+    100%{width:80px;height:80px;opacity:0;border:3px solid white;}
+  }
+  .particle {
+    position:absolute; border-radius:50%;
+    transform:translate(-50%,-50%);
+    will-change:transform,opacity;
+    animation:particle 0.3s forwards;
+  }
+  @keyframes particle {
+    to{transform:translate3d(calc(-50% + var(--dx)),calc(-50% + var(--dy)),0);opacity:0;}
+  }
+
+  /* ─── SCREEN SHAKE ─── */
+  @keyframes screenShake {
+    0%{transform:translate(0,0);}10%{transform:translate(-6px,4px);}20%{transform:translate(6px,-4px);}
+    30%{transform:translate(-5px,5px);}40%{transform:translate(5px,-3px);}50%{transform:translate(-4px,4px);}
+    60%{transform:translate(4px,-2px);}80%{transform:translate(-2px,2px);}100%{transform:translate(0,0);}
+  }
+  body.shake { animation:screenShake 0.5s ease-out; }
+  body.shake-wp { animation:screenShakeWp 0.3s ease-out; }
+  @keyframes screenShakeWp {
+    0%{transform:translate(0,0);}20%{transform:translate(-4px,3px);}40%{transform:translate(4px,-3px);}
+    60%{transform:translate(-3px,2px);}80%{transform:translate(2px,-1px);}100%{transform:translate(0,0);}
+  }
+
+
+
+  /* ─── TAP ZONE ─── */
+  #tapZone {
+    position:fixed; inset:0; z-index:8; cursor:crosshair; display:none;
+    touch-action:none; /* ตัด iOS 300ms delay และป้องกัน scroll interrupt */
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+  }
+  #streakLabel { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); font-size:10px; letter-spacing:3px; color:#333; z-index:10; pointer-events:none; display:none; }
+
+  /* ─── COIN POPUP ─── */
+  .coin-popup {
+    position:fixed; font-size:15px; color:var(--gold);
+    font-family:'Oswald',sans-serif; pointer-events:none; z-index:25;
+    animation:floatUp 0.9s forwards; text-shadow:0 0 10px var(--gold);
+  }
+
+  /* ─── WEAK POINT ─── */
+  #weakPoint {
+    position:fixed;
+    width:70px; height:70px;
+    border-radius:50%;
+    border:3px solid #ff2233;
+    box-shadow:0 0 18px 6px rgba(255,34,51,0.7), 0 0 6px 2px rgba(255,200,0,0.5);
+    display:none; cursor:crosshair;
+    z-index:20;
+    transform:translate(-50%,-50%);
+    animation:wpPulse 0.5s ease-in-out infinite alternate;
+    pointer-events:auto;
+    overflow:hidden;
+    background:#000;
+  }
+  #weakPoint img {
+    width:100%; height:100%;
+    object-fit:cover;
+    pointer-events:none;
+    border-radius:50%;
+  }
+  @keyframes wpPulse {
+    0%  { box-shadow:0 0 14px 4px rgba(255,34,51,0.6), 0 0 6px rgba(255,200,0,0.3); transform:translate(-50%,-50%) scale(1);   }
+    100%{ box-shadow:0 0 28px 12px rgba(255,34,51,0.9), 0 0 14px 4px rgba(255,200,0,0.7); transform:translate(-50%,-50%) scale(1.12); }
+  }
+  #weakPoint.wp-vanish { animation:wpVanish 0.2s forwards; }
+  @keyframes wpVanish { to{opacity:0; transform:translate(-50%,-50%) scale(1.5);} }
+
+  /* ─── WEAK POINT COUNTER ─── */
+  #wpCounter {
+    position:fixed; bottom:75px; left:50%;
+    transform:translateX(-50%);
+    z-index:12; pointer-events:none;
+    display:none; flex-direction:column; align-items:center; gap:4px;
+  }
+  #wpCounterLabel { font-size:9px; letter-spacing:3px; color:#888; }
+  #wpSlots { display:flex; gap:6px; align-items:center; }
+  .wp-slot {
+    width:34px; height:34px; border-radius:50%;
+    border:2px solid #333;
+    background:#0a0a0a;
+    overflow:hidden; transition:all 0.2s;
+    position:relative;
+  }
+  .wp-slot img { width:100%; height:100%; object-fit:cover; border-radius:50%; opacity:0.2; transition:all 0.2s; }
+  .wp-slot.filled img { opacity:1; }
+  .wp-slot.filled { border-color:#ff2233; box-shadow:0 0 10px rgba(255,34,51,0.7); }
+  .wp-slot.ready { border-color:#ffcc00; box-shadow:0 0 14px rgba(255,200,0,0.9); animation:slotReady 0.4s ease-in-out infinite alternate; }
+  .wp-slot.ready img { opacity:1; }
+  @keyframes slotReady { 0%{transform:scale(1);} 100%{transform:scale(1.15);} }
+
+  /* bomb explosion flash */
+  #bombFlash { position:fixed; inset:0; z-index:62; pointer-events:none; opacity:0; }
+  #bombFlash.boom { animation:bombBoom 1.0s forwards; }
+  @keyframes bombBoom {
+    0%  {opacity:0;}
+    5%  {opacity:1;  background:#ffffff;}
+    20% {opacity:0.8;background:#ffcc00;}
+    45% {opacity:0.5;background:#ff4400;}
+    70% {opacity:0.2;background:#ff2233;}
+    100%{opacity:0;}
+  }
+
+  .wp-hit-text {
+    position:fixed; font-family:'Oswald',sans-serif; font-weight:700;
+    pointer-events:none; z-index:35; text-align:center;
+    animation:wpHitAnim 0.8s forwards;
+  }
+  @keyframes wpHitAnim {
+    0%  {opacity:1; transform:translateY(0)   scale(1.4);}
+    30% {opacity:1; transform:translateY(-20px) scale(1);}
+    100%{opacity:0; transform:translateY(-80px) scale(0.7);}
+  }
+
+  /* ─── CRITICAL ─── */
+  .crit-text {
+    position:fixed; font-family:'Oswald',sans-serif; font-weight:700;
+    color:#ff4444; font-size:20px; pointer-events:none; z-index:22;
+    animation:critAnim 0.7s forwards; text-shadow:0 0 20px #ff0000;
+  }
+  @keyframes critAnim { 0%{opacity:1;transform:translateY(0) scale(1.3);} 100%{opacity:0;transform:translateY(-60px) scale(0.8);} }
+
+  @keyframes flash { to{opacity:0.5;} }
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="fxLayer"></div>
+<div id="screenFlash"></div>
+<div id="annihilationFlash"></div>
+<div id="bombFlash"></div>
+
+<!-- WEAK POINT COUNTER -->
+<div id="wpCounter">
+  <div id="wpCounterLabel">WEAK CORE</div>
+  <div id="wpSlots">
+    <div class="wp-slot" id="wpSlot0"><img src="weak.webp" alt=""></div>
+    <div class="wp-slot" id="wpSlot1"><img src="weak.webp" alt=""></div>
+    <div class="wp-slot" id="wpSlot2"><img src="weak.webp" alt=""></div>
+    <div class="wp-slot" id="wpSlot3"><img src="weak.webp" alt=""></div>
+    <div class="wp-slot" id="wpSlot4"><img src="weak.webp" alt=""></div>
+  </div>
+  <div id="wpRoundLabel">RND 1/5</div>
+</div>
+
+<!-- ══════════════ PRELOADER ══════════════ -->
+<div id="preloader">
+  <h1>NOCTIS<span>AK47</span></h1>
+  <div id="loadPct">0%</div>
+  <div id="loadBarWrap"><div id="loadBar"></div></div>
+  <div id="loadText">LOADING ASSETS...</div>
+</div>
+
+<!-- ══════════════ MAIN MENU ══════════════ -->
+<div id="mainMenu">
+  <h1>NOCTIS<span>AK47</span></h1>
+  <div class="sub-title">OVERDRIVE RAMPAGE</div>
+  <div class="coin-bar">💰 VOID COIN: <span id="menuCoinNum">0</span></div>
+  <div class="menu-btn-group">
+    <button class="menu-btn menu-btn-play" onclick="startGame()">▶ PLAY</button>
+    <button class="menu-btn menu-btn-shop" onclick="openShop('menu')">🛒 SHOP</button>
+  </div>
+</div>
+
+<!-- ══════════════ SHOP ══════════════ -->
+<div id="shopScreen">
+  <div class="shop-header">
+    <div>
+      <div class="shop-title">— SHOP —</div>
+      <div class="shop-coin-count">💰 <span id="shopCoinNum">0</span> VOID COIN</div>
+    </div>
+    <button id="shopBackBtn" onclick="closeShop()">← BACK</button>
+  </div>
+  <div class="shop-body" id="shopBody"></div>
+</div>
+
+<!-- ══════════════ RESULT ══════════════ -->
+<div id="resultScreen">
+  <h2>— BATTLE RESULT —</h2>
+  <div class="result-grid">
+    <div class="result-cell">
+      <div class="result-cell-label">EXECUTION</div>
+      <div class="result-cell-val" id="res-ko">0</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-cell-label">MAX RAGE STACK</div>
+      <div class="result-cell-val gold" id="res-combo">0</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-cell-label">CHAOS SCORE</div>
+      <div class="result-cell-val gold" id="res-score">0</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-cell-label">ANNIHILATION</div>
+      <div class="result-cell-val cyan" id="res-anni">0</div>
+    </div>
+  </div>
+  <div id="coinsEarned">+0 VOID COIN</div>
+  <div class="result-btns">
+    <button class="res-btn" onclick="retryGame()">RETRY</button>
+    <button class="res-btn cyan-btn" onclick="openShop('result')">SHOP</button>
+    <button class="res-btn" onclick="goMainMenu()" style="border-color:#666;color:#888;">MENU</button>
+  </div>
+</div>
+
+<!-- ══════════════ GAME UI ══════════════ -->
+<div id="topUI">
+  <div class="ui-row">
+    <div id="koDisplay">KO <span id="koNum">0</span></div>
+    <div id="timerDisplay">60<span style="font-size:16px">.00</span></div>
+    <div id="scoreDisplay">คะแนน <span id="scoreNum">0</span></div>
+  </div>
+  <div class="bar-label">HP</div>
+  <div class="bar-wrap"><div id="hpFill"></div></div>
+  <div id="godBar">
+    <div class="bar-label" style="margin-top:4px">RAGE STACK → OVERDRIVE</div>
+    <div class="bar-wrap"><div id="godFill"></div></div>
+  </div>
+</div>
+
+<div id="ingameCoin">💰 <span id="coinNum">0</span></div>
+<button id="soundToggleBtn" onclick="toggleSound()" title="เปิด/ปิดเสียง">🔊</button>
+
+<div id="comboWrap">
+  <div id="bigCombo">1</div>
+  <div id="comboLabel">RAGE STACK</div>
+</div>
+<div id="multiBadge">
+  <div id="multiNum">x1</div>
+  <div id="multiLabel">CHAOS MULTI</div>
+</div>
+
+<div id="godLevelWrap">
+  <div id="godLevelNum">Lv1</div>
+  <div id="godLevelLabel">OVERDRIVE</div>
+  <div id="godLevelName"></div>
+  <div id="godTimer2"></div>
+</div>
+
+<div id="bossBar">
+  <div id="bossLabel">▼ BOSS ▼</div>
+  <div id="bossName">NOCTISAK47</div>
+  <div id="bossHpWrap"><div id="bossHpFill"></div></div>
+  <div id="bossPhaseTag"></div>
+</div>
+
+<div id="fighter">
+  <img src="boxer.png" id="boxer" alt="boxer">
+  <img src="ak47.png" id="gun" alt="gun">
+</div>
+
+<div id="weakPoint"><img src="weak.webp" alt="weak"></div>
+
+<img src="noobak47.png" id="godSplash" alt="">
+<div id="bigSplashText">
+  <div class="splash-main" id="splashMain"></div>
+  <div class="splash-sub"  id="splashSub"></div>
+</div>
+<div id="bossArrival">
+  <div class="boss-name-big">NOCTISAK47</div>
+  <div class="boss-phase-tag" id="bossArrivalPhase">BOSS INCOMING</div>
+</div>
+
+
+<div id="streakLabel">TAP FAST</div>
+<div id="tapZone"></div>
+
+<audio id="akSound" src="ak47.mp3" preload="auto"></audio>
+<audio id="punchSound" src="punch.mp3" preload="auto"></audio>
+<audio id="wpSound1" src="wp1.mp3" preload="auto"></audio>
+<audio id="wpSound2" src="wp2.mp3" preload="auto"></audio>
+<audio id="wpSound3" src="wp3.mp3" preload="auto"></audio>
+<audio id="wpSound4" src="wp4.mp3" preload="auto"></audio>
+<audio id="wpSound5" src="wp5.mp3" preload="auto"></audio>
+<audio id="wkSound1" src="wk1.mp3" preload="auto"></audio>
+<audio id="wkSound2" src="wk2.mp3" preload="auto"></audio>
+<audio id="wkSound3" src="wk3.mp3" preload="auto"></audio>
+<audio id="wkSound4" src="wk4.mp3" preload="auto"></audio>
+<audio id="wkSound5" src="wk5.mp3" preload="auto"></audio>
+
+<!-- WP5 ROUND SPLASH (เหมือน godSplash) -->
+<img src="wp5.png" id="wp5Splash" alt="">
+
+<script>
+// ════════════════════════════════════════════
+//  SHOP DATA  — item มี levels
+//  ราคาออกแบบให้:
+//    รอบปกติได้ ~8-18 coin
+//    Lv1 = ประมาณ 15-20 รอบ, Lv2 = 50-70 รอบ, Lv3 = 120-180 รอบ
+// ════════════════════════════════════════════
+const SHOP_DEF = [
+  {
+    id: 'daedalus',
+    name: 'DAEDALUS',
+    icon: '⚔️',
+    tagline: 'โอกาสคริติคอล — ดาเมจพุ่ง',
+    levels: [
+      { lv:1, cost:250,  desc:'คริติคอล <strong>15%</strong> → ดาเมจ x2',   effect:'crit_chance:0.15 crit_mult:2.0' },
+      { lv:2, cost:750,  desc:'คริติคอล <strong>22%</strong> → ดาเมจ x2.5', effect:'crit_chance:0.22 crit_mult:2.5' },
+      { lv:3, cost:1800, desc:'คริติคอล <strong>30%</strong> → ดาเมจ x3.2', effect:'crit_chance:0.30 crit_mult:3.2' },
+    ]
+  },
+  {
+    id: 'desolator',
+    name: 'DESOLATOR',
+    icon: '🗡️',
+    tagline: 'เพิ่มดาเมจพื้นฐานทุกตี',
+    levels: [
+      { lv:1, cost:220,  desc:'ดาเมจทุกตี <strong>+20%</strong>',  effect:'dmg_bonus:0.2' },
+      { lv:2, cost:680,  desc:'ดาเมจทุกตี <strong>+45%</strong>',  effect:'dmg_bonus:0.45' },
+      { lv:3, cost:1600, desc:'ดาเมจทุกตี <strong>+80%</strong>',  effect:'dmg_bonus:0.80' },
+    ]
+  },
+  {
+    id: 'moonshard',
+    name: 'MOON SHARD',
+    icon: '🌙',
+    tagline: 'โอกาสตีซ้ำในคลิกเดียว',
+    levels: [
+      { lv:1, cost:280,  desc:'<strong>15%</strong> โอกาสตี 2 ครั้ง/คลิก', effect:'double:0.15' },
+      { lv:2, cost:850,  desc:'<strong>25%</strong> โอกาสตี 2 ครั้ง/คลิก', effect:'double:0.25' },
+      { lv:3, cost:2000, desc:'<strong>35%</strong> โอกาสตี 3 ครั้ง/คลิก', effect:'double:0.35 triple:true' },
+    ]
+  },
+  {
+    id: 'aghanims',
+    name: "AGHANIM'S",
+    icon: '🔮',
+    tagline: 'Overdrive ดาเมจทรงพลังขึ้น',
+    levels: [
+      { lv:1, cost:300,  desc:'Overdrive ดาเมจ <strong>+30%</strong>',  effect:'god_dmg:0.3' },
+      { lv:2, cost:900,  desc:'Overdrive ดาเมจ <strong>+70%</strong>',  effect:'god_dmg:0.7' },
+      { lv:3, cost:2200, desc:'Overdrive ดาเมจ <strong>+120%</strong>', effect:'god_dmg:1.2' },
+    ]
+  },
+  {
+    id: 'octarine',
+    name: 'OCTARINE CORE',
+    icon: '💎',
+    tagline: 'Overdrive อยู่นานขึ้น',
+    levels: [
+      { lv:1, cost:260,  desc:'Overdrive นาน <strong>+3 วินาที</strong>',  effect:'god_dur:3' },
+      { lv:2, cost:800,  desc:'Overdrive นาน <strong>+6 วินาที</strong>',  effect:'god_dur:6' },
+      { lv:3, cost:1900, desc:'Overdrive นาน <strong>+10 วินาที</strong>', effect:'god_dur:10' },
+    ]
+  },
+];
+
+
+const ITEM_IMGS = {
+  daedalus: 'data:image/webp;base64,UklGRggFAABXRUJQVlA4IPwEAADQGACdASo8ACwAPjEUiEMiIQquAsAQAYJagCdMrPyZ65+SHsWVn+x7TkYawB6sdvRuRvOA6kn0AOlG/b79sfaqwMI+H7f9oWed+8H37bZvQL/lv+J1m7wY/5P8s7lfjl/4H2zfSj/Bf8by0fN//P9wf+R/zn/S/3T95O8h6G/67D6edT/cWHfMnqo1ec/9D/X27w6SN0Gk2/Tlb0c0QskbN3qlqYiFyYrEHZQc1hbOewzlaDx5UhVEtyEPsMG+xgx45VrYmK9YvGclPzeKRAAA/v+fUWl2cr9IMVxe2UjX3IWtqkOdDvEZb8aiI9e77ImKG/2EkG465Ucm6z5jYXJjZdqESlmnCYg3rGVhLf7laP4V7aG4g7ufWLHOjgkLj+rdmDvnO8LsTJEXFjM/5uYDf9yxouINyFl+U3cO4//bWjbOPd0YYL6giyWKiZT+JqiL4/z56vJnnBtfHYX3n7oxFTg0v+Hv9i3VuC8IhXUXCiWlYmNcDDp5a/Jl5jVn0b8hDIc/o7YORiTiFhZMYzhv8VuTAYgv1DjIUMH0ddrEsIQVf5n8/o5hHEMUO021KCRgU4P6eERAK+Ggd7HHBBrggoi7AZE7uTzjNprC7tKwrMLV8HWOwQHohDM3guGTGCvxkM8v/0sLrIP1ym/ugbcGOGwjwS7iRQGAvwFfbSiS60mKFL+2Ulbzme2sFAgq5c62HLG1UHP/LwBdqrWARtF63dE7y3TS2XvSEGTKBvh0o00olB2rLVAQ7gJc/pFekfP4jXhjHVJ7kEXSfq3OpbtNxYG+aI/4KxSvqzq38Rs7J73Xk1K2zQpzYLri7kI1fvKN6fqKZTq3ijMgri8Cw0FLPtwAWHwbjVl937X/XRxgV5Wv66qhHZDIKZZLZwunv+4zdVdHqf4S+iRsrK+4FEf3xX9OHd1zqLQAeb4nmhhumwpzfbt0ThOXaW7TT96qrfNAwtKL41fwz4B2XW0Go6PeZann7UuVYC7l/r0hO7AwvfnFB0+PMERB7gEymO+rDVCVIShCcYAmxsGR3h1C+KvwFl7LneIHgA4vMn2C9P+NqP9D38cdmeRiSZR86HooG/Q85QZ+YW3w9jaHlWz94XCcvR1vQaGn9nut0mrMBtU+APgkKD7LDq2mxW/VlclNBwBcUfHVjCTXhi67il9/sACHg8C2mNigOR8o5d1/0O5R1CfNnnzUlXnAOJi+HGSguzXhVB/gSsEI+9kcQ1UL1WQl0RKRoqP7b7rtJ1SYNNCZ1BIftKve3ebtlWWLAP+PAiyqBMj2NVwUjyFBdnFCQ4ZlUwlrnxDGZRV/8aMimfNQ5TnH47En6azlClO+jXJQrI51D/Dm+WRAl1VxH3/wntendNxFGOmr3cUX2o1VtMlgSYpkSRUkcqD9WPLEpr+PLnfkG64b6ptFePffO3HDiSdKF9oM/ItzIox3ClhJNjcHMCczrBvCDLxxeYK2RKVVfbJU/XjSGQNLrV8/AzyUmYb/ODFZgx+/xETDnBU4JQLP2yZslhKw1rLADotSvOdfdLfVYGhb3FWENIgN0boC21T6JKSYsMoAXOLslClfpkS6S9W8crEur0Scbt3Or9bsjryK/MmfpSD9cHhIyo7CGHG5W+indi1OBUaDf1K9/EFFRsp8BZWQayU8uOEBHztaSJHHpO1vot1IyLsnLq9ibSMUlZokRzySLGSW8AAA',
+  desolator: 'data:image/webp;base64,UklGRjQFAABXRUJQVlA4ICgFAADQFwCdASo8ACwAPjESh0KiIQ385gAQAYJbACdMoRy14x+QHsCU/+lfej1Ac4cRftDnUbcPzNfsN6y/SMf0D/VdaB6Fflp/t38HP7e/tV7KuBhbwvqvg344vd0pemH/GcS+1vjTf9nx06YmZR+xP4ze5v6W9gr9Yy9bGl+Dwy+gv47x2fF0RQdo4yPVCzr/bGqmlfNazRunjKlHhqYnqHHhWMD3mHW7hgtk58NsihaAMzuo3wKUGkyGjB2kpSl85xKZ9kSSW++AAP7/5le1jk6l7YcKfonewo5BogrA7BH0aZO4i5vxs0EM1WMqe1KP+7NpvYvyn8XIPmJ6Exskmd+cw/2oKFDcPB2Xojupdskw1oZJWRLqskw//xnBzaTlqgoeScpVjnyT3TdNsrZWoDwfsT5j9K/qCZfC+nd/d6yCRzsz+hfmFKpMNYaBv7O1IupaE9T/6hWo+in/RD0kCTvvQ+ebxXbVHpM//qO9p9k3VaR8Ivs+TdVfRLkFsrAY0AbAYeRiNRZoPeeyXelYnPlNkbhGzty/awXjfaypMw6W63nDTxIhMs4rmfIhRlY9H5d1egLgAo0U4c8y/OA/k70VxJqvrbTOOicLtEfhzjTG05bCkYFlZSMWBZ97oceZpCQ3OVOVKE6hf+Q77dgxZ8NgjmuiofIlo/qkZ7zEejROpjjV8INbJTonBPDlMK5l/H15+rX1xZhDxrz8bns7FVPnj7q9X08jvDMsOKl9ZDddUK1KAn1cgr5U+U9YnZfOHPK6JgCPQYD9rMQNJf4aeTO32n7kCrcfZ26L95fEXfCO773sxRyk0kLT4GVQu0FSvBwM58iMk0Zm2Ta3Yx5ekl/AvDSfiMFesjBFgaP+2yb8Ab/Wm2N6caEWWvfYm/Z6RUNbZn9BFzakoY+iuJGjRJS1szQo/lUvhjxJY3wtI3l20LvGw//9a6+C2jgQgsX08AihG48fpLb4Cj3p+331zH6llGb0DE//MGScn9jcEyguxFDeCPP+8B3stNTqxLPJAudwCmZUSePjRbNzfpQ8RZE09t+RNhUcZvf9PXjBr/DZbfzDZqBTOmURL66gy3U8Sgux8C/jE23TwYKE/PdnEhWKyz8rUgRtmfSyPeeM3btgFnn/Il6t+dexk6r0HYpw9K20Zii3iGhMqtkImp8D+uCDz3Mo3I7/nnSw/RdEr8t/rdUhHB8r33kkZbPCMnGZjZS+QscxfGLOLwlo6+hqpUg6Vg2yAbZOS/npKnskP2xB0XrpAnR9ZHNg0aejnL5C2lwvJjU7/tzavvd91FwmbmNKAQ570WTdF+qPbH48pE3Cc1ygRJft09b5jCmL18xX1K01vx3gc2V6jowhCH7nm5fCIKk/FVYSVW2c3nLqvDjDTW/uM/pWF1pVZXaCjpMafb+u2UYZ8yzVTn1XrueO58Buy75rmTe1/C6MbT9xiWON92iiQ0crRIcwf1Lwo3uHMBPRom98yoH9/Kk8MfvHuwxzGiU1PglD4OXuFUPGXLgHJFxLJCjoF0GIkNXG2sDa2GyAx+XJPSMuvBPiOU8iD3lzvYYcFF9U6msAhpOx8w2tYwnEqRTffQHhnSgjtYozDym0W9LlegArB6nc1vD2XckGCXq99AOG83w0cDs9a6MinB6YSFDFsRdN2Iw4aoagZHPEL8dKExF/BUzqC4k4vwzz7oEV7HU2SaiT38zzZSOGhQPngxLHZIW04fkNozaUpGvxRauW9ejtjzTqFHebMUcPrlczuM7AAAA=',
+  moonshard: 'data:image/webp;base64,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',
+  aghanims: 'data:image/webp;base64,UklGRowFAABXRUJQVlA4IIAFAABQHACdASo8ACwAPjESh0KiIQyu2swQAYJbACdM1V2H6z+Q/5AdH1tz4S4q0+XZFPA8UDpReYD9h/WS9BfoAf1X/AdYb6AHlw+xd+1H7XfAB+x9MQ/JY9/+K/LDzct8O/i3+M/I3hSOL/zH/dfmB/QOcD6YeVDyBNAD8v/732SP4f/n/3PzlfPf/Y9wP+Tf0H/Yf3X92+8/6KP7ijDMmqAWt34BUIMXiT2BBflUOwUjJEel1h0bYlVA7/InvXok404oDPuR2ahfoiif3eI0iITY+zc4k6PwxQpnPUWRsZtXmmNFJVpLUBTA9w2UAP7JKkMX/MZ+KB/P241RQWr2d06fF95hc0sOJCpk5n6FA5H18cjxmsfuZymuZ4p5OTtkxMpMpsby7zszjxLbUXsKLG0od8n/+1me/jJ69Xg5lLcplvoHL/Gj8YPvtq8ecZnzrSHX/jI+a3CtvRkkpGRCOWV25Pu29KtkWngIFDrKg//3lC1LwduK6zwm9oAVHko0kIFW8/89jHg/+H9AC0Iz1rykGF//OrJQNMPx9ugKWhV7PVrby/skLWZPT64M98dFsTxglXcC92ay/tTRq2nQE4Qw3drSAhNA3Z7K44B9HcF856BklxZtp8RfynMAlXd5/hBp93I7qqhk6iPXknpgHrC2UbBYCdUqU+Xa2/ZZsrrUWB7bPdNHX/hDdRhs1JExZC2hmac/CnEn62j6r8m64AjEl8g3NeIMXRnMXUb4sovm+9mGNU2X/2iK2caUFxiANvYowfUqZQAUmKmw9LGUGc9NKUrRTUK9vNZPW8VLeGAtC/cDJCzOe8a8p9AlR+mp/8zoGYZFbTOt3Rj6LuUgrdF/FO9bAbkPf/uU5Thx6+l+PrVE49+qordURVj8QUXhvnNxR5qbOHGT3HR+TfcHMeYe/84n0zN/xV//C0+4EhvL/S+eystx2kTl9f9d+yieRKUHzZY8ZOw8qjPI+fKguhq5nftPDXZaXT/vGDK5wg836fu36/t0A0Ju9ghqwnuFOup3hwX4vMi9KbhlRbm6llqDuR9IczF1sPWnxC7jP7q4nRvXMVsm9S6vmO2Lnidmgtix4R+A+o1rTFhsDBMuBH1WfG0Tz0mFBVhrwO8o9TzGn5WkBZnOKicZRaxVRPHUKF7D3sFKg/6HW2KVvPAhVsUw6SOXVsrRqWbBYllQ7hhcjAa7xWyUqPXyl1HnvW1qDi0fdRqrn2NtutbD7NyIuvEhMjORBLHx91eXUlTjG1ccHzG23hkPpt3wYPKPmmJyotKKRnN38GCNf0jhj+g9b1S4Y69bPod60OrtwagWf/tMFKa7X8jusbGVa1uUIFKUJJg20WvUuWfaVZoMv3xwijd1avz0iEx6P6aWxJAHjs8H0qzto7Ci5IYQVPOoxX5cmyXL7wC4uq/5tpNF36DnCuyOUTHA2o6IWtvu/xSu9az7YeeOJDP/znVi0Ffy71rvturQVgfAjVrn+gEUhAMIjkQqBVYzKpR1Gd8Er+V8dL2ZFPa0DSITFHmvaN+8qadF9yjyGu4iAPgYUORyWFjqtHkDCDvv+1QpNoEeCN6KKj7GZOGc4+jR4kPUYq4lL8Eo+KgidGPOyXBwv2x/Zdgsxl5zKl+Odyb0D+SP/8WhQEEUlBPKJuD4+z6B6kg7rW8e9bhYUIzIRV1lLFRej+ipoSOoBoDiec/uzJK73+TAkrt46vXkp/aFHd2CQNiTL/+K4tySgmDgQehnREpFwKAJEbZ/w0br6L1uDaJ/ZcNVONcL5il0Ji5w8Ux+tS2G/USFHb/k+mMB7wUOf28XlsjH2m2bpaTf5gmtvqUfW01sop/KQBIY5Jungz/B3fzN+ndk4CIYqaBMfNf+EdTQ4VvfqAAA',
+  octarine: 'data:image/webp;base64,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',
+};
+// ════════ SOUND SYSTEM ════════
+let soundEnabled = true;
+try { soundEnabled = localStorage.getItem('noctis_sound') !== 'off'; } catch(e){}
+
+// volume ของแต่ละ channel (0–1)
+const VOL = {
+  ak:     0.35,
+  punch:  0.55,
+  wp1:    0.65,
+  wp2:    0.70,
+  wp3:    0.75,
+  wp4:    0.82,
+  wp5:    0.92,
+  wk1:    0.80,
+  wk2:    0.82,
+  wk3:    0.85,
+  wk4:    0.88,
+  wk5:    0.92,
+};
+
+function initVolumes() {
+  const idMap = { ak:'akSound', punch:'punchSound' };
+  Object.entries(VOL).forEach(([id, vol]) => {
+    const elId = idMap[id] || (id.startsWith('wk') ? 'wkSound'+id.slice(2) : 'wpSound'+id.slice(2));
+    const el = $(elId);
+    if(el) el.volume = soundEnabled ? vol : 0;
+  });
+}
+
+function applyMute(muted) {
+  const idMap = { ak:'akSound', punch:'punchSound' };
+  Object.entries(VOL).forEach(([id, vol]) => {
+    const elId = idMap[id] || (id.startsWith('wk') ? 'wkSound'+id.slice(2) : 'wpSound'+id.slice(2));
+    const el = $(elId);
+    if(el) el.volume = muted ? 0 : vol;
+  });
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  try { localStorage.setItem('noctis_sound', soundEnabled ? 'on' : 'off'); } catch(e){}
+  applyMute(!soundEnabled);
+  const btn = $('soundToggleBtn');
+  if(btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
+}
+
+
+function loadSave() {
+  try {
+    const d = JSON.parse(localStorage.getItem('noctisak47_v3'));
+    return d || { coins:0, items:{}, stats:{totalKO:0,maxCombo:0,highScore:0} };
+  } catch(e) { return { coins:0, items:{}, stats:{totalKO:0,maxCombo:0,highScore:0} }; }
+}
+function doSave() { localStorage.setItem('noctisak47_v3', JSON.stringify(save)); }
+let save = loadSave();
+
+// item level helper
+function itemLv(id) { return (save.items && save.items[id]) || 0; }
+function itemEffect(id) {
+  const lv = itemLv(id);
+  if (!lv) return null;
+  const def = SHOP_DEF.find(d => d.id === id);
+  return def ? def.levels[lv-1] : null;
+}
+function getStatNum(id, key) {
+  const ef = itemEffect(id);
+  if (!ef) return 0;
+  const m = ef.effect.match(new RegExp(key+':(\\S+)'));
+  return m ? parseFloat(m[1]) : 0;
+}
+function hasStat(id, key) {
+  const ef = itemEffect(id);
+  return ef ? ef.effect.includes(key) : false;
+}
+
+// ════════ ASSET PRELOADER ════════
+const ASSETS = {
+  images: ['bg.jpg','boxer.png','boxer_hit1.png','boxer_hit2.png','boxer_hit3.png','boxer_hit4.png','ak47.png','noobak47.png'],
+  audio:  ['ak47.mp3','punch.mp3']
+};
+const imageCache = {}, audioCache = {};
+function preloadAll() {
+  const total = ASSETS.images.length + ASSETS.audio.length;
+  let loaded = 0;
+  function prog() {
+    loaded++;
+    const pct = Math.round(loaded/total*100);
+    document.getElementById('loadBar').style.width = pct + '%';
+    document.getElementById('loadPct').textContent = pct + '%';
+    if (loaded >= total) onAllLoaded();
+  }
+  ASSETS.images.forEach(src => { const i=new Image(); imageCache[src]=i; i.onload=prog; i.onerror=prog; i.src=src; });
+  ASSETS.audio.forEach(src => {
+    fetch(src).then(r=>r.blob()).then(b=>{audioCache[src]=URL.createObjectURL(b);prog();}).catch(prog);
+  });
+}
+function onAllLoaded() {
+  const akEl=document.getElementById('akSound'), pEl=document.getElementById('punchSound');
+  if(audioCache['ak47.mp3']) akEl.src=audioCache['ak47.mp3'];
+  if(audioCache['punch.mp3']) pEl.src=audioCache['punch.mp3'];
+  initVolumes();
+  setTimeout(()=>{
+    document.getElementById('preloader').style.display='none';
+    showMainMenu();
+  },300);
+}
+preloadAll();
+
+// ════════ HELPERS ════════
+const $ = id => document.getElementById(id);
+const boxer = $('boxer'), gun = $('gun'), fx = $('fxLayer'), flash = $('screenFlash');
+const hitImgs = ['boxer_hit1.png','boxer_hit2.png','boxer_hit3.png','boxer_hit4.png'];
+const GOD_LEVELS = [
+  {lv:0,name:'',color:'white'},
+  {lv:1,name:'NOCTIS OVERDRIVE', color:'#00ffee', dmgMult:5,  duration:10},
+  {lv:2,name:'OVERDRIVE BURST',  color:'#4488ff', dmgMult:8,  duration:6 },
+  {lv:3,name:'ANNIHILATION MODE',color:'#ff2233', dmgMult:12, duration:4 },
+];
+
+// ════════ SHOP ════════
+let shopReturnTo = 'menu'; // 'menu' | 'result'
+
+function openShop(from) {
+  shopReturnTo = from || 'menu';
+  renderShop();
+  $('mainMenu').style.display = 'none';
+  $('resultScreen').style.display = 'none';
+  $('shopScreen').style.display = 'flex';
+}
+function closeShop() {
+  $('shopScreen').style.display = 'none';
+  if (shopReturnTo === 'result') {
+    $('resultScreen').style.display = 'flex';
+  } else {
+    showMainMenu();
+  }
+}
+function showMainMenu() {
+  $('mainMenu').style.display = 'flex';
+  $('menuCoinNum').textContent = save.coins;
+  // hide game UI
+  $('topUI').style.display = 'none';
+  $('fighter').style.display = 'none';
+  $('tapZone').style.display = 'none';
+  $('streakLabel').style.display = 'none';
+  $('ingameCoin').style.display = 'none';
+  $('godLevelWrap').style.display = 'none';
+  $('bossBar').style.display = 'none';
+  $('wpCounter').style.display = 'none';
+  $('multiBadge').classList.remove('show');
+}
+
+function renderShop() {
+  $('shopCoinNum').textContent = save.coins;
+  const body = $('shopBody');
+  body.innerHTML = '';
+
+  SHOP_DEF.forEach(def => {
+    const curLv = itemLv(def.id);
+    const maxLv = def.levels.length;
+
+    const card = document.createElement('div');
+    card.className = 'shop-card';
+
+    const imgSrc = ITEM_IMGS[def.id];
+    const iconHtml = imgSrc
+      ? '<img src="' + imgSrc + '" style="width:44px;height:44px;object-fit:contain;flex-shrink:0;" alt="' + def.name + '">'
+      : '<div class="shop-card-icon">' + def.icon + '</div>';
+    let headerHtml = `
+      <div class="shop-card-header">
+        ${iconHtml}
+        <div>
+          <div class="shop-card-name">${def.name}</div>
+          <div class="shop-card-tagline">${def.tagline}</div>
+        </div>
+      </div>
+      <div class="shop-levels">
+    `;
+
+    def.levels.forEach((lvDef, idx) => {
+      const lv = idx + 1;
+      const isOwned = curLv >= lv;
+      const isCurrent = curLv === lv;
+      const isNext = curLv === lv - 1;
+      const isLocked = curLv < lv - 1;
+      const canAfford = save.coins >= lvDef.cost;
+
+      let rowClass = 'shop-level-row';
+      if (isOwned) rowClass += ' current';
+      if (isLocked) rowClass += ' locked';
+
+      let rightHtml = '';
+      if (isOwned) {
+        rightHtml = `<div class="slr-owned">✓ OWNED</div>`;
+      } else if (isNext) {
+        rightHtml = `
+          <div class="slr-cost ${canAfford ? '' : 'cant'}">💰 ${lvDef.cost}</div>
+          <button class="slr-buy-btn ${canAfford ? '' : 'cant-afford'}" onclick="buyItem('${def.id}',${lv},${lvDef.cost})">BUY</button>
+        `;
+      } else if (isLocked) {
+        rightHtml = `<div class="slr-cost cant">💰 ${lvDef.cost}</div>`;
+      }
+
+      let lvCircleClass = 'slr-lv';
+      if (isOwned) lvCircleClass += ' done';
+      else if (isNext) lvCircleClass += ' active';
+
+      headerHtml += `
+        <div class="${rowClass}">
+          <div class="slr-left">
+            <div class="${lvCircleClass}">L${lv}</div>
+            <div class="slr-desc">${lvDef.desc}${isLocked ? '<br><span style="color:#333;font-size:10px">— ต้องซื้อ Lv'+(lv-1)+' ก่อน</span>' : ''}</div>
+          </div>
+          <div class="slr-right">${rightHtml}</div>
+        </div>
+      `;
+    });
+
+    headerHtml += '</div>';
+    card.innerHTML = headerHtml;
+    body.appendChild(card);
+  });
+}
+
+function buyItem(id, lv, cost) {
+  if (save.coins < cost) return;
+  if (itemLv(id) >= lv) return;
+  save.coins -= cost;
+  if (!save.items) save.items = {};
+  save.items[id] = lv;
+  doSave();
+  renderShop();
+  $('shopCoinNum').textContent = save.coins;
+  // update menu coin too
+  if ($('menuCoinNum')) $('menuCoinNum').textContent = save.coins;
+}
+
+// ════════ STATE ════════
+let combo, lastHitTime, lastIndex;
+let godLevel, canEnterGod, godTimeout, godInterval, godHitCount;
+let hp, maxHP, bossHP, bossMaxHP, isBoss, bossPhase;
+let ko, score, maxCombo, annihilationCount, roundCoins;
+let gameRunning, timerInterval, timeLeft, godSecondsLeft, waveKO;
+let wpCollected = 0;
+let wpRound = 1;
+let wp5FirstDone = false; // ติดตามว่าเล่น wp5.mp3+รูปไปแล้วหรือยัง
+const WP_MAX = 5;
+// ตัวคูณดาเมจระเบิดตามรอบ
+const WP_ROUND_MULT = [1, 1.5, 2.2, 3.2, 5.0]; // รอบ 1-5
+function initState() {
+  hp = maxHP = 500;
+  bossHP = bossMaxHP = 0;
+  isBoss = false; bossPhase = 1;
+  combo = 1; lastHitTime = 0; lastIndex = -1;
+  godLevel = 0; canEnterGod = true; godHitCount = 0;
+  ko = 0; score = 0; maxCombo = 0; annihilationCount = 0; roundCoins = 0;
+  waveKO = 0; timeLeft = 60;
+  wpCollected = 0;
+  wpRound = 1;
+  wp5FirstDone = false;
+  updateWpCounter();
+  gun.style.display = 'none';
+  boxer.src = 'boxer.png';
+  $('bossBar').style.display = 'none';
+  $('godLevelWrap').style.display = 'none';
+  $('bossPhaseTag').textContent = '';
+  updateUI();
+}
+
+// ════════ WEAK POINT ════════
+let wpActive=false, wpTimeout=null, wpSchedule=null;
+
+function scheduleWeakPoint() {
+  clearTimeout(wpSchedule);
+  if(!gameRunning) return;
+  // spawn เร็ว 0.8–1.2s เพื่อให้มี ~28 WP ใน 60s
+  // ถ้าไม่พลาดเลยจะถึงรอบ 5 ได้พอดี (margin ~3 อัน)
+  const delay = 800 + Math.random()*400;
+  wpSchedule = setTimeout(showWeakPoint, delay);
+}
+
+function showWeakPoint() {
+  if(!gameRunning || wpActive) return;
+  const wp = $('weakPoint');
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const r = 40; // รัศมี weak point + margin
+
+  // Safe zone: หลีกเลี่ยง UI
+  // topUI: top 0 → ~110px
+  // ingameCoin: top-right ~40px
+  // comboWrap: left ~100px, middle-vertical
+  // godLevelWrap: right ~80px, middle-vertical
+  // bossBar / wpCounter: bottom ~130px
+  // streakLabel: bottom ~28px
+  const safeTop    = 120;        // ใต้ top UI
+  const safeBottom = H - 150;    // เหนือ bottom UI
+  const safeLeft   = r;
+  const safeRight  = W - r;
+
+  let px, py, attempts = 0;
+  do {
+    px = safeLeft + Math.random() * (safeRight - safeLeft);
+    py = safeTop  + Math.random() * (safeBottom - safeTop);
+    attempts++;
+    // หลีกเลี่ยง combo (left 0–110px, ±30% height)
+    const avoidComboX = px < 110;
+    const avoidComboY = py > H*0.35 && py < H*0.65;
+    // หลีกเลี่ยง godLevel (right W-90px, ±30% height)
+    const avoidGodX   = px > W - 90;
+    const avoidGodY   = py > H*0.35 && py < H*0.65;
+    if((avoidComboX && avoidComboY) || (avoidGodX && avoidGodY)) continue;
+    break;
+  } while(attempts < 20);
+
+  wp.style.left = px + 'px';
+  wp.style.top  = py + 'px';
+  wp.style.display = 'block';
+  wp.classList.remove('wp-vanish');
+  wpActive = true;
+
+  // visible 1.0–1.4s (avg 1.2s) — กดทันถ้าตั้งใจ แต่ไม่มีเวลาลังเล
+  const ttl = 1000 + Math.random()*400;
+  wpTimeout = setTimeout(hideWeakPoint, ttl);
+}
+
+function hideWeakPoint(hit=false) {
+  clearTimeout(wpTimeout);
+  wpActive = false;
+  const wp = $('weakPoint');
+  wp.classList.add('wp-vanish');
+  setTimeout(()=>{ wp.style.display='none'; wp.classList.remove('wp-vanish'); }, 200);
+  if(!hit) {
+    // พลาด WP → reset counter กลับ 0! (ห้ามพลาดแม้แต่อันเดียว)
+    if(wpCollected > 0) {
+      wpCollected = 0;
+      updateWpCounter();
+      showWpMissPenalty();
+    }
+    scheduleWeakPoint();
+  }
+}
+
+function checkWeakPointHit(clientX, clientY) {
+  if(!wpActive) return false;
+  const wp = $('weakPoint');
+  const r = wp.getBoundingClientRect();
+  const cx = r.left + r.width/2;
+  const cy = r.top  + r.height/2;
+  const dist = Math.hypot(clientX-cx, clientY-cy);
+  return dist < r.width/2 + 20; // เผื่อ 20px ให้กดง่าย
+}
+
+function onWeakPointHit(x, y, baseDmg) {
+  hideWeakPoint(true);
+  // ดาเมจ x4 + screen shake เล็กๆ
+  const wpDmg = Math.round(baseDmg * 4);
+  showWpHitFX(x, y, wpDmg);
+  document.body.classList.remove('shake-wp'); void document.body.offsetWidth;
+  document.body.classList.add('shake-wp');
+  setTimeout(()=>document.body.classList.remove('shake-wp'), 300);
+  triggerFlash('flash-god3');
+
+  // เพิ่ม counter
+  wpCollected++;
+  updateWpCounter();
+  if(wpCollected >= WP_MAX) {
+    setTimeout(()=>triggerBombExplosion(), 200);
+  }
+
+  scheduleWeakPoint(); // schedule ถัดไปทันที
+  return wpDmg;
+}
+
+function updateWpCounter() {
+  for(let i=0;i<WP_MAX;i++){
+    const slot = $('wpSlot'+i);
+    if(!slot) continue;
+    slot.classList.remove('filled','ready');
+    if(i < wpCollected) {
+      slot.classList.add(wpCollected===WP_MAX && i===WP_MAX-1 ? 'ready' : 'filled');
+    }
+    if(wpCollected===WP_MAX) slot.classList.add('ready');
+  }
+  // แสดง round indicator
+  const lbl = $('wpRoundLabel');
+  if(lbl) {
+    const roundColors = ['#ffcc00','#ff8800','#ff4400','#ff2233','#ff00ff'];
+    lbl.textContent = 'RND '+wpRound+'/5';
+    lbl.style.color = roundColors[(wpRound||1)-1];
+  }
+}
+
+function triggerBombExplosion() {
+  if(!gameRunning) return;
+  const currentRound = wpRound;
+  wpCollected = 0;
+
+  // รอบ 1-4 → เลื่อนรอบ, รอบ 5 → ค้างที่ 5 ไม่รีเซ็ต
+  if(wpRound < 5) wpRound++;
+
+  updateWpCounter();
+
+  // ตัวคูณดาเมจตามรอบที่เพิ่งครบ (currentRound 1–5)
+  const roundMult = WP_ROUND_MULT[currentRound - 1];
+
+  // ระเบิดทำดาเมจตามรอบ
+  const bombDmg = isBoss
+    ? Math.round((bossMaxHP*0.35) * roundMult * (1 + getStatNum('desolator','dmg_bonus')))
+    : Math.round(maxHP * 2 * roundMult * (1 + getStatNum('desolator','dmg_bonus')));
+
+  // screen effects
+  const bf = $('bombFlash');
+  bf.className=''; void bf.offsetWidth; bf.className='boom';
+
+  document.body.classList.remove('shake'); void document.body.offsetWidth;
+  document.body.classList.add('shake');
+  setTimeout(()=>document.body.classList.remove('shake'),600);
+
+  // spawn particles ทั่วหน้าจอ (เยอะขึ้นตามรอบ)
+  const pCount = 20 + currentRound * 10;
+  for(let i=0;i<pCount;i++){
+    setTimeout(()=>{
+      spawnFX(Math.random()*window.innerWidth, Math.random()*window.innerHeight*0.8, true);
+    }, i*25);
+  }
+
+  // apply damage
+  if(isBoss){
+    bossHP = Math.max(0, bossHP - bombDmg);
+    $('bossHpFill').style.width = (bossHP/bossMaxHP*100)+'%';
+    if(bossHP<=0) { setTimeout(bossKO, 300); }
+  } else {
+    hp = Math.max(0, hp - bombDmg);
+    if(hp<=0) { setTimeout(normalKO, 300); }
+  }
+
+  // bonus score + coins (เพิ่มตามรอบ)
+  const bombCoins = 8 + (currentRound - 1) * 4;
+  roundCoins += bombCoins;
+  score += 500 * currentRound;
+  spawnCoinPopup(bombCoins);
+
+  const roundLabels = ['ROUND 1','ROUND 2','ROUND 3','ROUND 4','⚡ MAX ROUND 5 ⚡'];
+  const roundColors = ['#ffcc00','#ff8800','#ff4400','#ff2233','#ff00ff'];
+  showBigSplash(
+    '💣 WP BOMB ' + roundLabels[currentRound-1],
+    'x'+roundMult+' — '+bombDmg+' DMG!',
+    roundColors[currentRound-1],
+    currentRound === 5
+  );
+
+  // เล่นเสียงตามรอบ
+  if(currentRound < 5) {
+    // รอบ 1–4: เล่น wp1–wp4 ตามปกติ (รอบ 4 ก็เล่น wp4 ก่อนเลื่อนเข้า 5)
+    playWpSound(currentRound);
+  } else if(!wp5FirstDone) {
+    // รอบ 5 ครั้งแรก → wp5.mp3 + รูป wp5.png
+    wp5FirstDone = true;
+    playWpSound(5);
+    const sp = $('wp5Splash');
+    sp.classList.remove('showSplash'); void sp.offsetWidth; sp.classList.add('showSplash');
+  } else {
+    // รอบ 5 ครั้งต่อๆ ไป → สุ่ม wk1–wk5 ไม่มีรูป
+    playWkSound(Math.ceil(Math.random() * 5));
+  }
+
+  updateUI();
+}
+
+function showWpMissPenalty() {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:28%;left:50%;transform:translate(-50%,-50%);font-family:\'Oswald\',sans-serif;font-size:clamp(14px,4vw,22px);color:#ff2233;text-align:center;pointer-events:none;z-index:40;animation:floatUp 0.75s forwards;text-shadow:0 0 12px #ff0000;';
+  el.innerHTML = '✗ MISS — WP RESET';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 800);
+  triggerFlash('flash-god3');
+}
+
+function showWpHitFX(x, y, dmg) {
+  // ตัวเลขใหญ่สีทอง
+  const el = document.createElement('div');
+  el.className = 'wp-hit-text';
+  el.innerHTML = `<div style="font-size:clamp(36px,12vw,60px);color:#ffcc00;text-shadow:0 0 20px #ff8800,0 0 40px #ff4400;">⚡${dmg}</div><div style="font-size:13px;letter-spacing:3px;color:#ff4444;margin-top:-4px;">CRITICAL CORE!</div>`;
+  el.style.left = (x-60)+'px';
+  el.style.top  = (y-40)+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 850);
+  // particles พิเศษ เยอะกว่าปกติ
+  for(let i=0;i<18;i++){
+    const p=document.createElement('div'); p.className='particle';
+    p.style.left=x+'px'; p.style.top=y+'px';
+    p.style.width=p.style.height='7px';
+    p.style.background=i%2===0?'#ffcc00':'#ff2233';
+    const angle=(i/18)*Math.PI*2, dist=50+Math.random()*80;
+    p.style.setProperty('--dx',Math.cos(angle)*dist+'px');
+    p.style.setProperty('--dy',Math.sin(angle)*dist+'px');
+    p.style.animationDuration=(0.3+Math.random()*0.2)+'s';
+    fx.appendChild(p); setTimeout(()=>p.remove(),500);
+  }
+}
+
+// ════════ GAME FLOW ════════
+function startGame() {
+  $('mainMenu').style.display='none';
+  $('resultScreen').style.display='none';
+  $('topUI').style.display='block';
+  $('fighter').style.display='block';
+  $('tapZone').style.display='block';
+  $('streakLabel').style.display='block';
+  $('ingameCoin').style.display='block';
+  $('wpCounter').style.display='flex';
+  const _sb1=$('soundToggleBtn'); _sb1.style.display='block'; _sb1.textContent=soundEnabled?'🔊':'🔇';
+  initVolumes();
+  initState();
+  gameRunning=true;
+  scheduleWeakPoint();
+  startTimer();
+}
+
+function retryGame() {
+  $('resultScreen').style.display='none';
+  $('topUI').style.display='block';
+  $('fighter').style.display='block';
+  $('tapZone').style.display='block';
+  $('streakLabel').style.display='block';
+  $('ingameCoin').style.display='block';
+  $('wpCounter').style.display='flex';
+  const _sb2=$('soundToggleBtn'); _sb2.style.display='block'; _sb2.textContent=soundEnabled?'🔊':'🔇';
+  initVolumes();
+  initState();
+  gameRunning=true;
+  scheduleWeakPoint();
+  startTimer();
+}
+
+function goMainMenu() {
+  $('resultScreen').style.display='none';
+  showMainMenu();
+}
+
+// ════════ TIMER ════════
+// อัตราเวลาช้าลงตาม Overdrive level
+// Lv0=1.0 (ปกติ), Lv1=0.75, Lv2=0.55, Lv3=0.35
+const GOD_TIME_RATE = [1.0, 0.75, 0.55, 0.35];
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const rate = GOD_TIME_RATE[godLevel] || 1.0;
+    timeLeft -= 0.05 * rate;
+    if(timeLeft<=0){timeLeft=0;endGame();}
+    renderTimer();
+  },50);
+}
+function renderTimer() {
+  const t=$('timerDisplay');
+  const ms=Math.round((timeLeft%1)*100);
+  t.innerHTML=`${Math.floor(timeLeft)}<span style="font-size:16px">.${String(ms).padStart(2,'0')}</span>`;
+  t.classList.toggle('urgent',timeLeft<=10);
+}
+function endGame() {
+  clearInterval(timerInterval);
+  clearTimeout(godTimeout);
+  clearInterval(godInterval);
+  clearTimeout(wpSchedule); clearTimeout(wpTimeout); // cleanup weak point
+  wpActive=false; $('weakPoint').style.display='none';
+  gameRunning=false;
+  // save stats + coins
+  save.stats.totalKO=(save.stats.totalKO||0)+ko;
+  save.stats.maxCombo=Math.max(save.stats.maxCombo||0,maxCombo);
+  save.stats.highScore=Math.max(save.stats.highScore||0,score);
+  save.coins=(save.coins||0)+roundCoins;
+  doSave();
+  // hide game elements
+  $('topUI').style.display='none';
+  $('fighter').style.display='none';
+  $('tapZone').style.display='none';
+  $('streakLabel').style.display='none';
+  $('ingameCoin').style.display='none';
+  $('godLevelWrap').style.display='none';
+  $('bossBar').style.display='none';
+  $('wpCounter').style.display='none';
+  $('soundToggleBtn').style.display='none';
+  // result
+  $('res-ko').textContent=ko;
+  $('res-combo').textContent=maxCombo;
+  $('res-score').textContent=score;
+  $('res-anni').textContent=annihilationCount;
+  $('coinsEarned').textContent='+'+roundCoins+' VOID COIN';
+  $('resultScreen').style.display='flex';
+}
+
+// ════════ HIT ════════
+$('tapZone').addEventListener('touchstart',e=>{e.preventDefault();[...e.changedTouches].forEach(t=>hit(t));},{passive:false});
+$('tapZone').addEventListener('click',hit);
+
+// weakPoint มี z-index สูงกว่า tapZone → ดัก event โดยตรงแล้วส่งต่อให้ hit()
+const wpEl = $('weakPoint');
+wpEl.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  e.stopPropagation();
+  [...e.changedTouches].forEach(t => hit(t));
+}, {passive:false});
+wpEl.addEventListener('click', e=>{
+  e.stopPropagation();
+  hit(e);
+});
+
+function hit(e) {
+  if(!gameRunning) return;
+  warmUpAudio(); // warm-up ทุก audio element ครั้งแรกที่ tap
+  const now=Date.now(), gap=now-lastHitTime;
+  combo=(gap<220)?Math.min(combo+1,47):1;
+  lastHitTime=now;
+  if(combo>maxCombo) maxCombo=combo;
+
+  // god bar
+  $('godFill').style.width=(combo/47*100)+'%';
+  if(combo===47&&godLevel===0&&canEnterGod){
+    activateGodLevel(1);
+  }
+
+  // upgrade overdrive เมื่อตีเร็วพอครบ threshold (ไม่รอเวลาหมด)
+  if(godLevel===1||godLevel===2){
+    if(gap<220){ // ตีเร็วพอ
+      godHitCount++;
+      const upgradeAt = godLevel===1 ? 30 : 25; // Lv1→2 ต้องตี 30 ครั้ง, Lv2→3 ต้องตี 25 ครั้ง
+      if(godHitCount>=upgradeAt){
+        activateGodLevel(godLevel+1);
+      }
+    } else {
+      godHitCount=Math.max(0,godHitCount-2); // ตีช้า → หักคืน
+    }
+  }
+
+  // damage
+  let baseDmg = 10;
+  const desoBns = getStatNum('desolator','dmg_bonus');
+  if(desoBns) baseDmg = Math.round(baseDmg*(1+desoBns));
+
+  let multi=1;
+  if(godLevel===0){
+    multi=combo>=30?3:combo>=15?2:1;
+  } else {
+    const gd=GOD_LEVELS[godLevel];
+    multi=gd.dmgMult;
+    const godBns=getStatNum('aghanims','god_dmg');
+    if(godBns) multi=Math.round(multi*(1+godBns));
+  }
+
+  let dmg=baseDmg*multi;
+
+  // crit (daedalus)
+  let isCrit=false;
+  const critChance=getStatNum('daedalus','crit_chance');
+  const critMult=getStatNum('daedalus','crit_mult')||2;
+  if(critChance&&Math.random()<critChance){dmg=Math.round(dmg*critMult);isCrit=true;}
+
+  // moon shard
+  const dblChance=getStatNum('moonshard','double');
+  const isTriple=hasStat('moonshard','triple');
+  const doubleHit=dblChance&&Math.random()<dblChance;
+
+  // ── WEAK POINT CHECK ──
+  const pos=getPos(e);
+  if(checkWeakPointHit(pos.x, pos.y)){
+    const wpDmg = onWeakPointHit(pos.x, pos.y, baseDmg*multi);
+    applyDamage(wpDmg, e, false); // apply wp damage (ไม่นับ crit animation ซ้ำ)
+    score += 20;
+  } else {
+    applyDamage(dmg,e,isCrit);
+    if(doubleHit) setTimeout(()=>applyDamage(dmg,e,false),55);
+    if(doubleHit&&isTriple) setTimeout(()=>applyDamage(dmg,e,false),110);
+  }
+
+  score+=multi+(isCrit?5:0);
+  updateUI(); updateComboUI(); updateMultiBadge(multi);
+
+  // recoil
+  const rc=godLevel>0?'recoil-god':'recoil';
+  boxer.classList.add(rc);
+  setTimeout(()=>boxer.classList.remove('recoil','recoil-god'),90);
+
+  // boxer img
+  clearTimeout(boxer._rt);
+  let i; do{i=Math.floor(Math.random()*hitImgs.length);}while(i===lastIndex);
+  lastIndex=i; boxer.src=hitImgs[i];
+  boxer._rt=setTimeout(()=>{boxer.src='boxer.png';},godLevel>0?180:400);
+
+  // flash
+  if(godLevel===3) triggerFlash('flash-god3');
+  else if(godLevel===2) triggerFlash('flash-god2');
+  else if(godLevel===1) triggerFlash('flash-god');
+  else triggerFlash('flash-punch');
+
+  if(godLevel>0) playAK(); else playPunch();
+}
+
+// ════════ DAMAGE ════════
+function applyDamage(dmg,e,isCrit) {
+  const pos=getPos(e);
+  spawnFX(pos.x,pos.y,godLevel>0);
+  showHitNum(pos.x,pos.y,dmg,godLevel>0,isCrit);
+
+  if(isCrit){
+    const el=document.createElement('div');
+    el.className='crit-text'; el.textContent='CRITICAL!';
+    el.style.left=(pos.x-40)+'px'; el.style.top=(pos.y-40)+'px';
+    document.body.appendChild(el); setTimeout(()=>el.remove(),700);
+  }
+
+  if(isBoss){
+    bossHP=Math.max(0,bossHP-dmg);
+    $('bossHpFill').style.width=(bossHP/bossMaxHP*100)+'%';
+    if(bossHP<=bossMaxHP*0.5&&bossPhase===1){
+      bossPhase=2;
+      $('bossPhaseTag').textContent='⚡ BERSERK NOCTIS';
+      $('bossName').style.color='#ff4400';
+      showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
+    }
+    if(bossHP<=0) bossKO();
+  } else {
+    hp=Math.max(0,hp-dmg);
+    if(hp<=0) normalKO();
+  }
+}
+
+// ════════ KO ════════
+function normalKO() {
+  ko++; waveKO++;
+  // coin: base 3 + combo bonus (ลดมาก — ต้องเล่นหลายรอบ)
+  const baseCoins = 3 + Math.floor(combo * 0.12);
+  roundCoins+=baseCoins;
+  score+=100+combo*8;
+  hp=maxHP;
+  showKOFlash(false);
+  spawnCoinPopup(baseCoins);
+  if(waveKO>=10){waveKO=0;spawnBoss();}
+}
+
+function spawnBoss() {
+  isBoss=true; bossPhase=1;
+  bossMaxHP=maxHP*5;
+  bossHP=bossMaxHP;
+  $('bossBar').style.display='block';
+  $('bossHpFill').style.width='100%';
+  $('bossPhaseTag').textContent='';
+  $('bossName').style.color='var(--red)';
+  const arr=$('bossArrival');
+  $('bossArrivalPhase').textContent='BOSS INCOMING';
+  arr.className=''; void arr.offsetWidth; arr.className='show';
+  triggerFlash('flash-boss');
+}
+
+function bossKO() {
+  isBoss=false; ko++;
+  // บอส drop เหรียญน้อยลง — grind มากขึ้น
+  const bossCoins=15+Math.floor(combo*0.5);
+  roundCoins+=bossCoins;
+  score+=500+combo*15;
+  hp=maxHP; bossHP=0;
+  $('bossBar').style.display='none';
+  spawnCoinPopup(bossCoins);
+  showBigSplash('BOSS KO','+'+bossCoins+' COIN','#ffcc00');
+  showKOFlash(true);
+}
+
+// ════════ OVERDRIVE ════════
+function activateGodLevel(lv) {
+  godLevel=lv; canEnterGod=(lv<3);
+  clearTimeout(godTimeout); clearInterval(godInterval);
+  gun.style.display=lv>0?'block':'none';
+
+  const gd=GOD_LEVELS[lv];
+  let dur=gd.duration;
+  const durBns=getStatNum('octarine','god_dur');
+  if(durBns) dur+=durBns;
+
+  godSecondsLeft=dur;
+  $('godLevelWrap').style.display='block';
+  updateGodLevelUI();
+
+  if(lv===1){
+    const sp=$('godSplash');
+    sp.classList.remove('showSplash'); void sp.offsetWidth; sp.classList.add('showSplash');
+  }
+  showBigSplash(
+    lv===1?'OVERDRIVE Lv1':lv===2?'OVERDRIVE Lv2':'ANNIHILATION!!!',
+    lv===1?'DMG x5':lv===2?'DMG x8':'DMG x12',
+    gd.color,
+    lv===3 // เฉพาะ Lv3 กลางจอ
+  );
+  if(lv===3){
+    document.body.classList.remove('shake'); void document.body.offsetWidth;
+    document.body.classList.add('shake');
+    setTimeout(()=>document.body.classList.remove('shake'),500);
+  }
+
+  godHitCount=0; // reset hit counter สำหรับ upgrade
+
+  clearInterval(godInterval);
+  godInterval=setInterval(()=>{
+    godSecondsLeft--;
+    updateGodLevelUI();
+    if(godSecondsLeft<=0){
+      clearInterval(godInterval);
+      if(godLevel===3) finalAnnihilation();
+      else exitGodMode(); // เวลาหมด → ออกเลย ไม่ upgrade อัตโนมัติ
+    }
+  },1000);
+}
+
+function exitGodMode() {
+  godLevel=0; canEnterGod=false;
+  gun.style.display='none';
+  combo=1; lastHitTime=0;
+  $('godFill').style.width='0%';
+  $('godLevelWrap').style.display='none';
+  updateComboUI();
+  setTimeout(()=>{canEnterGod=true;},1500);
+}
+
+function finalAnnihilation() {
+  annihilationCount++;
+  // bonus coin จาก annihilation — สำคัญมากแต่ให้ไม่บ่อย
+  const bonus=15+annihilationCount*8;
+  roundCoins+=bonus; score+=1000+combo*25;
+
+  document.body.classList.remove('shake'); void document.body.offsetWidth;
+  document.body.classList.add('shake');
+
+  const af=$('annihilationFlash');
+  af.className=''; void af.offsetWidth; af.className='boom';
+
+  for(let i=0;i<5;i++){
+    setTimeout(()=>{spawnFX(Math.random()*window.innerWidth,Math.random()*window.innerHeight,true);},i*80);
+  }
+  spawnCoinPopup(bonus);
+  showBigSplash('⚡ ANNIHILATION ⚡','+'+bonus+' VOID COIN','#ffcc00',true);
+  setTimeout(()=>{document.body.classList.remove('shake');exitGodMode();},500);
+}
+
+function updateGodLevelUI() {
+  const gd=GOD_LEVELS[godLevel];
+  $('godLevelNum').textContent='Lv'+godLevel;
+  $('godLevelNum').style.color=gd.color;
+  $('godLevelName').textContent=gd.name;
+  $('godLevelName').style.color=gd.color;
+  $('godTimer2').textContent=godSecondsLeft>0?godSecondsLeft+'s':'';
+}
+
+// ════════ UI ════════
+function updateUI() {
+  const ratio=isBoss?1:hp/maxHP;
+  $('hpFill').style.width=(isBoss?100:hp/maxHP*100)+'%';
+  $('hpFill').style.background=ratio>0.5
+    ?'linear-gradient(90deg,#cc0011,#ff2233)'
+    :ratio>0.25?'linear-gradient(90deg,#cc5500,#ff8800)'
+    :'linear-gradient(90deg,#663300,#ff4400)';
+  $('koNum').textContent=ko;
+  $('scoreNum').textContent=score;
+  $('coinNum').textContent=save.coins+roundCoins;
+}
+function updateComboUI() {
+  $('bigCombo').textContent=combo;
+  const w=$('comboWrap');
+  w.classList.remove('combo-hot','combo-max');
+  if(combo>=30) w.classList.add('combo-hot');
+  if(combo>=47) w.classList.add('combo-max');
+}
+function updateMultiBadge(multi) {
+  const b=$('multiBadge');
+  if(multi>1){b.classList.add('show');$('multiNum').textContent='x'+multi;}
+  else b.classList.remove('show');
+}
+
+// ════════ FX ════════
+const _hnPool=[];
+function showHitNum(x,y,dmg,isGun,isCrit) {
+  const el=_hnPool.pop()||document.createElement('div');
+  el.className='hit-num';
+  el.textContent=dmg; // ตัด emoji 💥 ออก — emoji render หนักบน iOS
+  el.style.cssText=`left:${x-20}px;top:${y-20}px;font-size:${isCrit?'28px':isGun?'24px':'17px'};color:${isCrit?'#ff4444':isGun?getGodColor():'#ffcc00'};`;
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.remove(); el.style.animation='none'; _hnPool.push(el); },580);
+}
+function getGodColor(){return godLevel===3?'#ff2233':godLevel===2?'#4488ff':'#00ffee';}
+
+// ── Particle Pool (ลด DOM thrashing บน iOS) ──
+const _pPool=[], _rPool=[];
+function _getParticle(){
+  const p=_pPool.pop()||document.createElement('div');
+  p.className='particle'; return p;
+}
+function _getRing(){
+  const r=_rPool.pop()||document.createElement('div');
+  r.className='impact'; return r;
+}
+function _retParticle(p){ p.style.animation='none'; _pPool.push(p); }
+function _retRing(r){ r.style.animation='none'; _rPool.push(r); }
+
+function spawnFX(x,y,isGun){
+  const count=isGun?8:4; // ลดจาก 12/6 → 8/4 บน iOS
+  const color=isGun?getGodColor():'#ff3344';
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<count;i++){
+    const p=_getParticle();
+    p.style.cssText=`left:${x}px;top:${y}px;width:${isGun?4:5}px;height:${isGun?4:5}px;background:${color};--dx:${Math.cos((i/count)*Math.PI*2)*(30+Math.random()*50)}px;--dy:${Math.sin((i/count)*Math.PI*2)*(30+Math.random()*50)}px;animation:particle ${0.22+Math.random()*0.1}s forwards;`;
+    frag.appendChild(p);
+    setTimeout(()=>{ p.remove(); _retParticle(p); },320);
+  }
+  const ring=_getRing();
+  ring.style.cssText=`left:${x}px;top:${y}px;border-color:${isGun?getGodColor():'white'};animation:impact 0.22s forwards;`;
+  frag.appendChild(ring);
+  fx.appendChild(frag);
+  setTimeout(()=>{ ring.remove(); _retRing(ring); },220);
+}
+function triggerFlash(cls){
+  flash.className='';
+  requestAnimationFrame(()=>{ flash.className=cls; });
+}
+function showKOFlash(isBossKO){
+  const el=document.createElement('div');
+  el.style.cssText=`position:fixed;top:14%;right:16px;font-family:'Oswald',sans-serif;font-size:clamp(28px,8vw,48px);color:${Math.random()>0.5?'#ffcc00':'#ff2233'};z-index:40;pointer-events:none;animation:floatUp 0.7s forwards;text-shadow:0 0 20px currentColor;`;
+  el.textContent=isBossKO?'BOSS KO!':'KO!';
+  document.body.appendChild(el); setTimeout(()=>el.remove(),750);
+}
+function spawnCoinPopup(amount){
+  const el=document.createElement('div'); el.className='coin-popup';
+  el.textContent='+'+amount+'💰';
+  el.style.right='18px'; el.style.top='22%';
+  el.style.left='auto';
+  document.body.appendChild(el); setTimeout(()=>el.remove(),800);
+}
+function showBigSplash(main,sub,color,center){
+  const el=$('bigSplashText');
+  $('splashMain').textContent=main;
+  $('splashMain').style.color=color||'white';
+  $('splashMain').style.textShadow=`0 0 20px ${color||'white'}`;
+  $('splashSub').textContent=sub;
+  el.className=''; void el.offsetWidth;
+  el.className = center ? 'show-center' : 'show';
+  // center mode → กลางจอ, normal → บนจอ
+  el.style.top = center ? '42%' : '18%';
+}
+
+// ════════ AUDIO ════════
+let akStopTimer=null;
+function playAK(){
+  const s=$('akSound'); clearTimeout(akStopTimer);
+  if(s.paused){s.currentTime=0;s.play().catch(()=>{});}
+  akStopTimer=setTimeout(()=>{s.pause();s.currentTime=0;},300);
+}
+function playPunch(){const s=$('punchSound');s.currentTime=0;s.play().catch(()=>{});}
+
+function playWpSound(round) {
+  const s = $('wpSound'+round);
+  if(s){ s.currentTime=0; s.play().catch(()=>{}); }
+}
+
+function playWkSound(num) {
+  const s = $('wkSound'+num);
+  if(!s) return;
+  // ตั้ง volume ให้ถูกต้องก่อนเล่นทุกครั้ง (ป้องกัน volume=0 จาก init ที่ยังไม่ set)
+  s.volume = soundEnabled ? (VOL['wk'+num] || 0.85) : 0;
+  s.currentTime = 0;
+  s.play().catch(()=>{});
+}
+
+// warm-up audio elements หลัง user tap ครั้งแรก (แก้ autoplay policy)
+let audioWarmedUp = false;
+function warmUpAudio() {
+  if(audioWarmedUp) return;
+  audioWarmedUp = true;
+  ['wkSound1','wkSound2','wkSound3','wkSound4','wkSound5',
+   'wpSound1','wpSound2','wpSound3','wpSound4','wpSound5'].forEach(id => {
+    const el = $(id);
+    if(!el) return;
+    el.volume = 0;
+    el.play().then(()=>{ el.pause(); el.currentTime=0; el.volume=soundEnabled?(VOL[id.replace('Sound','').toLowerCase()]||0.8):0; }).catch(()=>{});
+  });
+}
+
+function getPos(e){
+  if(e&&e.clientX!==undefined) return{x:e.clientX,y:e.clientY};
+  return{x:window.innerWidth/2,y:window.innerHeight/2};
+}
+</script>
+</body>
+</html>
