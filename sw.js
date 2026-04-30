@@ -1,5 +1,5 @@
 // ══ Service Worker — NOCTISAK47 ══
-const CACHE = 'noctisak47-v7';
+const CACHE = 'noctisak47-v8';
 
 // ไฟล์ที่ cache ไว้สำหรับ offline
 const ASSETS = [
