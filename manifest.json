@@ -1,0 +1,21 @@
+{
+  "name": "NOCTISAK47: OVERDRIVE RAMPAGE",
+  "short_name": "NOCTISAK47",
+  "description": "Action clicker game — combo, overdrive, and rampage",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#ff2233",
+  "lang": "th",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games"],
+  "prefer_related_applications": false
+}
