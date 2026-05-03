@@ -5593,18 +5593,17 @@ function svEncode(saveObj) {
 }
 
   // ── Decode serial → save object ──
-// Legacy long-ID map for backward compat
-const _LEGACY_ID = {'poring':'po','lunatic':'lu','fabre':'fa','condor':'co','pecopeco':'pp','spore':'sp','poporing':'pr','drops':'dr','stainer':'st','rocker':'ro','caramel':'ca','rodafrog':'rf','metaller':'me','mandragora':'ma','willow':'wi','hornet':'ho','thiefbug':'tb','mastering':'ms','zombie':'zo','savage':'sa','orc':'oc','mummy':'mu','skelworker':'sw','hunterfly':'hf','elderwillow':'ew','sting':'si','nightmare':'nm','zenorc':'ze','horong':'hg','raydric':'ry','greatestgeneral':'gg','jakk':'jk','marina':'mn','demonpungus':'dp','vitata':'vi','alligator':'al','doppelganger':'dg','hydra':'hy','phreeoni':'ph','turtlegeneral':'tg','drake':'dk','taogunka':'tk','dracula':'dc','incantation':'ic','stormyknight':'sk','darklord':'dl','moonlightflower':'mf','minorous':'mi','executioner':'ex','whisper':'wh','goblinleader':'gl','amonra':'ar','thanatos':'th','baphomet':'bh','eddga':'eg','osiris':'os','mistress':'mt','goldenbug':'gb','orchero':'oh','lordofdeath':'ld','ktullanux':'kn','beelzebub':'bz','valkyrierandgris':'vr','rsx0806':'rx'};
 function svDecode(code) {
   try {
     code = code.replace(/[\s\u200B\u200C\u200D\uFEFF\u00A0]/g,'').trim();
     const parts = code.split('-');
     if(parts[0] !== SV_PREFIX) { console.error('[svDecode] bad prefix:', parts[0]); throw new Error('bad prefix'); }
+    if(parts[1] !== SV_VERSION) { console.error('[svDecode] version mismatch:', parts[1]); throw new Error('version mismatch: ' + parts[1]); }
     const csStr = parts[parts.length - 1];
     const b64   = parts.slice(2, parts.length - 1).join('-');
     const csComputed = _svChecksum(b64);
     if(csComputed !== csStr) { console.error('[svDecode] checksum fail: got', csStr, 'expected', csComputed, 'b64 length', b64.length); throw new Error('checksum fail'); }
-    const b64pad = b64 + '='.repeat((-b64.length) % 4);
+    const b64pad = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
     // UTF-8 safe decode: base64 → binary → Uint8Array → TextDecoder
     const bin = atob(b64pad);
     const bytes = new Uint8Array(bin.length);
@@ -5612,7 +5611,7 @@ function svDecode(code) {
     const data = JSON.parse(new TextDecoder().decode(bytes));
     // normalize unlockedCards: convert legacy long IDs → short IDs if needed
     let uc = Array.isArray(data.uc) ? data.uc : ['po','lu','fa','co','pp'];
-    uc = uc.map(id => _LEGACY_ID[id] || id);
+    uc = uc.map(id => _MIGRATE_ID[id] || id);
     return {
       coins:          data.c  || 0,
       items:          data.it || {},
@@ -5641,7 +5640,10 @@ function openSaveModal() {
 
 function closeSaveModal() {
   $('saveModal').classList.remove('open');
+  _svResetConfirmed = false;
   $('sv-reset-btn').textContent = '🗑️ RESET ACCOUNT';
+  $('sv-reset-btn').style.borderColor = '';
+  $('sv-reset-btn').style.color = '';
   $('sv-reset-btn').onclick = svConfirmReset;
   $('sv-reset-msg').textContent = '';
   // ซ่อน serial อีกครั้งทุกครั้งที่ปิด modal
@@ -5832,7 +5834,7 @@ if ('serviceWorker' in navigator) {
       // ล้าง cache เก่า
       if ('caches' in window) {
         const keys = await caches.keys();
-        await Promise.all(keys.filter(k => k !== 'noctisak47-v146').map(k => caches.delete(k)));
+        await Promise.all(keys.filter(k => k !== 'noctisak47-v147').map(k => caches.delete(k)));
       }
       // register SW ใหม่
       const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
