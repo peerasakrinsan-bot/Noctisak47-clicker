@@ -4385,15 +4385,28 @@ function revealCard() {
   // step 1: flip out card_hidden
   hiddenEl.classList.add('flipping');
 
+  // Preload card image ระหว่าง flip animation เล่น (~750ms ก่อนแสดง)
+  let _imgReady = !result || !result.card || !result.card.img;
+  let _timerReady = false;
+  let _revealFn = null;
+  const _checkReveal = () => { if(_imgReady && _timerReady && _revealFn) _revealFn(); };
+
+  if(!_imgReady) {
+    const pre = new Image();
+    pre.onload = pre.onerror = () => { _imgReady = true; _checkReveal(); };
+    pre.src = result.card.img;
+  }
+
   setTimeout(()=>{
     hiddenEl.style.display = 'none';
 
     const revealed = $('cardDrawRevealed');
     revealed.style.display = 'flex';
     revealed.style.opacity = '0';
+    // ล้างรูปเก่าออกทันที ป้องกัน flash การ์ดใบก่อนหน้า
+    $('cardDrawRevealedImg').src = '';
 
     if(!result) {
-      $('cardDrawRevealedImg').src = '';
       $('cardDrawRevealedImg').className = '';
       $('cardDrawRevealedName').textContent = 'COLLECTION COMPLETE!';
       $('cardDrawRevealedTier').textContent = '';
@@ -4410,8 +4423,8 @@ function revealCard() {
 
     const {card, tier} = result;
 
-    // step 2: หน่วง 0.3 วิ แล้วค่อย reveal (ลุ้น)
-    setTimeout(()=>{
+    // step 2: หน่วง 0.3 วิ + รอภาพโหลด แล้วค่อย reveal
+    _revealFn = () => {
       const img = $('cardDrawRevealedImg');
       img.src = card.img || '';
       img.className = 'aura-'+tier;
@@ -4450,7 +4463,9 @@ function revealCard() {
           });
         }
       }, 700);
-    }, 300);
+    };
+
+    setTimeout(() => { _timerReady = true; _checkReveal(); }, 300);
   }, 450); // รอให้ flip out animation จบ (0.4s + 50ms buffer)
 }
 
