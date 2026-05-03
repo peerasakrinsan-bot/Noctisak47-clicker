@@ -5834,7 +5834,7 @@ if ('serviceWorker' in navigator) {
       // ล้าง cache เก่า
       if ('caches' in window) {
         const keys = await caches.keys();
-        await Promise.all(keys.filter(k => k !== 'noctisak47-v148').map(k => caches.delete(k)));
+        await Promise.all(keys.filter(k => k !== 'noctisak47-v149').map(k => caches.delete(k)));
       }
       // register SW ใหม่
       const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });

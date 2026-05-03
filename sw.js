@@ -1,5 +1,5 @@
-// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v59
-const CACHE_NAME = 'noctisak47-v148';
+// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v60
+const CACHE_NAME = 'noctisak47-v149';
 
 const PRECACHE_ASSETS = [
   './',
