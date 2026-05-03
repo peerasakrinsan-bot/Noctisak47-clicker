@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <title>NOCTISAK47: OVERDRIVE RAMPAGE</title>
 <!-- preload critical assets -->
-<link rel="preload" href="icon-512.png" as="image">
+<link rel="preload" href="logo.png" as="image">
 <link rel="preload" href="default_bg.png"      as="image">
 <link rel="preload" href="47title.mp3" as="audio" type="audio/mpeg">
 <link rel="preload" href="suang_icon.webp" as="image">
@@ -5839,7 +5839,7 @@ if ('serviceWorker' in navigator) {
       // ล้าง cache เก่า
       if ('caches' in window) {
         const keys = await caches.keys();
-        await Promise.all(keys.filter(k => k !== 'noctisak47-v149').map(k => caches.delete(k)));
+        await Promise.all(keys.filter(k => k !== 'noctisak47-v151').map(k => caches.delete(k)));
       }
       // register SW ใหม่
       const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
