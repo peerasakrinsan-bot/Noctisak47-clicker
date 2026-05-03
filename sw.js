@@ -1,5 +1,5 @@
-// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v60
-const CACHE_NAME = 'noctisak47-v149';
+// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v61
+const CACHE_NAME = 'noctisak47-v150';
 
 const PRECACHE_ASSETS = [
   './',
@@ -20,6 +20,9 @@ const PRECACHE_ASSETS = [
   './collect.mp3',
   // UI images
   './logo.png',
+  './icon-192.png',
+  './icon-512.png',
+  './apple-touch-icon.png',
   './play.png',
   './shop.png',
   './transfer.png',
