@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NOCTISAK47">
@@ -44,6 +44,11 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ══ FIX 1B — HTML+BODY LOCK (Android Chrome scroll/zoom fix) ══ */
+  html {
+    width: 100%; height: 100%;
+    overflow: hidden; position: fixed;
+  }
   body {
     font-family: 'Oswald', sans-serif;
     background: #000;
@@ -63,13 +68,13 @@
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     overflow: hidden;
+    /* FIX 1C — explicit size lock */
+    width: 100%; height: 100%;
     background: var(--dark);
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
-    /* ป้องกัน paint/layout ล้นออกไปยัง body — ช่วย iOS compositor */
     contain: layout paint;
-    /* GPU layer hint */
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
     will-change: transform;
@@ -115,16 +120,21 @@
     justify-content:flex-start;
     align-items:center;
     background: url("title_bg.png") center/cover no-repeat #000;
+    /* FIX 1D — dvh with fallback, lock horizontal, pan-y only */
+    height: 100%;
+    height: 100dvh;
     overflow-y:auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling:touch;
     overscroll-behavior:contain;
+    touch-action: pan-y;
+    max-width: 100vw;
     /* safe area */
     padding-top: max(env(safe-area-inset-top, 0px), 12px);
     padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
     padding-left: 0; padding-right: 0;
     gap: clamp(4px, 1.5vh, 14px);
     box-sizing: border-box;
-    /* ให้ content อยู่กลางจอถ้าสูงพอ แต่ scroll ได้ถ้าไม่พอ */
     min-height: 100%;
   }
   /* pseudo spacer บน-ล่าง เพื่อดัน content ให้ center เมื่อจอสูงพอ */
@@ -1572,57 +1582,8 @@
   .pause-btn-menu:active { background:#1a1a1a; color:#fff; border-color:#888; }
 
   /* ══ DAILY QUEST SYSTEM ══ */
-  @keyframes dqPulse { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
   @keyframes toastIn  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
   @keyframes toastOut { to{opacity:0;transform:translateY(-8px)} }
-
-  #dailyQuestWidget {
-    position:absolute;
-    top:max(env(safe-area-inset-top,0px),12px);
-    left:12px;
-    z-index:10;
-    pointer-events:none;
-    background:rgba(0,0,0,0.75);
-    border:1px solid #333;
-    border-radius:6px;
-    padding:5px 10px;
-    display:flex;
-    flex-direction:column;
-    gap:4px;
-    backdrop-filter:blur(4px);
-    -webkit-backdrop-filter:blur(4px);
-    max-width:45vw;
-  }
-  #dqLabel {
-    font-family:'Oswald',sans-serif;
-    font-size:clamp(7px,2vw,10px);
-    letter-spacing:2px;
-    color:#555;
-  }
-  #dqDots {
-    display:flex;
-    gap:4px;
-    align-items:center;
-  }
-  .dq-dot {
-    width:clamp(8px,2.5vw,13px);
-    height:clamp(8px,2.5vw,13px);
-    border-radius:50%;
-    border:1px solid #333;
-    background:#1a1a1a;
-    flex-shrink:0;
-    transition:background 0.2s,border-color 0.2s,box-shadow 0.2s;
-  }
-  .dq-dot[data-day="6"] {
-    width:clamp(10px,3vw,15px);
-    height:clamp(10px,3vw,15px);
-  }
-  #dqResetLabel {
-    font-family:'Sarabun',sans-serif;
-    font-size:clamp(6px,1.8vw,9px);
-    color:#333;
-    letter-spacing:1px;
-  }
   .dq-toast {
     background:#111;
     border-left:3px solid #aaaaaa;
@@ -1633,45 +1594,177 @@
     animation:toastIn 0.3s ease forwards, toastOut 0.4s ease 2.5s forwards;
     box-shadow:0 2px 12px rgba(0,0,0,0.6);
   }
+
+  /* ══ DAILY QUEST WIDGET ══ */
+  @keyframes dqNextPulse {
+    0%,100% { opacity: 0.5; }
+    50%     { opacity: 1; }
+  }
+  #dailyQuestWidget {
+    position: absolute;
+    top: max(env(safe-area-inset-top, 0px), 12px);
+    left: 12px;
+    z-index: 10;
+    background: rgba(0,0,0,0.82);
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 6px 10px 7px;
+    display: flex; flex-direction: column; gap: 5px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    max-width: 48vw;
+    box-sizing: border-box;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  #dqLabel {
+    font-family: Oswald;
+    font-size: clamp(8px, 2.2vw, 11px);
+    letter-spacing: 3px;
+    color: var(--gold);
+  }
+  #dqDots {
+    display: flex;
+    gap: clamp(3px, 1.2vw, 6px);
+    align-items: flex-start;
+  }
+  .dq-dot-group {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 2px;
+  }
+  .dq-dot {
+    width:  clamp(10px, 3vw, 15px);
+    height: clamp(10px, 3vw, 15px);
+    border-radius: 50%;
+    border: 1.5px solid #2a2a2a;
+    background: #111;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+  }
+  .dq-dot[data-day="6"] {
+    width:  clamp(13px, 3.8vw, 18px);
+    height: clamp(13px, 3.8vw, 18px);
+    border-width: 2px;
+  }
+  .dq-day-num {
+    font-family: Oswald;
+    font-size: clamp(6px, 1.6vw, 8px);
+    color: #333; line-height: 1;
+    transition: color 0.25s;
+  }
+  .dq-reward-bar {
+    height: 2px;
+    width: clamp(10px, 3vw, 15px);
+    border-radius: 1px;
+    background: #333;
+    opacity: 0.25;
+    transition: background 0.25s, opacity 0.25s;
+  }
+  .dq-reward-bar[data-day="6"] {
+    width: clamp(13px, 3.8vw, 18px);
+  }
+  #dqResetLabel {
+    font-family: Sarabun;
+    font-size: clamp(7px, 1.8vw, 9px);
+    color: #444; letter-spacing: 1px;
+  }
+
+  /* ══ OCA TICKET UI ══ */
   #ocaTicketSection {
-    position:sticky;
-    top:0;
-    background:#0a0a0a;
-    border-bottom:1px solid #1a1a1a;
-    z-index:5;
-    padding:12px 16px;
-    width:100%;
-    max-width:480px;
-    box-sizing:border-box;
-    align-self:center;
+    width: 100%; max-width: 480px;
+    padding: 14px 12px 10px;
+    box-sizing: border-box; flex-shrink: 0;
+  }
+  #ocaTicketSection::after {
+    content: ''; display: block; margin-top: 12px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #222, transparent);
+  }
+  .oca-ticket-header {
+    display: flex; align-items: baseline;
+    gap: 8px; margin-bottom: 10px;
   }
   .oca-ticket-title {
-    font-family:'Oswald',sans-serif;
-    font-size:13px;
-    color:var(--gold);
-    letter-spacing:3px;
-    margin-bottom:10px;
+    font-family: Oswald; font-size: clamp(14px,4vw,18px);
+    letter-spacing: 3px; color: var(--gold);
   }
-  .oca-ticket-btns {
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
+  .oca-ticket-sub {
+    font-family: Sarabun; font-size: 10px;
+    color: #444; letter-spacing: 1px;
   }
-  .oca-ticket-btn {
-    font-family:'Oswald',sans-serif;
-    font-size:11px;
-    letter-spacing:2px;
-    background:transparent;
-    border:1px solid #aaaaaa;
-    color:#aaaaaa;
-    padding:8px 12px;
-    cursor:pointer;
-    white-space:nowrap;
-    touch-action:manipulation;
-    -webkit-tap-highlight-color:transparent;
-    transition:opacity 0.15s;
+  .oca-ticket-row {
+    display: flex; gap: 8px; width: 100%;
   }
-  .oca-ticket-btn:active { opacity:0.7; }
+  .oca-ticket-card {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+    padding: 10px 6px 12px;
+    border: 1px solid #333; border-radius: 4px;
+    background: #0d0d0d; cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+  }
+  .oca-ticket-card:active {
+    transform: scale(0.95); background: #1a1a1a;
+  }
+  .oca-ticket-card.standard { border-color: #444; }
+  .oca-ticket-card.premium  {
+    border-color: #0055aa;
+    box-shadow: 0 0 8px rgba(0,136,255,0.25);
+  }
+  .oca-ticket-card.elite {
+    border-color: #886600;
+    box-shadow: 0 0 10px rgba(255,204,0,0.3);
+    animation: eliteTicketPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes eliteTicketPulse {
+    0%,100% { box-shadow: 0 0 8px rgba(255,204,0,0.2); }
+    50%     { box-shadow: 0 0 20px rgba(255,204,0,0.6); }
+  }
+  .oca-ticket-img-wrap {
+    width: clamp(40px,12vw,56px); height: clamp(40px,12vw,56px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .oca-ticket-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .oca-ticket-img-wrap.standard .oca-ticket-img {
+    filter: drop-shadow(0 0 4px #aaaaaa) grayscale(0.3);
+  }
+  .oca-ticket-img-wrap.premium .oca-ticket-img {
+    filter: drop-shadow(0 0 8px #0088ff) drop-shadow(0 0 16px rgba(0,136,255,0.4));
+  }
+  .oca-ticket-img-wrap.elite .oca-ticket-img {
+    filter: drop-shadow(0 0 10px #ffcc00) drop-shadow(0 0 20px rgba(255,204,0,0.5));
+    animation: eliteImgGlow 2s ease-in-out infinite;
+  }
+  @keyframes eliteImgGlow {
+    0%,100% { filter: drop-shadow(0 0 8px #ffcc00); }
+    50%     { filter: drop-shadow(0 0 18px #ffcc00) drop-shadow(0 0 28px rgba(255,204,0,0.7)); }
+  }
+  .oca-ticket-info {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+  }
+  .oca-ticket-card.standard .oca-ticket-tier { color: #aaaaaa; }
+  .oca-ticket-card.premium  .oca-ticket-tier { color: #0088ff; }
+  .oca-ticket-card.elite    .oca-ticket-tier { color: #ffcc00; }
+  .oca-ticket-tier {
+    font-family: Oswald; font-size: clamp(8px,2.5vw,11px); letter-spacing: 2px;
+  }
+  .oca-ticket-card.standard .oca-ticket-count { color: #cccccc; }
+  .oca-ticket-card.premium  .oca-ticket-count { color: #4499ff; }
+  .oca-ticket-card.elite    .oca-ticket-count { color: #ffdd44; }
+  .oca-ticket-count {
+    font-family: Oswald; font-size: clamp(24px,7vw,34px); line-height: 1;
+  }
+  .oca-ticket-label {
+    font-family: Sarabun; font-size: clamp(7px,2vw,9px);
+    letter-spacing: 2px; color: #444;
+  }
+  .oca-ticket-card.disabled {
+    opacity: 0.3; pointer-events: none; animation: none !important;
+  }
+  .oca-ticket-card.disabled .oca-ticket-img { animation: none !important; }
 </style>
   <!-- QR Code library for save export -->
 </head>
@@ -1710,13 +1803,41 @@
   <div id="dailyQuestWidget">
     <div id="dqLabel">DAILY QUEST</div>
     <div id="dqDots">
-      <div class="dq-dot" data-day="0"></div>
-      <div class="dq-dot" data-day="1"></div>
-      <div class="dq-dot" data-day="2"></div>
-      <div class="dq-dot" data-day="3"></div>
-      <div class="dq-dot" data-day="4"></div>
-      <div class="dq-dot" data-day="5"></div>
-      <div class="dq-dot" data-day="6"></div>
+      <div class="dq-dot-group">
+        <div class="dq-dot" data-day="0"></div>
+        <div class="dq-day-num">1</div>
+        <div class="dq-reward-bar" data-day="0"></div>
+      </div>
+      <div class="dq-dot-group">
+        <div class="dq-dot" data-day="1"></div>
+        <div class="dq-day-num">2</div>
+        <div class="dq-reward-bar" data-day="1"></div>
+      </div>
+      <div class="dq-dot-group">
+        <div class="dq-dot" data-day="2"></div>
+        <div class="dq-day-num">3</div>
+        <div class="dq-reward-bar" data-day="2"></div>
+      </div>
+      <div class="dq-dot-group">
+        <div class="dq-dot" data-day="3"></div>
+        <div class="dq-day-num">4</div>
+        <div class="dq-reward-bar" data-day="3"></div>
+      </div>
+      <div class="dq-dot-group">
+        <div class="dq-dot" data-day="4"></div>
+        <div class="dq-day-num">5</div>
+        <div class="dq-reward-bar" data-day="4"></div>
+      </div>
+      <div class="dq-dot-group">
+        <div class="dq-dot" data-day="5"></div>
+        <div class="dq-day-num">6</div>
+        <div class="dq-reward-bar" data-day="5"></div>
+      </div>
+      <div class="dq-dot-group">
+        <div class="dq-dot" data-day="6"></div>
+        <div class="dq-day-num">7</div>
+        <div class="dq-reward-bar" data-day="6"></div>
+      </div>
     </div>
     <div id="dqResetLabel">รีเซ็ต จ. 06:00</div>
   </div>
@@ -1864,11 +1985,48 @@
   </div>
   <!-- ── OCA TICKETS ── -->
   <div id="ocaTicketSection">
-    <div class="oca-ticket-title">OCA TICKETS</div>
-    <div class="oca-ticket-btns">
-      <button class="oca-ticket-btn" id="oca-std-btn" onclick="useOcaTicket('standard')" style="border-color:#aaaaaa;color:#aaaaaa;">USE STANDARD OCA (x<span id="oca-std-count">0</span>)</button>
-      <button class="oca-ticket-btn" id="oca-prm-btn" onclick="useOcaTicket('premium')" style="border-color:#0088ff;color:#0088ff;">USE PREMIUM OCA (x<span id="oca-prm-count">0</span>)</button>
-      <button class="oca-ticket-btn" id="oca-elt-btn" onclick="useOcaTicket('elite')" style="border-color:#ffcc00;color:#ffcc00;">USE ELITE OCA (x<span id="oca-elt-count">0</span>)</button>
+    <div class="oca-ticket-header">
+      <span class="oca-ticket-title">OCA TICKETS</span>
+      <span class="oca-ticket-sub">แตะเพื่อใช้งาน</span>
+    </div>
+    <div class="oca-ticket-row">
+
+      <div class="oca-ticket-card standard" id="ocaTicketCard-standard"
+           onclick="useOcaTicket('standard')">
+        <div class="oca-ticket-img-wrap standard">
+          <img src="oca_item.webp" class="oca-ticket-img" alt="OCA" decoding="async">
+        </div>
+        <div class="oca-ticket-info">
+          <div class="oca-ticket-tier">STANDARD</div>
+          <div class="oca-ticket-count" id="oca-std-count">0</div>
+          <div class="oca-ticket-label">TICKETS</div>
+        </div>
+      </div>
+
+      <div class="oca-ticket-card premium" id="ocaTicketCard-premium"
+           onclick="useOcaTicket('premium')">
+        <div class="oca-ticket-img-wrap premium">
+          <img src="oca_item.webp" class="oca-ticket-img" alt="OCA" decoding="async">
+        </div>
+        <div class="oca-ticket-info">
+          <div class="oca-ticket-tier">PREMIUM</div>
+          <div class="oca-ticket-count" id="oca-prm-count">0</div>
+          <div class="oca-ticket-label">TICKETS</div>
+        </div>
+      </div>
+
+      <div class="oca-ticket-card elite" id="ocaTicketCard-elite"
+           onclick="useOcaTicket('elite')">
+        <div class="oca-ticket-img-wrap elite">
+          <img src="oca_item.webp" class="oca-ticket-img" alt="OCA" decoding="async">
+        </div>
+        <div class="oca-ticket-info">
+          <div class="oca-ticket-tier">ELITE</div>
+          <div class="oca-ticket-count" id="oca-elt-count">0</div>
+          <div class="oca-ticket-label">TICKETS</div>
+        </div>
+      </div>
+
     </div>
   </div>
   <div id="cardCollectionGrid"></div>
@@ -2064,6 +2222,13 @@ document.addEventListener('gestureend',    e => e.preventDefault(), {passive:fal
 document.addEventListener('touchmove', e => {
   if (e.touches.length > 1) e.preventDefault(); // pinch only
 }, {passive:false});
+
+// FIX 1E — prevent full-page pan when not in the scrollable main menu
+document.addEventListener('touchmove', e => {
+  if ($('mainMenu').style.display !== 'flex') {
+    e.preventDefault();
+  }
+}, { passive: false });
 
 // double-tap zoom: ป้องกันเฉพาะนอก tapZone
 // tapZone ใช้ touchstart + preventDefault อยู่แล้ว จึงไม่ trigger zoom
@@ -5979,6 +6144,7 @@ $('saveModal').addEventListener('click', e => { if(e.target === $('saveModal')) 
 
 // Dot color per day index 0–6 (Day4=premium, Day7=elite, rest=standard)
 const DQ_DOT_COLORS = ['#aaaaaa','#aaaaaa','#aaaaaa','#0088ff','#aaaaaa','#aaaaaa','#ffcc00'];
+const DQ_COLORS     = DQ_DOT_COLORS; // alias used by new updateDailyQuestUI
 // Ticket type awarded each day (index 0–6)
 const DQ_REWARDS    = ['standard','standard','standard','premium','standard','standard','elite'];
 
@@ -6062,29 +6228,42 @@ function showDailyRewardToast(day, ticketType) {
 
 function updateDailyQuestUI() {
   if (!save.dailyQuest) return;
-  var streak  = save.dailyQuest.streak;
-  var claimed = save.dailyQuest.claimed;
-  var dots = document.querySelectorAll('#dqDots .dq-dot');
-  dots.forEach(function(dot) {
-    var dayIdx = parseInt(dot.getAttribute('data-day'), 10);
-    var color  = DQ_DOT_COLORS[dayIdx] || '#aaaaaa';
-    // reset to defaults
-    dot.style.background   = '#1a1a1a';
-    dot.style.borderColor  = '#333';
-    dot.style.boxShadow    = '';
-    dot.style.animation    = '';
-    if (claimed.includes(dayIdx)) {
-      // claimed state
+  const { streak, claimed } = save.dailyQuest;
+
+  document.querySelectorAll('.dq-dot').forEach(dot => {
+    const day   = parseInt(dot.dataset.day);
+    const color = DQ_COLORS[day];
+    const group = dot.parentElement;
+    const numEl = group ? group.querySelector('.dq-day-num')    : null;
+    const barEl = group ? group.querySelector('.dq-reward-bar') : null;
+
+    dot.style.animation = '';
+
+    if (claimed.includes(day)) {
+      // CLAIMED
       dot.style.background  = color;
       dot.style.borderColor = color;
-      dot.style.boxShadow   = '0 0 6px ' + color;
-    } else if (dayIdx === streak && streak < 7) {
-      // next — today, not yet claimed
+      dot.style.boxShadow   = '0 0 8px ' + color;
+      if (numEl) { numEl.style.color = color; numEl.style.opacity = '0.8'; }
+      if (barEl) { barEl.style.background = color; barEl.style.opacity = '1'; }
+
+    } else if (day === streak && streak < 7) {
+      // NEXT / TODAY
       dot.style.background  = 'transparent';
       dot.style.borderColor = color;
-      dot.style.animation   = 'dqPulse 1.5s ease-in-out infinite';
+      dot.style.boxShadow   = '0 0 6px ' + color;
+      dot.style.animation   = 'dqNextPulse 1.2s ease-in-out infinite';
+      if (numEl) { numEl.style.color = color; numEl.style.opacity = '1'; }
+      if (barEl) { barEl.style.background = color; barEl.style.opacity = '0.7'; }
+
+    } else {
+      // DEFAULT / FUTURE
+      dot.style.background  = '#111';
+      dot.style.borderColor = '#2a2a2a';
+      dot.style.boxShadow   = 'none';
+      if (numEl) { numEl.style.color = '#333'; numEl.style.opacity = '1'; }
+      if (barEl) { barEl.style.background = '#333'; barEl.style.opacity = '0.25'; }
     }
-    // else: future — already reset to default above
   });
 }
 
@@ -6123,28 +6302,14 @@ function useOcaTicket(type) {
 }
 
 function updateOcaTicketUI() {
-  var tickets = save.ocaTickets || { standard:0, premium:0, elite:0 };
-  var cfg = [
-    { type:'standard', short:'std', color:'#aaaaaa' },
-    { type:'premium',  short:'prm', color:'#0088ff' },
-    { type:'elite',    short:'elt', color:'#ffcc00' },
-  ];
-  cfg.forEach(function(c) {
-    var count   = tickets[c.type] || 0;
-    var countEl = document.getElementById('oca-' + c.short + '-count');
-    var btn     = document.getElementById('oca-' + c.short + '-btn');
-    if (countEl) countEl.textContent = count;
-    if (btn) {
-      if (count === 0) {
-        btn.style.borderColor  = '#333';
-        btn.style.color        = '#444';
-        btn.style.pointerEvents = 'none';
-      } else {
-        btn.style.borderColor  = c.color;
-        btn.style.color        = c.color;
-        btn.style.pointerEvents = '';
-      }
-    }
+  const idMap   = { standard:'oca-std-count', premium:'oca-prm-count', elite:'oca-elt-count' };
+  const cardMap = { standard:'ocaTicketCard-standard', premium:'ocaTicketCard-premium', elite:'ocaTicketCard-elite' };
+  ['standard','premium','elite'].forEach(type => {
+    const count = (save.ocaTickets && save.ocaTickets[type]) || 0;
+    const el   = $(idMap[type]);
+    const card = $(cardMap[type]);
+    if (el)   el.textContent = count;
+    if (card) card.classList.toggle('disabled', count === 0);
   });
 }
 </script>
