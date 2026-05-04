@@ -235,7 +235,7 @@
     background: url("title_bg.png") center/cover no-repeat #000;
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
-    contain: layout style;
+    touch-action: pan-y;
     overscroll-behavior: contain;
   }
   .shop-header {
@@ -372,7 +372,7 @@
     background: url("title_bg.png") center/cover no-repeat #000;
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
-    contain: layout style;
+    touch-action: pan-y;
     overscroll-behavior: contain;
   }
   .arena-skin-grid {
@@ -422,7 +422,7 @@
     background: url("title_bg.png") center/cover no-repeat #000;
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
-    contain: layout style;
+    touch-action: pan-y;
     overscroll-behavior: contain;
   }
   .boss-skin-grid {
@@ -726,7 +726,7 @@
     display:none; flex-direction:column; align-items:center;
     background: url("title_bg.png") center/cover no-repeat #000;
     overflow-y:auto; -webkit-overflow-scrolling:touch;
-    contain:layout style; overscroll-behavior:contain;
+    touch-action: pan-y; overscroll-behavior:contain;
   }
   #cardCollectionGrid {
     display:grid; grid-template-columns:repeat(4,1fr);
@@ -1601,21 +1601,24 @@
     50%     { opacity: 1; }
   }
   #dailyQuestWidget {
-    position: absolute;
+    position: fixed;
     top: max(env(safe-area-inset-top, 0px), 12px);
     left: 12px;
-    z-index: 10;
+    z-index: 1001;
     background: rgba(0,0,0,0.82);
     border: 1px solid #2a2a2a;
     border-radius: 8px;
     padding: 6px 10px 7px;
-    display: flex; flex-direction: column; gap: 5px;
+    display: none; flex-direction: column; gap: 5px;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     max-width: 48vw;
     box-sizing: border-box;
     overflow: hidden;
     pointer-events: none;
+  }
+  #dailyQuestWidget.visible {
+    display: flex;
   }
   #dqLabel {
     font-family: Oswald;
@@ -1843,50 +1846,51 @@
   <div id="tapToStart" style="display:none;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:4px;color:#ff2233;animation:pulse-btn 1.2s ease-in-out infinite;cursor:pointer;">TAP TO START</div>
 </div>
 
+<!-- ── DAILY QUEST WIDGET ── -->
+<div id="dailyQuestWidget">
+  <div id="dqLabel">DAILY QUEST</div>
+  <div id="dqDots">
+    <div class="dq-dot-group">
+      <div class="dq-dot" data-day="0"></div>
+      <div class="dq-day-num">1</div>
+      <div class="dq-reward-bar" data-day="0"></div>
+    </div>
+    <div class="dq-dot-group">
+      <div class="dq-dot" data-day="1"></div>
+      <div class="dq-day-num">2</div>
+      <div class="dq-reward-bar" data-day="1"></div>
+    </div>
+    <div class="dq-dot-group">
+      <div class="dq-dot" data-day="2"></div>
+      <div class="dq-day-num">3</div>
+      <div class="dq-reward-bar" data-day="2"></div>
+    </div>
+    <div class="dq-dot-group">
+      <div class="dq-dot" data-day="3"></div>
+      <div class="dq-day-num">4</div>
+      <div class="dq-reward-bar" data-day="3"></div>
+    </div>
+    <div class="dq-dot-group">
+      <div class="dq-dot" data-day="4"></div>
+      <div class="dq-day-num">5</div>
+      <div class="dq-reward-bar" data-day="4"></div>
+    </div>
+    <div class="dq-dot-group">
+      <div class="dq-dot" data-day="5"></div>
+      <div class="dq-day-num">6</div>
+      <div class="dq-reward-bar" data-day="5"></div>
+    </div>
+    <div class="dq-dot-group">
+      <div class="dq-dot" data-day="6"></div>
+      <div class="dq-day-num">7</div>
+      <div class="dq-reward-bar" data-day="6"></div>
+    </div>
+  </div>
+  <div id="dqResetLabel">รีเซ็ต จ. 06:00</div>
+</div>
+
 <!-- ══ MAIN MENU ══ -->
 <div id="mainMenu">
-  <!-- ── DAILY QUEST WIDGET ── -->
-  <div id="dailyQuestWidget">
-    <div id="dqLabel">DAILY QUEST</div>
-    <div id="dqDots">
-      <div class="dq-dot-group">
-        <div class="dq-dot" data-day="0"></div>
-        <div class="dq-day-num">1</div>
-        <div class="dq-reward-bar" data-day="0"></div>
-      </div>
-      <div class="dq-dot-group">
-        <div class="dq-dot" data-day="1"></div>
-        <div class="dq-day-num">2</div>
-        <div class="dq-reward-bar" data-day="1"></div>
-      </div>
-      <div class="dq-dot-group">
-        <div class="dq-dot" data-day="2"></div>
-        <div class="dq-day-num">3</div>
-        <div class="dq-reward-bar" data-day="2"></div>
-      </div>
-      <div class="dq-dot-group">
-        <div class="dq-dot" data-day="3"></div>
-        <div class="dq-day-num">4</div>
-        <div class="dq-reward-bar" data-day="3"></div>
-      </div>
-      <div class="dq-dot-group">
-        <div class="dq-dot" data-day="4"></div>
-        <div class="dq-day-num">5</div>
-        <div class="dq-reward-bar" data-day="4"></div>
-      </div>
-      <div class="dq-dot-group">
-        <div class="dq-dot" data-day="5"></div>
-        <div class="dq-day-num">6</div>
-        <div class="dq-reward-bar" data-day="5"></div>
-      </div>
-      <div class="dq-dot-group">
-        <div class="dq-dot" data-day="6"></div>
-        <div class="dq-day-num">7</div>
-        <div class="dq-reward-bar" data-day="6"></div>
-      </div>
-    </div>
-    <div id="dqResetLabel">รีเซ็ต จ. 06:00</div>
-  </div>
   <!-- LOGO -->
   <img src="logo.png" alt="NOCTISAK47" style="filter:drop-shadow(0 0 28px rgba(255,34,51,0.6));" decoding="async" fetchpriority="high">
   <!-- HUD: Coin & Score -->
@@ -2832,6 +2836,7 @@ function _hideAllScreens() {
   const gameEls = ['topUI','fighter','tapZone','streakLabel','wpCounter','soundToggleBtn','lodCardDisplay'];
   gameEls.forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
   // ซ่อน save/transfer button
+  $('dailyQuestWidget').classList.remove('visible');
 }
 
 function openShop(from) {
@@ -2855,6 +2860,7 @@ function showMainMenu() {
   checkDailyQuestReset();
   updateDailyQuestUI();
   $('mainMenu').style.display = 'flex';
+  $('dailyQuestWidget').classList.add('visible');
   $('menuCoinNum').textContent = formatNum(save.coins);
   $('menuHsNum').textContent = formatNum(save.stats.highScore || 0);
   $('topUI').style.display = 'none';
@@ -4861,6 +4867,7 @@ function collectCard() {
 // ── Card Collection Screen ──
 function openCardCollection() {
   $('mainMenu').style.display = 'none';
+  $('dailyQuestWidget').classList.remove('visible');
   const screen = $('cardCollectionScreen');
   screen.style.display = 'flex';
   renderCardCollection();
@@ -4870,6 +4877,7 @@ function openCardCollection() {
 function closeCardCollection() {
   $('cardCollectionScreen').style.display = 'none';
   $('mainMenu').style.display = 'flex';
+  $('dailyQuestWidget').classList.add('visible');
 }
 
 function renderCardCollection() {
@@ -4936,6 +4944,7 @@ function startGame() {
   prefetchFightBGM();
   _applyArenaBg();
   $('mainMenu').style.display='none';
+  $('dailyQuestWidget').classList.remove('visible');
   $('resultScreen').style.display='none';
   // ซ่อนทุกอย่างก่อน — จะแสดงหลังเลือกการ์ดแล้ว
   $('topUI').style.display='none';
