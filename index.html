@@ -1570,6 +1570,108 @@
     letter-spacing:4px;
   }
   .pause-btn-menu:active { background:#1a1a1a; color:#fff; border-color:#888; }
+
+  /* ══ DAILY QUEST SYSTEM ══ */
+  @keyframes dqPulse { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+  @keyframes toastIn  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { to{opacity:0;transform:translateY(-8px)} }
+
+  #dailyQuestWidget {
+    position:absolute;
+    top:max(env(safe-area-inset-top,0px),12px);
+    left:12px;
+    z-index:10;
+    pointer-events:none;
+    background:rgba(0,0,0,0.75);
+    border:1px solid #333;
+    border-radius:6px;
+    padding:5px 10px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    backdrop-filter:blur(4px);
+    -webkit-backdrop-filter:blur(4px);
+    max-width:45vw;
+  }
+  #dqLabel {
+    font-family:'Oswald',sans-serif;
+    font-size:clamp(7px,2vw,10px);
+    letter-spacing:2px;
+    color:#555;
+  }
+  #dqDots {
+    display:flex;
+    gap:4px;
+    align-items:center;
+  }
+  .dq-dot {
+    width:clamp(8px,2.5vw,13px);
+    height:clamp(8px,2.5vw,13px);
+    border-radius:50%;
+    border:1px solid #333;
+    background:#1a1a1a;
+    flex-shrink:0;
+    transition:background 0.2s,border-color 0.2s,box-shadow 0.2s;
+  }
+  .dq-dot[data-day="6"] {
+    width:clamp(10px,3vw,15px);
+    height:clamp(10px,3vw,15px);
+  }
+  #dqResetLabel {
+    font-family:'Sarabun',sans-serif;
+    font-size:clamp(6px,1.8vw,9px);
+    color:#333;
+    letter-spacing:1px;
+  }
+  .dq-toast {
+    background:#111;
+    border-left:3px solid #aaaaaa;
+    padding:10px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    animation:toastIn 0.3s ease forwards, toastOut 0.4s ease 2.5s forwards;
+    box-shadow:0 2px 12px rgba(0,0,0,0.6);
+  }
+  #ocaTicketSection {
+    position:sticky;
+    top:0;
+    background:#0a0a0a;
+    border-bottom:1px solid #1a1a1a;
+    z-index:5;
+    padding:12px 16px;
+    width:100%;
+    max-width:480px;
+    box-sizing:border-box;
+    align-self:center;
+  }
+  .oca-ticket-title {
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    color:var(--gold);
+    letter-spacing:3px;
+    margin-bottom:10px;
+  }
+  .oca-ticket-btns {
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .oca-ticket-btn {
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:2px;
+    background:transparent;
+    border:1px solid #aaaaaa;
+    color:#aaaaaa;
+    padding:8px 12px;
+    cursor:pointer;
+    white-space:nowrap;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    transition:opacity 0.15s;
+  }
+  .oca-ticket-btn:active { opacity:0.7; }
 </style>
   <!-- QR Code library for save export -->
 </head>
@@ -1604,6 +1706,20 @@
 
 <!-- ══ MAIN MENU ══ -->
 <div id="mainMenu">
+  <!-- ── DAILY QUEST WIDGET ── -->
+  <div id="dailyQuestWidget">
+    <div id="dqLabel">DAILY QUEST</div>
+    <div id="dqDots">
+      <div class="dq-dot" data-day="0"></div>
+      <div class="dq-dot" data-day="1"></div>
+      <div class="dq-dot" data-day="2"></div>
+      <div class="dq-dot" data-day="3"></div>
+      <div class="dq-dot" data-day="4"></div>
+      <div class="dq-dot" data-day="5"></div>
+      <div class="dq-dot" data-day="6"></div>
+    </div>
+    <div id="dqResetLabel">รีเซ็ต จ. 06:00</div>
+  </div>
   <!-- LOGO -->
   <img src="logo.png" alt="NOCTISAK47" style="filter:drop-shadow(0 0 28px rgba(255,34,51,0.6));" decoding="async" fetchpriority="high">
   <!-- HUD: Coin & Score -->
@@ -1745,6 +1861,15 @@
       <div style="font-size:11px;letter-spacing:2px;color:#555;">VIEW YOUR COLLECTION</div>
     </div>
     <button class="back-btn" onclick="closeCardCollection()"><span class="back-arrow"></span>BACK</button>
+  </div>
+  <!-- ── OCA TICKETS ── -->
+  <div id="ocaTicketSection">
+    <div class="oca-ticket-title">OCA TICKETS</div>
+    <div class="oca-ticket-btns">
+      <button class="oca-ticket-btn" id="oca-std-btn" onclick="useOcaTicket('standard')" style="border-color:#aaaaaa;color:#aaaaaa;">USE STANDARD OCA (x<span id="oca-std-count">0</span>)</button>
+      <button class="oca-ticket-btn" id="oca-prm-btn" onclick="useOcaTicket('premium')" style="border-color:#0088ff;color:#0088ff;">USE PREMIUM OCA (x<span id="oca-prm-count">0</span>)</button>
+      <button class="oca-ticket-btn" id="oca-elt-btn" onclick="useOcaTicket('elite')" style="border-color:#ffcc00;color:#ffcc00;">USE ELITE OCA (x<span id="oca-elt-count">0</span>)</button>
+    </div>
   </div>
   <div id="cardCollectionGrid"></div>
 </div>
@@ -2221,6 +2346,8 @@ function loadSave() {
       if (!d.savedCards)  d.savedCards  = null;
       if (!d.unlockedCards) d.unlockedCards = ['po','lu','fa','co','pp'];
       if (d.gamesCompleted === undefined) d.gamesCompleted = 0;
+      if (!d.ocaTickets) d.ocaTickets = { standard:0, premium:0, elite:0 };
+      if (!d.dailyQuest) d.dailyQuest = { weekKey:'', streak:0, lastClaimDate:'', claimed:[] };
       d.quitPenalty = false;
       // migrate card IDs เก่า → ใหม่ (ป้องกัน savedCards/unlockedCards ไม่ match)
       d.unlockedCards = _migrateIds(d.unlockedCards);
@@ -2232,14 +2359,18 @@ function loadSave() {
              activeSkin:'default', activeArena:'default',
              quitPenalty:false, savedCards:null,
              unlockedCards:['po','lu','fa','co','pp'],
-             gamesCompleted:0 };
+             gamesCompleted:0,
+             ocaTickets:{ standard:0, premium:0, elite:0 },
+             dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] } };
   } catch(e) {
     return { coins:0, items:{}, stats:{totalKO:0,maxCombo:0,highScore:0},
              ownedSkins:['default'], ownedArenas:['default'],
              activeSkin:'default', activeArena:'default',
              quitPenalty:false, savedCards:null,
              unlockedCards:['po','lu','fa','co','pp'],
-             gamesCompleted:0 };
+             gamesCompleted:0,
+             ocaTickets:{ standard:0, premium:0, elite:0 },
+             dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] } };
   }
 }
 function doSave() { localStorage.setItem('noctisak47_v3', JSON.stringify(save)); }
@@ -2510,6 +2641,8 @@ function closeShop() {
   }
 }
 function showMainMenu() {
+  checkDailyQuestReset();
+  updateDailyQuestUI();
   $('mainMenu').style.display = 'flex';
   $('menuCoinNum').textContent = formatNum(save.coins);
   $('menuHsNum').textContent = formatNum(save.stats.highScore || 0);
@@ -4514,6 +4647,7 @@ function openCardCollection() {
   const screen = $('cardCollectionScreen');
   screen.style.display = 'flex';
   renderCardCollection();
+  updateOcaTicketUI();
 }
 
 function closeCardCollection() {
@@ -4846,6 +4980,7 @@ function endGame() {
   save.quitPenalty = false;
   save.savedCards = null;
   doSave();
+  tryClaimDailyReward();
   _csLastCards = null;
 
   // hide game elements
@@ -5603,6 +5738,8 @@ function svEncode(saveObj) {
     aa: saveObj.activeArena || 'default',
     uc: saveObj.unlockedCards || [],
     gc: saveObj.gamesCompleted || 0,
+    ot: saveObj.ocaTickets  || { standard:0, premium:0, elite:0 },
+    dq: saveObj.dailyQuest  || { weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
   };
   // UTF-8 safe encode: TextEncoder → Uint8Array → base64
   const bytes = new TextEncoder().encode(JSON.stringify(data));
@@ -5644,6 +5781,8 @@ function svDecode(code) {
       unlockedCards:  uc,
       gamesCompleted: data.gc || 0,
       quitPenalty:    false,
+      ocaTickets:     data.ot || { standard:0, premium:0, elite:0 },
+      dailyQuest:     data.dq || { weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
     };
   } catch(e) {
     console.error('[svDecode] error:', e.message);
@@ -5835,6 +5974,179 @@ function svShowMsg(el, text, type) {
 
 // close modal on backdrop tap
 $('saveModal').addEventListener('click', e => { if(e.target === $('saveModal')) closeSaveModal(); });
+
+// ══ DAILY QUEST SYSTEM ══
+
+// Dot color per day index 0–6 (Day4=premium, Day7=elite, rest=standard)
+const DQ_DOT_COLORS = ['#aaaaaa','#aaaaaa','#aaaaaa','#0088ff','#aaaaaa','#aaaaaa','#ffcc00'];
+// Ticket type awarded each day (index 0–6)
+const DQ_REWARDS    = ['standard','standard','standard','premium','standard','standard','elite'];
+
+function getDailyWeekKey() {
+  const now = new Date();
+  // Monday before 06:00 → still treated as previous week
+  if (now.getDay() === 1 && now.getHours() < 6) now.setDate(now.getDate() - 1);
+  // ISO week number: week containing first Thursday of the year
+  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const dayNum = d.getUTCDay() || 7; // Sun→7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNum   = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return d.getUTCFullYear() + '-' + String(weekNum).padStart(2, '0');
+}
+
+function getDailyTodayKey() {
+  const now = new Date();
+  if (now.getDay() === 1 && now.getHours() < 6) now.setDate(now.getDate() - 1);
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + d;
+}
+
+function checkDailyQuestReset() {
+  const currentWeekKey = getDailyWeekKey();
+  if (!save.dailyQuest || save.dailyQuest.weekKey !== currentWeekKey) {
+    save.dailyQuest = { weekKey: currentWeekKey, streak: 0, lastClaimDate: '', claimed: [] };
+    doSave();
+    updateDailyQuestUI();
+  }
+}
+
+function tryClaimDailyReward() {
+  checkDailyQuestReset();
+  const todayKey = getDailyTodayKey();
+  const dq = save.dailyQuest;
+  if (dq.lastClaimDate === todayKey) return; // already claimed today
+  if (dq.streak >= 7) return;                // full week done
+
+  dq.streak++;
+  dq.claimed.push(dq.streak - 1);
+  dq.lastClaimDate = todayKey;
+
+  const ticketType = DQ_REWARDS[dq.streak - 1];
+  if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
+  save.ocaTickets[ticketType] = (save.ocaTickets[ticketType] || 0) + 1;
+
+  doSave();
+  showDailyRewardToast(dq.streak, ticketType);
+  updateDailyQuestUI();
+}
+
+function showDailyRewardToast(day, ticketType) {
+  let container = document.getElementById('achievementToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'achievementToastContainer';
+    container.style.cssText =
+      'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+      'z-index:10000;display:flex;flex-direction:column-reverse;gap:8px;' +
+      'pointer-events:none;width:min(340px,90vw);';
+    document.body.appendChild(container);
+  }
+
+  const TICKET_COLORS_TOAST = { standard:'#aaaaaa', premium:'#0088ff', elite:'#ffcc00' };
+  const color = TICKET_COLORS_TOAST[ticketType] || '#aaaaaa';
+
+  const toast = document.createElement('div');
+  toast.className = 'dq-toast';
+  toast.style.borderLeftColor = color;
+  toast.innerHTML =
+    '<div style="font-family:\'Sarabun\',sans-serif;font-size:9px;letter-spacing:3px;color:#555;">DAY ' + day + ' REWARD</div>' +
+    '<div style="font-family:\'Oswald\',sans-serif;font-size:14px;letter-spacing:2px;color:white;">DAILY QUEST</div>' +
+    '<div style="font-family:\'Oswald\',sans-serif;font-size:11px;letter-spacing:2px;color:' + color + ';">OCA ' + ticketType.toUpperCase() + ' x1</div>';
+
+  container.appendChild(toast);
+  setTimeout(function() { try { toast.remove(); } catch(e) {} }, 3200);
+}
+
+function updateDailyQuestUI() {
+  if (!save.dailyQuest) return;
+  var streak  = save.dailyQuest.streak;
+  var claimed = save.dailyQuest.claimed;
+  var dots = document.querySelectorAll('#dqDots .dq-dot');
+  dots.forEach(function(dot) {
+    var dayIdx = parseInt(dot.getAttribute('data-day'), 10);
+    var color  = DQ_DOT_COLORS[dayIdx] || '#aaaaaa';
+    // reset to defaults
+    dot.style.background   = '#1a1a1a';
+    dot.style.borderColor  = '#333';
+    dot.style.boxShadow    = '';
+    dot.style.animation    = '';
+    if (claimed.includes(dayIdx)) {
+      // claimed state
+      dot.style.background  = color;
+      dot.style.borderColor = color;
+      dot.style.boxShadow   = '0 0 6px ' + color;
+    } else if (dayIdx === streak && streak < 7) {
+      // next — today, not yet claimed
+      dot.style.background  = 'transparent';
+      dot.style.borderColor = color;
+      dot.style.animation   = 'dqPulse 1.5s ease-in-out infinite';
+    }
+    // else: future — already reset to default above
+  });
+}
+
+function useOcaTicket(type) {
+  if (!save.ocaTickets || (save.ocaTickets[type] || 0) <= 0) return;
+  save.ocaTickets[type]--;
+  doSave();
+
+  // Select drop weights by ticket grade
+  var weights;
+  if      (type === 'premium') weights = CARD_DROP_WEIGHTS_PITY5;
+  else if (type === 'elite')   weights = CARD_DROP_WEIGHTS_PITY25;
+  else                         weights = CARD_DROP_WEIGHTS;
+
+  // Roll tier
+  var tiers = Object.keys(weights);
+  var total = tiers.reduce(function(s, t) { return s + weights[t]; }, 0);
+  var r = Math.random() * total;
+  var tier = tiers[tiers.length - 1];
+  for (var i = 0; i < tiers.length; i++) {
+    r -= weights[tiers[i]];
+    if (r <= 0) { tier = tiers[i]; break; }
+  }
+
+  // Pick random card from tier pool
+  var pool = CARD_POOL.filter(function(c) { return c.rarity === tier; });
+  var card = pool.length ? pool[Math.floor(Math.random() * pool.length)] : CARD_POOL[0];
+  var unlocked  = getUnlockedCards();
+  var isDupe    = unlocked.includes(card.id);
+  var dupeCoins = isDupe ? (CARD_DUPE_COINS[card.rarity] || 50) : 0;
+
+  _openOcaDraw(
+    { card: card, tier: tier, isDupe: isDupe, dupeCoins: dupeCoins },
+    function() { openCardCollection(); }
+  );
+}
+
+function updateOcaTicketUI() {
+  var tickets = save.ocaTickets || { standard:0, premium:0, elite:0 };
+  var cfg = [
+    { type:'standard', short:'std', color:'#aaaaaa' },
+    { type:'premium',  short:'prm', color:'#0088ff' },
+    { type:'elite',    short:'elt', color:'#ffcc00' },
+  ];
+  cfg.forEach(function(c) {
+    var count   = tickets[c.type] || 0;
+    var countEl = document.getElementById('oca-' + c.short + '-count');
+    var btn     = document.getElementById('oca-' + c.short + '-btn');
+    if (countEl) countEl.textContent = count;
+    if (btn) {
+      if (count === 0) {
+        btn.style.borderColor  = '#333';
+        btn.style.color        = '#444';
+        btn.style.pointerEvents = 'none';
+      } else {
+        btn.style.borderColor  = c.color;
+        btn.style.color        = c.color;
+        btn.style.pointerEvents = '';
+      }
+    }
+  });
+}
 </script>
 
 <script>
