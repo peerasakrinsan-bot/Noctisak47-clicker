@@ -1765,6 +1765,52 @@
     opacity: 0.3; pointer-events: none; animation: none !important;
   }
   .oca-ticket-card.disabled .oca-ticket-img { animation: none !important; }
+
+  /* ══ OCA DROP SYSTEM ══ */
+  @keyframes ocaDropAnim {
+    0%   { transform: translate(-50%,-50%)  scale(0);   opacity: 0; }
+    20%  { transform: translate(-50%,-50%)  scale(1.2); opacity: 1; }
+    60%  { transform: translate(-50%,-80%)  scale(1.0); opacity: 1; }
+    100% { transform: translate(-50%,-120%) scale(0.8); opacity: 0; }
+  }
+  @keyframes ocaPulseRing {
+    from { transform: scale(1);   opacity: 0.8; }
+    to   { transform: scale(2.5); opacity: 0;   }
+  }
+  .oca-drop-fx {
+    position: absolute;
+    width: clamp(48px, 12vw, 72px);
+    height: auto;
+    pointer-events: none;
+    z-index: 50;
+    animation: ocaDropAnim 1.2s ease forwards;
+  }
+  .oca-drop-img {
+    width: 100%; height: auto; display: block;
+    object-fit: contain;
+  }
+  /* Fallback when oca.png fails — shows a coloured circle */
+  .oca-drop-img.fallback {
+    width: clamp(48px,12vw,72px); height: clamp(48px,12vw,72px);
+    border-radius: 50%; display: block;
+  }
+  .oca-drop-toast {
+    background: #0d0d0d;
+    padding: 8px 14px;
+    display: flex; gap: 10px; align-items: center;
+    animation: toastIn 0.3s ease forwards, toastOut 0.4s ease 2.5s forwards;
+  }
+  .oca-toast-img {
+    width: 32px; height: 32px; object-fit: contain; flex-shrink: 0;
+  }
+  .oca-toast-text { display: flex; flex-direction: column; gap: 2px; }
+  .oca-toast-label {
+    font-family: 'Sarabun', sans-serif; font-size: 9px;
+    letter-spacing: 3px; color: #555;
+  }
+  .oca-toast-tier {
+    font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 2px;
+  }
 </style>
   <!-- QR Code library for save export -->
 </head>
@@ -3326,6 +3372,7 @@ function initState() {
   wpRound = 1;
   wpCompletions = 0;
   wp5FirstDone = false;
+  _ocaDropCount = 0; // OCA Drop System — reset per-round cap
   updateWpCounter();
   gun.style.display = 'none';
   // invalidate skin cache + preload skin ที่ active อยู่
@@ -3579,6 +3626,11 @@ function triggerBombExplosion() {
   if(window._csState && window._csState.cs_valkyrieRandgris) {
     _csValkyrieRandgrisSwap();
   }
+
+  // OCA Drop System — roll for ticket drop on every bomb
+  const _bx = window.innerWidth  / 2;
+  const _by = window.innerHeight * 0.4;
+  tryOcaBombDrop(_bx, _by);
 }
 
 function showWpMissPenalty() {
@@ -6312,6 +6364,155 @@ function updateOcaTicketUI() {
     if (card) card.classList.toggle('disabled', count === 0);
   });
 }
+
+// ══ OCA DROP SYSTEM ══
+let _ocaDropCount = 0; // reset each round in initState()
+
+const OCA_DROP_RATES = [
+  { tier: 'elite',    chance: 0.0001 },
+  { tier: 'premium',  chance: 0.001  },
+  { tier: 'standard', chance: 0.05   },
+];
+
+function rollOcaDrop() {
+  const r = Math.random();
+  if (r < 0.0001) return 'elite';
+  if (r < 0.001)  return 'premium';
+  if (r < 0.05)   return 'standard';
+  return null;
+}
+
+function tryOcaBombDrop(x, y) {
+  if (_ocaDropCount >= 10) return;
+  const tier = rollOcaDrop();
+  if (!tier) return;
+  _ocaDropCount++;
+  if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
+  save.ocaTickets[tier] = (save.ocaTickets[tier] || 0) + 1;
+  doSave();
+  showOcaDropFX(x, y, tier);
+  showOcaDropToast(tier);
+}
+
+function showOcaDropFX(x, y, tier) {
+  const TIER_COLORS = { standard:'#aaaaaa', premium:'#0088ff', elite:'#ffcc00' };
+  const color = TIER_COLORS[tier] || '#aaaaaa';
+
+  const container = $('fxLayer') || document.getElementById('gameRoot');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'oca-drop-fx';
+  wrap.style.left = x + 'px';
+  wrap.style.top  = y + 'px';
+
+  // image with per-tier glow filter
+  const img = document.createElement('img');
+  img.className = 'oca-drop-img';
+  img.alt = 'OCA';
+  img.decoding = 'async';
+
+  const filterMap = {
+    standard: 'drop-shadow(0 0 6px #aaaaaa)',
+    premium:  'drop-shadow(0 0 8px #0088ff) drop-shadow(0 0 16px rgba(0,136,255,0.5))',
+    elite:    'drop-shadow(0 0 10px #ffcc00) drop-shadow(0 0 24px rgba(255,204,0,0.6))',
+  };
+  img.style.filter = filterMap[tier] || '';
+
+  // fallback: if oca.png fails, show a coloured circle
+  img.onerror = function() {
+    this.style.display = 'none';
+    const fb = document.createElement('div');
+    fb.className = 'oca-drop-img fallback';
+    fb.style.background = color;
+    fb.style.boxShadow  = '0 0 12px ' + color;
+    wrap.insertBefore(fb, this);
+  };
+  img.src = 'oca_item.webp';
+
+  wrap.appendChild(img);
+
+  // premium extra — pulse ring
+  if (tier === 'premium') {
+    const ring = document.createElement('div');
+    ring.style.cssText =
+      'position:absolute;inset:0;border:2px solid #0088ff;border-radius:50%;' +
+      'pointer-events:none;animation:ocaPulseRing 0.6s ease-out forwards;';
+    wrap.appendChild(ring);
+  }
+
+  // elite extra — 6 gold particles radiating outward
+  if (tier === 'elite') {
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const dx = Math.cos(angle) * (40 + Math.random() * 20);
+      const dy = Math.sin(angle) * (40 + Math.random() * 20);
+      const pt = document.createElement('div');
+      pt.style.cssText =
+        'position:absolute;width:5px;height:5px;background:#ffcc00;border-radius:50%;' +
+        'top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;' +
+        `--dx:${dx}px;--dy:${dy}px;` +
+        'animation:particle 0.6s ease-out forwards;';
+      wrap.appendChild(pt);
+    }
+  }
+
+  container.appendChild(wrap);
+  setTimeout(() => { try { wrap.remove(); } catch(e) {} }, 1250);
+}
+
+function showOcaDropToast(tier) {
+  const TIER_COLORS = { standard:'#aaaaaa', premium:'#0088ff', elite:'#ffcc00' };
+  const color = TIER_COLORS[tier] || '#aaaaaa';
+  const label = tier.toUpperCase();
+
+  let container = document.getElementById('achievementToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'achievementToastContainer';
+    container.style.cssText =
+      'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+      'z-index:2000;display:flex;flex-direction:column-reverse;gap:8px;' +
+      'pointer-events:none;width:min(340px,90vw);';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'oca-drop-toast';
+  toast.style.borderLeft = '3px solid ' + color;
+
+  const img = document.createElement('img');
+  img.className = 'oca-toast-img';
+  img.alt = 'OCA';
+  img.style.filter = 'drop-shadow(0 0 6px ' + color + ')';
+  img.onerror = function() {
+    this.style.display = 'none';
+    const fb = document.createElement('div');
+    fb.style.cssText = 'width:32px;height:32px;border-radius:50%;flex-shrink:0;background:' + color + ';';
+    toast.insertBefore(fb, this);
+  };
+  img.src = 'oca_item.webp';
+
+  const textWrap = document.createElement('div');
+  textWrap.className = 'oca-toast-text';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'oca-toast-label';
+  lbl.textContent = 'OCA DROP!';
+
+  const tierDiv = document.createElement('div');
+  tierDiv.className = 'oca-toast-tier';
+  tierDiv.style.color = color;
+  tierDiv.textContent = label + ' OCA x1';
+
+  textWrap.appendChild(lbl);
+  textWrap.appendChild(tierDiv);
+  toast.appendChild(img);
+  toast.appendChild(textWrap);
+  container.appendChild(toast);
+
+  setTimeout(() => { try { toast.remove(); } catch(e) {} }, 3000);
+}
+// ══ END OCA DROP SYSTEM ══
 </script>
 
 <script>
