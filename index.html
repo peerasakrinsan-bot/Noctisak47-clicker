@@ -1607,12 +1607,11 @@
     z-index: 1001;
     background: rgba(0,0,0,0.82);
     border: 1px solid #2a2a2a;
-    border-radius: 8px;
-    padding: 6px 10px 7px;
-    display: none; flex-direction: column; gap: 5px;
+    border-radius: 6px;
+    padding: 4px 8px 5px;
+    display: none; flex-direction: column; gap: 3px;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    max-width: 48vw;
     box-sizing: border-box;
     overflow: hidden;
     pointer-events: none;
@@ -1622,22 +1621,22 @@
   }
   #dqLabel {
     font-family: Oswald;
-    font-size: clamp(8px, 2.2vw, 11px);
-    letter-spacing: 3px;
+    font-size: clamp(7px, 1.8vw, 9px);
+    letter-spacing: 2px;
     color: var(--gold);
   }
   #dqDots {
     display: flex;
-    gap: clamp(3px, 1.2vw, 6px);
-    align-items: flex-start;
+    gap: clamp(2px, 0.9vw, 4px);
+    align-items: center;
   }
   .dq-dot-group {
-    display: flex; flex-direction: column;
-    align-items: center; gap: 2px;
+    display: flex;
+    align-items: center;
   }
   .dq-dot {
-    width:  clamp(10px, 3vw, 15px);
-    height: clamp(10px, 3vw, 15px);
+    width:  clamp(8px, 2.5vw, 12px);
+    height: clamp(8px, 2.5vw, 12px);
     border-radius: 50%;
     border: 1.5px solid #2a2a2a;
     background: #111;
@@ -1645,31 +1644,9 @@
     transition: all 0.25s ease;
   }
   .dq-dot[data-day="6"] {
-    width:  clamp(13px, 3.8vw, 18px);
-    height: clamp(13px, 3.8vw, 18px);
+    width:  clamp(10px, 3vw, 14px);
+    height: clamp(10px, 3vw, 14px);
     border-width: 2px;
-  }
-  .dq-day-num {
-    font-family: Oswald;
-    font-size: clamp(6px, 1.6vw, 8px);
-    color: #333; line-height: 1;
-    transition: color 0.25s;
-  }
-  .dq-reward-bar {
-    height: 2px;
-    width: clamp(10px, 3vw, 15px);
-    border-radius: 1px;
-    background: #333;
-    opacity: 0.25;
-    transition: background 0.25s, opacity 0.25s;
-  }
-  .dq-reward-bar[data-day="6"] {
-    width: clamp(13px, 3.8vw, 18px);
-  }
-  #dqResetLabel {
-    font-family: Sarabun;
-    font-size: clamp(7px, 1.8vw, 9px);
-    color: #444; letter-spacing: 1px;
   }
 
   /* ══ OCA TICKET UI ══ */
@@ -1848,45 +1825,16 @@
 
 <!-- ── DAILY BATTLE REWARD WIDGET ── -->
 <div id="dailyQuestWidget">
-  <div id="dqLabel">DAILY BATTLE REWARD</div>
+  <div id="dqLabel">DAILY</div>
   <div id="dqDots">
-    <div class="dq-dot-group">
-      <div class="dq-dot" data-day="0"></div>
-      <div class="dq-day-num">1</div>
-      <div class="dq-reward-bar" data-day="0"></div>
-    </div>
-    <div class="dq-dot-group">
-      <div class="dq-dot" data-day="1"></div>
-      <div class="dq-day-num">2</div>
-      <div class="dq-reward-bar" data-day="1"></div>
-    </div>
-    <div class="dq-dot-group">
-      <div class="dq-dot" data-day="2"></div>
-      <div class="dq-day-num">3</div>
-      <div class="dq-reward-bar" data-day="2"></div>
-    </div>
-    <div class="dq-dot-group">
-      <div class="dq-dot" data-day="3"></div>
-      <div class="dq-day-num">4</div>
-      <div class="dq-reward-bar" data-day="3"></div>
-    </div>
-    <div class="dq-dot-group">
-      <div class="dq-dot" data-day="4"></div>
-      <div class="dq-day-num">5</div>
-      <div class="dq-reward-bar" data-day="4"></div>
-    </div>
-    <div class="dq-dot-group">
-      <div class="dq-dot" data-day="5"></div>
-      <div class="dq-day-num">6</div>
-      <div class="dq-reward-bar" data-day="5"></div>
-    </div>
-    <div class="dq-dot-group">
-      <div class="dq-dot" data-day="6"></div>
-      <div class="dq-day-num">7</div>
-      <div class="dq-reward-bar" data-day="6"></div>
-    </div>
+    <div class="dq-dot-group"><div class="dq-dot" data-day="0"></div></div>
+    <div class="dq-dot-group"><div class="dq-dot" data-day="1"></div></div>
+    <div class="dq-dot-group"><div class="dq-dot" data-day="2"></div></div>
+    <div class="dq-dot-group"><div class="dq-dot" data-day="3"></div></div>
+    <div class="dq-dot-group"><div class="dq-dot" data-day="4"></div></div>
+    <div class="dq-dot-group"><div class="dq-dot" data-day="5"></div></div>
+    <div class="dq-dot-group"><div class="dq-dot" data-day="6"></div></div>
   </div>
-  <div id="dqResetLabel">รีเซ็ต จ. 06:00</div>
 </div>
 
 <!-- ══ MAIN MENU ══ -->
@@ -6297,36 +6245,22 @@ function updateDailyQuestUI() {
   document.querySelectorAll('.dq-dot').forEach(dot => {
     const day   = parseInt(dot.dataset.day);
     const color = DQ_COLORS[day];
-    const group = dot.parentElement;
-    const numEl = group ? group.querySelector('.dq-day-num')    : null;
-    const barEl = group ? group.querySelector('.dq-reward-bar') : null;
 
     dot.style.animation = '';
 
     if (claimed.includes(day)) {
-      // CLAIMED
       dot.style.background  = color;
       dot.style.borderColor = color;
       dot.style.boxShadow   = '0 0 8px ' + color;
-      if (numEl) { numEl.style.color = color; numEl.style.opacity = '0.8'; }
-      if (barEl) { barEl.style.background = color; barEl.style.opacity = '1'; }
-
     } else if (day === streak && streak < 7) {
-      // NEXT / TODAY
       dot.style.background  = 'transparent';
       dot.style.borderColor = color;
       dot.style.boxShadow   = '0 0 6px ' + color;
       dot.style.animation   = 'dqNextPulse 1.2s ease-in-out infinite';
-      if (numEl) { numEl.style.color = color; numEl.style.opacity = '1'; }
-      if (barEl) { barEl.style.background = color; barEl.style.opacity = '0.7'; }
-
     } else {
-      // DEFAULT / FUTURE
       dot.style.background  = '#111';
       dot.style.borderColor = '#2a2a2a';
       dot.style.boxShadow   = 'none';
-      if (numEl) { numEl.style.color = '#333'; numEl.style.opacity = '1'; }
-      if (barEl) { barEl.style.background = '#333'; barEl.style.opacity = '0.25'; }
     }
   });
 }
