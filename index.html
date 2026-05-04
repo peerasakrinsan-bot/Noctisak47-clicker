@@ -1581,7 +1581,7 @@
   }
   .pause-btn-menu:active { background:#1a1a1a; color:#fff; border-color:#888; }
 
-  /* ══ DAILY QUEST SYSTEM ══ */
+  /* ══ DAILY BATTLE REWARD SYSTEM ══ */
   @keyframes toastIn  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
   @keyframes toastOut { to{opacity:0;transform:translateY(-8px)} }
   .dq-toast {
@@ -1595,7 +1595,7 @@
     box-shadow:0 2px 12px rgba(0,0,0,0.6);
   }
 
-  /* ══ DAILY QUEST WIDGET ══ */
+  /* ══ DAILY BATTLE REWARD WIDGET ══ */
   @keyframes dqNextPulse {
     0%,100% { opacity: 0.5; }
     50%     { opacity: 1; }
@@ -1846,9 +1846,9 @@
   <div id="tapToStart" style="display:none;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:4px;color:#ff2233;animation:pulse-btn 1.2s ease-in-out infinite;cursor:pointer;">TAP TO START</div>
 </div>
 
-<!-- ── DAILY QUEST WIDGET ── -->
+<!-- ── DAILY BATTLE REWARD WIDGET ── -->
 <div id="dailyQuestWidget">
-  <div id="dqLabel">DAILY QUEST</div>
+  <div id="dqLabel">DAILY BATTLE REWARD</div>
   <div id="dqDots">
     <div class="dq-dot-group">
       <div class="dq-dot" data-day="0"></div>
@@ -6204,7 +6204,7 @@ function svShowMsg(el, text, type) {
 // close modal on backdrop tap
 $('saveModal').addEventListener('click', e => { if(e.target === $('saveModal')) closeSaveModal(); });
 
-// ══ DAILY QUEST SYSTEM ══
+// ══ DAILY BATTLE REWARD SYSTEM ══
 
 // Dot color per day index 0–6 (Day4=premium, Day7=elite, rest=standard)
 const DQ_DOT_COLORS = ['#aaaaaa','#aaaaaa','#aaaaaa','#0088ff','#aaaaaa','#aaaaaa','#ffcc00'];
@@ -6283,7 +6283,7 @@ function showDailyRewardToast(day, ticketType) {
   toast.style.borderLeftColor = color;
   toast.innerHTML =
     '<div style="font-family:\'Sarabun\',sans-serif;font-size:9px;letter-spacing:3px;color:#555;">DAY ' + day + ' REWARD</div>' +
-    '<div style="font-family:\'Oswald\',sans-serif;font-size:14px;letter-spacing:2px;color:white;">DAILY QUEST</div>' +
+    '<div style="font-family:\'Oswald\',sans-serif;font-size:14px;letter-spacing:2px;color:white;">DAILY BATTLE REWARD</div>' +
     '<div style="font-family:\'Oswald\',sans-serif;font-size:11px;letter-spacing:2px;color:' + color + ';">OCA ' + ticketType.toUpperCase() + ' x1</div>';
 
   container.appendChild(toast);
