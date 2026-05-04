@@ -2273,11 +2273,14 @@ document.addEventListener('touchmove', e => {
   if (e.touches.length > 1) e.preventDefault(); // pinch only
 }, {passive:false});
 
-// FIX 1E — prevent full-page pan when not in the scrollable main menu
+// FIX 1E — prevent full-page pan except inside scrollable screens
 document.addEventListener('touchmove', e => {
-  if ($('mainMenu').style.display !== 'flex') {
-    e.preventDefault();
+  const scrollable = ['mainMenu','shopScreen','bossScreen','arenaScreen','cardCollectionScreen'];
+  for (const id of scrollable) {
+    const el = $(id);
+    if (el && el.style.display === 'flex' && el.contains(e.target)) return;
   }
+  e.preventDefault();
 }, { passive: false });
 
 // double-tap zoom: ป้องกันเฉพาะนอก tapZone
