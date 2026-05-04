@@ -3356,8 +3356,15 @@ function scheduleWeakPoint() {
   if(window._csState && window._csState.cs_moonlightflower) delay *= 0.5;
   // MARINA: spawn เร็วขึ้น 15%
   if(window._csState && window._csState.cs_marinaSpawn) delay *= 0.85;
-  // WHISPER: spawn ช้าลง 20%
-  if(window._csState && window._csState.cs_whisper) delay *= 1.20;
+  // INCANTATION SAMURAI: spawn เร็วขึ้น 20% เมื่อ combo >= 35
+  if(window._csState && window._csState.cs_incantation_active) delay *= 0.80;
+  // EXECUTIONER: spawn เร็วขึ้น x2 เมื่อ HP < 25%
+  if(window._csState && window._csState.cs_executioner) {
+    const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
+    if(ratio < 0.25) delay *= 0.50;
+  }
+  // WHISPER: spawn ช้าลง 15%
+  if(window._csState && window._csState.cs_whisper) delay *= 1.15;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -3575,9 +3582,31 @@ function triggerBombExplosion() {
 
   updateUI();
 
-  // WHISPER: เก็บ AK47 ครบ = เวลา +3วิ
+  // WHISPER: เก็บ AK47 ครบ = เวลา +3.5วิ + combo protect 2s
   if(window._csState && window._csState.cs_whisper) {
-    timeLeft += 3;
+    timeLeft += 3.5;
+    window._csState._whisperComboProtect = true;
+    setTimeout(()=>{ if(window._csState) window._csState._whisperComboProtect = false; }, 2000);
+  }
+  // HYDRA: เวลา +1.5วิ เมื่อ wpDmgMult === 3
+  if(window._csState && window._csState.cs_wpDmgMult === 3) {
+    timeLeft += 1.5;
+  }
+  // THANATOS: เก็บ AK47 ครบ → OD bar เต็มทันที + เปิด OD ถ้ายังไม่ active
+  if(window._csState && window._csState.cs_thanatos) {
+    _el.godFill.style.width = '100%';
+    if(canEnterGod && godLevel === 0) activateGodLevel(1);
+  }
+  // BAPHOMET: สะสม dmg +5% ต่อ AK47 ครบ (max +25%)
+  if(window._csState && window._csState.cs_baphomet) {
+    if(!window._csState._baphometDmgStack) window._csState._baphometDmgStack = 0;
+    if(window._csState._baphometDmgStack < 0.25)
+      window._csState._baphometDmgStack = Math.min(0.25, window._csState._baphometDmgStack + 0.05);
+  }
+  // KTULLANUX: combo protect 5s
+  if(window._csState && window._csState.cs_ktullanux) {
+    window._csState._ktullanuxComboProtect = true;
+    setTimeout(()=>{ if(window._csState) window._csState._ktullanuxComboProtect = false; }, 5000);
   }
   // VALKYRIE RANDGRIS: สุ่ม effect ใหม่จาก Elite pool ทุกครั้งที่ AK47 ครบ
   if(window._csState && window._csState.cs_valkyrieRandgris) {
@@ -3740,57 +3769,57 @@ const CARD_POOL = [
 
   // ── RARE ──
   { id:'dg',name:'DOPPELGANGER CARD', img:'doppelganger.png',rarity:'elite',
-    effect:'ทุกคลิกนับเป็น <strong>2 คลิก</strong> (ดาเมจ & OD charge x2)', tradeoff:null,
+    effect:'ทุกคลิกนับเป็น <strong>2 คลิก</strong> (ดาเมจ & OD charge x2) + คลิกที่ 2 มีโอกาส crit <strong>20%</strong>', tradeoff:'ดาเมจของคลิกที่ 2 <strong>-20%</strong>',
     apply(s){ s.cs_doubleClick = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'hydra.png',       rarity:'elite',
-    effect:'เก็บ AK47 = ดาเมจ <strong>x3</strong> แทน x2', tradeoff:null,
+    effect:'เก็บ AK47 = ดาเมจ <strong>x3</strong> แทน x2 + เวลา <strong>+1.5 วิ</strong> ทุกครั้งที่ครบ', tradeoff:null,
     apply(s){ s.cs_wpDmgMult = 3; }
   },
   { id:'ph',   name:'PHREEONI CARD',      img:'phreeoni.png',    rarity:'elite',
-    effect:'เก็บ AK47 = Overdrive charge <strong>+15%</strong> ทันที', tradeoff:null,
-    apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.15; }
+    effect:'เก็บ AK47 = OD charge <strong>+20%</strong> | ถ้า OD active อยู่แล้ว = OD timer <strong>+1 วิ</strong> แทน', tradeoff:null,
+    apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.20; }
   },
   { id:'tg',name:'TURTLE GENERAL CARD',img:'turtle_general.png',rarity:'elite',
-    effect:'Combo ≥ 30 : coin <strong>x3</strong> + ดาเมจ <strong>+20%</strong>', tradeoff:null,
+    effect:'Combo ≥ 30 : ดาเมจ <strong>+25%</strong> + ทุก KO = score <strong>+300</strong>', tradeoff:'coin จาก KO <strong>-30%</strong>',
     apply(s){ s.cs_combo30 = true; }
   },
   { id:'dk',      name:'DRAKE CARD',         img:'drake.png',       rarity:'elite',
-    effect:'ศัตรู HP เหลือ 50% และ 25% <strong>ไม่ชะลอดาเมจ</strong>', tradeoff:null,
+    effect:'ทุกครั้งที่ HP ศัตรู ลดผ่าน 75%, 50%, 25% = OD charge <strong>+15%</strong> ทันที', tradeoff:null,
     apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
 
   // ── VOID (MVP) ──
   { id:'th',   name:'THANATOS CARD',      img:'thanatos.png',    rarity:'mythic',
-    effect:'เก็บ AK47 = coin <strong>x5</strong> ทันที + ดาเมจ <strong>x2</strong>', tradeoff:'Combo reset ทุก 10 วินาที',
+    effect:'เก็บ AK47 ครบ = OD charge เต็มทันที + ดาเมจ <strong>x2.5</strong>', tradeoff:'Combo reset ทุก 10 วินาที',
     apply(s){ s.cs_thanatos = true; }
   },
   { id:'bh',   name:'BAPHOMET CARD',      img:'baphomet.png',    rarity:'mythic',
-    effect:'เก็บ AK47 = สุ่ม AK47 ใหม่ทันที <strong>ไม่ต้องรอ</strong> + triple hit', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
+    effect:'เก็บ AK47 = spawn ใหม่ทันที + triple hit + ทุก AK47 ครบ = ดาเมจ <strong>+5%</strong> สะสม (max +25%)', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDDGA CARD',         img:'eddga.png',       rarity:'mythic',
-    effect:'Overdrive <strong>active ตลอดรอบ</strong> ไม่ต้องชาร์จ', tradeoff:'ล็อคที่ Lv1 เท่านั้น',
+    effect:'Overdrive Lv1 <strong>active ตลอดรอบ</strong> + ทุก 15 วิ = Lv2 burst <strong>5 วินาที</strong>', tradeoff:'ล็อคที่ Lv1 เท่านั้น (นอกจาก burst)',
     apply(s){ s.cs_eddga = true; }
   },
   { id:'os',     name:'OSIRIS CARD',        img:'osiris.png',      rarity:'mythic',
-    effect:'เวลาหมด : ได้เวลาเพิ่ม <strong>+15 วิ</strong> 1 ครั้ง', tradeoff:'coin ที่ได้ -50% ตลอดรอบ',
+    effect:'เวลาหมด : ได้เวลาเพิ่ม <strong>+18 วิ</strong> 1 ครั้ง', tradeoff:'coin ที่ได้ <strong>-35%</strong> ตลอดรอบ',
     apply(s){ s.cs_osiris = true; }
   },
   { id:'mt',   name:'MISTRESS CARD',      img:'mistress.png',    rarity:'mythic',
-    effect:'ทุกคลิกระหว่าง Overdrive = coin <strong>+3</strong>', tradeoff:'ดาเมจปกติ -40%',
+    effect:'ทุกคลิกระหว่าง Overdrive = coin <strong>+2</strong> + OD timer <strong>+0.1 วิ</strong>', tradeoff:'ดาเมจปกติ <strong>-25%</strong>',
     apply(s){ s.cs_mistress = true; }
   },
   { id:'gb',  name:'GOLDEN BUG CARD',    img:'golden_bug.png',  rarity:'mythic',
-    effect:'coin <strong>x4</strong> ทุกอย่าง', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
+    effect:'coin <strong>x4</strong> ทุกอย่าง + ทุกคลิก combo <strong>+1</strong> เพิ่มเติม', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
     apply(s){ s.cs_goldenbug = true; }
   },
   { id:'oh',    name:'ORC HERO CARD',      img:'orc_hero.png',    rarity:'mythic',
-    effect:'Overdrive ชาร์จ <strong>x3</strong> เร็ว + ไม่มี cooldown', tradeoff:'เวลา -20 วินาที',
+    effect:'OD charge <strong>x3</strong> + ไม่มี cooldown + ทุกครั้งที่ OD หมด = ดาเมจ <strong>+8%</strong> สะสม (max +24%)', tradeoff:'เวลา <strong>-15 วินาที</strong>',
     apply(s){ s.cs_orchero = true; }
   },
   { id:'ld',name:'LORD OF DEATH CARD', img:'lord_of_death.png',rarity:'mythic',
-    effect:'สุ่ม effect จาก <strong>ELITE หรือ MYTHIC</strong> ใหม่ทุก 10 วินาที', tradeoff:'ไม่รู้ว่าจะได้ effect อะไร',
+    effect:'สุ่ม effect จาก <strong>ELITE หรือ MYTHIC</strong> ใหม่ทุก 10 วินาที + แจ้งเตือน 3 วิก่อนเปลี่ยน', tradeoff:'ไม่รู้ว่าจะได้ effect อะไร',
     apply(s){ s.cs_lordofdeath = true; }
   },
 
@@ -3856,27 +3885,27 @@ const CARD_POOL = [
 
   // ── ELITE (RARE) ใหม่ ──
   { id:'tk',   name:'TAO GUNKA CARD',      img:'tao_gunka.png',   rarity:'elite',
-    effect:'ดาเมจ <strong>+40%</strong>', tradeoff:'Overdrive charge -25%',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.40; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.25; }
+    effect:'ดาเมจ <strong>+45%</strong>', tradeoff:'Overdrive charge <strong>-20%</strong>',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
   { id:'dc',    name:'DRACULA CARD',        img:'dracula.png',     rarity:'elite',
-    effect:'คริติคอลทุกครั้ง = coin <strong>+8</strong> ทันที (สูงสุด 5 ครั้ง/วิ)', tradeoff:null,
+    effect:'คริติคอลทุกครั้ง = coin <strong>+5</strong> + OD charge <strong>+2%</strong> (ไม่จำกัด)', tradeoff:null,
     apply(s){ s.cs_draculaCoin = true; }
   },
   { id:'ic',name:'INCANTATION SAMURAI CARD',img:'incantation_samurai.png',rarity:'elite',
-    effect:'Combo ≥ 40 : ดาเมจ <strong>x3</strong> ตลอดรอบ', tradeoff:null,
+    effect:'Combo ≥ 35 : ดาเมจ <strong>x2.5</strong> ตลอดรอบ + AK47 spawn เร็ว <strong>+20%</strong>', tradeoff:null,
     apply(s){ s.cs_incantation = true; }
   },
   { id:'sk',name:'STORMY KNIGHT CARD', img:'stormy_knight.png',rarity:'elite',
-    effect:'ทุกคลิกระหว่าง Overdrive = OD timer <strong>+0.15 วิ</strong> (สูงสุด +5 วิ/ครั้ง)', tradeoff:null,
+    effect:'ทุกคลิกระหว่าง Overdrive = OD timer <strong>+0.2 วิ</strong> (สูงสุด +8 วิ ต่อรอบ)', tradeoff:null,
     apply(s){ s.cs_stormyKnight = true; }
   },
   { id:'dl',   name:'DARK LORD CARD',      img:'dark_lord.png',   rarity:'elite',
-    effect:'ทุก KO = เวลา <strong>+0.05 วิ</strong> (ไม่จำกัด)', tradeoff:null,
+    effect:'ทุก KO = เวลา <strong>+0.08 วิ</strong> + score <strong>+50</strong>', tradeoff:null,
     apply(s){ s.cs_darkLord = true; }
   },
   { id:'mf', name:'MOONLIGHT FLOWER CARD', img:'moonlight_flower.png', rarity:'elite',
-    effect:'เวลา -50% แต่ ดาเมจ x2, coin x2, OD charge x2, AK47 เหลือ 3 ลูก + spawn เร็ว x2', tradeoff:'เวลาเหลือครึ่งเดียวทันที',
+    effect:'เวลา -50% แต่ ดาเมจ x2, coin x2, OD charge x2, AK47 เหลือ 3 ลูก + spawn เร็ว x2 + ทุก KO = score <strong>+500</strong>', tradeoff:'เวลาเหลือครึ่งเดียวทันที',
     apply(s){ s.cs_moonlightflower = true; }
   },
 
@@ -3922,41 +3951,41 @@ const CARD_POOL = [
 
   // ── ELITE ใหม่ ──
   { id:'mi',   name:'MINOROUS CARD',      img:'minorous.png',    rarity:'elite',
-    effect:'ดาเมจ <strong>+30%</strong> เมื่อ HP ศัตรู > 60%', tradeoff:null,
+    effect:'ดาเมจ <strong>+35%</strong> เมื่อ HP ศัตรู > 60% + combo decay หยุดในช่วงนั้น', tradeoff:null,
     apply(s){ s.cs_minorous = true; }
   },
   { id:'ex',name:'EXECUTIONER CARD',   img:'executioner.png', rarity:'elite',
-    effect:'ดาเมจ <strong>+40%</strong> เมื่อ HP ศัตรู < 25%', tradeoff:null,
+    effect:'HP ศัตรู < 25% : ดาเมจ <strong>+50%</strong> + AK47 spawn เร็ว <strong>x2</strong>', tradeoff:null,
     apply(s){ s.cs_executioner = true; }
   },
   { id:'wh',    name:'WHISPER CARD',       img:'whisper.png',     rarity:'elite',
-    effect:'เก็บ AK47 ครบ = เวลา <strong>+3 วิ</strong> ทันที', tradeoff:'AK47 spawn ช้าลง 20%',
+    effect:'เก็บ AK47 ครบ = เวลา <strong>+3.5 วิ</strong> + combo ไม่ reset 2 วิหลัง AK47 ครบ', tradeoff:'AK47 spawn ช้าลง <strong>15%</strong>',
     apply(s){ s.cs_whisper = true; }
   },
   { id:'gl',name:'GOBLIN LEADER CARD',img:'goblin_leader.png',rarity:'elite',
-    effect:'ทุกคลิก combo นับ <strong>+2</strong> แทน +1', tradeoff:'OD charge -25%',
-    apply(s){ s.cs_goblinLeader = true; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.25; }
+    effect:'ทุกคลิก combo <strong>+2</strong> แทน +1 + Combo ≥ 30 = ดาเมจ <strong>+15%</strong>', tradeoff:'OD charge <strong>-20%</strong>',
+    apply(s){ s.cs_goblinLeader = true; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
   { id:'ar',     name:'AMON RA CARD',       img:'amon_ra.png',     rarity:'elite',
-    effect:'Combo ≥ 40 : ดาเมจ <strong>+35%</strong> + coin <strong>x2</strong> ตลอดรอบ', tradeoff:null,
+    effect:'Combo ≥ 40 : ดาเมจ <strong>+40%</strong> + coin <strong>x1.5</strong> ตลอดรอบ', tradeoff:null,
     apply(s){ s.cs_amonRa = true; }
   },
 
   // ── MYTHIC ใหม่ ──
   { id:'kn',  name:'KTULLANUX CARD',     img:'ktullanux.png',   rarity:'mythic',
-    effect:'AK47 ดาเมจ <strong>x4</strong> แทน x2', tradeoff:'HP ศัตรู <strong>+50%</strong>',
+    effect:'AK47 ดาเมจ <strong>x4</strong> + ทุก AK47 ครบ round = combo ไม่ reset <strong>5 วิ</strong>', tradeoff:'HP ศัตรู <strong>+50%</strong>',
     apply(s){ s.cs_ktullanux = true; }
   },
   { id:'bz',  name:'BEELZEBUB CARD',     img:'beelzebub.png',   rarity:'mythic',
-    effect:'ทุกคลิก ดาเมจสะสม <strong>+0.3%</strong> (สูงสุด +30%)', tradeoff:'HP ศัตรู เริ่มต้น <strong>x2.5</strong>',
+    effect:'ทุกคลิก ดาเมจสะสม <strong>+0.4%</strong> (สูงสุด +40%)', tradeoff:'HP ศัตรู เริ่มต้น <strong>x2</strong>',
     apply(s){ s.cs_beelzebub = true; }
   },
   { id:'vr', name:'VALKYRIE RANDGRIS CARD', img:'valkyrie_randgris.png', rarity:'mythic',
-    effect:'ทุกครั้งที่เก็บ AK47 ครบ round = สุ่ม effect ใหม่จาก <strong>ELITE pool</strong>', tradeoff:'effect ก่อนหน้าหายทันที',
+    effect:'ทุกครั้งที่เก็บ AK47 ครบ round = สุ่ม effect ใหม่จาก <strong>ELITE pool</strong> + effect เก่า active ต่ออีก <strong>2 วิ</strong>', tradeoff:'effect ใหม่เริ่มหลัง 2 วิ',
     apply(s){ s.cs_valkyrieRandgris = true; }
   },
   { id:'rx',    name:'RSX-0806 CARD',      img:'rsx_0806.png',    rarity:'mythic',
-    effect:'ดาเมจ <strong>x3</strong> ตลอดรอบ', tradeoff:'ไม่มี Overdrive + ไม่มี AK47 เลย',
+    effect:'ดาเมจ <strong>x3.5</strong> ตลอดรอบ + ทุก KO = score <strong>+200</strong>', tradeoff:'ไม่มี Overdrive + ไม่มี AK47 เลย',
     apply(s){ s.cs_rsx0806 = true; }
   },
 ];
@@ -4156,16 +4185,29 @@ function _csBack() {
 
 function _csStartEddga() {
   clearInterval(_csEddgaInterval);
+  clearInterval(_csEddgaBurstInterval);
   // เปิด OD Lv1 ทันทีเมื่อเกมเริ่ม
   _csEddgaInterval = setInterval(()=>{
     if(!gameRunning || gamePaused) return;
     if(godLevel === 0 && canEnterGod) {
-      // force enter god lv1
       godLevel = 1; canEnterGod = false;
       _el.godLevelWrap.style.display = 'block';
       updateGodLevelUI();
     }
   }, 500);
+  // Lv2 burst every 15s for 5s
+  _csEddgaBurstInterval = setInterval(()=>{
+    if(!gameRunning || gamePaused) return;
+    // Temporarily bypass EDDGA Lv1 lock for the burst
+    window._csState._eddgaBurstActive = true;
+    activateGodLevel(2);
+    window._csState._eddgaBurstActive = false;
+    // After 5s, revert to Lv1
+    setTimeout(()=>{
+      if(!gameRunning || !window._csState || !window._csState.cs_eddga) return;
+      activateGodLevel(1);
+    }, 5000);
+  }, 15000);
 }
 
 function _csStartThanatosTimer() {
@@ -4194,10 +4236,14 @@ function _csStartLodTimer() {
   // เลือกการ์ดใบแรกทันทีเมื่อเกมเริ่ม
   _lodPickAndApply(true);
 
-  // เปลี่ยนทุก 10 วินาที
+  // แจ้งเตือน 3 วิก่อนเปลี่ยน แล้วเปลี่ยนทุก 10 วินาที
   _csLodTimer = setInterval(()=>{
     if(!gameRunning || gamePaused) return;
-    _lodPickAndApply(false);
+    showBigSplash('LORD OF DEATH','CARD CHANGING IN 3s...','#cc88ff',false);
+    setTimeout(()=>{
+      if(!gameRunning || gamePaused) return;
+      _lodPickAndApply(false);
+    }, 3000);
   }, 10000);
 }
 
@@ -4254,9 +4300,11 @@ function _csStopAllTimers() {
   clearInterval(_csThanatosTimer);
   clearInterval(_csLodTimer);
   clearInterval(_csEddgaInterval);
+  clearInterval(_csEddgaBurstInterval);
   _csThanatosTimer = null;
   _csLodTimer = null;
   _csEddgaInterval = null;
+  _csEddgaBurstInterval = null;
   _lodHideCard();
 }
 
@@ -4266,25 +4314,31 @@ function csApplyDmgMod(baseDmg, isGod) {
   const cs = window._csState;
   let d = baseDmg;
   if(cs.cs_dmgBonus)   d *= (1 + cs.cs_dmgBonus);
-  if(cs.cs_mistress && !isGod) d *= 0.60;
+  if(cs.cs_mistress && !isGod) d *= 0.75;
   if(cs.cs_mummy_active) d *= (1 + (cs.cs_combo20Dmg||0));
   if(cs.cs_skelworker_bonus) d *= (1 + cs.cs_skelworker_bonus);
-  if(cs.cs_combo30_active) d *= 1.20;
-  if(cs.cs_incantation_active) d *= 3;
+  if(cs.cs_combo30_active) d *= 1.25;
+  if(cs.cs_incantation_active) d *= 2.5;
   if(cs.cs_horong_active) d *= 1.35;
   if(cs.cs_raydric && cs._raydricActive) d *= 1.20;
   if(cs.cs_zenorc_active) d *= (1 + cs.cs_zenorc_active);
   if(cs.cs_moonlightflower) d *= 2;
-  // Minorous: +30% when HP > 60%
-  if(cs.cs_minorous) { const ratio = isBoss ? 1 : (hp/maxHP); if(ratio > 0.60) d *= 1.30; }
-  // Executioner: +40% when HP < 25%
-  if(cs.cs_executioner) { const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP); if(ratio < 0.25) d *= 1.40; }
+  // Minorous: +35% when HP > 60%
+  if(cs.cs_minorous) { const ratio = isBoss ? 1 : (hp/maxHP); if(ratio > 0.60) d *= 1.35; }
+  // Executioner: +50% when HP < 25%
+  if(cs.cs_executioner) { const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP); if(ratio < 0.25) d *= 1.50; }
   // Beelzebub: accumulated dmg bonus
   if(cs.cs_beelzebub && cs._beelzebubBonus) d *= (1 + cs._beelzebubBonus);
-  // RSX-0806: dmg x3, no OD/AK
-  if(cs.cs_rsx0806) d *= 3;
-  // Amon Ra: combo >= 40 dmg +35%
-  if(cs.cs_amonRa_active) d *= 1.35;
+  // RSX-0806: dmg x3.5, no OD/AK
+  if(cs.cs_rsx0806) d *= 3.5;
+  // Amon Ra: combo >= 40 dmg +40%
+  if(cs.cs_amonRa_active) d *= 1.40;
+  // Goblin Leader: combo >= 30 dmg +15%
+  if(cs.cs_goblinLeader && combo >= 30) d *= 1.15;
+  // Baphomet: accumulated dmg bonus from AK47 completions
+  if(cs.cs_baphomet && cs._baphometDmgStack) d *= (1 + cs._baphometDmgStack);
+  // Orc Hero: accumulated dmg bonus from OD completions
+  if(cs.cs_orchero && cs._orcheroDmgStack) d *= (1 + cs._orcheroDmgStack);
   // Ktullanux handled in WP bomb section
   return Math.round(d);
 }
@@ -4296,10 +4350,9 @@ function csApplyCoinMod(coins) {
   let c = coins;
   if(cs.cs_coinPct)   c *= (1 + cs.cs_coinPct);
   if(cs.cs_goldenbug) c *= 4;
-  if(cs.cs_osiris)    c *= 0.50;
-  if(cs.cs_combo30_active && combo >= 30) c *= 3;
+  if(cs.cs_osiris)    c *= 0.65;
   if(cs.cs_moonlightflower) c *= 2;
-  if(cs.cs_amonRa_active) c *= 2;
+  if(cs.cs_amonRa_active) c *= 1.5;
   return Math.round(c);
 }
 
@@ -4307,9 +4360,10 @@ function csApplyCoinMod(coins) {
 function csOnClick(isGod) {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
-  // mistress coin during OD
+  // Mistress: coin +2 and OD timer +0.1s during OD
   if(cs.cs_mistress && isGod) {
-    roundCoins += 3;
+    roundCoins += 2;
+    godSecondsLeft += 0.1;
     updateUI();
   }
   // combo milestone coin (poporing)
@@ -4321,16 +4375,16 @@ function csOnClick(isGod) {
   // update combo-based states
   if(cs.cs_combo20Dmg)  cs.cs_mummy_active  = combo >= 20;
   if(cs.cs_combo30)     cs.cs_combo30_active = combo >= 30;
-  if(cs.cs_incantation) cs.cs_incantation_active = combo >= 40;
+  if(cs.cs_incantation) cs.cs_incantation_active = combo >= 35;
   if(cs.cs_elderWillow) cs.cs_elderWillow_active = combo >= 25;
   if(cs.cs_horong)      cs.cs_horong_active = timeLeft < 20;
-  // Amon Ra: combo >= 40 → dmg+35% + coin x2
+  // Amon Ra: combo >= 40 → dmg+40% + coin x1.5
   if(cs.cs_amonRa) cs.cs_amonRa_active = combo >= 40;
   // Goblin Leader: combo+2 per click (applied in processHit combo line)
-  // Beelzebub: accumulate dmg bonus per click (max 30%)
+  // Beelzebub: accumulate dmg bonus per click (max 40%)
   if(cs.cs_beelzebub) {
     if(!cs._beelzebubBonus) cs._beelzebubBonus = 0;
-    if(cs._beelzebubBonus < 0.30) cs._beelzebubBonus = Math.min(0.30, cs._beelzebubBonus + 0.003);
+    if(cs._beelzebubBonus < 0.40) cs._beelzebubBonus = Math.min(0.40, cs._beelzebubBonus + 0.004);
   }
   // Mastering: combo milestone time bonus
   if(cs.cs_comboTimeBonus && combo > 0 && combo % 10 === 0) {
@@ -4347,12 +4401,12 @@ function csOnClick(isGod) {
     const tiers = Math.min(Math.floor(combo/10),3);
     cs.cs_skelworker_bonus = tiers * 0.08;
   }
-  // Stormy Knight: extend OD timer during OD
+  // Stormy Knight: extend OD timer +0.2s per click during OD (max +8s per round)
   if(cs.cs_stormyKnight && isGod) {
     if(!cs._stormyKnightAcc) cs._stormyKnightAcc = 0;
-    if(cs._stormyKnightAcc < 5) {
-      cs._stormyKnightAcc += 0.15;
-      // extend by adding to godTimeout — handled externally
+    if(cs._stormyKnightAcc < 8) {
+      cs._stormyKnightAcc += 0.2;
+      godSecondsLeft += 0.2;
     }
   }
   // Zenorc: OD usage stacks handled in csOnOdStart
@@ -4371,9 +4425,18 @@ function csOnKO() {
     _csKoTimeAcc += 0.01;
     if(_csKoTimeAcc <= 5) timeLeft += 0.01;
   }
-  // Dark Lord: +0.05s per KO (unlimited)
+  // Dark Lord: +0.08s per KO + score +50
   if(cs.cs_darkLord) {
-    timeLeft += 0.05;
+    timeLeft += 0.08;
+    score += 50;
+  }
+  // Turtle General: score +300 per KO when combo >= 30
+  if(cs.cs_combo30_active) {
+    score += 300;
+  }
+  // Drake: reset threshold tracking on KO (new enemy spawns)
+  if(cs.cs_drakeIgnoreThreshold) {
+    cs._drakeTriggered = new Set();
   }
   // Nightmare: +2% OD charge per KO
   if(cs.cs_koOdCharge && !cs.cs_baphomet && !cs.cs_goldenbug) {
@@ -4408,6 +4471,17 @@ function csOnKO() {
   }
 }
 
+// ── helper: on OD end ──
+function csOnOdEnd() {
+  if(!window._csState) return;
+  const cs = window._csState;
+  // Orc Hero: accumulate dmg bonus +8% per OD end (max +24%)
+  if(cs.cs_orchero) {
+    if(!cs._orcheroDmgStack) cs._orcheroDmgStack = 0;
+    if(cs._orcheroDmgStack < 0.24) cs._orcheroDmgStack = Math.min(0.24, cs._orcheroDmgStack + 0.08);
+  }
+}
+
 // ── helper: on OD start ──
 // ── Valkyrie Randgris: สุ่ม Elite card effect ทุกครั้งที่ AK47 ครบ ──
 function _csValkyrieRandgrisSwap() {
@@ -4419,25 +4493,28 @@ function _csValkyrieRandgrisSwap() {
   );
   if(!elitePool.length) return;
   const newCard = elitePool[Math.floor(Math.random()*elitePool.length)];
-  // ล้าง elite state เดิม แล้ว apply ใหม่
-  const cs = window._csState;
-  const keep = {
-    cs_valkyrieRandgris: true,
-    cs_rsx0806: cs.cs_rsx0806,
-    cs_baphomet: cs.cs_baphomet,
-    cs_goldenbug: cs.cs_goldenbug,
-    cs_eddga: cs.cs_eddga,
-    cs_lordofdeath: cs.cs_lordofdeath,
-  };
-  // reset แค่ elite keys ที่อาจถูก set ไปแล้ว
   const eliteKeys = ['cs_doubleClick','cs_wpDmgMult','cs_wpOdCharge','cs_combo30','cs_drakeIgnoreThreshold',
     'cs_taogunka','cs_draculaCoin','cs_incantation','cs_stormyKnight','cs_darkLord',
     'cs_minorous','cs_executioner','cs_whisper','cs_goblinLeader','cs_amonRa','cs_amonRa_active',
-    '_stormyKnightAcc','_darkLordAcc','cs_odChargePenalty'];
-  eliteKeys.forEach(k => { if(!keep[k]) delete window._csState[k]; });
-  newCard.apply(window._csState);
-  _showActiveCard(newCard);
-  showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD',''), '#cc88ff');
+    '_stormyKnightAcc','_darkLordAcc','cs_odChargePenalty','_drakeTriggered','_whisperComboProtect'];
+  showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD','') + ' (IN 2s)', '#cc88ff');
+  // Old effect active for 2s before new card kicks in
+  setTimeout(()=>{
+    if(!window._csState || !gameRunning) return;
+    const cs = window._csState;
+    const keep = {
+      cs_valkyrieRandgris: true,
+      cs_rsx0806: cs.cs_rsx0806,
+      cs_baphomet: cs.cs_baphomet,
+      cs_goldenbug: cs.cs_goldenbug,
+      cs_eddga: cs.cs_eddga,
+      cs_lordofdeath: cs.cs_lordofdeath,
+    };
+    eliteKeys.forEach(k => { if(!keep[k]) delete window._csState[k]; });
+    newCard.apply(window._csState);
+    _showActiveCard(newCard);
+    showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD',''), '#cc88ff');
+  }, 2000);
 }
 
 function csOnOdStart() {
@@ -4446,20 +4523,23 @@ function csOnOdStart() {
   _csOdUseCount++;
 }
 
-// ── helper: on OD end — collect hunter fly coin ──
-function csOnOdEnd() {} // coins collected at game end
+// csOnOdEnd defined after csOnKO above
 
 // ── helper: on WP hit ──
 function csOnWpHit(x, y) {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
-  // phreeoni: OD charge +15%
+  // Phreeoni: if OD active → OD timer +1s; else charge +20%
   if(cs.cs_wpOdCharge) {
-    const bar = _el.godFill;
-    const cur = parseFloat(bar.style.width)||0;
-    bar.style.width = Math.min(100, cur + cs.cs_wpOdCharge*100) + '%';
-    if(parseFloat(bar.style.width)>=100 && canEnterGod && !cs.cs_baphomet && !cs.cs_goldenbug) {
-      enterGodMode();
+    if(godLevel > 0) {
+      godSecondsLeft += 1;
+    } else {
+      const bar = _el.godFill;
+      const cur = parseFloat(bar.style.width)||0;
+      bar.style.width = Math.min(100, cur + cs.cs_wpOdCharge*100) + '%';
+      if(parseFloat(bar.style.width)>=100 && canEnterGod && !cs.cs_baphomet && !cs.cs_goldenbug) {
+        activateGodLevel(1);
+      }
     }
   }
   // baphomet: spawn new WP immediately
@@ -4478,8 +4558,8 @@ function csOnTimeUp() {
   const cs = window._csState;
   if(cs.cs_osiris && !_csOsirisUsed) {
     _csOsirisUsed = true;
-    timeLeft = 15;
-    showBigSplash('OSIRIS','EXTRA TIME +15s','#cc88ff',true);
+    timeLeft = 18;
+    showBigSplash('OSIRIS','EXTRA TIME +18s','#cc88ff',true);
     return true; // prevent game end
   }
   return false;
@@ -4506,6 +4586,12 @@ function csReset(clearSavedCards = false) {
     doSave();
   }
   _csStopAllTimers();
+}
+
+function _csResetRuntimeState() {
+  // Called implicitly when window._csState is cleared — any per-round runtime vars reset here
+  // Accumulated stacks on the csState object are reset automatically since _csState is nulled.
+  // This function exists for explicit mid-round resets if needed.
 }
 
 // ══════════════════════════════════════════
@@ -4559,6 +4645,7 @@ let _csLodTimer = null;
 let _csOdUseCount = 0;
 let _csOsirisUsed = false;
 let _csEddgaInterval = null;
+let _csEddgaBurstInterval = null;
 let _csLastCards = null;
 let _csOnChosen = null;
 
@@ -4917,7 +5004,7 @@ function startGame() {
     stopBGM();
     if(window._csState){
       if(window._csState.cs_extraTime)  timeLeft += window._csState.cs_extraTime;
-      if(window._csState.cs_orchero)    timeLeft = Math.max(5, timeLeft - 20);
+      if(window._csState.cs_orchero)    timeLeft = Math.max(5, timeLeft - 15);
       if(window._csState.cs_moonlightflower) timeLeft = Math.round(timeLeft * 0.5);
       if(window._csState.cs_timePenalty) timeLeft = Math.max(5, timeLeft - window._csState.cs_timePenalty);
       if(window._csState.cs_enemyHpReduce) {
@@ -4925,7 +5012,7 @@ function startGame() {
         hp = maxHP; updateUI();
       }
       if(window._csState.cs_ktullanux) { maxHP = Math.round(maxHP * 1.5); hp = maxHP; updateUI(); }
-      if(window._csState.cs_beelzebub) { maxHP = Math.round(maxHP * 2.5); hp = maxHP; updateUI(); }
+      if(window._csState.cs_beelzebub) { maxHP = Math.round(maxHP * 2); hp = maxHP; updateUI(); }
     }
     startCountdown(()=>{
       gameRunning=true;
@@ -4958,7 +5045,7 @@ function retryGame() {
     stopBGM();
     if(window._csState){
       if(window._csState.cs_extraTime)  timeLeft += window._csState.cs_extraTime;
-      if(window._csState.cs_orchero)    timeLeft = Math.max(5, timeLeft - 20);
+      if(window._csState.cs_orchero)    timeLeft = Math.max(5, timeLeft - 15);
       if(window._csState.cs_moonlightflower) timeLeft = Math.round(timeLeft * 0.5);
       if(window._csState.cs_timePenalty) timeLeft = Math.max(5, timeLeft - window._csState.cs_timePenalty);
       if(window._csState.cs_enemyHpReduce) {
@@ -4966,7 +5053,7 @@ function retryGame() {
         hp = maxHP; updateUI();
       }
       if(window._csState.cs_ktullanux) { maxHP = Math.round(maxHP * 1.5); hp = maxHP; updateUI(); }
-      if(window._csState.cs_beelzebub) { maxHP = Math.round(maxHP * 2.5); hp = maxHP; updateUI(); }
+      if(window._csState.cs_beelzebub) { maxHP = Math.round(maxHP * 2); hp = maxHP; updateUI(); }
     }
     startCountdown(()=>{
       gameRunning=true;
@@ -5415,7 +5502,17 @@ function processHit(e, now) {
 
   // คอมโบ: WP hit ไม่รีเซ็ตคอมโบ (นับเป็น "ตีทัน" เสมอ)
   const _comboInc = (window._csState && window._csState.cs_goblinLeader) ? 2 : 1;
-  combo = (isWpHit || gap<220) ? Math.min(combo+_comboInc,47) : 1;
+  const _suppressReset = window._csState && (
+    window._csState._whisperComboProtect ||
+    window._csState._ktullanuxComboProtect ||
+    (window._csState.cs_minorous && !isBoss && (hp/maxHP) > 0.60)
+  );
+  if(isWpHit || gap < 220) combo = Math.min(combo + _comboInc, 47);
+  else if(!_suppressReset) combo = 1;
+  // Golden Bug: extra +1 combo per click (on top of normal increment)
+  if(window._csState && window._csState.cs_goldenbug && (isWpHit || gap < 220)) {
+    combo = Math.min(combo + 1, 47);
+  }
   lastHitTime=now;
   if(combo>maxCombo) maxCombo=combo;
 
@@ -5499,13 +5596,15 @@ function processHit(e, now) {
     _el.godFill.style.width=Math.min(100,cur+window._csState.cs_critOdCharge*100)+'%';
     if(parseFloat(_el.godFill.style.width)>=100&&canEnterGod&&godLevel===0) activateGodLevel(1);
   }
-  // DRACULA: crit = +8 coin, สูงสุด 5 ครั้ง/วิ
+  // DRACULA: crit = +5 coin + OD charge +2% (ไม่จำกัด)
   if(isCrit && window._csState && window._csState.cs_draculaCoin) {
-    const _now = Date.now();
-    if(!window._csState._draculaWindow) window._csState._draculaWindow = { t: _now, count: 0 };
-    const _dw = window._csState._draculaWindow;
-    if(_now - _dw.t > 1000) { _dw.t = _now; _dw.count = 0; }
-    if(_dw.count < 5) { _dw.count++; roundCoins += 8; spawnCoinPopup(8); }
+    roundCoins += 5;
+    spawnCoinPopup(5);
+    if(!window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
+      const cur = parseFloat(_el.godFill.style.width)||0;
+      _el.godFill.style.width = Math.min(100, cur + 2) + '%';
+      if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
+    }
   }
 
   // card damage mods
@@ -5526,21 +5625,21 @@ function processHit(e, now) {
     // HYDRA: WP dmg x3 | KTULLANUX: WP dmg x4 | default: x2
     let wpMult = (window._csState && window._csState.cs_wpDmgMult) ? window._csState.cs_wpDmgMult : 2;
     if(window._csState && window._csState.cs_ktullanux) wpMult = 4;
-    // THANATOS: WP = coin x5 + dmg x2
-    const thanatosMult = (window._csState && window._csState.cs_thanatos) ? 2 : 1;
+    // THANATOS: WP dmg x2.5 (OD charge handled in triggerBombExplosion)
+    const thanatosMult = (window._csState && window._csState.cs_thanatos) ? 2.5 : 1;
     const wpDmg = onWeakPointHit(pos.x, pos.y, baseDmg*multi, wpMult * thanatosMult);
-    if(window._csState && window._csState.cs_thanatos) {
-      const bonus = csApplyCoinMod(Math.round(roundCoins * 0.05 + 20) * 5);
-      roundCoins += bonus;
-      spawnCoinPopup(bonus);
-    }
     applyDamage(wpDmg, e, false);
     score += 20;
     csOnWpHit(pos.x, pos.y);
   } else {
     applyDamage(dmg,e,isCrit);
-    // DOPPELGANGER: double hit always
-    if(window._csState && window._csState.cs_doubleClick) setTimeout(()=>applyDamage(dmg,e,false),40);
+    // DOPPELGANGER: second hit at 80% dmg with 20% crit chance
+    if(window._csState && window._csState.cs_doubleClick) {
+      const _dgDmg = Math.round(dmg * 0.8);
+      const _dgCrit = Math.random() < 0.20;
+      const _dgFinalDmg = _dgCrit ? Math.round(_dgDmg * (_sc.critMult||2)) : _dgDmg;
+      setTimeout(()=>applyDamage(_dgFinalDmg, e, _dgCrit), 40);
+    }
     if(doubleHit) setTimeout(()=>applyDamage(dmg,e,false),55);
     if((doubleHit&&_sc.isTriple)||baphTriple) setTimeout(()=>applyDamage(dmg,e,false),110);
   }
@@ -5594,9 +5693,36 @@ function applyDamage(dmg,e,isCrit) {
       _el.bossName.style.color='#ff4400';
       showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
     }
+    // DRAKE: OD charge +15% each time boss HP crosses 75%, 50%, 25%
+    if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
+      if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
+      const bossRatio = bossHP / bossMaxHP;
+      for(const thresh of [0.75, 0.50, 0.25]) {
+        const key = 'boss_'+thresh;
+        if(bossRatio < thresh && !window._csState._drakeTriggered.has(key)) {
+          window._csState._drakeTriggered.add(key);
+          const cur = parseFloat(_el.godFill.style.width)||0;
+          _el.godFill.style.width = Math.min(100, cur + 15) + '%';
+          if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
+        }
+      }
+    }
     if(bossHP<=0) bossKO();
   } else {
     hp=Math.max(0,hp-dmg);
+    // DRAKE: OD charge +15% each time HP crosses 75%, 50%, 25%
+    if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
+      if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
+      const hpRatio = hp / maxHP;
+      for(const thresh of [0.75, 0.50, 0.25]) {
+        if(hpRatio < thresh && !window._csState._drakeTriggered.has(thresh)) {
+          window._csState._drakeTriggered.add(thresh);
+          const cur = parseFloat(_el.godFill.style.width)||0;
+          _el.godFill.style.width = Math.min(100, cur + 15) + '%';
+          if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
+        }
+      }
+    }
     if(hp<=0) normalKO();
   }
 }
@@ -5607,9 +5733,15 @@ function applyDamage(dmg,e,isCrit) {
 function normalKO() {
   ko++; waveKO++;
   let baseCoins = Math.round((1 + Math.floor(combo * 0.05)) * (1.25 + (_sc.coinMult||0)));
+  // Turtle General: KO coin -30%
+  if(window._csState && window._csState.cs_combo30) baseCoins = Math.round(baseCoins * 0.70);
   baseCoins = csApplyCoinMod(baseCoins);
   roundCoins+=baseCoins;
   score+=100+combo*8;
+  // Moonlight Flower: +500 score per KO
+  if(window._csState && window._csState.cs_moonlightflower) score += 500;
+  // RSX-0806: +200 score per KO
+  if(window._csState && window._csState.cs_rsx0806) score += 200;
   hp=maxHP;
   showKOFlash(false);
   spawnCoinPopup(baseCoins);
@@ -5636,9 +5768,15 @@ function bossKO() {
   isBoss=false; ko++;
   window._bossesDefeated = (window._bossesDefeated||0) + 1;
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
+  // Turtle General: KO coin -30%
+  if(window._csState && window._csState.cs_combo30) bossCoins = Math.round(bossCoins * 0.70);
   bossCoins = csApplyCoinMod(bossCoins);
   roundCoins+=bossCoins;
   score+=500+combo*15;
+  // Moonlight Flower: +500 score per KO
+  if(window._csState && window._csState.cs_moonlightflower) score += 500;
+  // RSX-0806: +200 score per KO
+  if(window._csState && window._csState.cs_rsx0806) score += 200;
   hp=maxHP; bossHP=0;
   _el.bossBar.style.display='none';
   spawnCoinPopup(bossCoins);
@@ -5651,8 +5789,10 @@ function bossKO() {
 // OVERDRIVE
 // ══════════════════════════════════════════
 function activateGodLevel(lv) {
-  // EDDGA: lock at Lv1
-  if(window._csState && window._csState.cs_eddga && lv > 1) return;
+  // EDDGA: lock at Lv1 (allow burst Lv2 via _eddgaBurstActive, block Lv3 always)
+  if(window._csState && window._csState.cs_eddga && lv > 1) {
+    if(lv === 3 || !window._csState._eddgaBurstActive) return;
+  }
   godLevel=lv; canEnterGod=(lv<3);
   clearTimeout(godTimeout); clearInterval(godInterval);
   gun.style.display=lv>0?'block':'none';
@@ -5697,6 +5837,7 @@ function activateGodLevel(lv) {
 }
 
 function exitGodMode() {
+  csOnOdEnd();
   godLevel=0; canEnterGod=false;
   gun.style.display='none';
   combo=1; lastHitTime=0;
