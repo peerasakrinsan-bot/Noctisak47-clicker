@@ -3901,7 +3901,7 @@ const CARD_POOL = [
     apply(s){ s.cs_stormyKnight = true; }
   },
   { id:'dl',   name:'DARK LORD CARD',      img:'dark_lord.png',   rarity:'elite',
-    effect:'ทุก KO = เวลา <strong>+0.08 วิ</strong> + score <strong>+50</strong>', tradeoff:null,
+    effect:'ทุก KO = เวลา <strong>+0.05 วิ</strong> + score <strong>+30</strong>', tradeoff:'coin จาก KO <strong>-40%</strong>',
     apply(s){ s.cs_darkLord = true; }
   },
   { id:'mf', name:'MOONLIGHT FLOWER CARD', img:'moonlight_flower.png', rarity:'elite',
@@ -4425,10 +4425,10 @@ function csOnKO() {
     _csKoTimeAcc += 0.01;
     if(_csKoTimeAcc <= 5) timeLeft += 0.01;
   }
-  // Dark Lord: +0.08s per KO + score +50
+  // Dark Lord: +0.05s per KO + score +30
   if(cs.cs_darkLord) {
-    timeLeft += 0.08;
-    score += 50;
+    timeLeft += 0.05;
+    score += 30;
   }
   // Turtle General: score +300 per KO when combo >= 30
   if(cs.cs_combo30_active) {
@@ -5735,6 +5735,8 @@ function normalKO() {
   let baseCoins = Math.round((1 + Math.floor(combo * 0.05)) * (1.25 + (_sc.coinMult||0)));
   // Turtle General: KO coin -30%
   if(window._csState && window._csState.cs_combo30) baseCoins = Math.round(baseCoins * 0.70);
+  // Dark Lord: KO coin -40%
+  if(window._csState && window._csState.cs_darkLord) baseCoins = Math.round(baseCoins * 0.60);
   baseCoins = csApplyCoinMod(baseCoins);
   roundCoins+=baseCoins;
   score+=100+combo*8;
@@ -5770,6 +5772,8 @@ function bossKO() {
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
   // Turtle General: KO coin -30%
   if(window._csState && window._csState.cs_combo30) bossCoins = Math.round(bossCoins * 0.70);
+  // Dark Lord: KO coin -40%
+  if(window._csState && window._csState.cs_darkLord) bossCoins = Math.round(bossCoins * 0.60);
   bossCoins = csApplyCoinMod(bossCoins);
   roundCoins+=bossCoins;
   score+=500+combo*15;
