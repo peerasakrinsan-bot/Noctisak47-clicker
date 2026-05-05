@@ -6187,6 +6187,9 @@ function _cloudLoadCreds() {
 function _cloudSaveCreds(id, key) {
   try { localStorage.setItem(_CLOUD_STORE_KEY, JSON.stringify({ id, key })); } catch(e) {}
 }
+function _cloudClearCreds() {
+  try { localStorage.removeItem(_CLOUD_STORE_KEY); } catch(e) {}
+}
 
 // ── Lock: ผูก save นี้กับ cloud ID ──
 // ใช้ทั้ง localStorage และ field ใน save_data เพื่อกันการนำ save เดียวไปสร้างหลาย ID
@@ -6404,6 +6407,18 @@ function svConfirmReset() {
   _svResetConfirmed = false;
   localStorage.removeItem('noctisak47_v3');
   _cloudClearLock(); // ล้าง lock เมื่อ reset — save ใหม่สร้าง ID ใหม่ได้
+  _cloudClearCreds();
+  const cloudIdEl = $('sv-cloud-id');
+  const secretBox = $('sv-secret-display');
+  const loadIdEl  = $('sv-cloud-load-id');
+  const loadKeyEl = $('sv-cloud-load-key');
+  if (cloudIdEl) { cloudIdEl.value = ''; cloudIdEl.readOnly = false; }
+  if (secretBox) {
+    secretBox.textContent = '— กรอก ID แล้วกด Cloud Save —';
+    secretBox.classList.remove('revealed');
+  }
+  if (loadIdEl)  loadIdEl.value = '';
+  if (loadKeyEl) loadKeyEl.value = '';
   save = loadSave();
   doSave();
   updateShopCoinUI();
