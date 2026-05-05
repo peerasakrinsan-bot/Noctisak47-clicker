@@ -6187,6 +6187,9 @@ function _cloudLoadCreds() {
 function _cloudSaveCreds(id, key) {
   try { localStorage.setItem(_CLOUD_STORE_KEY, JSON.stringify({ id, key })); } catch(e) {}
 }
+function _cloudClearCreds() {
+  try { localStorage.removeItem(_CLOUD_STORE_KEY); } catch(e) {}
+}
 
 // ── Lock: ผูก save นี้กับ cloud ID ──
 // ใช้ทั้ง localStorage และ field ใน save_data เพื่อกันการนำ save เดียวไปสร้างหลาย ID
@@ -6195,6 +6198,10 @@ function _cloudSetLock(id)     { try { localStorage.setItem(_CLOUD_LOCK_KEY, id)
 function _cloudClearLock()     { try { localStorage.removeItem(_CLOUD_LOCK_KEY); } catch(e) {} }
 function _cloudBoundId()       { return (save && save.cloudPlayerId) || _cloudGetLock(); }
 function _cloudBindSave(id)    { save.cloudPlayerId = id; _cloudSetLock(id); doSave(); }
+function _cloudClearAccountState() {
+  _cloudClearCreds();
+  _cloudClearLock();
+}
 function _cloudHeaders(extra)  {
   return Object.assign({
     'apikey': _SUPA_KEY,
@@ -6251,6 +6258,25 @@ function svCloudOnIdChange() {
   } else {
     box.textContent = '— ระบบจะแจกรหัสลับหลัง Upload สำเร็จ —';
   }
+}
+
+function svCloudClearPanel() {
+  const idEl = $('sv-cloud-id');
+  if (idEl) {
+    idEl.value = '';
+    idEl.readOnly = false;
+  }
+
+  const box = $('sv-secret-display');
+  if (box) {
+    box.classList.remove('revealed');
+    box.textContent = '— กรอก ID แล้วกด Cloud Save —';
+  }
+
+  if ($('sv-cloud-load-id'))  $('sv-cloud-load-id').value = '';
+  if ($('sv-cloud-load-key')) $('sv-cloud-load-key').value = '';
+  if ($('sv-cloud-save-msg')) { $('sv-cloud-save-msg').innerHTML = ''; $('sv-cloud-save-msg').className = 'sv-msg'; }
+  if ($('sv-cloud-msg'))      { $('sv-cloud-msg').innerHTML = '';      $('sv-cloud-msg').className = 'sv-msg'; }
 }
 
 // Upload save to Supabase — พร้อม lock ID หลัง save สำเร็จครั้งแรก
@@ -6412,10 +6438,9 @@ function svConfirmReset() {
   // RESET
   _svResetConfirmed = false;
   localStorage.removeItem('noctisak47_v3');
-  _cloudClearLock(); // ล้าง lock เมื่อ reset — save ใหม่สร้าง ID ใหม่ได้
-  if ($('sv-cloud-load-id'))  $('sv-cloud-load-id').value = '';
-  if ($('sv-cloud-load-key')) $('sv-cloud-load-key').value = '';
+  _cloudClearAccountState(); // ล้าง credentials + lock เมื่อ reset — save ใหม่สร้าง ID ใหม่ได้
   save = loadSave();
+  svCloudClearPanel();
   doSave();
   updateShopCoinUI();
   if($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
