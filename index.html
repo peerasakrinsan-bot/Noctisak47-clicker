@@ -4444,11 +4444,6 @@ function csOnKO() {
     _el.godFill.style.width = Math.min(100, cur + cs.cs_koOdCharge*100) + '%';
     if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
   }
-  // Raydric: activate at 50% HP
-  if(cs.cs_raydric && !cs._raydricActive) {
-    const hpPct = hp / maxHP;
-    if(hpPct <= 0.50) cs._raydricActive = true;
-  }
   // Zenorc OD stack tracked in csOnOdStart
   // Alligator: +3 coin per KO (max 45 per round)
   if(cs.cs_alligator) {
@@ -4521,6 +4516,11 @@ function csOnOdStart() {
   if(!window._csState) return;
   const cs = window._csState;
   _csOdUseCount++;
+  // ZENORC: count OD uses for damage stack (max 2 → +20%)
+  if(cs.cs_zenorc) {
+    if(!cs._zenorcCount) cs._zenorcCount = 0;
+    if(cs._zenorcCount < 2) cs._zenorcCount++;
+  }
 }
 
 // csOnOdEnd defined after csOnKO above
@@ -5502,15 +5502,20 @@ function processHit(e, now) {
 
   // คอมโบ: WP hit ไม่รีเซ็ตคอมโบ (นับเป็น "ตีทัน" เสมอ)
   const _comboInc = (window._csState && window._csState.cs_goblinLeader) ? 2 : 1;
+  // FABRE/STAINER: extend combo window; STING tradeoff: shorten combo window
+  const _comboWindow = 220
+    * (1 + (window._csState && window._csState.cs_comboDecaySlow || 0))
+    * (1 - (window._csState && window._csState.cs_comboDecayFast || 0));
   const _suppressReset = window._csState && (
     window._csState._whisperComboProtect ||
     window._csState._ktullanuxComboProtect ||
-    (window._csState.cs_minorous && !isBoss && (hp/maxHP) > 0.60)
+    (window._csState.cs_minorous && !isBoss && (hp/maxHP) > 0.60) ||
+    (window._csState.cs_comboNoReset && Math.random() < window._csState.cs_comboNoReset)
   );
-  if(isWpHit || gap < 220) combo = Math.min(combo + _comboInc, 47);
+  if(isWpHit || gap < _comboWindow) combo = Math.min(combo + _comboInc, 47);
   else if(!_suppressReset) combo = 1;
   // Golden Bug: extra +1 combo per click (on top of normal increment)
-  if(window._csState && window._csState.cs_goldenbug && (isWpHit || gap < 220)) {
+  if(window._csState && window._csState.cs_goldenbug && (isWpHit || gap < _comboWindow)) {
     combo = Math.min(combo + 1, 47);
   }
   lastHitTime=now;
@@ -5533,10 +5538,25 @@ function processHit(e, now) {
     const cur = parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width = Math.min(100, cur + (combo/47*100)*0.3) + '%';
   }
-  // VITATA: combo >= 15 → OD charge x1.3
-  if(window._csState && window._csState.cs_vitata && combo >= 15 && godLevel === 0) {
+  // ELDER WILLOW: OD charge x1.5 when combo >= 25
+  if(window._csState && window._csState.cs_elderWillow_active && godLevel === 0
+     && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     const cur = parseFloat(_el.godFill.style.width)||0;
-    _el.godFill.style.width = Math.min(100, cur + (combo/47*100)*0.3) + '%';
+    _el.godFill.style.width = Math.min(100, cur + (combo/47*100)*0.5) + '%';
+  }
+  // METALLER / THIEF BUG: flat OD charge bonus per click
+  if(window._csState && window._csState.cs_odChargeBonus && godLevel === 0
+     && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
+    const cur = parseFloat(_el.godFill.style.width)||0;
+    _el.godFill.style.width = Math.min(100, cur + window._csState.cs_odChargeBonus * 100) + '%';
+  }
+  // SAVAGE / TAO GUNKA / GOBLIN LEADER: OD charge penalty (reduce charge rate)
+  if(window._csState && window._csState.cs_odChargePenalty && godLevel === 0
+     && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
+    const base = combo/47*100;
+    const penalty = base * window._csState.cs_odChargePenalty;
+    const cur = parseFloat(_el.godFill.style.width)||0;
+    _el.godFill.style.width = Math.max(0, cur - penalty) + '%';
   }
   // BAPHOMET / GOLDEN BUG / RSX-0806: no OD charge
   if(window._csState && (window._csState.cs_baphomet || window._csState.cs_goldenbug || window._csState.cs_rsx0806)) {
@@ -5546,14 +5566,16 @@ function processHit(e, now) {
     if(!window._csState || (!window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806))
       activateGodLevel(1);
   }
-  // MOONLIGHT FLOWER / VITATA: ถ้า bar เต็ม 100% ก่อน combo 47 → trigger OD ทันที
-  if(window._csState && (window._csState.cs_moonlightflower || window._csState.cs_vitata) && godLevel===0 && canEnterGod) {
+  // MOONLIGHT FLOWER / VITATA / ELDER WILLOW / METALLER / THIEF BUG: ถ้า bar เต็ม 100% ก่อน combo 47 → trigger OD ทันที
+  if(godLevel===0 && canEnterGod && window._csState
+     && (window._csState.cs_moonlightflower || window._csState.cs_vitata || window._csState.cs_elderWillow_active || window._csState.cs_odChargeBonus)
+     && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     if(parseFloat(_el.godFill.style.width) >= 100) activateGodLevel(1);
   }
 
   // upgrade overdrive เมื่อตีเร็วพอครบ threshold (ไม่รอเวลาหมด)
   if(godLevel===1||godLevel===2){
-    if(gap<220){ // ตีเร็วพอ
+    if(gap<_comboWindow){ // ตีเร็วพอ
       godHitCount++;
       const upgradeAt = godLevel===1 ? 30 : 25; // Lv1→2 ต้องตี 30 ครั้ง, Lv2→3 ต้องตี 25 ครั้ง
       if(godHitCount>=upgradeAt){
@@ -5722,6 +5744,10 @@ function applyDamage(dmg,e,isCrit) {
           if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
         }
       }
+    }
+    // RAYDRIC: activate permanently once enemy HP drops to <= 50%
+    if(window._csState && window._csState.cs_raydric && !window._csState._raydricActive) {
+      if((hp / maxHP) <= 0.50) window._csState._raydricActive = true;
     }
     if(hp<=0) normalKO();
   }
