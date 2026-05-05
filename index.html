@@ -6332,7 +6332,10 @@ async function svCloudDownload() {
     if (!res.ok) { svShowMsg(msg, `❌ ดึงข้อมูลไม่สำเร็จ (${res.status})`, 'err'); return; }
 
     const rows = await res.json();
-    if (!rows || rows.length === 0) { svShowMsg(msg, '❌ ไม่พบ Save — ตรวจสอบ ID หรือรหัสลับ', 'err'); return; }
+    if (!rows || rows.length === 0) {
+      svShowMsg(msg, '❌ ไม่พบ Save — ตรวจสอบ ID หรือรหัสลับ', 'err');
+      return;
+    }
 
     const cloudSave = rows[0].save_data;
     if (!cloudSave) { svShowMsg(msg, '❌ ข้อมูล Save ว่างเปล่า', 'err'); return; }
