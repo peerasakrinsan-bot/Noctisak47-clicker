@@ -1067,13 +1067,6 @@
   .sv-tab.active { border-color: #ff2233; color: #ff2233; background: rgba(255,34,51,0.1); }
   .sv-panel { width: 100%; display: none; flex-direction: column; align-items: center; gap: 12px; }
   .sv-panel.active { display: flex; }
-  .sv-code-box {
-    width: 100%; background: #0a0a0a; border: 1px solid #333;
-    border-radius: 10px; padding: 12px;
-    font-size: 11px; letter-spacing: 1px; color: #aaa;
-    word-break: break-all; text-align: center;
-    min-height: 48px; line-height: 1.6; font-family: monospace;
-  }
   .sv-btn {
     width: 100%; padding: 12px; border-radius: 10px;
     border: 1.5px solid #ff2233; background: transparent;
@@ -1098,17 +1091,49 @@
   .sv-msg.err { color: #ff4444; background: rgba(255,68,68,0.1);  border: 1px solid rgba(255,68,68,0.3); }
   .sv-divider { width: 100%; border: none; border-top: 1px solid #222; margin: 2px 0; }
   /* ── Cloud Save UI ── */
-  .sv-cloud-id-row { display:flex; gap:6px; width:100%; align-items:center; }
-  .sv-cloud-id-row .sv-input { flex:1; margin:0; }
-  .sv-secret-box {
-    width:100%; background:#0a0a0a; border:1px solid #222; border-radius:8px;
-    padding:8px 10px; font-family:'Courier New',monospace; font-size:10px;
-    color:#555; letter-spacing:2px; text-align:center; word-break:break-all;
-    line-height:1.8;
+  .sv-cloud-hero {
+    width:100%; display:flex; gap:12px; align-items:center;
+    padding:12px; border-radius:14px;
+    background:linear-gradient(135deg, rgba(0,170,255,0.16), rgba(255,34,51,0.08));
+    border:1px solid rgba(0,170,255,0.35);
   }
-  .sv-secret-box.revealed { color:#00ff88; border-color:#00ff88; }
+  .sv-cloud-icon { font-size:30px; line-height:1; filter:drop-shadow(0 0 12px rgba(0,170,255,0.8)); }
+  .sv-cloud-heading { font-size:16px; letter-spacing:2px; color:#00ccff; line-height:1.1; }
+  .sv-cloud-copy { font-family:'Sarabun',sans-serif; font-size:10px; letter-spacing:0; color:#9acfe8; line-height:1.45; margin-top:4px; }
+  .sv-cloud-card {
+    width:100%; display:flex; flex-direction:column; gap:8px;
+    padding:12px; border-radius:14px; background:#0b0f14;
+    border:1px solid rgba(0,170,255,0.22);
+  }
+  .sv-cloud-card.load-card { border-color:rgba(255,204,0,0.25); background:#11100a; }
+  .sv-step-badge {
+    align-self:flex-start; padding:4px 8px; border-radius:999px;
+    font-size:10px; letter-spacing:1.4px; color:#001015; background:#00ccff;
+  }
+  .load-card .sv-step-badge { background:#ffcc00; color:#140f00; }
+  .sv-field-label, .sv-secret-label {
+    width:100%; text-align:left; font-family:'Sarabun',sans-serif;
+    color:#98a9b5; font-size:10px; letter-spacing:0; line-height:1.2;
+  }
+  .sv-cloud-input { font-size:16px; letter-spacing:2px; padding:14px 12px; border-color:#263847; }
+  .sv-cloud-input:read-only { color:#00ccff; border-color:#00aaff; background:#07131a; }
+  .sv-secret-box {
+    width:100%; background:#05080a; border:1.5px dashed #2d3c46; border-radius:10px;
+    padding:11px 10px; font-family:'Courier New',monospace; font-size:15px;
+    color:#637682; letter-spacing:3px; text-align:center; word-break:break-all; line-height:1.5;
+  }
+  .sv-secret-box.revealed { color:#00ff88; border-color:#00ff88; box-shadow:0 0 14px rgba(0,255,136,0.12) inset; }
+  .sv-btn.cloud-primary { border-color:#00aaff; color:#00d5ff; font-size:13px; }
+  .sv-btn.cloud-primary:active { background:#00aaff; color:#001018; }
+  .sv-btn.cloud-load { border-color:#ffcc00; color:#ffcc00; font-size:13px; }
+  .sv-btn.cloud-load:active { background:#ffcc00; color:#111; }
   .sv-tab.cloud-tab { border-color:#00aaff; color:#00aaff; }
   .sv-tab.cloud-tab.active { background:rgba(0,170,255,0.1); border-color:#00aaff; color:#00aaff; }
+  .sv-lock-note {
+    width:100%; padding:9px 10px; border-radius:10px;
+    background:rgba(255,68,68,0.1); border:1px solid rgba(255,68,68,0.28);
+    color:#ff8888; font-family:'Sarabun',sans-serif; font-size:10px; line-height:1.45; text-align:center;
+  }
   .sv-loading { display:inline-block; width:14px; height:14px; border:2px solid #333;
     border-top-color:#ff2233; border-radius:50%; animation:spin .6s linear infinite; vertical-align:middle; margin-right:6px; }
   @keyframes spin { to { transform:rotate(360deg); } }
@@ -1807,7 +1832,6 @@
     font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 2px;
   }
 </style>
-  <!-- QR Code library for save export -->
 </head>
 <body>
 <div id="gameRoot">
@@ -1903,66 +1927,54 @@
 
     <!-- Tabs -->
     <div class="sv-tabs">
-      <button class="sv-tab active" id="svTab-export" onclick="svSwitchTab('export')">EXPORT</button>
-      <button class="sv-tab" id="svTab-import" onclick="svSwitchTab('import')">IMPORT</button>
-      <button class="sv-tab cloud-tab" id="svTab-cloud" onclick="svSwitchTab('cloud')">☁️ CLOUD</button>
+      <button class="sv-tab cloud-tab active" id="svTab-cloud" onclick="svSwitchTab('cloud')">☁️ CLOUD</button>
       <button class="sv-tab" id="svTab-reset"  onclick="svSwitchTab('reset')">RESET</button>
     </div>
 
-    <!-- EXPORT Panel -->
-    <div class="sv-panel active" id="svPanel-export">
-      <div class="sv-hint">Serial Number สำหรับโอน save ไปเครื่องใหม่</div>
-      <!-- Serial แสดงเป็น blur ซ่อนไว้ก่อน -->
-      <div class="sv-code-box" id="sv-code-text" style="filter:blur(6px);user-select:none;">••••••••••••••••••••••••••••••••••••••••</div>
-      <button class="sv-btn secondary" id="sv-reveal-btn" onclick="svToggleReveal()">👁 แสดง Serial Number</button>
-      <button class="sv-btn" onclick="svCopyCode()">📋 COPY SERIAL</button>
-      <div id="sv-export-msg"></div>
-    </div>
-
-    <!-- IMPORT Panel -->
-    <div class="sv-panel" id="svPanel-import">
-      <div class="sv-hint">วาง CODE ที่ได้จากเครื่องเก่า<br>แล้วกด LOAD</div>
-      <textarea class="sv-input" id="sv-import-input" rows="4" placeholder="วาง CODE ที่นี่..."></textarea>
-      <button class="sv-btn secondary" onclick="svPasteCode()">📋 PASTE</button>
-      <button class="sv-btn" onclick="svImportSave()">📥 LOAD SAVE</button>
-      <div id="sv-import-msg"></div>
-      <div class="sv-hint" style="color:#ff4444">⚠️ save ปัจจุบันจะถูกแทนที่</div>
-    </div>
-
     <!-- CLOUD Panel -->
-    <div class="sv-panel" id="svPanel-cloud">
-      <div class="sv-hint" style="color:#00aaff">☁️ บันทึก/โหลด Save ผ่าน Cloud<br>ไม่ต้อง Login</div>
-      <hr class="sv-divider">
-      <!-- Player ID input -->
-      <div class="sv-hint" style="margin-bottom:2px">PLAYER ID (ตั้งเองได้ เช่น NOCTIS47)</div>
-      <div class="sv-cloud-id-row">
-        <input class="sv-input" id="sv-cloud-id" type="text" maxlength="20"
-          placeholder="PLAYER_ID" style="text-transform:uppercase;letter-spacing:2px"
+    <div class="sv-panel active" id="svPanel-cloud">
+      <div class="sv-cloud-hero">
+        <div class="sv-cloud-icon">☁️</div>
+        <div>
+          <div class="sv-cloud-heading">CLOUD SAVE</div>
+          <div class="sv-cloud-copy">ตั้ง ID หนึ่งครั้ง ระบบจะผูก Save นี้กับ ID นั้น และแจกรหัสลับสำหรับย้ายเครื่อง</div>
+        </div>
+      </div>
+
+      <div class="sv-cloud-card">
+        <div class="sv-step-badge">1 · เครื่องนี้</div>
+        <label class="sv-field-label" for="sv-cloud-id">PLAYER ID เช่น NOCTIS47</label>
+        <input class="sv-input sv-cloud-input" id="sv-cloud-id" type="text" maxlength="20"
+          placeholder="NOCTIS47" autocomplete="off" autocapitalize="characters"
+          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9_]/g,''); svCloudOnIdChange()"
+        />
+        <button class="sv-btn cloud-primary" id="sv-cloud-upload-btn" onclick="svCloudUpload()">
+          ☁️ CLOUD SAVE → UPLOAD
+        </button>
+        <div class="sv-secret-label">รหัสลับของ ID นี้</div>
+        <div class="sv-secret-box" id="sv-secret-display">— กรอก ID แล้วกด CLOUD SAVE —</div>
+        <div id="sv-cloud-save-msg" class="sv-msg"></div>
+        <div class="sv-hint">จดหรือ Screenshot รหัสลับไว้ เครื่องใหม่ต้องใช้คู่กับ PLAYER ID</div>
+      </div>
+
+      <div class="sv-cloud-card load-card">
+        <div class="sv-step-badge">2 · เครื่องใหม่</div>
+        <label class="sv-field-label" for="sv-cloud-load-id">PLAYER ID</label>
+        <input class="sv-input sv-cloud-input" id="sv-cloud-load-id" type="text" maxlength="20"
+          placeholder="NOCTIS47" autocomplete="off" autocapitalize="characters"
           oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9_]/g,'')"
         />
-        <button class="sv-btn secondary" style="white-space:nowrap;padding:0 10px" onclick="svCloudGenKey()">🎲 KEY</button>
+        <label class="sv-field-label" for="sv-cloud-load-key">รหัสลับ</label>
+        <input class="sv-input sv-cloud-input" id="sv-cloud-load-key" type="text" maxlength="12"
+          placeholder="XXXXXXXX" autocomplete="off" autocapitalize="characters"
+          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+        />
+        <button class="sv-btn cloud-load" onclick="svCloudDownload()">📥 CLOUD LOAD → ดึง Save</button>
+        <div id="sv-cloud-msg" class="sv-msg"></div>
+        <div class="sv-hint" style="color:#ff6666">⚠️ Save ปัจจุบันในเครื่องนี้จะถูกแทนที่</div>
       </div>
-      <!-- Secret key display -->
-      <div class="sv-secret-box" id="sv-secret-display">— กด 🎲 KEY เพื่อสร้างรหัสลับ —</div>
-      <div class="sv-hint" style="color:#555">รหัสลับป้องกันคนอื่น overwrite save ของคุณ<br>⚠️ จด/screenshot ไว้ด้วย!</div>
-      <hr class="sv-divider">
-      <button class="sv-btn" id="sv-cloud-upload-btn" onclick="svCloudUpload()" style="border-color:#00aaff;color:#00aaff">
-        ☁️ CLOUD SAVE (Upload)
-      </button>
-      <hr class="sv-divider">
-      <!-- Load section -->
-      <div class="sv-hint" style="margin-bottom:2px">โหลดจาก Cloud — กรอก ID + รหัสลับ</div>
-      <input class="sv-input" id="sv-cloud-load-id" type="text" maxlength="20"
-        placeholder="PLAYER_ID" style="text-transform:uppercase;letter-spacing:2px"
-        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9_]/g,'')"
-      />
-      <input class="sv-input" id="sv-cloud-load-key" type="text" maxlength="12"
-        placeholder="รหัสลับ 8 หลัก" style="letter-spacing:3px;text-align:center"
-        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
-      />
-      <button class="sv-btn" onclick="svCloudDownload()">📥 CLOUD LOAD</button>
-      <div id="sv-cloud-msg"></div>
-      <div class="sv-hint" style="color:#ff4444">⚠️ save ปัจจุบันจะถูกแทนที่</div>
+
+      <div class="sv-lock-note">🔒 1 Save Data = 1 PLAYER ID เท่านั้น ป้องกันการนำ Save เดียวไปแจกแล้วสร้างหลาย ID</div>
     </div>
 
     <!-- RESET Panel -->
@@ -2566,6 +2578,7 @@ function loadSave() {
       if (d.gamesCompleted === undefined) d.gamesCompleted = 0;
       if (!d.ocaTickets) d.ocaTickets = { standard:0, premium:0, elite:0 };
       if (!d.dailyQuest) d.dailyQuest = { weekKey:'', streak:0, lastClaimDate:'', claimed:[] };
+      if (d.cloudPlayerId === undefined) d.cloudPlayerId = null;
       d.quitPenalty = false;
       // migrate card IDs เก่า → ใหม่ (ป้องกัน savedCards/unlockedCards ไม่ match)
       d.unlockedCards = _migrateIds(d.unlockedCards);
@@ -2579,7 +2592,8 @@ function loadSave() {
              unlockedCards:['po','lu','fa','co','pp'],
              gamesCompleted:0,
              ocaTickets:{ standard:0, premium:0, elite:0 },
-             dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] } };
+             dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
+             cloudPlayerId:null };
   } catch(e) {
     return { coins:0, items:{}, stats:{totalKO:0,maxCombo:0,highScore:0},
              ownedSkins:['default'], ownedArenas:['default'],
@@ -2588,7 +2602,8 @@ function loadSave() {
              unlockedCards:['po','lu','fa','co','pp'],
              gamesCompleted:0,
              ocaTickets:{ standard:0, premium:0, elite:0 },
-             dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] } };
+             dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
+             cloudPlayerId:null };
   }
 }
 function doSave() { localStorage.setItem('noctisak47_v3', JSON.stringify(save)); }
@@ -6134,83 +6149,8 @@ function getPos(e){
 
 // ══════════════════════════════════════════
 // SAVE TRANSFER SYSTEM
-// Export/Import save data + QR Code
+// Cloud Save only
 // ══════════════════════════════════════════
-
-const SV_PREFIX = 'NK47';
-const SV_VERSION = '3'; // v3 = simple JSON, reliable
-
-// ── Checksum ──
-function _svChecksum(s) {
-  let cs = 0;
-  for(let i = 0; i < s.length; i++) cs = (cs * 31 + s.charCodeAt(i)) & 0xFFFF;
-  return cs.toString(36).toUpperCase().padStart(4,'0');
-}
-
-// ── Encode save → serial (simple JSON, no padding) ──
-
-function svEncode(saveObj) {
-  const data = {
-    c:  saveObj.coins || 0,
-    it: saveObj.items || {},
-    st: saveObj.stats || {totalKO:0, maxCombo:0, highScore:0},
-    sk: saveObj.ownedSkins  || ['default'],
-    ar: saveObj.ownedArenas || ['default'],
-    as: saveObj.activeSkin  || 'default',
-    aa: saveObj.activeArena || 'default',
-    uc: saveObj.unlockedCards || [],
-    gc: saveObj.gamesCompleted || 0,
-    ot: saveObj.ocaTickets  || { standard:0, premium:0, elite:0 },
-    dq: saveObj.dailyQuest  || { weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
-  };
-  // UTF-8 safe encode: TextEncoder → Uint8Array → base64
-  const bytes = new TextEncoder().encode(JSON.stringify(data));
-  let bin = '';
-  bytes.forEach(b => bin += String.fromCharCode(b));
-  const b64 = btoa(bin).replace(/=/g,'');
-  return `${SV_PREFIX}-${SV_VERSION}-${b64}-${_svChecksum(b64)}`;
-}
-
-  // ── Decode serial → save object ──
-function svDecode(code) {
-  try {
-    code = code.replace(/[\s\u200B\u200C\u200D\uFEFF\u00A0]/g,'').trim();
-    const parts = code.split('-');
-    if(parts[0] !== SV_PREFIX) { console.error('[svDecode] bad prefix:', parts[0]); throw new Error('bad prefix'); }
-    if(parts[1] !== SV_VERSION) { console.error('[svDecode] version mismatch:', parts[1]); throw new Error('version mismatch: ' + parts[1]); }
-    const csStr = parts[parts.length - 1];
-    const b64   = parts.slice(2, parts.length - 1).join('-');
-    const csComputed = _svChecksum(b64);
-    if(csComputed !== csStr) { console.error('[svDecode] checksum fail: got', csStr, 'expected', csComputed, 'b64 length', b64.length); throw new Error('checksum fail'); }
-    const b64pad = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
-    // UTF-8 safe decode: base64 → binary → Uint8Array → TextDecoder
-    const bin = atob(b64pad);
-    const bytes = new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-    const data = JSON.parse(new TextDecoder().decode(bytes));
-    // normalize unlockedCards: convert legacy long IDs → short IDs if needed
-    let uc = Array.isArray(data.uc) ? data.uc : ['po','lu','fa','co','pp'];
-    uc = uc.map(id => _MIGRATE_ID[id] || id);
-    return {
-      coins:          data.c  || 0,
-      items:          data.it || {},
-      stats:          data.st || {totalKO:0, maxCombo:0, highScore:0},
-      ownedSkins:     Array.isArray(data.sk) ? data.sk : ['default'],
-      ownedArenas:    Array.isArray(data.ar) ? data.ar : ['default'],
-      activeSkin:     data.as || 'default',
-      activeArena:    data.aa || 'default',
-      savedCards:     null,
-      unlockedCards:  uc,
-      gamesCompleted: data.gc || 0,
-      quitPenalty:    false,
-      ocaTickets:     data.ot || { standard:0, premium:0, elite:0 },
-      dailyQuest:     data.dq || { weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
-    };
-  } catch(e) {
-    console.error('[svDecode] error:', e.message);
-    return null;
-  }
-}
 
 // ══ CLOUD SAVE (Supabase) ══
 
@@ -6236,42 +6176,43 @@ function _cloudSaveCreds(id, key) {
 }
 
 // ── Lock: ผูก save นี้กับ cloud ID ──
-// lockedId = ID ที่เคย CLOUD SAVE สำเร็จแล้ว บน device นี้
+// ใช้ทั้ง localStorage และ field ใน save_data เพื่อกันการนำ save เดียวไปสร้างหลาย ID
 function _cloudGetLock()       { try { return localStorage.getItem(_CLOUD_LOCK_KEY) || null; } catch(e) { return null; } }
 function _cloudSetLock(id)     { try { localStorage.setItem(_CLOUD_LOCK_KEY, id); } catch(e) {} }
 function _cloudClearLock()     { try { localStorage.removeItem(_CLOUD_LOCK_KEY); } catch(e) {} }
+function _cloudBoundId()       { return (save && save.cloudPlayerId) || _cloudGetLock(); }
+function _cloudBindSave(id)    { save.cloudPlayerId = id; _cloudSetLock(id); doSave(); }
+function _cloudHeaders(extra)  {
+  return Object.assign({
+    'apikey': _SUPA_KEY,
+    'Authorization': `Bearer ${_SUPA_KEY}`
+  }, extra || {});
+}
 
 // Init cloud panel — restore credentials + แสดงสถานะ lock
 function svCloudInitPanel() {
   const creds    = _cloudLoadCreds();
-  const lockedId = _cloudGetLock();
+  const lockedId = _cloudBoundId();
   const idEl     = $('sv-cloud-id');
   const box      = $('sv-secret-display');
 
+  box.classList.remove('revealed');
   if (lockedId) {
-    // save นี้ผูก ID แล้ว — lock field ไม่ให้แก้
     idEl.value    = lockedId;
     idEl.readOnly = true;
-    idEl.style.color       = '#00aaff';
-    idEl.style.borderColor = '#00aaff';
     box.textContent = (creds.id === lockedId && creds.key) ? creds.key : '••••••••';
     if (creds.id === lockedId && creds.key) box.classList.add('revealed');
   } else {
-    // ยังไม่เคย cloud save — ใส่ ID อิสระได้
     idEl.readOnly = false;
-    idEl.style.color       = '';
-    idEl.style.borderColor = '';
-    if (creds.id) {
-      idEl.value = creds.id;
-      box.textContent = creds.key || '— กรอก ID แล้วกด CLOUD SAVE —';
-      if (creds.key) box.classList.add('revealed');
+    idEl.value = creds.id || idEl.value || '';
+    if (creds.id && creds.key && idEl.value === creds.id) {
+      box.textContent = creds.key;
+      box.classList.add('revealed');
     } else {
       box.textContent = '— กรอก ID แล้วกด CLOUD SAVE —';
-      box.classList.remove('revealed');
     }
   }
 
-  // Pre-fill load fields
   if ($('sv-cloud-load-id') && !$('sv-cloud-load-id').value) {
     $('sv-cloud-load-id').value = lockedId || (creds.id || '');
   }
@@ -6283,12 +6224,13 @@ function svCloudInitPanel() {
 function svCloudOnIdChange() {
   const id  = ($('sv-cloud-id').value || '').trim();
   const box = $('sv-secret-display');
-  if (!id) { box.textContent = '— กรอก ID แล้วกด CLOUD SAVE —'; box.classList.remove('revealed'); return; }
+  box.classList.remove('revealed');
+  if (!id) { box.textContent = '— กรอก ID แล้วกด CLOUD SAVE —'; return; }
   const creds = _cloudLoadCreds();
   if (creds.id === id && creds.key) {
     box.textContent = creds.key; box.classList.add('revealed');
   } else {
-    box.textContent = '— กด CLOUD SAVE เพื่อรับรหัสลับ —'; box.classList.remove('revealed');
+    box.textContent = '— ระบบจะแจกรหัสลับหลัง Upload สำเร็จ —';
   }
 }
 
@@ -6296,69 +6238,70 @@ function svCloudOnIdChange() {
 async function svCloudUpload() {
   const saveMsg  = $('sv-cloud-save-msg');
   const id       = ($('sv-cloud-id').value || '').trim();
-  const lockedId = _cloudGetLock();
+  const boundId  = _cloudBoundId();
 
   if (!id) { svShowMsg(saveMsg, '❌ กรอก PLAYER ID ก่อน', 'err'); return; }
   if (id.length < 3) { svShowMsg(saveMsg, '❌ ID ต้องมีอย่างน้อย 3 ตัวอักษร', 'err'); return; }
 
-  // ถ้า save นี้ผูก ID อื่นไว้แล้ว → บล็อก
-  if (lockedId && lockedId !== id) {
-    svShowMsg(saveMsg, `🔒 Save นี้ผูกกับ ID "${lockedId}" แล้ว`, 'err'); return;
+  if (boundId && boundId !== id) {
+    svShowMsg(saveMsg, `🔒 Save นี้ผูกกับ ID "${boundId}" แล้ว ใช้ ID อื่นไม่ได้`, 'err'); return;
   }
 
-  // Get or create secret key
   let creds = _cloudLoadCreds();
   let key   = (creds.id === id) ? creds.key : null;
-  if (!key) { key = _cloudGenSecret(); _cloudSaveCreds(id, key); }
+  if (!key) key = _cloudGenSecret();
 
   const btn = $('sv-cloud-upload-btn');
   btn.innerHTML = '<span class="sv-loading"></span>กำลัง Upload...';
   btn.disabled  = true;
 
   try {
-    const res = await fetch(`${_SUPA_URL}/rest/v1/cloud_saves`, {
-      method: 'POST',
-      headers: {
-        'apikey': _SUPA_KEY,
-        'Authorization': `Bearer ${_SUPA_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({
-        player_id:   id,
-        secret_key:  key,
-        save_data:   save,
-        uploaded_at: new Date().toISOString()
-      })
-    });
+    const existingUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=secret_key`;
+    const existingRes = await fetch(existingUrl, { headers: _cloudHeaders() });
+    if (!existingRes.ok) { svShowMsg(saveMsg, `❌ ตรวจสอบ ID ไม่สำเร็จ (${existingRes.status})`, 'err'); return; }
+
+    const existing = await existingRes.json();
+    const row = existing && existing[0];
+    if (row && row.secret_key && row.secret_key !== key) {
+      svShowMsg(saveMsg, `❌ ID "${id}" ถูกใช้แล้ว — เปลี่ยน ID ใหม่`, 'err');
+      return;
+    }
+
+    const uploadSave = Object.assign({}, save, { cloudPlayerId: id });
+    const payload = JSON.stringify({ save_data: uploadSave, uploaded_at: new Date().toISOString() });
+    const res = row
+      ? await fetch(`${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`, {
+          method: 'PATCH',
+          headers: _cloudHeaders({ 'Content-Type': 'application/json' }),
+          body: payload
+        })
+      : await fetch(`${_SUPA_URL}/rest/v1/cloud_saves`, {
+          method: 'POST',
+          headers: _cloudHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ player_id: id, secret_key: key, save_data: uploadSave, uploaded_at: new Date().toISOString() })
+        });
 
     if (res.ok) {
-      // ✅ สำเร็จ — lock ID นี้กับ save ปัจจุบัน
-      _cloudSetLock(id);
+      _cloudBindSave(id);
       _cloudSaveCreds(id, key);
       const box = $('sv-secret-display');
       box.textContent = key; box.classList.add('revealed');
-      // lock input field
-      const idEl = $('sv-cloud-id');
-      idEl.readOnly = true; idEl.style.color = '#00aaff'; idEl.style.borderColor = '#00aaff';
-      svShowMsg(saveMsg, `✅ บันทึกสำเร็จ! [${id}]`, 'ok');
+      $('sv-cloud-id').readOnly = true;
+      if ($('sv-cloud-load-id')) $('sv-cloud-load-id').value = id;
+      if ($('sv-cloud-load-key')) $('sv-cloud-load-key').value = key;
+      svShowMsg(saveMsg, `✅ Upload สำเร็จ! ID: ${id}`, 'ok');
     } else {
       const err = await res.json().catch(() => ({}));
       console.error('[cloudUpload] HTTP', res.status, err);
-      // 409 = ID ถูก save ด้วย key อื่นแล้ว (คนอื่นจอง)
-      if (res.status === 409) {
-        svShowMsg(saveMsg, `❌ ID "${id}" ถูกใช้แล้ว — เปลี่ยน ID ใหม่`, 'err');
-      } else {
-        svShowMsg(saveMsg, `❌ Upload ไม่สำเร็จ (${res.status})`, 'err');
-      }
+      svShowMsg(saveMsg, `❌ Upload ไม่สำเร็จ (${res.status})`, 'err');
     }
   } catch(e) {
     console.error('[cloudUpload]', e);
     svShowMsg(saveMsg, '❌ Network error — ตรวจสอบ internet', 'err');
+  } finally {
+    btn.innerHTML = '☁️ CLOUD SAVE → UPLOAD';
+    btn.disabled  = false;
   }
-
-  btn.innerHTML = '☁️ CLOUD SAVE';
-  btn.disabled  = false;
 }
 
 // Download save from Supabase
@@ -6372,7 +6315,7 @@ async function svCloudDownload() {
   svShowMsg(msg, '<span class="sv-loading"></span>กำลัง Load...', 'ok');
   try {
     const url = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,uploaded_at`;
-    const res = await fetch(url, { headers: { 'apikey': _SUPA_KEY, 'Authorization': `Bearer ${_SUPA_KEY}` } });
+    const res = await fetch(url, { headers: _cloudHeaders() });
     if (!res.ok) { svShowMsg(msg, `❌ ดึงข้อมูลไม่สำเร็จ (${res.status})`, 'err'); return; }
 
     const rows = await res.json();
@@ -6380,11 +6323,13 @@ async function svCloudDownload() {
 
     const cloudSave = rows[0].save_data;
     if (!cloudSave) { svShowMsg(msg, '❌ ข้อมูล Save ว่างเปล่า', 'err'); return; }
+    if (cloudSave.cloudPlayerId && cloudSave.cloudPlayerId !== id) {
+      svShowMsg(msg, '❌ Save นี้ผูกกับ ID อื่น', 'err'); return;
+    }
 
+    cloudSave.cloudPlayerId = id;
     Object.assign(save, cloudSave);
-    doSave();
-    // โหลดสำเร็จ → lock ID นี้กับ save ปัจจุบัน + เก็บ creds
-    _cloudSetLock(id);
+    _cloudBindSave(id);
     _cloudSaveCreds(id, key);
     updateShopCoinUI();
     if ($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
@@ -6402,7 +6347,7 @@ async function svCloudDownload() {
 
 function openSaveModal() {
   $('saveModal').classList.add('open');
-  svSwitchTab('export');
+  svSwitchTab('cloud');
 }
 
 function closeSaveModal() {
@@ -6413,138 +6358,17 @@ function closeSaveModal() {
   $('sv-reset-btn').style.color = '';
   $('sv-reset-btn').onclick = svConfirmReset;
   $('sv-reset-msg').textContent = '';
+  if($('sv-cloud-save-msg')) { $('sv-cloud-save-msg').textContent = ''; $('sv-cloud-save-msg').className = 'sv-msg'; }
   if($('sv-cloud-msg')) { $('sv-cloud-msg').textContent = ''; $('sv-cloud-msg').className = 'sv-msg'; }
-  // ซ่อน serial อีกครั้งทุกครั้งที่ปิด modal
-  if(_svRevealed) svToggleReveal();
 }
 
 // ── Tab switching ──
 function svSwitchTab(tab) {
-  ['export','import','cloud','reset'].forEach(t => {
+  ['cloud','reset'].forEach(t => {
     $('svTab-'  + t).classList.toggle('active', t === tab);
     $('svPanel-' + t).classList.toggle('active', t === tab);
   });
-  if(tab === 'export') svGenerateExport();
-  if(tab === 'cloud')  svCloudInitPanel();
-}
-
-// ── Generate export code (no QR) ──
-let _svCode = '';
-let _svRevealed = false;
-
-function svGenerateExport() {
-  _svCode = svEncode(save);
-  _svRevealed = false;
-  // แสดงเป็น blur ซ่อนไว้ก่อน
-  const box = $('sv-code-text');
-  box.textContent = '••••••••••••••••••••••••••••••••••••••••';
-  box.style.filter = 'blur(6px)';
-  box.style.userSelect = 'none';
-  const btn = $('sv-reveal-btn');
-  if(btn) btn.textContent = '👁 แสดง Serial Number';
-}
-
-function svToggleReveal() {
-  const box = $('sv-code-text');
-  const btn = $('sv-reveal-btn');
-  _svRevealed = !_svRevealed;
-  if(_svRevealed) {
-    box.textContent = _svCode;
-    box.style.filter = 'none';
-    box.style.userSelect = 'all';
-    if(btn) btn.textContent = '🙈 ซ่อน Serial Number';
-  } else {
-    box.textContent = '••••••••••••••••••••••••••••••••••••••••';
-    box.style.filter = 'blur(6px)';
-    box.style.userSelect = 'none';
-    if(btn) btn.textContent = '👁 แสดง Serial Number';
-  }
-}
-
-// ── Copy serial (ใช้ _svCode เสมอ ไม่ต้องเปิดดูก่อน) ──
-function svCopyCode() {
-  const code = _svCode;
-  const msg  = $('sv-export-msg');
-  if(!code) { svShowMsg(msg, '❌ ยังไม่มี Serial', 'err'); return; }
-  if(navigator.clipboard) {
-    navigator.clipboard.writeText(code).then(() => {
-      svShowMsg(msg, '✅ คัดลอกแล้ว!', 'ok');
-    }).catch(() => svFallbackCopy(code, msg));
-  } else {
-    svFallbackCopy(code, msg);
-  }
-}
-
-function svFallbackCopy(text, msgEl) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.cssText = 'position:fixed;top:-999px;opacity:0';
-  document.body.appendChild(ta);
-  ta.select();
-  try {
-    document.execCommand('copy');
-    svShowMsg(msgEl, '✅ คัดลอกแล้ว!', 'ok');
-  } catch(e) {
-    svShowMsg(msgEl, '❌ คัดลอกไม่ได้ — copy เอง', 'err');
-  }
-  ta.remove();
-}
-
-// ── Import save from code ──
-function svPasteCode() {
-  const msg = $('sv-import-msg');
-  if(navigator.clipboard && navigator.clipboard.readText) {
-    navigator.clipboard.readText().then(text => {
-      $('sv-import-input').value = text;
-      svShowMsg(msg, '✅ วางแล้ว', 'ok');
-    }).catch(() => svShowMsg(msg, '❌ ไม่สามารถ Paste อัตโนมัติได้ — วางเองในช่องด้านบน', 'err'));
-  } else {
-    svShowMsg(msg, '❌ ไม่รองรับ Paste อัตโนมัติ — วางเองในช่องด้านบน', 'err');
-  }
-}
-
-function svImportSave() {
-  // sanitize: ลบ whitespace ทุกชนิด + zero-width chars
-  const raw = $('sv-import-input').value.replace(/[\s\u200B\u200C\u200D\uFEFF\u00A0]/g,'').trim();
-  const msg  = $('sv-import-msg');
-  if(!raw) { svShowMsg(msg, '❌ กรุณาวาง CODE ก่อน', 'err'); return; }
-  // 🥚 Easter egg
-  if(raw.toLowerCase() === 'greedisgood') {
-    save.coins = (save.coins||0) + 10000;
-    doSave();
-    updateShopCoinUI();
-    if($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
-    $('sv-import-input').value = '';
-    svShowMsg(msg, '💰 +10,000 ZENY', 'ok');
-    return;
-  }
-  // self-test: ตรวจว่า encode→decode ทำงานได้บนเครื่องนี้
-  try {
-    const _testObj = {coins:1,items:{},stats:{totalKO:0,maxCombo:0,highScore:0},ownedSkins:['default'],ownedArenas:['default'],activeSkin:'default',activeArena:'default',unlockedCards:['po'],gamesCompleted:0};
-    const _testSerial = svEncode(_testObj);
-    const _testDec = svDecode(_testSerial);
-    if(!_testDec || _testDec.coins !== 1) throw new Error('self-test failed');
-  } catch(selfErr) {
-    console.error('[import] self-test failed:', selfErr);
-    svShowMsg(msg, '❌ ระบบ encode ไม่รองรับ browser นี้', 'err');
-    return;
-  }
-  const decoded = svDecode(raw);
-  if(!decoded) {
-    // แสดง error พร้อม raw length เพื่อ debug
-    console.error('[import] decode failed, raw length:', raw.length, 'prefix:', raw.slice(0,8));
-    svShowMsg(msg, '❌ CODE ไม่ถูกต้อง (ตรวจสอบว่า copy ครบ)', 'err');
-    return;
-  }
-  // apply
-  Object.assign(save, decoded);
-  doSave();
-  updateShopCoinUI();
-  if($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
-  if($('menuHsNum'))   $('menuHsNum').textContent   = formatNum(save.stats.highScore || 0);
-  $('sv-import-input').value = '';
-  svShowMsg(msg, '✅ โหลด Save สำเร็จ!', 'ok');
-  setTimeout(closeSaveModal, 1200);
+  if(tab === 'cloud') svCloudInitPanel();
 }
 
 // ── Reset account ──
@@ -6578,9 +6402,10 @@ function svConfirmReset() {
 
 // ── Helper ──
 function svShowMsg(el, text, type) {
-  el.textContent = text;
+  if (!el) return;
+  el.innerHTML = text;
   el.className = 'sv-msg ' + type;
-  setTimeout(() => { if(el.textContent === text) { el.textContent = ''; el.className = 'sv-msg'; } }, 3000);
+  setTimeout(() => { if(el.innerHTML === text) { el.innerHTML = ''; el.className = 'sv-msg'; } }, 3000);
 }
 
 // close modal on backdrop tap
