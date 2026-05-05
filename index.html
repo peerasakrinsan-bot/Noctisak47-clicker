@@ -6249,37 +6249,47 @@ async function svCloudUpload() {
 
   let creds = _cloudLoadCreds();
   let key   = (creds.id === id) ? creds.key : null;
-  if (!key) key = _cloudGenSecret();
 
   const btn = $('sv-cloud-upload-btn');
   btn.innerHTML = '<span class="sv-loading"></span>กำลัง Upload...';
   btn.disabled  = true;
 
   try {
-    const existingUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=secret_key`;
-    const existingRes = await fetch(existingUrl, { headers: _cloudHeaders() });
-    if (!existingRes.ok) { svShowMsg(saveMsg, `❌ ตรวจสอบ ID ไม่สำเร็จ (${existingRes.status})`, 'err'); return; }
-
-    const existing = await existingRes.json();
-    const row = existing && existing[0];
-    if (row && row.secret_key && row.secret_key !== key) {
-      svShowMsg(saveMsg, `❌ ID "${id}" ถูกใช้แล้ว — เปลี่ยน ID ใหม่`, 'err');
-      return;
-    }
-
     const uploadSave = Object.assign({}, save, { cloudPlayerId: id });
     const payload = JSON.stringify({ save_data: uploadSave, uploaded_at: new Date().toISOString() });
-    const res = row
-      ? await fetch(`${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`, {
-          method: 'PATCH',
-          headers: _cloudHeaders({ 'Content-Type': 'application/json' }),
-          body: payload
-        })
-      : await fetch(`${_SUPA_URL}/rest/v1/cloud_saves`, {
-          method: 'POST',
-          headers: _cloudHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ player_id: id, secret_key: key, save_data: uploadSave, uploaded_at: new Date().toISOString() })
-        });
+    let res = null;
+    let updatedRows = null;
+
+    // Never preflight-select secret_key with the public anon key.  If we already
+    // have this device's secret, prove ownership by PATCHing with both player_id
+    // and secret_key filters; Supabase returns only non-secret columns so devtools
+    // cannot expose another player's secret.
+    if (key) {
+      const updateUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=player_id`;
+      res = await fetch(updateUrl, {
+        method: 'PATCH',
+        headers: _cloudHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+        body: payload
+      });
+      if (!res.ok) { svShowMsg(saveMsg, `❌ Upload ไม่สำเร็จ (${res.status})`, 'err'); return; }
+      updatedRows = await res.json().catch(() => []);
+      if (updatedRows && updatedRows.length > 0) {
+        key = key.trim();
+      } else {
+        res = null;
+      }
+    }
+
+    // No stored/valid secret: create a brand-new ID. A duplicate PLAYER ID will
+    // fail by database uniqueness/RLS without revealing the existing secret_key.
+    if (!res) {
+      key = key || _cloudGenSecret();
+      res = await fetch(`${_SUPA_URL}/rest/v1/cloud_saves`, {
+        method: 'POST',
+        headers: _cloudHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ player_id: id, secret_key: key, save_data: uploadSave, uploaded_at: new Date().toISOString() })
+      });
+    }
 
     if (res.ok) {
       _cloudBindSave(id);
@@ -6293,7 +6303,11 @@ async function svCloudUpload() {
     } else {
       const err = await res.json().catch(() => ({}));
       console.error('[cloudUpload] HTTP', res.status, err);
-      svShowMsg(saveMsg, `❌ Upload ไม่สำเร็จ (${res.status})`, 'err');
+      if (res.status === 409) {
+        svShowMsg(saveMsg, `❌ ID "${id}" ถูกใช้แล้ว — เปลี่ยน ID ใหม่`, 'err');
+      } else {
+        svShowMsg(saveMsg, `❌ Upload ไม่สำเร็จ (${res.status})`, 'err');
+      }
     }
   } catch(e) {
     console.error('[cloudUpload]', e);
