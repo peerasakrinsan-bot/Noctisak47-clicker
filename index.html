@@ -6226,8 +6226,14 @@ function svCloudInitPanel() {
     }
   }
 
-  if ($('sv-cloud-load-id') && !$('sv-cloud-load-id').value) {
-    $('sv-cloud-load-id').value = lockedId || (creds.id || '');
+  const loadIdEl  = $('sv-cloud-load-id');
+  const loadKeyEl = $('sv-cloud-load-key');
+  if (lockedId || (creds.id && creds.key)) {
+    if (loadIdEl && !loadIdEl.value) loadIdEl.value = lockedId || creds.id;
+    if (loadKeyEl && !loadKeyEl.value && creds.id === (lockedId || creds.id)) loadKeyEl.value = creds.key || '';
+  } else {
+    if (loadIdEl) loadIdEl.value = '';
+    if (loadKeyEl) loadKeyEl.value = '';
   }
   if ($('sv-cloud-save-msg')) { $('sv-cloud-save-msg').innerHTML = ''; $('sv-cloud-save-msg').className = 'sv-msg'; }
   if ($('sv-cloud-msg'))      { $('sv-cloud-msg').innerHTML = '';      $('sv-cloud-msg').className = 'sv-msg'; }
@@ -6404,6 +6410,8 @@ function svConfirmReset() {
   _svResetConfirmed = false;
   localStorage.removeItem('noctisak47_v3');
   _cloudClearLock(); // ล้าง lock เมื่อ reset — save ใหม่สร้าง ID ใหม่ได้
+  if ($('sv-cloud-load-id'))  $('sv-cloud-load-id').value = '';
+  if ($('sv-cloud-load-key')) $('sv-cloud-load-key').value = '';
   save = loadSave();
   doSave();
   updateShopCoinUI();
