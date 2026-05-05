@@ -1091,48 +1091,54 @@
   .sv-msg.err { color: #ff4444; background: rgba(255,68,68,0.1);  border: 1px solid rgba(255,68,68,0.3); }
   .sv-divider { width: 100%; border: none; border-top: 1px solid #222; margin: 2px 0; }
   /* ── Cloud Save UI ── */
-  .sv-cloud-hero {
-    width:100%; display:flex; gap:12px; align-items:center;
-    padding:12px; border-radius:14px;
-    background:linear-gradient(135deg, rgba(0,170,255,0.16), rgba(255,34,51,0.08));
-    border:1px solid rgba(0,170,255,0.35);
-  }
-  .sv-cloud-icon { font-size:30px; line-height:1; filter:drop-shadow(0 0 12px rgba(0,170,255,0.8)); }
-  .sv-cloud-heading { font-size:16px; letter-spacing:2px; color:#00ccff; line-height:1.1; }
-  .sv-cloud-copy { font-family:'Sarabun',sans-serif; font-size:10px; letter-spacing:0; color:#9acfe8; line-height:1.45; margin-top:4px; }
+  .sv-cloud-hero { display:none; }
+  .sv-cloud-icon, .sv-cloud-heading { display:none; }
+  .sv-cloud-copy { font-family:'Sarabun',sans-serif; font-size:10px; letter-spacing:0; color:#777; line-height:1.35; }
   .sv-cloud-card {
     width:100%; display:flex; flex-direction:column; gap:8px;
-    padding:12px; border-radius:14px; background:#0b0f14;
-    border:1px solid rgba(0,170,255,0.22);
+    padding:0; border-radius:0; background:transparent; border:0;
   }
-  .sv-cloud-card.load-card { border-color:rgba(255,204,0,0.25); background:#11100a; }
+  .sv-cloud-card + .sv-cloud-card {
+    margin-top:6px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08);
+  }
+  .sv-cloud-card.load-card { background:transparent; border-color:rgba(255,255,255,0.08); }
   .sv-step-badge {
-    align-self:flex-start; padding:4px 8px; border-radius:999px;
-    font-size:10px; letter-spacing:1.4px; color:#001015; background:#00ccff;
+    width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:0; font-family:'Sarabun',sans-serif; font-size:11px; letter-spacing:3px;
+    color:#5f6368; background:transparent; text-align:center;
   }
-  .load-card .sv-step-badge { background:#ffcc00; color:#140f00; }
+  .sv-step-badge::before, .sv-step-badge::after {
+    content:""; flex:1; height:1px; background:rgba(255,255,255,0.07);
+  }
+  .load-card .sv-step-badge { color:#6a5b4b; background:transparent; }
   .sv-field-label, .sv-secret-label {
     width:100%; text-align:left; font-family:'Sarabun',sans-serif;
-    color:#98a9b5; font-size:10px; letter-spacing:0; line-height:1.2;
+    color:#63666b; font-size:10px; letter-spacing:1.6px; line-height:1.3;
   }
-  .sv-cloud-input { font-size:16px; letter-spacing:2px; padding:14px 12px; border-color:#263847; }
-  .sv-cloud-input:read-only { color:#00ccff; border-color:#00aaff; background:#07131a; }
+  .sv-cloud-input {
+    font-size:13px; letter-spacing:2px; padding:10px 12px;
+    border-color:rgba(255,255,255,0.16); background:#0b0b0b; border-radius:9px;
+  }
+  .sv-cloud-input:focus { border-color:#ff2233; }
+  .sv-cloud-input:read-only { color:#d9edf5; border-color:rgba(255,255,255,0.18); background:#0b0b0b; }
+  .sv-load-row { width:100%; display:grid; grid-template-columns:1fr 0.8fr; gap:8px; }
+  .sv-load-field { min-width:0; }
+  .sv-load-field .sv-field-label { margin-bottom:6px; }
   .sv-secret-box {
-    width:100%; background:#05080a; border:1.5px dashed #2d3c46; border-radius:10px;
-    padding:11px 10px; font-family:'Courier New',monospace; font-size:15px;
-    color:#637682; letter-spacing:3px; text-align:center; word-break:break-all; line-height:1.5;
+    width:100%; background:rgba(0,255,136,0.05); border:1px solid rgba(0,255,136,0.22); border-radius:9px;
+    padding:9px; font-family:'Courier New',monospace; font-size:13px;
+    color:#656b70; letter-spacing:2px; text-align:center; word-break:break-all; line-height:1.35;
   }
-  .sv-secret-box.revealed { color:#00ff88; border-color:#00ff88; box-shadow:0 0 14px rgba(0,255,136,0.12) inset; }
-  .sv-btn.cloud-primary { border-color:#00aaff; color:#00d5ff; font-size:13px; }
+  .sv-secret-box.revealed { color:#00d979; border-color:rgba(0,255,136,0.35); box-shadow:none; }
+  .sv-btn.cloud-primary { border-color:#00aaff; color:#00c8ff; font-size:12px; padding:10px 12px; }
   .sv-btn.cloud-primary:active { background:#00aaff; color:#001018; }
-  .sv-btn.cloud-load { border-color:#ffcc00; color:#ffcc00; font-size:13px; }
-  .sv-btn.cloud-load:active { background:#ffcc00; color:#111; }
+  .sv-btn.cloud-load { border-color:#ff2233; color:#ff3344; font-size:12px; padding:10px 12px; }
+  .sv-btn.cloud-load:active { background:#ff2233; color:#000; }
   .sv-tab.cloud-tab { border-color:#00aaff; color:#00aaff; }
-  .sv-tab.cloud-tab.active { background:rgba(0,170,255,0.1); border-color:#00aaff; color:#00aaff; }
+  .sv-tab.cloud-tab.active { background:rgba(0,170,255,0.08); border-color:#00aaff; color:#00aaff; }
   .sv-lock-note {
-    width:100%; padding:9px 10px; border-radius:10px;
-    background:rgba(255,68,68,0.1); border:1px solid rgba(255,68,68,0.28);
-    color:#ff8888; font-family:'Sarabun',sans-serif; font-size:10px; line-height:1.45; text-align:center;
+    width:100%; padding:4px 0 0; background:transparent; border:0;
+    color:#6b4e52; font-family:'Sarabun',sans-serif; font-size:10px; line-height:1.35; text-align:center;
   }
   .sv-loading { display:inline-block; width:14px; height:14px; border:2px solid #333;
     border-top-color:#ff2233; border-radius:50%; animation:spin .6s linear infinite; vertical-align:middle; margin-right:6px; }
@@ -1923,7 +1929,7 @@
 <div id="saveModal">
   <div class="sv-box">
     <button class="sv-close" onclick="closeSaveModal()">✕</button>
-    <div class="sv-title">💾 ACCOUNT DATA</div>
+    <div class="sv-title">☁️ CLOUD SAVE</div>
 
     <!-- Tabs -->
     <div class="sv-tabs">
@@ -1936,45 +1942,52 @@
       <div class="sv-cloud-hero">
         <div class="sv-cloud-icon">☁️</div>
         <div>
-          <div class="sv-cloud-heading">CLOUD SAVE</div>
-          <div class="sv-cloud-copy">ตั้ง ID หนึ่งครั้ง ระบบจะผูก Save นี้กับ ID นั้น และแจกรหัสลับสำหรับย้ายเครื่อง</div>
+          <div class="sv-cloud-heading">CLOUD</div>
+          <div class="sv-cloud-copy">ตั้ง ID แล้วรับรหัสลับสำหรับย้ายเครื่อง</div>
         </div>
       </div>
 
       <div class="sv-cloud-card">
-        <div class="sv-step-badge">1 · เครื่องนี้</div>
-        <label class="sv-field-label" for="sv-cloud-id">PLAYER ID เช่น NOCTIS47</label>
+        <div class="sv-step-badge">💾 บันทึกลง CLOUD</div>
+        <label class="sv-field-label" for="sv-cloud-id">PLAYER ID — ตั้งชื่อได้เอง (A-Z, 0-9, _)</label>
         <input class="sv-input sv-cloud-input" id="sv-cloud-id" type="text" maxlength="20"
           placeholder="NOCTIS47" autocomplete="off" autocapitalize="characters"
           oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9_]/g,''); svCloudOnIdChange()"
         />
+        <div class="sv-secret-label">รหัสลับ — ระบบสร้างให้อัตโนมัติ</div>
+        <div class="sv-secret-box" id="sv-secret-display">— กรอก ID แล้วกด Cloud Save —</div>
+        <div class="sv-hint">⚠️ จด / screenshot รหัสลับไว้ด้วย — ใช้โหลดในเครื่องใหม่</div>
         <button class="sv-btn cloud-primary" id="sv-cloud-upload-btn" onclick="svCloudUpload()">
-          ☁️ CLOUD SAVE → UPLOAD
+          ☁️ CLOUD SAVE
         </button>
-        <div class="sv-secret-label">รหัสลับของ ID นี้</div>
-        <div class="sv-secret-box" id="sv-secret-display">— กรอก ID แล้วกด CLOUD SAVE —</div>
         <div id="sv-cloud-save-msg" class="sv-msg"></div>
-        <div class="sv-hint">จดหรือ Screenshot รหัสลับไว้ เครื่องใหม่ต้องใช้คู่กับ PLAYER ID</div>
       </div>
 
       <div class="sv-cloud-card load-card">
-        <div class="sv-step-badge">2 · เครื่องใหม่</div>
-        <label class="sv-field-label" for="sv-cloud-load-id">PLAYER ID</label>
-        <input class="sv-input sv-cloud-input" id="sv-cloud-load-id" type="text" maxlength="20"
-          placeholder="NOCTIS47" autocomplete="off" autocapitalize="characters"
-          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9_]/g,'')"
-        />
-        <label class="sv-field-label" for="sv-cloud-load-key">รหัสลับ</label>
-        <input class="sv-input sv-cloud-input" id="sv-cloud-load-key" type="text" maxlength="12"
-          placeholder="XXXXXXXX" autocomplete="off" autocapitalize="characters"
-          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
-        />
-        <button class="sv-btn cloud-load" onclick="svCloudDownload()">📥 CLOUD LOAD → ดึง Save</button>
+        <div class="sv-step-badge">📥 โหลดจาก CLOUD (เครื่องใหม่)</div>
+        <div class="sv-hint">กรอก ID + รหัสลับ</div>
+        <div class="sv-load-row">
+          <div class="sv-load-field">
+            <label class="sv-field-label" for="sv-cloud-load-id">PLAYER ID</label>
+            <input class="sv-input sv-cloud-input" id="sv-cloud-load-id" type="text" maxlength="20"
+              placeholder="NOCTIS47" autocomplete="off" autocapitalize="characters"
+              oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9_]/g,'')"
+            />
+          </div>
+          <div class="sv-load-field">
+            <label class="sv-field-label" for="sv-cloud-load-key">รหัสลับ</label>
+            <input class="sv-input sv-cloud-input" id="sv-cloud-load-key" type="text" maxlength="12"
+              placeholder="8 หลัก" autocomplete="off" autocapitalize="characters"
+              oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+            />
+          </div>
+        </div>
+        <button class="sv-btn cloud-load" onclick="svCloudDownload()">📥 CLOUD LOAD</button>
         <div id="sv-cloud-msg" class="sv-msg"></div>
-        <div class="sv-hint" style="color:#ff6666">⚠️ Save ปัจจุบันในเครื่องนี้จะถูกแทนที่</div>
+        <div class="sv-hint" style="color:#ff6666">⚠️ save ปัจจุบันจะถูกแทนที่</div>
       </div>
 
-      <div class="sv-lock-note">🔒 1 Save Data = 1 PLAYER ID เท่านั้น ป้องกันการนำ Save เดียวไปแจกแล้วสร้างหลาย ID</div>
+      <div class="sv-lock-note">🔒 Save นี้ผูกได้เพียง 1 PLAYER ID</div>
     </div>
 
     <!-- RESET Panel -->
@@ -6209,7 +6222,7 @@ function svCloudInitPanel() {
       box.textContent = creds.key;
       box.classList.add('revealed');
     } else {
-      box.textContent = '— กรอก ID แล้วกด CLOUD SAVE —';
+      box.textContent = '— กรอก ID แล้วกด Cloud Save —';
     }
   }
 
@@ -6225,7 +6238,7 @@ function svCloudOnIdChange() {
   const id  = ($('sv-cloud-id').value || '').trim();
   const box = $('sv-secret-display');
   box.classList.remove('revealed');
-  if (!id) { box.textContent = '— กรอก ID แล้วกด CLOUD SAVE —'; return; }
+  if (!id) { box.textContent = '— กรอก ID แล้วกด Cloud Save —'; return; }
   const creds = _cloudLoadCreds();
   if (creds.id === id && creds.key) {
     box.textContent = creds.key; box.classList.add('revealed');
@@ -6299,7 +6312,7 @@ async function svCloudUpload() {
     console.error('[cloudUpload]', e);
     svShowMsg(saveMsg, '❌ Network error — ตรวจสอบ internet', 'err');
   } finally {
-    btn.innerHTML = '☁️ CLOUD SAVE → UPLOAD';
+    btn.innerHTML = '☁️ CLOUD SAVE';
     btn.disabled  = false;
   }
 }
