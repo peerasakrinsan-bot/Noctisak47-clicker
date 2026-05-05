@@ -1128,8 +1128,18 @@
     width:100%; background:rgba(0,255,136,0.05); border:1px solid rgba(0,255,136,0.22); border-radius:9px;
     padding:9px; font-family:'Courier New',monospace; font-size:13px;
     color:#656b70; letter-spacing:2px; text-align:center; word-break:break-all; line-height:1.35;
+    cursor:pointer; user-select:none; touch-action:manipulation;
   }
   .sv-secret-box.revealed { color:#00d979; border-color:rgba(0,255,136,0.35); box-shadow:none; }
+  .sv-secret-box.hidden { color:#8aa0a8; border-color:rgba(0,255,136,0.22); }
+  .sv-secret-box:focus { outline:none; border-color:#00aaff; }
+  .sv-password-wrap { position:relative; width:100%; }
+  .sv-password-wrap .sv-cloud-input { padding-right:42px; }
+  .sv-eye-btn {
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    width:28px; height:28px; border:0; background:transparent; color:#777;
+    cursor:pointer; touch-action:manipulation; font-size:14px; line-height:1;
+  }
   .sv-btn.cloud-primary { border-color:#00aaff; color:#00c8ff; font-size:12px; padding:10px 12px; }
   .sv-btn.cloud-primary:active { background:#00aaff; color:#001018; }
   .sv-btn.cloud-load { border-color:#ff2233; color:#ff3344; font-size:12px; padding:10px 12px; }
@@ -1951,11 +1961,11 @@
         <div class="sv-step-badge">💾 บันทึกลง CLOUD</div>
         <label class="sv-field-label" for="sv-cloud-id">PLAYER ID — ตั้งชื่อได้เอง (A-Z, 0-9, _)</label>
         <input class="sv-input sv-cloud-input" id="sv-cloud-id" type="text" maxlength="20"
-          placeholder="NOCTIS47" autocomplete="off" autocapitalize="characters"
+          placeholder="" autocomplete="off" autocapitalize="characters"
           oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9_]/g,''); svCloudOnIdChange()"
         />
         <div class="sv-secret-label">รหัสลับ — ระบบสร้างให้อัตโนมัติ</div>
-        <div class="sv-secret-box" id="sv-secret-display">— กรอก ID แล้วกด Cloud Save —</div>
+        <div class="sv-secret-box" id="sv-secret-display" role="button" tabindex="0" onclick="svToggleSecret()" onkeydown="svSecretKeydown(event)">— กรอก ID แล้วกด Cloud Save —</div>
         <div class="sv-hint">⚠️ จด / screenshot รหัสลับไว้ด้วย — ใช้โหลดในเครื่องใหม่</div>
         <button class="sv-btn cloud-primary" id="sv-cloud-upload-btn" onclick="svCloudUpload()">
           ☁️ CLOUD SAVE
@@ -1970,16 +1980,19 @@
           <div class="sv-load-field">
             <label class="sv-field-label" for="sv-cloud-load-id">PLAYER ID</label>
             <input class="sv-input sv-cloud-input" id="sv-cloud-load-id" type="text" maxlength="20"
-              placeholder="NOCTIS47" autocomplete="off" autocapitalize="characters"
+              placeholder="" autocomplete="off" autocapitalize="characters"
               oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9_]/g,'')"
             />
           </div>
           <div class="sv-load-field">
             <label class="sv-field-label" for="sv-cloud-load-key">รหัสลับ</label>
-            <input class="sv-input sv-cloud-input" id="sv-cloud-load-key" type="text" maxlength="12"
-              placeholder="8 หลัก" autocomplete="off" autocapitalize="characters"
-              oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
-            />
+            <div class="sv-password-wrap">
+              <input class="sv-input sv-cloud-input" id="sv-cloud-load-key" type="password" maxlength="12"
+                placeholder="8 หลัก" autocomplete="off" autocapitalize="characters"
+                oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+              />
+              <button class="sv-eye-btn" type="button" onclick="svToggleLoadKey()" aria-label="ดูรหัสลับ">👁</button>
+            </div>
           </div>
         </div>
         <button class="sv-btn cloud-load" onclick="svCloudDownload()">📥 CLOUD LOAD</button>
@@ -6209,32 +6222,62 @@ function _cloudHeaders(extra)  {
   }, extra || {});
 }
 
+
+function svSetSecretDisplay(secret, revealed, emptyText) {
+  const box = $('sv-secret-display');
+  if (!box) return;
+  const hasSecret = !!secret;
+  box.dataset.secret = hasSecret ? secret : '';
+  box.dataset.revealed = hasSecret && revealed ? '1' : '0';
+  box.classList.toggle('revealed', hasSecret && revealed);
+  box.classList.toggle('hidden', hasSecret && !revealed);
+  box.textContent = hasSecret
+    ? (revealed ? secret : '•••••••• — กดเพื่อดู')
+    : (emptyText || '— กรอก ID แล้วกด Cloud Save —');
+}
+
+function svToggleSecret() {
+  const box = $('sv-secret-display');
+  if (!box || !box.dataset.secret) return;
+  svSetSecretDisplay(box.dataset.secret, box.dataset.revealed !== '1');
+}
+
+function svSecretKeydown(e) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    svToggleSecret();
+  }
+}
+
+function svToggleLoadKey() {
+  const input = $('sv-cloud-load-key');
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
 // Init cloud panel — restore credentials + แสดงสถานะ lock
 function svCloudInitPanel() {
   const creds    = _cloudLoadCreds();
   const lockedId = _cloudBoundId();
   const idEl     = $('sv-cloud-id');
-  const box      = $('sv-secret-display');
 
-  box.classList.remove('revealed');
   if (lockedId) {
     idEl.value    = lockedId;
     idEl.readOnly = true;
-    box.textContent = (creds.id === lockedId && creds.key) ? creds.key : '••••••••';
-    if (creds.id === lockedId && creds.key) box.classList.add('revealed');
+    svSetSecretDisplay((creds.id === lockedId && creds.key) ? creds.key : '', false, '••••••••');
   } else {
     idEl.readOnly = false;
     idEl.value = creds.id || idEl.value || '';
     if (creds.id && creds.key && idEl.value === creds.id) {
-      box.textContent = creds.key;
-      box.classList.add('revealed');
+      svSetSecretDisplay(creds.key, false);
     } else {
-      box.textContent = '— กรอก ID แล้วกด Cloud Save —';
+      svSetSecretDisplay('', false, '— กรอก ID แล้วกด Cloud Save —');
     }
   }
 
   const loadIdEl  = $('sv-cloud-load-id');
   const loadKeyEl = $('sv-cloud-load-key');
+  if (loadKeyEl) loadKeyEl.type = 'password';
   if (lockedId || (creds.id && creds.key)) {
     if (loadIdEl && !loadIdEl.value) loadIdEl.value = lockedId || creds.id;
     if (loadKeyEl && !loadKeyEl.value && creds.id === (lockedId || creds.id)) loadKeyEl.value = creds.key || '';
@@ -6249,14 +6292,12 @@ function svCloudInitPanel() {
 // Called when player types in ID field
 function svCloudOnIdChange() {
   const id  = ($('sv-cloud-id').value || '').trim();
-  const box = $('sv-secret-display');
-  box.classList.remove('revealed');
-  if (!id) { box.textContent = '— กรอก ID แล้วกด Cloud Save —'; return; }
+  if (!id) { svSetSecretDisplay('', false, '— กรอก ID แล้วกด Cloud Save —'); return; }
   const creds = _cloudLoadCreds();
   if (creds.id === id && creds.key) {
-    box.textContent = creds.key; box.classList.add('revealed');
+    svSetSecretDisplay(creds.key, false);
   } else {
-    box.textContent = '— ระบบจะแจกรหัสลับหลัง Upload สำเร็จ —';
+    svSetSecretDisplay('', false, '— ระบบจะแจกรหัสลับหลัง Upload สำเร็จ —');
   }
 }
 
@@ -6267,14 +6308,15 @@ function svCloudClearPanel() {
     idEl.readOnly = false;
   }
 
-  const box = $('sv-secret-display');
-  if (box) {
-    box.classList.remove('revealed');
-    box.textContent = '— กรอก ID แล้วกด Cloud Save —';
+  if ($('sv-secret-display')) {
+    svSetSecretDisplay('', false, '— กรอก ID แล้วกด Cloud Save —');
   }
 
   if ($('sv-cloud-load-id'))  $('sv-cloud-load-id').value = '';
-  if ($('sv-cloud-load-key')) $('sv-cloud-load-key').value = '';
+  if ($('sv-cloud-load-key')) {
+    $('sv-cloud-load-key').value = '';
+    $('sv-cloud-load-key').type = 'password';
+  }
   if ($('sv-cloud-save-msg')) { $('sv-cloud-save-msg').innerHTML = ''; $('sv-cloud-save-msg').className = 'sv-msg'; }
   if ($('sv-cloud-msg'))      { $('sv-cloud-msg').innerHTML = '';      $('sv-cloud-msg').className = 'sv-msg'; }
 }
@@ -6329,8 +6371,7 @@ async function svCloudUpload() {
     if (res.ok) {
       _cloudBindSave(id);
       _cloudSaveCreds(id, key);
-      const box = $('sv-secret-display');
-      box.textContent = key; box.classList.add('revealed');
+      svSetSecretDisplay(key, false);
       $('sv-cloud-id').readOnly = true;
       if ($('sv-cloud-load-id')) $('sv-cloud-load-id').value = id;
       if ($('sv-cloud-load-key')) $('sv-cloud-load-key').value = key;
