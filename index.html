@@ -3889,7 +3889,7 @@ const CARD_POOL = [
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
   { id:'dc',    name:'DRACULA CARD',        img:'dracula.png',     rarity:'elite',
-    effect:'คริติคอลทุกครั้ง = coin <strong>+5</strong> + OD charge <strong>+2%</strong> (ไม่จำกัด)', tradeoff:null,
+    effect:'คริติคอลทุกครั้ง = coin <strong>+2</strong> + OD charge <strong>+2%</strong> (ไม่จำกัด)', tradeoff:null,
     apply(s){ s.cs_draculaCoin = true; }
   },
   { id:'ic',name:'INCANTATION SAMURAI CARD',img:'incantation_samurai.png',rarity:'elite',
@@ -5596,10 +5596,10 @@ function processHit(e, now) {
     _el.godFill.style.width=Math.min(100,cur+window._csState.cs_critOdCharge*100)+'%';
     if(parseFloat(_el.godFill.style.width)>=100&&canEnterGod&&godLevel===0) activateGodLevel(1);
   }
-  // DRACULA: crit = +5 coin + OD charge +2% (ไม่จำกัด)
+  // DRACULA: crit = +2 coin + OD charge +2% (ไม่จำกัด)
   if(isCrit && window._csState && window._csState.cs_draculaCoin) {
-    roundCoins += 5;
-    spawnCoinPopup(5);
+    roundCoins += 2;
+    spawnCoinPopup(2);
     if(!window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
       const cur = parseFloat(_el.godFill.style.width)||0;
       _el.godFill.style.width = Math.min(100, cur + 2) + '%';
