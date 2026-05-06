@@ -2589,51 +2589,204 @@ const _MIGRATE_ID = {'poring':'po','lunatic':'lu','fabre':'fa','condor':'co','pe
 function _migrateId(id) { return _MIGRATE_ID[id] || id; }
 function _migrateIds(arr) { return Array.isArray(arr) ? arr.map(_migrateId) : arr; }
 
-function loadSave() {
+
+const SAVE_STORAGE_KEY = 'noctisak47_v3';
+const _SUPA_URL = 'https://ouhtyyddclgqvrqqdwlc.supabase.co';
+const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91aHR5eWRkY2xncXZycXFkd2xjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTY4NDQsImV4cCI6MjA5MzU3Mjg0NH0.XITBYW17rsVjQzVx2l4jzzsdF3K7xk94aIjBoxi2qBk';
+const SAVE_SIGN_ENDPOINT = `${_SUPA_URL}/functions/v1/save-sign`;
+let _saveIntegrityWarning = '';
+let _saveSignatureState = 'unsigned';
+let _saveSigningTimer = null;
+let _saveSigningInFlight = false;
+let _saveSigningQueued = false;
+
+function defaultSave() {
+  return { coins:0, items:{}, stats:{totalKO:0,maxCombo:0,highScore:0},
+           ownedSkins:['default'], ownedArenas:['default'],
+           activeSkin:'default', activeArena:'default',
+           quitPenalty:false, savedCards:null,
+           unlockedCards:['po','lu','fa','co','pp'],
+           gamesCompleted:0,
+           ocaTickets:{ standard:0, premium:0, elite:0 },
+           dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
+           cloudPlayerId:null };
+}
+
+function normalizeSaveData(d) {
+  d = (d && typeof d === 'object') ? d : defaultSave();
+  d.coins = Math.max(0, Math.floor(Number(d.coins) || 0));
+  if (!d.items || typeof d.items !== 'object') d.items = {};
+  if (!d.stats || typeof d.stats !== 'object') d.stats = {totalKO:0, maxCombo:0, highScore:0};
+  d.stats.totalKO = Math.max(0, Math.floor(Number(d.stats.totalKO) || 0));
+  d.stats.maxCombo = Math.max(0, Math.floor(Number(d.stats.maxCombo) || 0));
+  d.stats.highScore = Math.max(0, Math.floor(Number(d.stats.highScore) || 0));
+  if (!Array.isArray(d.ownedSkins)) d.ownedSkins = ['default'];
+  if (!Array.isArray(d.ownedArenas)) d.ownedArenas = ['default'];
+  if (!d.activeSkin) d.activeSkin = 'default';
+  if (!d.activeArena) d.activeArena = 'default';
+  if (!d.savedCards) d.savedCards = null;
+  if (!Array.isArray(d.unlockedCards)) d.unlockedCards = ['po','lu','fa','co','pp'];
+  d.gamesCompleted = Math.max(0, Math.floor(Number(d.gamesCompleted) || 0));
+  if (!d.ocaTickets || typeof d.ocaTickets !== 'object') d.ocaTickets = { standard:0, premium:0, elite:0 };
+  ['standard','premium','elite'].forEach(t => { d.ocaTickets[t] = Math.max(0, Math.floor(Number(d.ocaTickets[t]) || 0)); });
+  if (!d.dailyQuest || typeof d.dailyQuest !== 'object') d.dailyQuest = { weekKey:'', streak:0, lastClaimDate:'', claimed:[] };
+  if (!Array.isArray(d.dailyQuest.claimed)) d.dailyQuest.claimed = [];
+  if (d.cloudPlayerId === undefined) d.cloudPlayerId = null;
+  d.quitPenalty = false;
+  d.unlockedCards = _migrateIds(d.unlockedCards);
+  if (d.savedCards) d.savedCards = _migrateIds(d.savedCards);
+  return d;
+}
+
+function _saveEnvelope(payload, signature) {
+  return { version: 4, payload, signature, signed_at: new Date().toISOString() };
+}
+
+function _readStoredSaveEnvelope() {
   try {
-    const d = JSON.parse(localStorage.getItem('noctisak47_v3'));
-    if (d) {
-      if (!d.items)       d.items       = {};
-      if (!d.stats)       d.stats       = {totalKO:0, maxCombo:0, highScore:0};
-      if (!d.ownedSkins)  d.ownedSkins  = ['default'];
-      if (!d.ownedArenas) d.ownedArenas = ['default'];
-      if (!d.activeSkin)  d.activeSkin  = 'default';
-      if (!d.activeArena) d.activeArena = 'default';
-      if (!d.savedCards)  d.savedCards  = null;
-      if (!d.unlockedCards) d.unlockedCards = ['po','lu','fa','co','pp'];
-      if (d.gamesCompleted === undefined) d.gamesCompleted = 0;
-      if (!d.ocaTickets) d.ocaTickets = { standard:0, premium:0, elite:0 };
-      if (!d.dailyQuest) d.dailyQuest = { weekKey:'', streak:0, lastClaimDate:'', claimed:[] };
-      if (d.cloudPlayerId === undefined) d.cloudPlayerId = null;
-      d.quitPenalty = false;
-      // migrate card IDs เก่า → ใหม่ (ป้องกัน savedCards/unlockedCards ไม่ match)
-      d.unlockedCards = _migrateIds(d.unlockedCards);
-      if (d.savedCards) d.savedCards = _migrateIds(d.savedCards);
-      return d;
-    }
-    return { coins:0, items:{}, stats:{totalKO:0,maxCombo:0,highScore:0},
-             ownedSkins:['default'], ownedArenas:['default'],
-             activeSkin:'default', activeArena:'default',
-             quitPenalty:false, savedCards:null,
-             unlockedCards:['po','lu','fa','co','pp'],
-             gamesCompleted:0,
-             ocaTickets:{ standard:0, premium:0, elite:0 },
-             dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
-             cloudPlayerId:null };
+    const raw = localStorage.getItem(SAVE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && parsed.payload && parsed.signature ? parsed : { legacyPayload: parsed };
+  } catch(e) { return { corrupt: true }; }
+}
+
+function _storeSignedSave(payload, signature) {
+  localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(_saveEnvelope(payload, signature)));
+}
+
+function loadSave() {
+  const stored = _readStoredSaveEnvelope();
+  if (!stored) return defaultSave();
+  if (stored.corrupt) {
+    _saveIntegrityWarning = 'Save ในเครื่องเสียหาย ระบบ reset/repair ให้แล้ว';
+    _saveSignatureState = 'invalid';
+    return defaultSave();
+  }
+  if (stored.legacyPayload) {
+    try { localStorage.setItem(SAVE_STORAGE_KEY + '_legacy_backup', JSON.stringify(stored.legacyPayload)); } catch(e) {}
+    _saveIntegrityWarning = 'พบ save แบบเก่าที่ไม่มี signature — กรุณา Cloud Load/Sync ก่อนใช้งาน';
+    _saveSignatureState = 'legacy';
+    return defaultSave();
+  }
+  _saveSignatureState = 'pending';
+  return normalizeSaveData(stored.payload);
+}
+
+function _saveSignerHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'apikey': _SUPA_KEY,
+    'Authorization': `Bearer ${_SUPA_KEY}`
+  };
+}
+
+async function _postSaveSigner(body, label) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  let res;
+  try {
+    res = await fetch(SAVE_SIGN_ENDPOINT, {
+      method: 'POST',
+      headers: _saveSignerHeaders(),
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
   } catch(e) {
-    return { coins:0, items:{}, stats:{totalKO:0,maxCombo:0,highScore:0},
-             ownedSkins:['default'], ownedArenas:['default'],
-             activeSkin:'default', activeArena:'default',
-             quitPenalty:false, savedCards:null,
-             unlockedCards:['po','lu','fa','co','pp'],
-             gamesCompleted:0,
-             ocaTickets:{ standard:0, premium:0, elite:0 },
-             dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
-             cloudPlayerId:null };
+    const msg = e && e.name === 'AbortError'
+      ? 'save-sign request timeout'
+      : 'save-sign network/CORS error (ถ้า deploy แล้ว ให้ปิด Verify JWT ของ Edge Function หรือ deploy ด้วย --no-verify-jwt)';
+    throw new Error(msg);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const text = await res.text().catch(() => '');
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch(e) { data = { error: text }; }
+  if (!res.ok) {
+    const detail = data.error || data.message || text || res.statusText || 'unknown error';
+    throw new Error(`${label || 'save-sign'} ${res.status}: ${detail}`);
+  }
+  return data;
+}
+
+async function _callSaveSigner(payload, action) {
+  const previousEnvelope = _readStoredSaveEnvelope();
+  const previousSave = previousEnvelope && previousEnvelope.payload ? previousEnvelope.payload : null;
+  const data = await _postSaveSigner({ save_data: payload, previous_save: previousSave, action: action || 'autosave' }, 'save-sign');
+  if (!data.save_data || !data.signature) {
+    throw new Error('save-sign response missing save_data/signature');
+  }
+  return data;
+}
+
+async function verifySaveEnvelope(payload, signature, action) {
+  const data = await _postSaveSigner({ save_data: payload, signature, action: action || 'verify' }, 'verify');
+  if (data.valid !== true) throw new Error(data.error || 'verify failed');
+  return data;
+}
+
+async function verifyLocalSaveSignature() {
+  const stored = _readStoredSaveEnvelope();
+  if (!stored || stored.legacyPayload || stored.corrupt) {
+    localStorage.removeItem(SAVE_STORAGE_KEY);
+    _saveSignatureState = stored ? 'invalid' : 'empty';
+    if (_saveIntegrityWarning) alert(_saveIntegrityWarning);
+    return false;
+  }
+  try {
+    const data = await verifySaveEnvelope(stored.payload, stored.signature, 'verify');
+    save = normalizeSaveData(data.save_data || stored.payload);
+    _storeSignedSave(save, data.signature || stored.signature);
+    _saveSignatureState = 'valid';
+    return true;
+  } catch(e) {
+    console.warn('[saveIntegrity]', e);
+    localStorage.removeItem(SAVE_STORAGE_KEY);
+    save = defaultSave();
+    _saveSignatureState = 'invalid';
+    _saveIntegrityWarning = 'Save signature ไม่ถูกต้องหรือยืนยันกับ server ไม่ได้ ระบบ reset/repair ให้แล้ว กรุณา Cloud Load หากต้องการกู้คืน';
+    alert(_saveIntegrityWarning);
+    return false;
   }
 }
-function doSave() { localStorage.setItem('noctisak47_v3', JSON.stringify(save)); }
+
+function doSave(action) {
+  save = normalizeSaveData(save);
+  if (_saveSignatureState === 'valid' || _saveSignatureState === 'empty') {
+    try { localStorage.setItem(SAVE_STORAGE_KEY + '_pending', JSON.stringify(save)); } catch(e) {}
+  }
+  scheduleSignedSave(action || 'autosave');
+}
+
+function scheduleSignedSave(action) {
+  if (_saveSigningTimer) clearTimeout(_saveSigningTimer);
+  _saveSigningTimer = setTimeout(() => signAndStoreSave(action), 250);
+}
+
+async function signAndStoreSave(action) {
+  if (_saveSigningInFlight) { _saveSigningQueued = true; return; }
+  _saveSigningInFlight = true;
+  try {
+    const signed = await _callSaveSigner(save, action || 'autosave');
+    save = normalizeSaveData(signed.save_data);
+    _storeSignedSave(save, signed.signature);
+    try { localStorage.removeItem(SAVE_STORAGE_KEY + '_pending'); } catch(e) {}
+    _saveSignatureState = 'valid';
+  } catch(e) {
+    console.warn('[doSave] server signing failed; pending save not trusted until sync succeeds', e);
+  } finally {
+    _saveSigningInFlight = false;
+    if (_saveSigningQueued) {
+      _saveSigningQueued = false;
+      signAndStoreSave(action || 'autosave');
+    }
+  }
+}
+
 let save = loadSave();
+const _saveReadyPromise = verifyLocalSaveSignature();
 
 // item level helper
 function itemLv(id) { return (save.items && save.items[id]) || 0; }
@@ -2733,8 +2886,11 @@ function onAllLoaded() {
     if (tapEl)    tapEl.style.display    = 'block';
   }, 300);
 
-  function doEnter() {
+  async function doEnter() {
     if (tapEl) tapEl.style.display = 'none';
+    if (loadText) { loadText.style.display = 'block'; loadText.textContent = 'VERIFYING SAVE...'; }
+    await _saveReadyPromise;
+    if (loadText) loadText.style.display = 'none';
     // unlock + เล่น BGM ทันทีหลัง user gesture
     const bgm = $('bgmSound');
     if (bgm) {
@@ -6180,8 +6336,6 @@ function getPos(e){
 
 // ══ CLOUD SAVE (Supabase) ══
 
-const _SUPA_URL = 'https://ouhtyyddclgqvrqqdwlc.supabase.co';
-const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91aHR5eWRkY2xncXZycXFkd2xjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTY4NDQsImV4cCI6MjA5MzU3Mjg0NH0.XITBYW17rsVjQzVx2l4jzzsdF3K7xk94aIjBoxi2qBk';
 const _CLOUD_STORE_KEY = 'noctisak47_cloud';
 // key ที่ lock ว่า save นี้ผูกกับ cloud ID ไหนแล้ว (แยกจาก creds เพื่อไม่ให้ถูกล้างตาม load)
 const _CLOUD_LOCK_KEY  = 'noctisak47_cloud_lock';
@@ -6210,7 +6364,7 @@ function _cloudGetLock()       { try { return localStorage.getItem(_CLOUD_LOCK_K
 function _cloudSetLock(id)     { try { localStorage.setItem(_CLOUD_LOCK_KEY, id); } catch(e) {} }
 function _cloudClearLock()     { try { localStorage.removeItem(_CLOUD_LOCK_KEY); } catch(e) {} }
 function _cloudBoundId()       { return (save && save.cloudPlayerId) || _cloudGetLock(); }
-function _cloudBindSave(id)    { save.cloudPlayerId = id; _cloudSetLock(id); doSave(); }
+function _cloudBindSave(id)    { save.cloudPlayerId = id; _cloudSetLock(id); doSave('cloud_bind'); }
 function _cloudClearAccountState() {
   _cloudClearCreds();
   _cloudClearLock();
@@ -6321,6 +6475,30 @@ function svCloudClearPanel() {
   if ($('sv-cloud-msg'))      { $('sv-cloud-msg').innerHTML = '';      $('sv-cloud-msg').className = 'sv-msg'; }
 }
 
+
+function _cloudFriendlyError(e, fallback) {
+  const detail = (e && (e.message || String(e))) || '';
+  if (/SAVE_HMAC_SECRET/i.test(detail)) {
+    return '❌ save-sign ยังไม่ได้ตั้ง SAVE_HMAC_SECRET ใน Supabase';
+  }
+  if (/network\/CORS|Failed to fetch|NetworkError|Load failed|request timeout/i.test(detail)) {
+    return '❌ ติดต่อ save-sign ไม่ได้ — ถ้า deploy แล้ว ให้ปิด Verify JWT ของ Edge Function หรือ deploy ด้วย --no-verify-jwt';
+  }
+  if (/save-sign\s+404|FunctionsHttpError/i.test(detail)) {
+    return '❌ ไม่พบ save-sign — ตรวจว่า Deploy Edge Function ชื่อ save-sign แล้ว';
+  }
+  if (/save-sign\s+(401|403)|JWT|Invalid JWT|Missing authorization/i.test(detail)) {
+    return '❌ save-sign ถูกบล็อกด้วย JWT — ปิด Verify JWT หรือ deploy ด้วย --no-verify-jwt';
+  }
+  if (/save-sign\s+400|reward exceeds|exceeds max|unknown item|must be/i.test(detail)) {
+    return `❌ save-sign reject save: ${detail}`;
+  }
+  if (/verify|invalid signature|signature/i.test(detail)) {
+    return '❌ ตรวจ signature ไม่สำเร็จ — กรุณา Cloud Save/Load ใหม่';
+  }
+  return fallback || '❌ Network error — ตรวจสอบ internet';
+}
+
 // Upload save to Supabase — พร้อม lock ID หลัง save สำเร็จครั้งแรก
 async function svCloudUpload() {
   const saveMsg  = $('sv-cloud-save-msg');
@@ -6354,8 +6532,9 @@ async function svCloudUpload() {
       return;
     }
 
-    const uploadSave = Object.assign({}, save, { cloudPlayerId: id });
-    const payload = JSON.stringify({ save_data: uploadSave, uploaded_at: new Date().toISOString() });
+    const signedSave = await _callSaveSigner(Object.assign({}, save, { cloudPlayerId: id }), 'cloud_upload');
+    const uploadSave = signedSave.save_data;
+    const payload = JSON.stringify({ save_data: uploadSave, signature: signedSave.signature, uploaded_at: new Date().toISOString() });
     const res = row
       ? await fetch(`${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`, {
           method: 'PATCH',
@@ -6365,10 +6544,13 @@ async function svCloudUpload() {
       : await fetch(`${_SUPA_URL}/rest/v1/cloud_saves`, {
           method: 'POST',
           headers: _cloudHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ player_id: id, secret_key: key, save_data: uploadSave, uploaded_at: new Date().toISOString() })
+          body: JSON.stringify({ player_id: id, secret_key: key, save_data: uploadSave, signature: signedSave.signature, uploaded_at: new Date().toISOString() })
         });
 
     if (res.ok) {
+      Object.assign(save, uploadSave);
+      _storeSignedSave(save, signedSave.signature);
+      _saveSignatureState = 'valid';
       _cloudBindSave(id);
       _cloudSaveCreds(id, key);
       svSetSecretDisplay(key, false);
@@ -6383,7 +6565,7 @@ async function svCloudUpload() {
     }
   } catch(e) {
     console.error('[cloudUpload]', e);
-    svShowMsg(saveMsg, '❌ Network error — ตรวจสอบ internet', 'err');
+    svShowMsg(saveMsg, _cloudFriendlyError(e, '❌ Upload ไม่สำเร็จ — ตรวจสอบ Supabase/Internet'), 'err');
   } finally {
     btn.innerHTML = '☁️ CLOUD SAVE';
     btn.disabled  = false;
@@ -6400,7 +6582,7 @@ async function svCloudDownload() {
 
   svShowMsg(msg, '<span class="sv-loading"></span>กำลัง Load...', 'ok');
   try {
-    const url = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,uploaded_at`;
+    const url = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,signature,uploaded_at`;
     const res = await fetch(url, { headers: _cloudHeaders() });
     if (!res.ok) { svShowMsg(msg, `❌ ดึงข้อมูลไม่สำเร็จ (${res.status})`, 'err'); return; }
 
@@ -6417,7 +6599,12 @@ async function svCloudDownload() {
     }
 
     cloudSave.cloudPlayerId = id;
-    Object.assign(save, cloudSave);
+    const verified = rows[0].signature
+      ? await verifySaveEnvelope(cloudSave, rows[0].signature, 'cloud_download')
+      : await _callSaveSigner(cloudSave, 'cloud_download');
+    Object.assign(save, verified.save_data);
+    _storeSignedSave(save, verified.signature);
+    _saveSignatureState = 'valid';
     _cloudBindSave(id);
     _cloudSaveCreds(id, key);
     updateShopCoinUI();
@@ -6428,7 +6615,7 @@ async function svCloudDownload() {
     setTimeout(closeSaveModal, 1500);
   } catch(e) {
     console.error('[cloudDownload]', e);
-    svShowMsg(msg, '❌ Network error — ตรวจสอบ internet', 'err');
+    svShowMsg(msg, _cloudFriendlyError(e, '❌ Load ไม่สำเร็จ — ตรวจสอบ Supabase/Internet'), 'err');
   }
 }
 
@@ -6478,7 +6665,7 @@ function svConfirmReset() {
   }
   // RESET
   _svResetConfirmed = false;
-  localStorage.removeItem('noctisak47_v3');
+  localStorage.removeItem(SAVE_STORAGE_KEY);
   _cloudClearAccountState(); // ล้าง credentials + lock เมื่อ reset — save ใหม่สร้าง ID ใหม่ได้
   save = loadSave();
   svCloudClearPanel();
