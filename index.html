@@ -2641,17 +2641,41 @@ function _saveEnvelope(payload) {
   return { version: 5, payload, saved_at: new Date().toISOString() };
 }
 
+function _safeLocalStorageGet(key) {
+  try { return localStorage.getItem(key); }
+  catch(e) {
+    console.warn('[save] localStorage get failed', e);
+    return null;
+  }
+}
+
+function _safeLocalStorageSet(key, value) {
+  try { localStorage.setItem(key, value); return true; }
+  catch(e) {
+    console.warn('[save] localStorage set failed', e);
+    return false;
+  }
+}
+
+function _safeLocalStorageRemove(key) {
+  try { localStorage.removeItem(key); return true; }
+  catch(e) {
+    console.warn('[save] localStorage remove failed', e);
+    return false;
+  }
+}
+
 function _readStoredSaveEnvelope() {
+  const raw = _safeLocalStorageGet(SAVE_STORAGE_KEY);
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(SAVE_STORAGE_KEY);
-    if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed && parsed.payload ? parsed : { legacyPayload: parsed };
   } catch(e) { return { corrupt: true }; }
 }
 
 function _storeLocalSave(payload) {
-  localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(_saveEnvelope(payload)));
+  return _safeLocalStorageSet(SAVE_STORAGE_KEY, JSON.stringify(_saveEnvelope(payload)));
 }
 
 function _isLikelyNetworkFetchError(e) {
@@ -2687,7 +2711,7 @@ async function verifyLocalSaveSignature() {
     return true;
   }
   if (stored.corrupt) {
-    localStorage.removeItem(SAVE_STORAGE_KEY);
+    _safeLocalStorageRemove(SAVE_STORAGE_KEY);
     save = defaultSave();
     _saveSignatureState = 'invalid';
     if (_saveIntegrityWarning) alert(_saveIntegrityWarning);
@@ -2816,7 +2840,12 @@ function onAllLoaded() {
     _preloadEnterStarted = true;
     if (tapEl) tapEl.style.display = 'none';
     if (loadText) { loadText.style.display = 'block'; loadText.textContent = 'VERIFYING SAVE...'; }
-    await _saveReadyPromise;
+    try {
+      await _saveReadyPromise;
+    } catch(err) {
+      console.warn('[save] verification skipped after error', err);
+      save = normalizeSaveData(save);
+    }
     if (loadText) loadText.style.display = 'none';
     // unlock + เล่น BGM ทันทีหลัง user gesture
     const bgm = $('bgmSound');
@@ -2825,7 +2854,8 @@ function onAllLoaded() {
       bgm.play().catch(() => {});
     }
     setTimeout(() => {
-      $('preloader').style.display = 'none';
+      const preloader = $('preloader');
+      if (preloader) preloader.style.display = 'none';
       showMainMenu();
     }, 150);
   }
