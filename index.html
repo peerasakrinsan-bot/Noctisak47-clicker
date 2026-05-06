@@ -6633,11 +6633,11 @@ $('saveModal').addEventListener('click', e => { if(e.target === $('saveModal')) 
 
 // ══ DAILY BATTLE REWARD SYSTEM ══
 
-// Dot color per day index 0–6 (Day4=premium, Day7=elite, rest=standard)
-const DQ_DOT_COLORS = ['#aaaaaa','#aaaaaa','#aaaaaa','#0088ff','#aaaaaa','#aaaaaa','#ffcc00'];
+// Dot color per day index 0–6 (Day3/Day6=premium, Day7=elite, rest=standard)
+const DQ_DOT_COLORS = ['#aaaaaa','#aaaaaa','#0088ff','#aaaaaa','#aaaaaa','#0088ff','#ffcc00'];
 const DQ_COLORS     = DQ_DOT_COLORS; // alias used by new updateDailyQuestUI
 // Ticket type awarded each day (index 0–6)
-const DQ_REWARDS    = ['standard','standard','standard','premium','standard','standard','elite'];
+const DQ_REWARDS    = ['standard','standard','premium','standard','standard','premium','elite'];
 
 function getDailyWeekKey() {
   const now = new Date();
