@@ -2786,6 +2786,7 @@ function preloadAll() {
   });
 }
 let _allLoadedCalled = false;
+let _preloadEnterStarted = false;
 function onAllLoaded() {
   if(_allLoadedCalled) return;
   _allLoadedCalled = true;
@@ -2806,7 +2807,13 @@ function onAllLoaded() {
     if (tapEl)    tapEl.style.display    = 'block';
   }, 300);
 
-  async function doEnter() {
+  async function doEnter(e) {
+    if (e) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+    }
+    if (_preloadEnterStarted) return;
+    _preloadEnterStarted = true;
     if (tapEl) tapEl.style.display = 'none';
     if (loadText) { loadText.style.display = 'block'; loadText.textContent = 'VERIFYING SAVE...'; }
     await _saveReadyPromise;
@@ -2824,12 +2831,15 @@ function onAllLoaded() {
   }
 
   if (tapEl) {
-    tapEl.addEventListener('click',     doEnter, { once: true });
-    tapEl.addEventListener('touchstart', e => { e.preventDefault(); doEnter(); }, { once: true, passive: false });
+    tapEl.addEventListener('click', doEnter, { once: true });
+    tapEl.addEventListener('touchstart', doEnter, { once: true, passive: false });
   }
   // fallback: คลิกที่ preloader ได้เลย
-  $('preloader').addEventListener('click',     doEnter, { once: true });
-  $('preloader').addEventListener('touchstart', e => { e.preventDefault(); doEnter(); }, { once: true, passive: false });
+  const preloaderEl = $('preloader');
+  if (preloaderEl) {
+    preloaderEl.addEventListener('click', doEnter, { once: true });
+    preloaderEl.addEventListener('touchstart', doEnter, { once: true, passive: false });
+  }
 }
 preloadAll();
 // Emergency bypass: ถ้า 2 วินาทียังอยู่ที่ 0% (SW cache เก่าบล็อก) → ข้ามไปเลย
