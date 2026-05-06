@@ -41,7 +41,6 @@ const PRECACHE_ASSETS = [
   './sound_on.png',
   './sound_off.png',
   './card_back.png',
-  './card_confirm.png',
   './card.png',
   './card_hidden.png',
   './oca_item.webp',
