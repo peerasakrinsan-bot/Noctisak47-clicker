@@ -4015,7 +4015,7 @@ const CARD_POOL = [
     apply(s){ s.cs_doubleClick = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'hydra.png',       rarity:'elite',
-    effect:'เก็บ AK47 = ดาเมจ <strong>x3</strong> แทน x2 + เวลา <strong>+1.5 วิ</strong> ทุกครั้งที่ครบ', tradeoff:null,
+    effect:'เก็บ AK47 = ดาเมจ <strong>x3</strong> + เวลา <strong>+1.5 วิ</strong> ทุกครั้งที่ครบ', tradeoff:null,
     apply(s){ s.cs_wpDmgMult = 3; }
   },
   { id:'ph',   name:'PHREEONI CARD',      img:'phreeoni.png',    rarity:'elite',
@@ -4053,7 +4053,7 @@ const CARD_POOL = [
     apply(s){ s.cs_mistress = true; }
   },
   { id:'gb',  name:'GOLDEN BUG CARD',    img:'golden_bug.png',  rarity:'mythic',
-    effect:'coin <strong>x4</strong> ทุกอย่าง + ทุกคลิก combo <strong>+1</strong> เพิ่มเติม', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
+    effect:'coin <strong>x4</strong> ทุกอย่าง + ทุกคลิก combo <strong>+1</strong>', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
     apply(s){ s.cs_goldenbug = true; }
   },
   { id:'oh',    name:'ORC HERO CARD',      img:'orc_hero.png',    rarity:'mythic',
@@ -4061,7 +4061,7 @@ const CARD_POOL = [
     apply(s){ s.cs_orchero = true; }
   },
   { id:'ld',name:'LORD OF DEATH CARD', img:'lord_of_death.png',rarity:'mythic',
-    effect:'สุ่ม effect จาก <strong>ELITE หรือ MYTHIC</strong> ใหม่ทุก 10 วินาที + แจ้งเตือน 3 วิก่อนเปลี่ยน', tradeoff:'ไม่รู้ว่าจะได้ effect อะไร',
+    effect:'สุ่ม effect จาก <strong>ELITE หรือ MYTHIC</strong> ใหม่ทุก 10 วินาที', tradeoff:'ไม่รู้ว่าจะได้ effect อะไร',
     apply(s){ s.cs_lordofdeath = true; }
   },
 
@@ -4071,7 +4071,7 @@ const CARD_POOL = [
     apply(s){ s.cs_coinPct = (s.cs_coinPct||0) + 0.08; }
   },
   { id:'st',    name:'STAINER CARD',        img:'stainer.png',     rarity:'standard',
-    effect:'Combo decay <strong>ช้าลง 15%</strong> เพิ่มเติม', tradeoff:null,
+    effect:'Combo decay <strong>ช้าลง 15%</strong>', tradeoff:null,
     apply(s){ s.cs_comboDecaySlow = (s.cs_comboDecaySlow||0) + 0.15; }
   },
   { id:'ro',     name:'ROCKER CARD',         img:'rocker.png',      rarity:'standard',
@@ -4083,7 +4083,7 @@ const CARD_POOL = [
     apply(s){ s.cs_enemyHpReduce = (s.cs_enemyHpReduce||0) + 0.10; }
   },
   { id:'rf',   name:'RODA FROG CARD',      img:'roda_frog.png',   rarity:'standard',
-    effect:'ดาเมจ <strong>+5%</strong> ตลอดรอบ', tradeoff:null,
+    effect:'ดาเมจ <strong>+5%</strong>', tradeoff:null,
     apply(s){ s.cs_dmgBonus = (s.cs_dmgBonus||0) + 0.05; }
   },
   { id:'me',   name:'METALLER CARD',       img:'metaller.png',    rarity:'standard',
@@ -4131,15 +4131,15 @@ const CARD_POOL = [
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
   { id:'dc',    name:'DRACULA CARD',        img:'dracula.png',     rarity:'elite',
-    effect:'คริติคอลทุกครั้ง = coin <strong>+2</strong> + OD charge <strong>+2%</strong> (ไม่จำกัด)', tradeoff:null,
+    effect:'คริติคอลทุกครั้ง = coin <strong>+2</strong> + OD charge <strong>+2%</strong>', tradeoff:null,
     apply(s){ s.cs_draculaCoin = true; }
   },
   { id:'ic',name:'INCANTATION SAMURAI CARD',img:'incantation_samurai.png',rarity:'elite',
-    effect:'Combo ≥ 35 : ดาเมจ <strong>x2.5</strong> ตลอดรอบ + AK47 spawn เร็ว <strong>+20%</strong>', tradeoff:null,
+    effect:'Combo ≥ 35 : ดาเมจ <strong>x2.5</strong> + AK47 spawn เร็ว <strong>+20%</strong>', tradeoff:null,
     apply(s){ s.cs_incantation = true; }
   },
   { id:'sk',name:'STORMY KNIGHT CARD', img:'stormy_knight.png',rarity:'elite',
-    effect:'ทุกคลิกระหว่าง Overdrive = OD timer <strong>+0.2 วิ</strong> (สูงสุด +8 วิ ต่อรอบ)', tradeoff:null,
+    effect:'ทุกคลิกระหว่าง Overdrive = OD timer <strong>+0.2 วิ</strong> (สูงสุด +8 วิ)', tradeoff:null,
     apply(s){ s.cs_stormyKnight = true; }
   },
   { id:'dl',   name:'DARK LORD CARD',      img:'dark_lord.png',   rarity:'elite',
@@ -4147,7 +4147,7 @@ const CARD_POOL = [
     apply(s){ s.cs_darkLord = true; }
   },
   { id:'mf', name:'MOONLIGHT FLOWER CARD', img:'moonlight_flower.png', rarity:'elite',
-    effect:'เวลา -50% แต่ ดาเมจ x2, coin x2, OD charge x2, AK47 เหลือ 3 ลูก + spawn เร็ว x2 + ทุก KO = score <strong>+500</strong>', tradeoff:'เวลาเหลือครึ่งเดียวทันที',
+    effect:'ดาเมจ x2, coin x2, OD charge x2, AK47 เหลือ 3 ลูก + spawn เร็ว x2 + ทุก KO = score <strong>+500</strong>', tradeoff:'เวลาเหลือครึ่งเดียว',
     apply(s){ s.cs_moonlightflower = true; }
   },
 
@@ -4171,7 +4171,7 @@ const CARD_POOL = [
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.10; s.cs_timePenalty=(s.cs_timePenalty||0)+5; }
   },
   { id:'jk',       name:'JAKK CARD',          img:'jakk.png',        rarity:'premium',
-    effect:'ช่วง Overdrive เท่านั้น: crit chance <strong>+20%</strong>', tradeoff:null,
+    effect:'ช่วง Overdrive: crit chance <strong>+20%</strong>', tradeoff:null,
     apply(s){ s.cs_jakkCrit = true; }
   },
   { id:'mn',     name:'MARINA CARD',        img:'marina.png',      rarity:'premium',
@@ -4179,7 +4179,7 @@ const CARD_POOL = [
     apply(s){ s.cs_marinaSpawn = true; }
   },
   { id:'dp',name:'DEMON PUNGUS CARD',  img:'demon_pungus.png',rarity:'premium',
-    effect:'ทุก 5 KO = Overdrive charge <strong>+5%</strong> ทันที', tradeoff:null,
+    effect:'ทุก 5 KO = Overdrive charge <strong>+5%</strong>', tradeoff:null,
     apply(s){ s.cs_demonPungus = true; }
   },
   { id:'vi',     name:'VITATA CARD',        img:'vitata.png',      rarity:'premium',
@@ -4187,7 +4187,7 @@ const CARD_POOL = [
     apply(s){ s.cs_vitata = true; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.08; }
   },
   { id:'al',  name:'ALLIGATOR CARD',     img:'alligator.png',   rarity:'premium',
-    effect:'ทุก KO = coin <strong>+3</strong> (สูงสุด +45 coin ต่อรอบ)', tradeoff:null,
+    effect:'ทุก KO = coin <strong>+3</strong> (สูงสุด +45 zeny)', tradeoff:null,
     apply(s){ s.cs_alligator = true; }
   },
 
@@ -4205,11 +4205,11 @@ const CARD_POOL = [
     apply(s){ s.cs_whisper = true; }
   },
   { id:'gl',name:'GOBLIN LEADER CARD',img:'goblin_leader.png',rarity:'elite',
-    effect:'ทุกคลิก combo <strong>+2</strong> แทน +1 + Combo ≥ 30 = ดาเมจ <strong>+15%</strong>', tradeoff:'OD charge <strong>-20%</strong>',
+    effect:'ทุกคลิก combo <strong>+2</strong> + Combo ≥ 30 = ดาเมจ <strong>+15%</strong>', tradeoff:'OD charge <strong>-20%</strong>',
     apply(s){ s.cs_goblinLeader = true; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
   { id:'ar',     name:'AMON RA CARD',       img:'amon_ra.png',     rarity:'elite',
-    effect:'Combo ≥ 40 : ดาเมจ <strong>+40%</strong> + coin <strong>x1.5</strong> ตลอดรอบ', tradeoff:null,
+    effect:'Combo ≥ 40 : ดาเมจ <strong>+40%</strong> + coin <strong>x1.5</strong>', tradeoff:null,
     apply(s){ s.cs_amonRa = true; }
   },
 
@@ -4223,11 +4223,11 @@ const CARD_POOL = [
     apply(s){ s.cs_beelzebub = true; }
   },
   { id:'vr', name:'VALKYRIE RANDGRIS CARD', img:'valkyrie_randgris.png', rarity:'mythic',
-    effect:'ทุกครั้งที่เก็บ AK47 ครบ round = สุ่ม effect ใหม่จาก <strong>ELITE pool</strong> + effect เก่า active ต่ออีก <strong>2 วิ</strong>', tradeoff:'effect ใหม่เริ่มหลัง 2 วิ',
+    effect:'ทุกครั้งที่เก็บ AK47 ครบ round = สุ่ม effect ใหม่จาก <strong>ELITE pool</strong>', tradeoff:null,
     apply(s){ s.cs_valkyrieRandgris = true; }
   },
   { id:'rx',    name:'RSX-0806 CARD',      img:'rsx_0806.png',    rarity:'mythic',
-    effect:'ดาเมจ <strong>x3.5</strong> ตลอดรอบ + ทุก KO = score <strong>+200</strong>', tradeoff:'ไม่มี Overdrive + ไม่มี AK47 เลย',
+    effect:'ดาเมจ <strong>x3.5</strong> + ทุก KO = score <strong>+200</strong>', tradeoff:'ไม่มี Overdrive + ไม่มี AK47 เลย',
     apply(s){ s.cs_rsx0806 = true; }
   },
 ];
