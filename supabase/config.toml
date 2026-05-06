@@ -1,0 +1,2 @@
+[functions.save-sign]
+verify_jwt = false
