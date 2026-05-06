@@ -2593,12 +2593,8 @@ function _migrateIds(arr) { return Array.isArray(arr) ? arr.map(_migrateId) : ar
 const SAVE_STORAGE_KEY = 'noctisak47_v3';
 const _SUPA_URL = 'https://ouhtyyddclgqvrqqdwlc.supabase.co';
 const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91aHR5eWRkY2xncXZycXFkd2xjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTY4NDQsImV4cCI6MjA5MzU3Mjg0NH0.XITBYW17rsVjQzVx2l4jzzsdF3K7xk94aIjBoxi2qBk';
-const SAVE_SIGN_ENDPOINT = `${_SUPA_URL}/functions/v1/save-sign`;
 let _saveIntegrityWarning = '';
-let _saveSignatureState = 'unsigned';
-let _saveSigningTimer = null;
-let _saveSigningInFlight = false;
-let _saveSigningQueued = false;
+let _saveSignatureState = 'local';
 
 function defaultSave() {
   return { coins:0, items:{}, stats:{totalKO:0,maxCombo:0,highScore:0},
@@ -2638,8 +2634,8 @@ function normalizeSaveData(d) {
   return d;
 }
 
-function _saveEnvelope(payload, signature) {
-  return { version: 4, payload, signature, signed_at: new Date().toISOString() };
+function _saveEnvelope(payload) {
+  return { version: 5, payload, saved_at: new Date().toISOString() };
 }
 
 function _readStoredSaveEnvelope() {
@@ -2647,12 +2643,21 @@ function _readStoredSaveEnvelope() {
     const raw = localStorage.getItem(SAVE_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && parsed.payload && parsed.signature ? parsed : { legacyPayload: parsed };
+    return parsed && parsed.payload ? parsed : { legacyPayload: parsed };
   } catch(e) { return { corrupt: true }; }
 }
 
-function _storeSignedSave(payload, signature) {
-  localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(_saveEnvelope(payload, signature)));
+function _storeLocalSave(payload) {
+  localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(_saveEnvelope(payload)));
+}
+
+function _isLikelyNetworkFetchError(e) {
+  return e && (e.name === 'TypeError' || /Failed to fetch|NetworkError|Load failed|fetch/i.test(String(e.message || e)));
+}
+
+function _cloudFriendlyError(e) {
+  if (_isLikelyNetworkFetchError(e)) return '❌ ติดต่อ Supabase REST ไม่ได้ — เช็กเน็ต/CORS/RLS';
+  return `❌ ${e && e.message ? e.message : 'Cloud error'}`;
 }
 
 function loadSave() {
@@ -2665,105 +2670,37 @@ function loadSave() {
   }
   if (stored.legacyPayload) {
     try { localStorage.setItem(SAVE_STORAGE_KEY + '_legacy_backup', JSON.stringify(stored.legacyPayload)); } catch(e) {}
-    _saveIntegrityWarning = 'พบ save แบบเก่าที่ไม่มี signature — กรุณา Cloud Load/Sync ก่อนใช้งาน';
     _saveSignatureState = 'legacy';
-    return defaultSave();
+    return normalizeSaveData(stored.legacyPayload);
   }
-  _saveSignatureState = 'pending';
+  _saveSignatureState = 'local';
   return normalizeSaveData(stored.payload);
-}
-
-async function _callSaveSigner(payload, action) {
-  const previousEnvelope = _readStoredSaveEnvelope();
-  const previousSave = previousEnvelope && previousEnvelope.payload ? previousEnvelope.payload : null;
-  const res = await fetch(SAVE_SIGN_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': _SUPA_KEY,
-      'Authorization': `Bearer ${_SUPA_KEY}`
-    },
-    body: JSON.stringify({ save_data: payload, previous_save: previousSave, action: action || 'autosave' })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.save_data || !data.signature) {
-    throw new Error(data.error || `save-sign ${res.status}`);
-  }
-  return data;
-}
-
-async function verifySaveEnvelope(payload, signature, action) {
-  const res = await fetch(SAVE_SIGN_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': _SUPA_KEY,
-      'Authorization': `Bearer ${_SUPA_KEY}`
-    },
-    body: JSON.stringify({ save_data: payload, signature, action: action || 'verify' })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.valid !== true) throw new Error(data.error || `verify ${res.status}`);
-  return data;
 }
 
 async function verifyLocalSaveSignature() {
   const stored = _readStoredSaveEnvelope();
-  if (!stored || stored.legacyPayload || stored.corrupt) {
-    localStorage.removeItem(SAVE_STORAGE_KEY);
-    _saveSignatureState = stored ? 'invalid' : 'empty';
-    if (_saveIntegrityWarning) alert(_saveIntegrityWarning);
-    return false;
-  }
-  try {
-    const data = await verifySaveEnvelope(stored.payload, stored.signature, 'verify');
-    save = normalizeSaveData(data.save_data || stored.payload);
-    _storeSignedSave(save, data.signature || stored.signature);
-    _saveSignatureState = 'valid';
+  if (!stored) {
+    _saveSignatureState = 'empty';
     return true;
-  } catch(e) {
-    console.warn('[saveIntegrity]', e);
+  }
+  if (stored.corrupt) {
     localStorage.removeItem(SAVE_STORAGE_KEY);
     save = defaultSave();
     _saveSignatureState = 'invalid';
-    _saveIntegrityWarning = 'Save signature ไม่ถูกต้องหรือยืนยันกับ server ไม่ได้ ระบบ reset/repair ให้แล้ว กรุณา Cloud Load หากต้องการกู้คืน';
-    alert(_saveIntegrityWarning);
+    if (_saveIntegrityWarning) alert(_saveIntegrityWarning);
     return false;
   }
+  save = normalizeSaveData(stored.legacyPayload || stored.payload);
+  _storeLocalSave(save);
+  _saveSignatureState = 'local';
+  return true;
 }
 
 function doSave(action) {
   save = normalizeSaveData(save);
-  if (_saveSignatureState === 'valid' || _saveSignatureState === 'empty') {
-    try { localStorage.setItem(SAVE_STORAGE_KEY + '_pending', JSON.stringify(save)); } catch(e) {}
-  }
-  scheduleSignedSave(action || 'autosave');
+  try { _storeLocalSave(save); } catch(e) { console.warn('[doSave] local save failed', e); }
 }
 
-function scheduleSignedSave(action) {
-  if (_saveSigningTimer) clearTimeout(_saveSigningTimer);
-  _saveSigningTimer = setTimeout(() => signAndStoreSave(action), 250);
-}
-
-async function signAndStoreSave(action) {
-  if (_saveSigningInFlight) { _saveSigningQueued = true; return; }
-  _saveSigningInFlight = true;
-  try {
-    const signed = await _callSaveSigner(save, action || 'autosave');
-    save = normalizeSaveData(signed.save_data);
-    _storeSignedSave(save, signed.signature);
-    try { localStorage.removeItem(SAVE_STORAGE_KEY + '_pending'); } catch(e) {}
-    _saveSignatureState = 'valid';
-  } catch(e) {
-    console.warn('[doSave] server signing failed; pending save not trusted until sync succeeds', e);
-  } finally {
-    _saveSigningInFlight = false;
-    if (_saveSigningQueued) {
-      _saveSigningQueued = false;
-      signAndStoreSave(action || 'autosave');
-    }
-  }
-}
 
 let save = loadSave();
 const _saveReadyPromise = verifyLocalSaveSignature();
@@ -6488,9 +6425,8 @@ async function svCloudUpload() {
       return;
     }
 
-    const signedSave = await _callSaveSigner(Object.assign({}, save, { cloudPlayerId: id }), 'cloud_upload');
-    const uploadSave = signedSave.save_data;
-    const payload = JSON.stringify({ save_data: uploadSave, signature: signedSave.signature, uploaded_at: new Date().toISOString() });
+    const uploadSave = normalizeSaveData(Object.assign({}, save, { cloudPlayerId: id }));
+    const payload = JSON.stringify({ save_data: uploadSave, uploaded_at: new Date().toISOString() });
     const res = row
       ? await fetch(`${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`, {
           method: 'PATCH',
@@ -6500,13 +6436,13 @@ async function svCloudUpload() {
       : await fetch(`${_SUPA_URL}/rest/v1/cloud_saves`, {
           method: 'POST',
           headers: _cloudHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ player_id: id, secret_key: key, save_data: uploadSave, signature: signedSave.signature, uploaded_at: new Date().toISOString() })
+          body: JSON.stringify({ player_id: id, secret_key: key, save_data: uploadSave, uploaded_at: new Date().toISOString() })
         });
 
     if (res.ok) {
       Object.assign(save, uploadSave);
-      _storeSignedSave(save, signedSave.signature);
-      _saveSignatureState = 'valid';
+      _storeLocalSave(save);
+      _saveSignatureState = 'local';
       _cloudBindSave(id);
       _cloudSaveCreds(id, key);
       svSetSecretDisplay(key, false);
@@ -6521,7 +6457,7 @@ async function svCloudUpload() {
     }
   } catch(e) {
     console.error('[cloudUpload]', e);
-    svShowMsg(saveMsg, '❌ Network error — ตรวจสอบ internet', 'err');
+    svShowMsg(saveMsg, _cloudFriendlyError(e), 'err');
   } finally {
     btn.innerHTML = '☁️ CLOUD SAVE';
     btn.disabled  = false;
@@ -6538,7 +6474,7 @@ async function svCloudDownload() {
 
   svShowMsg(msg, '<span class="sv-loading"></span>กำลัง Load...', 'ok');
   try {
-    const url = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,signature,uploaded_at`;
+    const url = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,uploaded_at`;
     const res = await fetch(url, { headers: _cloudHeaders() });
     if (!res.ok) { svShowMsg(msg, `❌ ดึงข้อมูลไม่สำเร็จ (${res.status})`, 'err'); return; }
 
@@ -6555,12 +6491,9 @@ async function svCloudDownload() {
     }
 
     cloudSave.cloudPlayerId = id;
-    const verified = rows[0].signature
-      ? await verifySaveEnvelope(cloudSave, rows[0].signature, 'cloud_download')
-      : await _callSaveSigner(cloudSave, 'cloud_download');
-    Object.assign(save, verified.save_data);
-    _storeSignedSave(save, verified.signature);
-    _saveSignatureState = 'valid';
+    Object.assign(save, normalizeSaveData(cloudSave));
+    _storeLocalSave(save);
+    _saveSignatureState = 'local';
     _cloudBindSave(id);
     _cloudSaveCreds(id, key);
     updateShopCoinUI();
@@ -6571,7 +6504,7 @@ async function svCloudDownload() {
     setTimeout(closeSaveModal, 1500);
   } catch(e) {
     console.error('[cloudDownload]', e);
-    svShowMsg(msg, '❌ Network error — ตรวจสอบ internet', 'err');
+    svShowMsg(msg, _cloudFriendlyError(e), 'err');
   }
 }
 
