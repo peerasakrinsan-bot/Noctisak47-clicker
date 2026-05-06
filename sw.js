@@ -1,5 +1,5 @@
-// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v156
-const CACHE_NAME = 'noctisak47-v156';
+// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v157
+const CACHE_NAME = 'noctisak47-v157';
 
 const PRECACHE_ASSETS = [
   './',
@@ -96,6 +96,13 @@ const PRECACHE_ASSETS = [
   './suang_hit3.png',
   './suang_hit4.png',
   './suang_icon.webp',
+  // ARTHUR MORGAN skin
+  './morgan.png',
+  './morgan_hit1.png',
+  './morgan_hit2.png',
+  './morgan_hit3.png',
+  './morgan_hit4.png',
+  './morgan_icon.webp',
   // STANDARD cards (18)
   './poring.png','./lunatic.png','./fabre.png','./condor.png','./pecopeco.png',
   './spore.png','./poporing.png','./drops.png','./stainer.png','./rocker.png',
@@ -127,8 +134,9 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(PRECACHE_ASSETS).catch(err => {
-        console.warn('[SW] precache partial fail:', err);
+      return Promise.allSettled(PRECACHE_ASSETS.map(asset => cache.add(asset))).then(results => {
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length) console.warn('[SW] precache partial fail:', failed);
       });
     }).then(() => self.skipWaiting())
   );
