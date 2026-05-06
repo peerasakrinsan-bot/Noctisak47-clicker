@@ -3590,6 +3590,7 @@ function initState() {
 
 function scheduleWeakPoint() {
   clearTimeout(wpSchedule);
+  wpSchedule = null;
   if(!gameRunning) return;
   // RSX-0806: ไม่มี AK47 เลย
   if(window._csState && window._csState.cs_rsx0806) return;
@@ -3611,6 +3612,7 @@ function scheduleWeakPoint() {
 }
 
 function showWeakPoint() {
+  wpSchedule = null;
   if(!gameRunning || wpActive) return;
   const wp = $('weakPoint');
   const W = vvW();
@@ -4233,6 +4235,8 @@ const CARD_POOL = [
 ];
 
 const CS_WEIGHTS = { standard:50, premium:25, elite:15, mythic:10 };
+const CS_LOD_EXCLUDED_IDS = new Set(['ld','mf','vr']);
+const CS_VALKYRIE_EXCLUDED_IDS = new Set(['mf','vr']);
 
 // สุ่ม tier ก่อน แล้วค่อยสุ่มการ์ดใน tier นั้น — rate คงที่ไม่ขึ้นกับจำนวนใบ
 function _pickTier(excludeTiers=[]) {
@@ -4463,13 +4467,17 @@ function _csStartThanatosTimer() {
 
 function _csStartLodTimer() {
   clearInterval(_csLodTimer);
-  const lodPool = CARD_POOL.filter(c=>(c.rarity==='elite'||c.rarity==='mythic') && c.id!=='ld' && c.id!=='mf');
+  const lodPool = CARD_POOL.filter(c =>
+    (c.rarity === 'elite' || c.rarity === 'mythic') && !CS_LOD_EXCLUDED_IDS.has(c.id)
+  );
 
   function _lodPickAndApply(isFirst) {
+    const prevHadRsx = !!(window._csState && window._csState.cs_rsx0806);
     const newCard = lodPool[Math.floor(Math.random()*lodPool.length)];
     const cs = {};
     newCard.apply(cs);
     window._csState = { cs_lordofdeath:true, ...cs };
+    _csSyncWeakPointAvailability(prevHadRsx);
     // แสดงภาพการ์ด
     _lodShowCard(newCard, isFirst);
     if(!isFirst) showBigSplash('# '+newCard.name,'CARD CHANGED','#ff2233',false);
@@ -4536,6 +4544,34 @@ function _lodHideCard() {
   if(display) display.style.display = 'none';
   const img = $('lodCardImg');
   if(img) img.className = '';
+}
+
+function _csSyncWeakPointAvailability(prevHadRsx=false) {
+  if(!gameRunning) return;
+  const hasRsx = !!(window._csState && window._csState.cs_rsx0806);
+
+  if(hasRsx) {
+    clearTimeout(wpSchedule);
+    wpSchedule = null;
+    clearTimeout(wpTimeout);
+    wpTimeout = null;
+    wpActive = false;
+    wpCollected = 0;
+    updateWpCounter();
+    const wp = $('weakPoint');
+    if(wp) {
+      wp.style.display = 'none';
+      wp.classList.remove('wp-vanish');
+    }
+    return;
+  }
+
+  if(prevHadRsx) {
+    wpCollected = 0;
+    updateWpCounter();
+  }
+
+  if(!wpActive && !wpSchedule) scheduleWeakPoint();
 }
 
 function _csStopAllTimers() {
@@ -4724,9 +4760,7 @@ function csOnOdEnd() {
 function _csValkyrieRandgrisSwap() {
   if(!window._csState || !gameRunning) return;
   const elitePool = CARD_POOL.filter(c =>
-    c.rarity === 'elite' &&
-    c.id !== 'mf' &&
-    c.id !== 'vr'
+    c.rarity === 'elite' && !CS_VALKYRIE_EXCLUDED_IDS.has(c.id)
   );
   if(!elitePool.length) return;
   const newCard = elitePool[Math.floor(Math.random()*elitePool.length)];
@@ -6945,7 +6979,7 @@ function showOcaDropToast(tier) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const APP_CACHE_NAME = 'noctisak47-v157';
+      const APP_CACHE_NAME = 'noctisak47-v158';
       const SW_PATH = new URL('./sw.js', location.href).pathname;
       const hadController = !!navigator.serviceWorker.controller;
       let refreshing = false;
