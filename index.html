@@ -27,6 +27,7 @@
 <link rel="preload" href="default_bg.png"      as="image">
 <link rel="preload" href="47title.mp3" as="audio" type="audio/mpeg">
 <link rel="preload" href="suang_icon.webp" as="image">
+<link rel="preload" href="morgan_icon.webp" as="image">
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
@@ -2617,8 +2618,10 @@ function normalizeSaveData(d) {
   d.stats.maxCombo = Math.max(0, Math.floor(Number(d.stats.maxCombo) || 0));
   d.stats.highScore = Math.max(0, Math.floor(Number(d.stats.highScore) || 0));
   if (!Array.isArray(d.ownedSkins)) d.ownedSkins = ['default'];
+  d.ownedSkins = Array.from(new Set(d.ownedSkins.filter(id => typeof id === 'string' && id)));
+  if (!d.ownedSkins.includes('default')) d.ownedSkins.unshift('default');
   if (!Array.isArray(d.ownedArenas)) d.ownedArenas = ['default'];
-  if (!d.activeSkin) d.activeSkin = 'default';
+  if (!d.activeSkin || !d.ownedSkins.includes(d.activeSkin)) d.activeSkin = 'default';
   if (!d.activeArena) d.activeArena = 'default';
   if (!d.savedCards) d.savedCards = null;
   if (!Array.isArray(d.unlockedCards)) d.unlockedCards = ['po','lu','fa','co','pp'];
@@ -3234,6 +3237,17 @@ const BOSS_SKINS = [
     files: {
       idle: 'suang.png',
       hits: ['suang_hit1.png','suang_hit2.png','suang_hit3.png','suang_hit4.png'],
+    }
+  },
+  {
+    id: 'morgan',
+    name: 'ARTHUR MORGAN',
+    sub: '1,000 ZENY',
+    icon: 'morgan_icon.webp',
+    cost: 1000,
+    files: {
+      idle: 'morgan.png',
+      hits: ['morgan_hit1.png','morgan_hit2.png','morgan_hit3.png','morgan_hit4.png'],
     }
   },
   {
