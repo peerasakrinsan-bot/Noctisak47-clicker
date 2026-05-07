@@ -2473,6 +2473,12 @@ const VOL = {
   wpball:1.0,
 };
 
+// เพิ่มเสียงเฉพาะ BGM ขึ้น 30% (SFX ยังใช้ VOL เดิม)
+const BGM_VOLUME_BOOST = 1.3;
+const TITLE_BGM_VOLUME = Math.min(1, 0.45 * BGM_VOLUME_BOOST);
+const FIGHT_BGM_VOLUME = Math.min(1, 1.0 * BGM_VOLUME_BOOST);
+const COLLECT_BGM_VOLUME = Math.min(1, 0.8 * BGM_VOLUME_BOOST);
+
 // ── Web Audio Context (สร้างครั้งเดียว หลัง user gesture) ──
 let _actx = null;
 const _sfxBufs = {};  // cache decoded AudioBuffer
@@ -2554,11 +2560,11 @@ function warmUpAudio() {
 
 function applyMute(muted) {
   soundEnabled = !muted;
-  const bgm = $('bgmSound'); if(bgm) bgm.volume = muted ? 0 : 0.45;
-  [1,2,3,4].forEach(i=>{ const t=$('fightBgm'+i); if(t) t.volume=muted?0:1.0; });
+  const bgm = $('bgmSound'); if(bgm) bgm.volume = muted ? 0 : TITLE_BGM_VOLUME;
+  [1,2,3,4].forEach(i=>{ const t=$('fightBgm'+i); if(t) t.volume=muted?0:FIGHT_BGM_VOLUME; });
   // collect BGM ใช้ Web Audio gain node
   if(window._collectAudio && window._collectAudio.gain) {
-    window._collectAudio.gain.gain.value = muted ? 0 : 0.8;
+    window._collectAudio.gain.gain.value = muted ? 0 : COLLECT_BGM_VOLUME;
   }
 }
 
@@ -2858,7 +2864,7 @@ function onAllLoaded() {
     // unlock + เล่น BGM ทันทีหลัง user gesture
     const bgm = $('bgmSound');
     if (bgm) {
-      bgm.volume = soundEnabled ? 0.45 : 0;
+      bgm.volume = soundEnabled ? TITLE_BGM_VOLUME : 0;
       bgm.play().catch(() => {});
     }
     setTimeout(() => {
@@ -3906,7 +3912,7 @@ function showWpHitFX(x, y, dmg) {
 function playBGM() {
   const bgm = $('bgmSound');
   if (!bgm) return;
-  bgm.volume = soundEnabled ? 0.45 : 0;
+  bgm.volume = soundEnabled ? TITLE_BGM_VOLUME : 0;
   if (bgm.paused) bgm.play().catch(() => {});
 }
 function stopBGM() {
@@ -3943,7 +3949,7 @@ function _pickFightTrack() {
   }
   const track = $('fightBgm' + (Math.floor(Math.random() * 4) + 1));
   if (!track) return;
-  track.volume = soundEnabled ? 1.0 : 0;
+  track.volume = soundEnabled ? FIGHT_BGM_VOLUME : 0;
   track.currentTime = 0;
   track.play().catch(() => {});
   track.addEventListener('ended', _pickFightTrack, { once: true });
@@ -5024,7 +5030,7 @@ function _playCollectBGM() {
       src.buffer = buf;
       src.loop = true;
       const gain = ctx.createGain();
-      gain.gain.value = 0.8;
+      gain.gain.value = COLLECT_BGM_VOLUME;
       src.connect(gain);
       gain.connect(ctx.destination);
       src.start(0);
