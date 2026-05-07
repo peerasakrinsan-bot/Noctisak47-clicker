@@ -3614,8 +3614,8 @@ function scheduleWeakPoint() {
     const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
     if(ratio < 0.25) delay *= 0.50;
   }
-  // WHISPER: spawn ช้าลง 15%
-  if(window._csState && window._csState.cs_whisper) delay *= 1.15;
+  // WHISPER: spawn ช้าลง 2 เท่า
+  if(window._csState && window._csState.cs_whisper) delay *= 2;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -4211,7 +4211,7 @@ const CARD_POOL = [
     apply(s){ s.cs_executioner = true; }
   },
   { id:'wh',    name:'WHISPER CARD',       img:'whisper.png',     rarity:'elite',
-    effect:'เก็บ AK47 ครบ = เวลา <strong>+3.5 วิ</strong> + combo ไม่ reset 2 วิหลัง AK47 ครบ', tradeoff:'AK47 spawn ช้าลง <strong>15%</strong>',
+    effect:'เก็บ AK47 ครบ = เวลา <strong>+3.5 วิ</strong> + combo ไม่ reset 2 วิหลัง AK47 ครบ', tradeoff:'AK47 spawn ช้าลง <strong>2 เท่า</strong>',
     apply(s){ s.cs_whisper = true; }
   },
   { id:'gl',name:'GOBLIN LEADER CARD',img:'goblin_leader.png',rarity:'elite',
