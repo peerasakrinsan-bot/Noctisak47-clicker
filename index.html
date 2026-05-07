@@ -3620,8 +3620,8 @@ function scheduleWeakPoint() {
     const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
     if(ratio < 0.25) delay *= 0.50;
   }
-  // WHISPER: spawn ช้าลง 1.5 เท่า (เบาลงจาก 2 เท่าเพื่อให้คุ้มกับเอฟเฟกต์มากขึ้น)
-  if(window._csState && window._csState.cs_whisper) delay *= 1.5;
+  // WHISPER: spawn ช้าลง 2 เท่า
+  if(window._csState && window._csState.cs_whisper) delay *= 2;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -3840,20 +3840,18 @@ function triggerBombExplosion() {
 
   updateUI();
 
-  // WHISPER: เก็บ AK47 ครบ = เวลา +1.5วิ + OD charge +25% (หรือ OD timer +1s) + combo protect 3s
+  // WHISPER: เก็บ AK47 ครบ = เวลา +1.5วิ + OD charge +10% (หรือ OD timer +0.5s) + combo protect 2s
   if(window._csState && window._csState.cs_whisper) {
-    const cs = window._csState;
     timeLeft += 1.5;
     if(godLevel > 0) {
-      godSecondsLeft += 1;
-    } else if(canEnterGod && !cs.cs_baphomet && !cs.cs_goldenbug && !cs.cs_rsx0806) {
-      cs._whisperOdChargeBonus = Math.min(100, (cs._whisperOdChargeBonus||0) + 25);
+      godSecondsLeft += 0.5;
+    } else if(canEnterGod && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
       const cur = parseFloat(_el.godFill.style.width)||0;
-      _el.godFill.style.width = Math.min(100, cur + 25) + '%';
+      _el.godFill.style.width = Math.min(100, cur + 10) + '%';
       if(parseFloat(_el.godFill.style.width) >= 100) activateGodLevel(1);
     }
-    cs._whisperComboProtect = true;
-    setTimeout(()=>{ if(window._csState) window._csState._whisperComboProtect = false; }, 3000);
+    window._csState._whisperComboProtect = true;
+    setTimeout(()=>{ if(window._csState) window._csState._whisperComboProtect = false; }, 2000);
   }
   // HYDRA: เวลา +1.5วิ เมื่อ wpDmgMult === 3
   if(window._csState && window._csState.cs_wpDmgMult === 3) {
@@ -4270,7 +4268,7 @@ const CARD_POOL = [
     apply(s){ s.cs_executioner = true; }
   },
   { id:'wh',    name:'WHISPER CARD',       img:'whisper.png',     rarity:'elite',
-    effect:'เก็บ AK47 ครบ = เวลา <strong>+1.5 วิ</strong> + Overdrive charge <strong>+25%</strong> (ถ้า OD active = OD timer <strong>+1 วิ</strong>) + combo ไม่ reset <strong>3 วิ</strong>', tradeoff:'AK47 spawn ช้าลง <strong>1.5 เท่า</strong>',
+    effect:'เก็บ AK47 ครบ = เวลา <strong>+1.5 วิ</strong> + Overdrive charge <strong>+10%</strong> (ถ้า OD active = OD timer <strong>+0.5 วิ</strong>) + combo ไม่ reset 2 วิ', tradeoff:'AK47 spawn ช้าลง <strong>2 เท่า</strong>',
     apply(s){ s.cs_whisper = true; }
   },
   { id:'gl',name:'GOBLIN LEADER CARD',img:'goblin_leader.png',rarity:'elite',
@@ -4860,7 +4858,7 @@ function _csValkyrieRandgrisSwap() {
     'cs_taogunka','cs_draculaCoin','cs_incantation','cs_stormyKnight','cs_darkLord',
     'cs_minorous','cs_executioner','cs_whisper','cs_goblinLeader','cs_amonRa','cs_amonRa_active',
     'cs_bossDmgBonus','cs_bossCoinPct','cs_dmgBonus','cs_timePenalty','cs_critChanceBonus','cs_critDmgBonus',
-    '_stormyKnightAcc','_darkLordAcc','cs_odChargePenalty','_drakeTriggered','_whisperComboProtect','_whisperOdChargeBonus'];
+    '_stormyKnightAcc','_darkLordAcc','cs_odChargePenalty','_drakeTriggered','_whisperComboProtect'];
   showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD','') + ' (IN 2s)', '#cc88ff');
   // Old effect active for 2s before new card kicks in
   setTimeout(()=>{
@@ -4890,8 +4888,6 @@ function csOnOdStart() {
     if(!cs._zenorcCount) cs._zenorcCount = 0;
     if(cs._zenorcCount < 2) cs._zenorcCount++;
   }
-  // WHISPER: consume the stored AK47 OD charge once Overdrive starts.
-  if(cs._whisperOdChargeBonus) cs._whisperOdChargeBonus = 0;
 }
 
 
@@ -5922,12 +5918,6 @@ function processHit(e, now) {
     const cur = parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width = Math.min(100, cur + window._csState.cs_odChargeBonus * 100) + '%';
   }
-  // WHISPER: persistent OD charge from AK47 completions; keep it after the next hit recalculates the bar
-  if(window._csState && window._csState._whisperOdChargeBonus && godLevel === 0
-     && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
-    const cur = parseFloat(_el.godFill.style.width)||0;
-    _el.godFill.style.width = Math.min(100, cur + window._csState._whisperOdChargeBonus) + '%';
-  }
   // SAVAGE / TAO GUNKA / GOBLIN LEADER: OD charge penalty (reduce charge rate)
   if(window._csState && window._csState.cs_odChargePenalty && godLevel === 0
      && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
@@ -5946,7 +5936,7 @@ function processHit(e, now) {
   }
   // MOONLIGHT FLOWER / VITATA / ELDER WILLOW / METALLER / THIEF BUG: ถ้า bar เต็ม 100% ก่อน combo 47 → trigger OD ทันที
   if(godLevel===0 && canEnterGod && window._csState
-     && (window._csState.cs_moonlightflower || window._csState.cs_vitata || window._csState.cs_elderWillow_active || window._csState.cs_odChargeBonus || window._csState._whisperOdChargeBonus)
+     && (window._csState.cs_moonlightflower || window._csState.cs_vitata || window._csState.cs_elderWillow_active || window._csState.cs_odChargeBonus)
      && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     if(parseFloat(_el.godFill.style.width) >= 100) activateGodLevel(1);
   }
