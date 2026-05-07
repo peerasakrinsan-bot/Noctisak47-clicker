@@ -3620,8 +3620,8 @@ function scheduleWeakPoint() {
     const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
     if(ratio < 0.25) delay *= 0.50;
   }
-  // WHISPER: spawn ช้าลง 2 เท่า
-  if(window._csState && window._csState.cs_whisper) delay *= 2;
+  // WHISPER: spawn ช้าลง 1.5 เท่า (เบาลงจาก 2 เท่าเพื่อให้คุ้มกับเอฟเฟกต์มากขึ้น)
+  if(window._csState && window._csState.cs_whisper) delay *= 1.5;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -3840,11 +3840,18 @@ function triggerBombExplosion() {
 
   updateUI();
 
-  // WHISPER: เก็บ AK47 ครบ = เวลา +3.5วิ + combo protect 2s
+  // WHISPER: เก็บ AK47 ครบ = เวลา +1.5วิ + OD charge +25% (หรือ OD timer +1s) + combo protect 3s
   if(window._csState && window._csState.cs_whisper) {
-    timeLeft += 3.5;
+    timeLeft += 1.5;
+    if(godLevel > 0) {
+      godSecondsLeft += 1;
+    } else if(canEnterGod && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
+      const cur = parseFloat(_el.godFill.style.width)||0;
+      _el.godFill.style.width = Math.min(100, cur + 25) + '%';
+      if(parseFloat(_el.godFill.style.width) >= 100) activateGodLevel(1);
+    }
     window._csState._whisperComboProtect = true;
-    setTimeout(()=>{ if(window._csState) window._csState._whisperComboProtect = false; }, 2000);
+    setTimeout(()=>{ if(window._csState) window._csState._whisperComboProtect = false; }, 3000);
   }
   // HYDRA: เวลา +1.5วิ เมื่อ wpDmgMult === 3
   if(window._csState && window._csState.cs_wpDmgMult === 3) {
@@ -4261,7 +4268,7 @@ const CARD_POOL = [
     apply(s){ s.cs_executioner = true; }
   },
   { id:'wh',    name:'WHISPER CARD',       img:'whisper.png',     rarity:'elite',
-    effect:'เก็บ AK47 ครบ = เวลา <strong>+3.5 วิ</strong> + combo ไม่ reset 2 วิหลัง AK47 ครบ', tradeoff:'AK47 spawn ช้าลง <strong>2 เท่า</strong>',
+    effect:'เก็บ AK47 ครบ = เวลา <strong>+1.5 วิ</strong> + Overdrive charge <strong>+25%</strong> (ถ้า OD active = OD timer <strong>+1 วิ</strong>) + combo ไม่ reset <strong>3 วิ</strong>', tradeoff:'AK47 spawn ช้าลง <strong>1.5 เท่า</strong>',
     apply(s){ s.cs_whisper = true; }
   },
   { id:'gl',name:'GOBLIN LEADER CARD',img:'goblin_leader.png',rarity:'elite',
@@ -7064,7 +7071,7 @@ function showOcaDropToast(tier) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const APP_CACHE_NAME = 'noctisak47-v158';
+      const APP_CACHE_NAME = 'noctisak47-v160';
       const SW_PATH = new URL('./sw.js', location.href).pathname;
       const hadController = !!navigator.serviceWorker.controller;
       let refreshing = false;
