@@ -2600,7 +2600,7 @@ function playWpBall()       { _playSfx('wpball', VOL.wpball, true); }
 // SAVE / LOAD
 // ══════════════════════════════════════════
 // ── ตาราง migrate ID เก่า → ID ใหม่ (ใช้ใน loadSave) ──
-const _MIGRATE_ID = {'poring':'po','lunatic':'lu','fabre':'fa','condor':'co','pecopeco':'pp','spore':'sp','poporing':'pr','drops':'dr','stainer':'st','rocker':'ro','caramel':'ca','rodafrog':'rf','metaller':'me','mandragora':'ma','willow':'wi','hornet':'ho','thiefbug':'tb','mastering':'ms','zombie':'zo','savage':'sa','orc':'oc','mummy':'mu','skelworker':'sw','hunterfly':'hf','elderwillow':'ew','sting':'si','nightmare':'nm','zenorc':'ze','horong':'hg','raydric':'ry','greatestgeneral':'gg','jakk':'jk','marina':'mn','demonpungus':'dp','vitata':'vi','alligator':'al','doppelganger':'dg','hydra':'hy','phreeoni':'ph','turtlegeneral':'tg','drake':'dk','taogunka':'tk','dracula':'dc','incantation':'ic','stormyknight':'sk','darklord':'dl','moonlightflower':'mf','minorous':'mi','executioner':'ex','whisper':'wh','goblinleader':'gl','amonra':'ar','thanatos':'th','baphomet':'bh','eddga':'eg','osiris':'os','mistress':'mt','goldenbug':'gb','orchero':'oh','lordofdeath':'ld','ktullanux':'kn','beelzebub':'bz','valkyrierandgris':'vr','rsx0806':'rx'};
+const _MIGRATE_ID = {'poring':'po','lunatic':'lu','fabre':'fa','condor':'co','pecopeco':'pp','spore':'sp','poporing':'pr','drops':'dr','stainer':'st','rocker':'ro','caramel':'ca','rodafrog':'rf','metaller':'me','mandragora':'ma','willow':'wi','hornet':'ho','thiefbug':'tb','mastering':'ms','zombie':'zo','savage':'sa','orc':'oc','mummy':'mu','skelworker':'sw','hunterfly':'hf','elderwillow':'ew','sting':'si','nightmare':'nm','zenorc':'ze','horong':'hg','raydric':'ry','greatestgeneral':'gg','jakk':'jk','marina':'mn','demonpungus':'dp','vitata':'vi','alligator':'al','doppelganger':'dg','hydra':'hy','phreeoni':'ph','turtlegeneral':'tg','drake':'dk','taogunka':'tk','dracula':'dc','incantation':'ic','stormyknight':'sk','darklord':'dl','moonlightflower':'mf','minorous':'mi','executioner':'ex','whisper':'wh','goblinleader':'gl','amonra':'ar','thanatos':'th','baphomet':'bh','eddga':'eg','osiris':'os','mistress':'mt','goldenbug':'gb','orchero':'oh','lordofdeath':'ld','ktullanux':'kn','beelzebub':'bz','valkyrierandgris':'vr','atroce':'at','kield01':'kl','kiel':'kl','ifrit':'if','rsx0806':'rx','andre':'an','kukre':'ku','familiar':'fm','picky':'pi','yoyo':'yy','soldierskeleton':'ss','marc':'mc','sidewinder':'sd','zerom':'zr','matyr':'my','abysmalknight':'ak','mayapurple':'mp','evildruid':'ed'};
 function _migrateId(id) { return _MIGRATE_ID[id] || id; }
 function _migrateIds(arr) { return Array.isArray(arr) ? arr.map(_migrateId) : arr; }
 
@@ -4046,6 +4046,10 @@ const CARD_POOL = [
     effect:'ทุกครั้งที่ HP ศัตรู ลดผ่าน 75%, 50%, 25% = OD charge <strong>+15%</strong> ทันที', tradeoff:null,
     apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
+  { id:'ak',name:'ABYSMAL KNIGHT CARD', img:'abysmal_knight.png', rarity:'elite',
+    effect:'ดาเมจบอส <strong>+32%</strong> + coin จาก boss KO <strong>+10%</strong>', tradeoff:null,
+    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.32; s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.10; }
+  },
 
   // ── VOID (MVP) ──
   { id:'th',   name:'THANATOS CARD',      img:'thanatos.png',    rarity:'mythic',
@@ -4113,6 +4117,26 @@ const CARD_POOL = [
   { id:'wi',     name:'WILLOW CARD',         img:'willow.png',      rarity:'standard',
     effect:'คริติคอล ดาเมจ <strong>+10%</strong>', tradeoff:null,
     apply(s){ s.cs_critDmgBonus = (s.cs_critDmgBonus||0) + 0.10; }
+  },
+  { id:'an',     name:'ANDRE CARD',         img:'andre.png',       rarity:'standard',
+    effect:'ดาเมจ <strong>+4%</strong> + coin ที่ได้ <strong>+3%</strong>', tradeoff:null,
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.04; s.cs_coinPct=(s.cs_coinPct||0)+0.03; }
+  },
+  { id:'ku',     name:'KUKRE CARD',         img:'kukre.png',       rarity:'standard',
+    effect:'crit chance <strong>+3%</strong> + คริติคอล ดาเมจ <strong>+5%</strong>', tradeoff:null,
+    apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.03; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.05; }
+  },
+  { id:'fm',     name:'FAMILIAR CARD',      img:'familiar.png',    rarity:'standard',
+    effect:'coin ที่ได้ <strong>+5%</strong> + ทุก 10 combo = coin bonus <strong>+5</strong>', tradeoff:null,
+    apply(s){ s.cs_coinPct=(s.cs_coinPct||0)+0.05; s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+5; }
+  },
+  { id:'pi',     name:'PICKY CARD',         img:'picky.png',       rarity:'standard',
+    effect:'เวลา <strong>+2 วินาที</strong> + ศัตรู HP เริ่มต้น <strong>ลดลง 5%</strong>', tradeoff:null,
+    apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+2; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)+0.05; }
+  },
+  { id:'yy',     name:'YOYO CARD',          img:'yoyo.png',        rarity:'standard',
+    effect:'<strong>4%</strong> โอกาส combo ไม่ reset เมื่อหยุดตี + Combo decay <strong>ช้าลง 8%</strong>', tradeoff:null,
+    apply(s){ s.cs_comboNoReset=(s.cs_comboNoReset||0)+0.04; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.08; }
   },
 
   // ── UNCOMMON ใหม่ ──
@@ -4206,6 +4230,26 @@ const CARD_POOL = [
     effect:'ทุก KO = coin <strong>+3</strong> (สูงสุด +45 zeny)', tradeoff:null,
     apply(s){ s.cs_alligator = true; }
   },
+  { id:'ss',name:'SOLDIER SKELETON CARD', img:'soldier_skeleton.png', rarity:'premium',
+    effect:'คริติคอล ดาเมจ <strong>+22%</strong> + crit chance <strong>+2%</strong>', tradeoff:null,
+    apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.22; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.02; }
+  },
+  { id:'mc',     name:'MARC CARD',          img:'marc.png',        rarity:'premium',
+    effect:'เวลา <strong>+4 วินาที</strong> + Combo decay <strong>ช้าลง 10%</strong>', tradeoff:null,
+    apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+4; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.10; }
+  },
+  { id:'sd', name:'SIDEWINDER CARD',    img:'sidewinder.png',  rarity:'premium',
+    effect:'ดาเมจ <strong>+16%</strong>', tradeoff:'Overdrive charge <strong>-20%</strong>',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.16; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
+  },
+  { id:'zr',     name:'ZEROM CARD',         img:'zerom.png',       rarity:'premium',
+    effect:'crit chance <strong>+7%</strong> + coin ที่ได้ <strong>+4%</strong>', tradeoff:null,
+    apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.07; s.cs_coinPct=(s.cs_coinPct||0)+0.04; }
+  },
+  { id:'my',     name:'MATYR CARD',         img:'matyr.png',       rarity:'premium',
+    effect:'Overdrive charge <strong>+10%</strong> ต่อคลิก', tradeoff:'Combo decay เร็วขึ้น 15%',
+    apply(s){ s.cs_odChargeBonus=(s.cs_odChargeBonus||0)+0.10; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.15; }
+  },
 
   // ── ELITE ใหม่ ──
   { id:'mi',   name:'MINOROUS CARD',      img:'minorous.png',    rarity:'elite',
@@ -4228,6 +4272,14 @@ const CARD_POOL = [
     effect:'Combo ≥ 40 : ดาเมจ <strong>+40%</strong> + coin <strong>x1.5</strong>', tradeoff:null,
     apply(s){ s.cs_amonRa = true; }
   },
+  { id:'mp',name:'MAYA PURPLE CARD',    img:'maya_purple.png', rarity:'elite',
+    effect:'ดาเมจบอส <strong>+22%</strong> + crit chance <strong>+6%</strong>', tradeoff:null,
+    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.22; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.06; }
+  },
+  { id:'ed',name:'EVIL DRUID CARD',     img:'evil_druid.png',  rarity:'elite',
+    effect:'ดาเมจ <strong>+26%</strong> + คริติคอล ดาเมจ <strong>+15%</strong>', tradeoff:'เวลา <strong>-6 วินาที</strong>',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.26; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.15; s.cs_timePenalty=(s.cs_timePenalty||0)+6; }
+  },
 
   // ── MYTHIC ใหม่ ──
   { id:'kn',  name:'KTULLANUX CARD',     img:'ktullanux.png',   rarity:'mythic',
@@ -4241,6 +4293,18 @@ const CARD_POOL = [
   { id:'vr', name:'VALKYRIE RANDGRIS CARD', img:'valkyrie_randgris.png', rarity:'mythic',
     effect:'ทุกครั้งที่เก็บ AK47 ครบ round = สุ่ม effect ใหม่จาก <strong>ELITE pool</strong>', tradeoff:null,
     apply(s){ s.cs_valkyrieRandgris = true; }
+  },
+  { id:'at',     name:'ATROCE CARD',        img:'atroce.png',      rarity:'mythic',
+    effect:'ดาเมจ <strong>+42%</strong> + crit chance <strong>+8%</strong>', tradeoff:'Combo decay เร็วขึ้น 30%',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.42; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.08; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.30; }
+  },
+  { id:'kl', name:'KIEL-D-01 CARD',     img:'kiel_d_01.png',   rarity:'mythic',
+    effect:'Overdrive charge <strong>+13%</strong> ต่อคลิก + OD timer <strong>+0.05 วิ</strong> ต่อคลิกระหว่าง OD', tradeoff:'ดาเมจ <strong>-12%</strong>',
+    apply(s){ s.cs_odChargeBonus=(s.cs_odChargeBonus||0)+0.13; s.cs_odTimerOnClick=(s.cs_odTimerOnClick||0)+0.05; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.12; }
+  },
+  { id:'if',     name:'IFRIT CARD',         img:'ifrit.png',       rarity:'mythic',
+    effect:'crit chance <strong>+10%</strong> + คริติคอล ดาเมจ <strong>+45%</strong> + ดาเมจบอส <strong>+28%</strong>', tradeoff:'ศัตรู HP เริ่มต้น <strong>+35%</strong>',
+    apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.45; s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.28; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)-0.35; }
   },
   { id:'rx',    name:'RSX-0806 CARD',      img:'rsx_0806.png',    rarity:'mythic',
     effect:'ดาเมจ <strong>x3.5</strong> + ทุก KO = score <strong>+200</strong>', tradeoff:'ไม่มี Overdrive + ไม่มี AK47 เลย',
@@ -4606,6 +4670,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   const cs = window._csState;
   let d = baseDmg;
   if(cs.cs_dmgBonus)   d *= (1 + cs.cs_dmgBonus);
+  if(cs.cs_bossDmgBonus && isBoss) d *= (1 + cs.cs_bossDmgBonus);
   if(cs.cs_mistress && !isGod) d *= 0.75;
   if(cs.cs_mummy_active) d *= (1 + (cs.cs_combo20Dmg||0));
   if(cs.cs_skelworker_bonus) d *= (1 + cs.cs_skelworker_bonus);
@@ -4656,6 +4721,10 @@ function csOnClick(isGod) {
   if(cs.cs_mistress && isGod) {
     roundCoins += 2;
     godSecondsLeft += 0.1;
+    updateUI();
+  }
+  if(cs.cs_odTimerOnClick && isGod) {
+    godSecondsLeft += cs.cs_odTimerOnClick;
     updateUI();
   }
   // combo milestone coin (poporing)
@@ -4781,6 +4850,7 @@ function _csValkyrieRandgrisSwap() {
   const eliteKeys = ['cs_doubleClick','cs_wpDmgMult','cs_wpOdCharge','cs_combo30','cs_drakeIgnoreThreshold',
     'cs_taogunka','cs_draculaCoin','cs_incantation','cs_stormyKnight','cs_darkLord',
     'cs_minorous','cs_executioner','cs_whisper','cs_goblinLeader','cs_amonRa','cs_amonRa_active',
+    'cs_bossDmgBonus','cs_bossCoinPct','cs_dmgBonus','cs_timePenalty','cs_critChanceBonus','cs_critDmgBonus',
     '_stormyKnightAcc','_darkLordAcc','cs_odChargePenalty','_drakeTriggered','_whisperComboProtect'];
   showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD','') + ' (IN 2s)', '#cc88ff');
   // Old effect active for 2s before new card kicks in
@@ -6090,6 +6160,7 @@ function bossKO() {
   if(window._csState && window._csState.cs_combo30) bossCoins = Math.round(bossCoins * 0.70);
   // Dark Lord: KO coin -40%
   if(window._csState && window._csState.cs_darkLord) bossCoins = Math.round(bossCoins * 0.60);
+  if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
   bossCoins = csApplyCoinMod(bossCoins);
   roundCoins+=bossCoins;
   score+=500+combo*15;
