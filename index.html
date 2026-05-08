@@ -2465,6 +2465,8 @@ const ITEM_IMGS = {
   midas:     'stonks-hand.webp',
 };
 
+const CARD_HIDDEN_IMG = 'card_hidden.png';
+
 // ══════════════════════════════════════════
 // SOUND SYSTEM
 // ══════════════════════════════════════════
@@ -2784,7 +2786,7 @@ const ASSETS = {
     // game UI critical
     'ak47.png','noobak47.png','wp5.png',
     'sound_on.png','sound_off.png',
-    'card_back.png','logo.png',
+    CARD_HIDDEN_IMG,'card_back.png','logo.png',
     // shop/OCA item art (optional, non-blocking; preload keeps renamed assets warm)
     ...Object.values(ITEM_IMGS),
   ],
@@ -3196,7 +3198,7 @@ function _openOcaDraw(result, onDone) {
   $('cardDrawPityBanner').textContent = '';
   $('cardDrawPityBanner').style.display = 'none';
   $('cardDrawHidden').style.display = 'block';
-  $('cardDrawHiddenImg').src = ITEM_IMGS.oca;
+  $('cardDrawHiddenImg').src = CARD_HIDDEN_IMG;
   $('cardDrawHidden').classList.remove('flipping');
   $('cardDrawRevealed').style.display = 'none';
   $('cardDrawDupeBanner').style.display = 'none';
@@ -5115,7 +5117,7 @@ function openCardDraw(onDone) {
 
   // reset state
   $('cardDrawHidden').style.display = 'block';
-  $('cardDrawHiddenImg').src = 'card_hidden.png';
+  $('cardDrawHiddenImg').src = CARD_HIDDEN_IMG;
   $('cardDrawHidden').classList.remove('flipping');
   $('cardDrawRevealed').style.display = 'none';
   $('cardDrawDupeBanner').style.display = 'none';
