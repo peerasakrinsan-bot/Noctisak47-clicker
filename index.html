@@ -4033,11 +4033,11 @@ const CARD_POOL = [
   },
 
   // ── RARE ──
-  { id:'dg',name:'DOPELGANGER CARD', img:'cards/dopelganger.png',rarity:'elite',
+  { id:'dg',name:'DOPPELGANGER CARD', img:'cards/doppelganger.png',rarity:'elite',
     effect:'ทุกคลิกนับเป็น <strong>2 คลิก</strong> (ดาเมจ & OD charge x2) + คลิกที่ 2 มีโอกาส crit <strong>20%</strong>', tradeoff:'ดาเมจของคลิกที่ 2 <strong>-20%</strong>',
     apply(s){ s.cs_doubleClick = true; }
   },
-  { id:'hy',      name:'HAIL HYDRAH CARD',         img:'cards/hail_hydrah.png',       rarity:'elite',
+  { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
     effect:'เก็บ AK47 = ดาเมจ <strong>x3</strong> + เวลา <strong>+1.5 วิ</strong> ทุกครั้งที่ครบ', tradeoff:null,
     apply(s){ s.cs_wpDmgMult = 3; }
   },
@@ -4049,7 +4049,7 @@ const CARD_POOL = [
     effect:'Combo ≥ 30 : ดาเมจ <strong>+25%</strong> + ทุก KO = score <strong>+300</strong>', tradeoff:'coin จาก KO <strong>-30%</strong>',
     apply(s){ s.cs_combo30 = true; }
   },
-  { id:'dk',      name:'DROKE CARD',         img:'cards/droke.png',       rarity:'elite',
+  { id:'dk',      name:'DRAKE CARD',         img:'cards/drake.png',       rarity:'elite',
     effect:'ทุกครั้งที่ HP ศัตรู ลดผ่าน 75%, 50%, 25% = OD charge <strong>+15%</strong> ทันที', tradeoff:null,
     apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
@@ -4229,7 +4229,7 @@ const CARD_POOL = [
     effect:'ทุก 5 KO = Overdrive charge <strong>+5%</strong>', tradeoff:null,
     apply(s){ s.cs_demonPungus = true; }
   },
-  { id:'vi',     name:'VITAMIN CARD',        img:'cards/vitamin.png',      rarity:'premium',
+  { id:'vi',     name:'VITAMOE CARD',        img:'cards/vitamoe.png',      rarity:'premium',
     effect:'Combo ≥ 15 : Overdrive charge <strong>x1.3</strong>', tradeoff:'ดาเมจ -8%',
     apply(s){ s.cs_vitata = true; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.08; }
   },
