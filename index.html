@@ -3977,343 +3977,343 @@ function stopFightBGM() {
 
 const CARD_POOL = [
   // ── COMMON ──
-  { id:'po',     name:'PORING CARD',       img:'poring.png',      rarity:'standard',
+  { id:'po',     name:'BORING CARD',       img:'cards/boring.png',      rarity:'standard',
     effect:'coin ที่ได้ <strong>+8%</strong>',  tradeoff:null,
     apply(s){ s.cs_coinPct = (s.cs_coinPct||0) + 0.08; }
   },
-  { id:'lu',    name:'LUNATIC CARD',       img:'lunatic.png',     rarity:'standard',
+  { id:'lu',    name:'LOONEYTIC CARD',       img:'cards/looneytic.png',     rarity:'standard',
     effect:'คริติคอล ดาเมจ <strong>+15%</strong>', tradeoff:null,
     apply(s){ s.cs_critDmgBonus = (s.cs_critDmgBonus||0) + 0.15; }
   },
-  { id:'fa',      name:'FABRE CARD',         img:'fabre.png',       rarity:'standard',
+  { id:'fa',      name:'FA-BRRR CARD',         img:'cards/fa-brrr.png',       rarity:'standard',
     effect:'Combo decay <strong>ช้าลง 20%</strong>', tradeoff:null,
     apply(s){ s.cs_comboDecaySlow = (s.cs_comboDecaySlow||0) + 0.20; }
   },
-  { id:'co',     name:'CONDOR CARD',        img:'condor.png',      rarity:'standard',
+  { id:'co',     name:'CONBRO CARD',        img:'cards/conbro.png',      rarity:'standard',
     effect:'<strong>5%</strong> โอกาส combo ไม่ reset เมื่อหยุดตี', tradeoff:null,
     apply(s){ s.cs_comboNoReset = (s.cs_comboNoReset||0) + 0.05; }
   },
-  { id:'pp',   name:'PECO PECO CARD',     img:'pecopeco.png',    rarity:'standard',
+  { id:'pp',   name:'PEKO PEKO CARD',     img:'cards/peko_peko.png',    rarity:'standard',
     effect:'ศัตรู HP เริ่มต้น <strong>ลดลง 15%</strong>', tradeoff:null,
     apply(s){ s.cs_enemyHpReduce = (s.cs_enemyHpReduce||0) + 0.15; }
   },
-  { id:'sp',      name:'SPORE CARD',         img:'spore.png',       rarity:'standard',
+  { id:'sp',      name:'SNORE CARD',         img:'cards/snore.png',       rarity:'standard',
     effect:'เวลา <strong>+3 วินาที</strong>', tradeoff:null,
     apply(s){ s.cs_extraTime = (s.cs_extraTime||0) + 3; }
   },
-  { id:'pr',   name:'POPORING CARD',      img:'poporing.png',   rarity:'standard',
+  { id:'pr',   name:'POPORINGO CARD',      img:'cards/poporingo.png',   rarity:'standard',
     effect:'ทุก 10 combo = coin bonus <strong>+12</strong>', tradeoff:null,
     apply(s){ s.cs_comboMilestoneCoin = (s.cs_comboMilestoneCoin||0) + 12; }
   },
 
   // ── UNCOMMON ──
-  { id:'zo',     name:'ZOMBIE CARD',        img:'zombie.png',      rarity:'premium',
+  { id:'zo',     name:'ZOOMBIE CARD',        img:'cards/zoombie.png',      rarity:'premium',
     effect:'ทุก KO = เวลา <strong>+0.01 วิ</strong> (สูงสุด <strong>+5 วิ</strong>)', tradeoff:null,
     apply(s){ s.cs_koTimeBonus = true; }
   },
-  { id:'sa',     name:'SAVAGE CARD',        img:'savage.png',      rarity:'premium',
+  { id:'sa',     name:'SALVAGE CARD',        img:'cards/salvage.png',      rarity:'premium',
     effect:'ดาเมจ <strong>+15%</strong>', tradeoff:'Overdrive ชาร์จ -15%',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.15; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.15; }
   },
-  { id:'oc',        name:'ORC WARRIOR CARD',   img:'orc.png',         rarity:'premium',
+  { id:'oc',        name:'ORC WORRIER CARD',   img:'cards/orc_worrier.png',         rarity:'premium',
     effect:'คริติคอลทุกครั้ง = Overdrive charge <strong>+3%</strong>', tradeoff:null,
     apply(s){ s.cs_critOdCharge = (s.cs_critOdCharge||0) + 0.03; }
   },
-  { id:'mu',      name:'MUMMY CARD',         img:'mummy.png',       rarity:'premium',
+  { id:'mu',      name:'MOMMY CARD',         img:'cards/mommy.png',       rarity:'premium',
     effect:'Combo ≥ 20 : ดาเมจ <strong>+18%</strong>', tradeoff:null,
     apply(s){ s.cs_combo20Dmg = (s.cs_combo20Dmg||0) + 0.18; }
   },
-  { id:'sw', name:'SKEL WORKER CARD',   img:'skel_worker.png', rarity:'premium',
+  { id:'sw', name:'SKILL WORKER CARD',   img:'cards/skill_worker.png', rarity:'premium',
     effect:'ดาเมจ <strong>+8%</strong> ต่อทุก 10 combo สูงสุด +24%', tradeoff:null,
     apply(s){ s.cs_skelWorker = true; }
   },
-  { id:'hf',  name:'HUNTER FLY CARD',    img:'hunter_fly.png',  rarity:'premium',
+  { id:'hf',  name:'HUNGER FLY CARD',    img:'cards/hunger_fly.png',  rarity:'premium',
     effect:'ทุก Overdrive ที่ใช้ = coin <strong>+60</strong> เมื่อจบรอบ', tradeoff:null,
     apply(s){ s.cs_odCoinBonus = (s.cs_odCoinBonus||0) + 60; }
   },
 
   // ── RARE ──
-  { id:'dg',name:'DOPPELGANGER CARD', img:'doppelganger.png',rarity:'elite',
+  { id:'dg',name:'DOPELGANGER CARD', img:'cards/dopelganger.png',rarity:'elite',
     effect:'ทุกคลิกนับเป็น <strong>2 คลิก</strong> (ดาเมจ & OD charge x2) + คลิกที่ 2 มีโอกาส crit <strong>20%</strong>', tradeoff:'ดาเมจของคลิกที่ 2 <strong>-20%</strong>',
     apply(s){ s.cs_doubleClick = true; }
   },
-  { id:'hy',      name:'HYDRA CARD',         img:'hydra.png',       rarity:'elite',
+  { id:'hy',      name:'HAIL HYDRAH CARD',         img:'cards/hail_hydrah.png',       rarity:'elite',
     effect:'เก็บ AK47 = ดาเมจ <strong>x3</strong> + เวลา <strong>+1.5 วิ</strong> ทุกครั้งที่ครบ', tradeoff:null,
     apply(s){ s.cs_wpDmgMult = 3; }
   },
-  { id:'ph',   name:'PHREEONI CARD',      img:'phreeoni.png',    rarity:'elite',
+  { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
     effect:'เก็บ AK47 = OD charge <strong>+20%</strong> | ถ้า OD active อยู่แล้ว = OD timer <strong>+1 วิ</strong> แทน', tradeoff:null,
     apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.20; }
   },
-  { id:'tg',name:'TURTLE GENERAL CARD',img:'turtle_general.png',rarity:'elite',
+  { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
     effect:'Combo ≥ 30 : ดาเมจ <strong>+25%</strong> + ทุก KO = score <strong>+300</strong>', tradeoff:'coin จาก KO <strong>-30%</strong>',
     apply(s){ s.cs_combo30 = true; }
   },
-  { id:'dk',      name:'DRAKE CARD',         img:'drake.png',       rarity:'elite',
+  { id:'dk',      name:'DROKE CARD',         img:'cards/droke.png',       rarity:'elite',
     effect:'ทุกครั้งที่ HP ศัตรู ลดผ่าน 75%, 50%, 25% = OD charge <strong>+15%</strong> ทันที', tradeoff:null,
     apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
-  { id:'ak',name:'ABYSMAL KNIGHT CARD', img:'abysmal_knight.png', rarity:'elite',
+  { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
     effect:'ดาเมจบอส <strong>+32%</strong> + coin จาก boss KO <strong>+10%</strong>', tradeoff:null,
     apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.32; s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.10; }
   },
 
   // ── VOID (MVP) ──
-  { id:'th',   name:'THANATOS CARD',      img:'thanatos.png',    rarity:'mythic',
+  { id:'th',   name:'THANABROS CARD',      img:'cards/thanabros.png',    rarity:'mythic',
     effect:'เก็บ AK47 ครบ = OD charge เต็มทันที + ดาเมจ <strong>x2.5</strong>', tradeoff:'Combo reset ทุก 10 วินาที',
     apply(s){ s.cs_thanatos = true; }
   },
-  { id:'bh',   name:'BAPHOMET CARD',      img:'baphomet.png',    rarity:'mythic',
+  { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
     effect:'เก็บ AK47 = spawn ใหม่ทันที + triple hit + ทุก AK47 ครบ = ดาเมจ <strong>+5%</strong> สะสม (max +25%)', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
     apply(s){ s.cs_baphomet = true; }
   },
-  { id:'eg',      name:'EDDGA CARD',         img:'eddga.png',       rarity:'mythic',
+  { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
     effect:'Overdrive Lv1 <strong>active ตลอดรอบ</strong> + ทุก 15 วิ = Lv2 burst <strong>5 วินาที</strong>', tradeoff:'ล็อคที่ Lv1 เท่านั้น (นอกจาก burst)',
     apply(s){ s.cs_eddga = true; }
   },
-  { id:'os',     name:'OSIRIS CARD',        img:'osiris.png',      rarity:'mythic',
+  { id:'os',     name:'NOSIRIS CARD',        img:'cards/nosiris.png',      rarity:'mythic',
     effect:'เวลาหมด : ได้เวลาเพิ่ม <strong>+18 วิ</strong> 1 ครั้ง', tradeoff:'coin ที่ได้ <strong>-35%</strong> ตลอดรอบ',
     apply(s){ s.cs_osiris = true; }
   },
-  { id:'mt',   name:'MISTRESS CARD',      img:'mistress.png',    rarity:'mythic',
+  { id:'mt',   name:'MISSSTRESS CARD',      img:'cards/missstress.png',    rarity:'mythic',
     effect:'ทุกคลิกระหว่าง Overdrive = coin <strong>+2</strong> + OD timer <strong>+0.1 วิ</strong>', tradeoff:'ดาเมจปกติ <strong>-25%</strong>',
     apply(s){ s.cs_mistress = true; }
   },
-  { id:'gb',  name:'GOLDEN BUG CARD',    img:'golden_bug.png',  rarity:'mythic',
+  { id:'gb',  name:'GOLDEN BRUH CARD',    img:'cards/golden_bruh.png',  rarity:'mythic',
     effect:'coin <strong>x4</strong> ทุกอย่าง + ทุกคลิก combo <strong>+1</strong>', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
     apply(s){ s.cs_goldenbug = true; }
   },
-  { id:'oh',    name:'ORC HERO CARD',      img:'orc_hero.png',    rarity:'mythic',
+  { id:'oh',    name:'COKE ZERO CARD',      img:'cards/coke_zero.png',    rarity:'mythic',
     effect:'OD charge <strong>x3</strong> + ไม่มี cooldown + ทุกครั้งที่ OD หมด = ดาเมจ <strong>+8%</strong> สะสม (max +24%)', tradeoff:'เวลา <strong>-15 วินาที</strong>',
     apply(s){ s.cs_orchero = true; }
   },
-  { id:'ld',name:'LORD OF DEATH CARD', img:'lord_of_death.png',rarity:'mythic',
+  { id:'ld',name:'LORD OF DEBT CARD', img:'cards/lord_of_debt.png',rarity:'mythic',
     effect:'สุ่ม effect จาก <strong>ELITE หรือ MYTHIC</strong> ใหม่ทุก 10 วินาที', tradeoff:'ไม่รู้ว่าจะได้ effect อะไร',
     apply(s){ s.cs_lordofdeath = true; }
   },
 
   // ── COMMON ใหม่ ──
-  { id:'dr',      name:'DROPS CARD',         img:'drops.png',       rarity:'standard',
+  { id:'dr',      name:'DRIPZ CARD',         img:'cards/dripz.png',       rarity:'standard',
     effect:'coin ที่ได้ <strong>+8%</strong>', tradeoff:null,
     apply(s){ s.cs_coinPct = (s.cs_coinPct||0) + 0.08; }
   },
-  { id:'st',    name:'STAINER CARD',        img:'stainer.png',     rarity:'standard',
+  { id:'st',    name:'STAYNOR CARD',        img:'cards/staynor.png',     rarity:'standard',
     effect:'Combo decay <strong>ช้าลง 15%</strong>', tradeoff:null,
     apply(s){ s.cs_comboDecaySlow = (s.cs_comboDecaySlow||0) + 0.15; }
   },
-  { id:'ro',     name:'ROCKER CARD',         img:'rocker.png',      rarity:'standard',
+  { id:'ro',     name:'BROCKER CARD',         img:'cards/brocker.png',      rarity:'standard',
     effect:'ทุก 10 combo = coin bonus <strong>+10</strong>', tradeoff:null,
     apply(s){ s.cs_comboMilestoneCoin = (s.cs_comboMilestoneCoin||0) + 10; }
   },
-  { id:'ca',    name:'CARAMEL CARD',        img:'caramel.png',     rarity:'standard',
+  { id:'ca',    name:'CARAMEME CARD',        img:'cards/carameme.png',     rarity:'standard',
     effect:'ศัตรู HP เริ่มต้น <strong>ลดลง 10%</strong>', tradeoff:null,
     apply(s){ s.cs_enemyHpReduce = (s.cs_enemyHpReduce||0) + 0.10; }
   },
-  { id:'rf',   name:'RODA FROG CARD',      img:'roda_frog.png',   rarity:'standard',
+  { id:'rf',   name:'BRODA FROG CARD',      img:'cards/broda_frog.png',   rarity:'standard',
     effect:'ดาเมจ <strong>+5%</strong>', tradeoff:null,
     apply(s){ s.cs_dmgBonus = (s.cs_dmgBonus||0) + 0.05; }
   },
-  { id:'me',   name:'METALLER CARD',       img:'metaller.png',    rarity:'standard',
+  { id:'me',   name:'METALOL CARD',       img:'cards/metalol.png',    rarity:'standard',
     effect:'Overdrive charge <strong>+8%</strong> ต่อคลิก', tradeoff:null,
     apply(s){ s.cs_odChargeBonus = (s.cs_odChargeBonus||0) + 0.08; }
   },
-  { id:'ma', name:'MANDRAGORA CARD',     img:'mandragora.png',  rarity:'standard',
+  { id:'ma', name:'MANGAGORA CARD',     img:'cards/mangagora.png',  rarity:'standard',
     effect:'เวลา <strong>+4 วินาที</strong>', tradeoff:null,
     apply(s){ s.cs_extraTime = (s.cs_extraTime||0) + 4; }
   },
-  { id:'wi',     name:'WILLOW CARD',         img:'willow.png',      rarity:'standard',
+  { id:'wi',     name:'WEEBLOW CARD',         img:'cards/weeblow.png',      rarity:'standard',
     effect:'คริติคอล ดาเมจ <strong>+10%</strong>', tradeoff:null,
     apply(s){ s.cs_critDmgBonus = (s.cs_critDmgBonus||0) + 0.10; }
   },
-  { id:'an',     name:'ANDRE CARD',         img:'andre.png',       rarity:'standard',
+  { id:'an',     name:'ANDRUH CARD',         img:'cards/andruh.png',       rarity:'standard',
     effect:'ดาเมจ <strong>+4%</strong> + coin ที่ได้ <strong>+3%</strong>', tradeoff:null,
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.04; s.cs_coinPct=(s.cs_coinPct||0)+0.03; }
   },
-  { id:'ku',     name:'KUKRE CARD',         img:'kukre.png',       rarity:'standard',
+  { id:'ku',     name:'COOKRE CARD',         img:'cards/cookre.png',       rarity:'standard',
     effect:'crit chance <strong>+3%</strong> + คริติคอล ดาเมจ <strong>+5%</strong>', tradeoff:null,
     apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.03; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.05; }
   },
-  { id:'fm',     name:'FAMILIAR CARD',      img:'familiar.png',    rarity:'standard',
+  { id:'fm',     name:'FAMILIARUTO CARD',      img:'cards/familiaruto.png',    rarity:'standard',
     effect:'coin ที่ได้ <strong>+5%</strong> + ทุก 10 combo = coin bonus <strong>+5</strong>', tradeoff:null,
     apply(s){ s.cs_coinPct=(s.cs_coinPct||0)+0.05; s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+5; }
   },
-  { id:'pi',     name:'PICKY CARD',         img:'picky.png',       rarity:'standard',
+  { id:'pi',     name:'PICK-CHU CARD',         img:'cards/pick-chu.png',       rarity:'standard',
     effect:'เวลา <strong>+2 วินาที</strong> + ศัตรู HP เริ่มต้น <strong>ลดลง 5%</strong>', tradeoff:null,
     apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+2; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)+0.05; }
   },
-  { id:'yy',     name:'YOYO CARD',          img:'yoyo.png',        rarity:'standard',
+  { id:'yy',     name:'JOJOYO CARD',          img:'cards/jojoyo.png',        rarity:'standard',
     effect:'<strong>4%</strong> โอกาส combo ไม่ reset เมื่อหยุดตี + Combo decay <strong>ช้าลง 8%</strong>', tradeoff:null,
     apply(s){ s.cs_comboNoReset=(s.cs_comboNoReset||0)+0.04; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.08; }
   },
 
   // ── UNCOMMON ใหม่ ──
-  { id:'ew', name:'ELDER WILLOW CARD',  img:'elder_willow.png',rarity:'premium',
+  { id:'ew', name:'ELDER WEEBLOW CARD',  img:'cards/elder_weeblow.png',rarity:'premium',
     effect:'Combo ≥ 25 : Overdrive charge <strong>x1.5</strong>', tradeoff:null,
     apply(s){ s.cs_elderWillow = true; }
   },
-  { id:'si',      name:'STING CARD',          img:'sting.png',       rarity:'premium',
+  { id:'si',      name:'STONK CARD',          img:'cards/stonk.png',       rarity:'premium',
     effect:'ดาเมจ <strong>+12%</strong>', tradeoff:'Combo decay เร็วขึ้น 20%',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.12; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.20; }
   },
-  { id:'nm',  name:'NIGHTMARE CARD',      img:'nightmare.png',   rarity:'premium',
+  { id:'nm',  name:'NIGHTMAYOR CARD',      img:'cards/nightmayor.png',   rarity:'premium',
     effect:'ทุก KO = Overdrive charge <strong>+2%</strong>', tradeoff:null,
     apply(s){ s.cs_koOdCharge = (s.cs_koOdCharge||0) + 0.02; }
   },
-  { id:'ze',     name:'ZENORC CARD',         img:'zenorc.png',      rarity:'premium',
+  { id:'ze',     name:'XENORC CARD',         img:'cards/xenorc.png',      rarity:'premium',
     effect:'ทุก Overdrive ที่ใช้ = ดาเมจ <strong>+10%</strong> สะสม สูงสุด +20%', tradeoff:null,
     apply(s){ s.cs_zenorc = true; }
   },
-  { id:'hg',     name:'HORONG CARD',         img:'horong.png',      rarity:'premium',
+  { id:'hg',     name:'WRONG CARD',         img:'cards/wrong.png',      rarity:'premium',
     effect:'เวลาเหลือน้อยกว่า 20 วิ : ดาเมจ <strong>+35%</strong>', tradeoff:null,
     apply(s){ s.cs_horong = true; }
   },
-  { id:'ry',    name:'RAYDRIC CARD',        img:'raydric.png',     rarity:'premium',
+  { id:'ry',    name:'RAYTRICK CARD',        img:'cards/raytrick.png',     rarity:'premium',
     effect:'ศัตรู HP เหลือ 50% : ดาเมจ <strong>+20%</strong> ถาวร', tradeoff:null,
     apply(s){ s.cs_raydric = true; }
   },
 
   // ── ELITE (RARE) ใหม่ ──
-  { id:'tk',   name:'TAO GUNKA CARD',      img:'tao_gunka.png',   rarity:'elite',
+  { id:'tk',   name:'TAO FUNKA CARD',      img:'cards/tao_funka.png',   rarity:'elite',
     effect:'ดาเมจ <strong>+45%</strong>', tradeoff:'Overdrive charge <strong>-20%</strong>',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
-  { id:'dc',    name:'DRACULA CARD',        img:'dracula.png',     rarity:'elite',
+  { id:'dc',    name:'DRUNKULA CARD',        img:'cards/drunkula.png',     rarity:'elite',
     effect:'คริติคอลทุกครั้ง = coin <strong>+2</strong> + OD charge <strong>+2%</strong>', tradeoff:null,
     apply(s){ s.cs_draculaCoin = true; }
   },
-  { id:'ic',name:'INCANTATION SAMURAI CARD',img:'incantation_samurai.png',rarity:'elite',
+  { id:'ic',name:'INCANTATION SCAMURAI CARD',img:'cards/incantation_scamurai.png',rarity:'elite',
     effect:'Combo ≥ 35 : ดาเมจ <strong>x2.5</strong> + AK47 spawn เร็ว <strong>+20%</strong>', tradeoff:null,
     apply(s){ s.cs_incantation = true; }
   },
-  { id:'sk',name:'STORMY KNIGHT CARD', img:'stormy_knight.png',rarity:'elite',
+  { id:'sk',name:'STORMYNITE CARD', img:'cards/stormynite.png',rarity:'elite',
     effect:'ทุกคลิกระหว่าง Overdrive = OD timer <strong>+0.2 วิ</strong> (สูงสุด +8 วิ)', tradeoff:null,
     apply(s){ s.cs_stormyKnight = true; }
   },
-  { id:'dl',   name:'DARK LORD CARD',      img:'dark_lord.png',   rarity:'elite',
+  { id:'dl',   name:'DORK LORD CARD',      img:'cards/dork_lord.png',   rarity:'elite',
     effect:'ทุก KO = เวลา <strong>+0.05 วิ</strong> + score <strong>+30</strong>', tradeoff:'coin จาก KO <strong>-40%</strong>',
     apply(s){ s.cs_darkLord = true; }
   },
-  { id:'mf', name:'MOONLIGHT FLOWER CARD', img:'moonlight_flower.png', rarity:'elite',
+  { id:'mf', name:'MOONLIGHT FEVER CARD', img:'cards/moonlight_fever.png', rarity:'elite',
     effect:'ดาเมจ x2, coin x2, OD charge x2, AK47 เหลือ 3 ลูก + spawn เร็ว x2 + ทุก KO = score <strong>+500</strong>', tradeoff:'เวลาเหลือครึ่งเดียว',
     apply(s){ s.cs_moonlightflower = true; }
   },
 
   // ── STANDARD ใหม่ ──
-  { id:'ho',     name:'HORNET CARD',        img:'hornet.png',      rarity:'standard',
+  { id:'ho',     name:'HORNYET CARD',        img:'cards/hornyet.png',      rarity:'standard',
     effect:'crit chance <strong>+4%</strong>', tradeoff:null,
     apply(s){ s.cs_critChanceBonus = (s.cs_critChanceBonus||0) + 0.04; }
   },
-  { id:'tb',   name:'THIEF BUG CARD',     img:'thief_bug.png',   rarity:'standard',
+  { id:'tb',   name:'THUG BUG CARD',     img:'cards/thug_bug.png',   rarity:'standard',
     effect:'Overdrive charge <strong>+5%</strong> ต่อคลิก', tradeoff:null,
     apply(s){ s.cs_odChargeBonus = (s.cs_odChargeBonus||0) + 0.05; }
   },
-  { id:'ms',  name:'MASTERING CARD',     img:'mastering.png',   rarity:'standard',
+  { id:'ms',  name:'MASTER BLING CARD',     img:'cards/master_bling.png',   rarity:'standard',
     effect:'ทุก 10 combo = เวลา <strong>+0.2 วิ</strong> (สูงสุด +2 วิ)', tradeoff:null,
     apply(s){ s.cs_comboTimeBonus = true; }
   },
 
   // ── PREMIUM ใหม่ ──
-  { id:'gg', name:'GREATEST GENERAL CARD', img:'greatest_general.png', rarity:'premium',
+  { id:'gg', name:'GENERAL GRIEVOUS CARD', img:'cards/general_grievous.png', rarity:'premium',
     effect:'ดาเมจ <strong>+10%</strong>', tradeoff:'เวลา -5 วินาที',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.10; s.cs_timePenalty=(s.cs_timePenalty||0)+5; }
   },
-  { id:'jk',       name:'JAKK CARD',          img:'jakk.png',        rarity:'premium',
+  { id:'jk',       name:'JACKED CARD',          img:'cards/jacked.png',        rarity:'premium',
     effect:'ช่วง Overdrive: crit chance <strong>+20%</strong>', tradeoff:null,
     apply(s){ s.cs_jakkCrit = true; }
   },
-  { id:'mn',     name:'MARINA CARD',        img:'marina.png',      rarity:'premium',
+  { id:'mn',     name:'MARINAH CARD',        img:'cards/marinah.png',      rarity:'premium',
     effect:'AK47 spawn เร็วขึ้น <strong>15%</strong>', tradeoff:null,
     apply(s){ s.cs_marinaSpawn = true; }
   },
-  { id:'dp',name:'DEMON PUNGUS CARD',  img:'demon_pungus.png',rarity:'premium',
+  { id:'dp',name:'DEMON FUNGUS CARD',  img:'cards/demon_fungus.png',rarity:'premium',
     effect:'ทุก 5 KO = Overdrive charge <strong>+5%</strong>', tradeoff:null,
     apply(s){ s.cs_demonPungus = true; }
   },
-  { id:'vi',     name:'VITATA CARD',        img:'vitata.png',      rarity:'premium',
+  { id:'vi',     name:'VITAMIN CARD',        img:'cards/vitamin.png',      rarity:'premium',
     effect:'Combo ≥ 15 : Overdrive charge <strong>x1.3</strong>', tradeoff:'ดาเมจ -8%',
     apply(s){ s.cs_vitata = true; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.08; }
   },
-  { id:'al',  name:'ALLIGATOR CARD',     img:'alligator.png',   rarity:'premium',
+  { id:'al',  name:'ALLEYGATOR CARD',     img:'cards/alleygator.png',   rarity:'premium',
     effect:'ทุก KO = coin <strong>+3</strong> (สูงสุด +45 zeny)', tradeoff:null,
     apply(s){ s.cs_alligator = true; }
   },
-  { id:'ss',name:'SOLDIER SKELETON CARD', img:'soldier_skeleton.png', rarity:'premium',
+  { id:'ss',name:'SOLDIER SKELLYTON CARD', img:'cards/soldier_skellyton.png', rarity:'premium',
     effect:'คริติคอล ดาเมจ <strong>+22%</strong> + crit chance <strong>+2%</strong>', tradeoff:null,
     apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.22; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.02; }
   },
-  { id:'mc',     name:'MARC CARD',          img:'marc.png',        rarity:'premium',
+  { id:'mc',     name:'MARVELC CARD',          img:'cards/marvelc.png',        rarity:'premium',
     effect:'เวลา <strong>+4 วินาที</strong> + Combo decay <strong>ช้าลง 10%</strong>', tradeoff:null,
     apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+4; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.10; }
   },
-  { id:'sd', name:'SIDEWINDER CARD',    img:'sidewinder.png',  rarity:'premium',
+  { id:'sd', name:'SIDEWHINER CARD',    img:'cards/sidewhiner.png',  rarity:'premium',
     effect:'ดาเมจ <strong>+16%</strong>', tradeoff:'Overdrive charge <strong>-20%</strong>',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.16; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
-  { id:'zr',     name:'ZEROM CARD',         img:'zerom.png',       rarity:'premium',
+  { id:'zr',     name:'ZERO SENPAI CARD',         img:'cards/zero_senpai.png',       rarity:'premium',
     effect:'crit chance <strong>+7%</strong> + coin ที่ได้ <strong>+4%</strong>', tradeoff:null,
     apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.07; s.cs_coinPct=(s.cs_coinPct||0)+0.04; }
   },
-  { id:'my',     name:'MATYR CARD',         img:'matyr.png',       rarity:'premium',
+  { id:'my',     name:'MADTYR CARD',         img:'cards/madtyr.png',       rarity:'premium',
     effect:'Overdrive charge <strong>+10%</strong> ต่อคลิก', tradeoff:'Combo decay เร็วขึ้น 15%',
     apply(s){ s.cs_odChargeBonus=(s.cs_odChargeBonus||0)+0.10; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.15; }
   },
 
   // ── ELITE ใหม่ ──
-  { id:'mi',   name:'MINOROUS CARD',      img:'minorous.png',    rarity:'elite',
+  { id:'mi',   name:'MINORAGE CARD',      img:'cards/minorage.png',    rarity:'elite',
     effect:'ดาเมจ <strong>+35%</strong> เมื่อ HP ศัตรู > 60% + combo decay หยุดในช่วงนั้น', tradeoff:null,
     apply(s){ s.cs_minorous = true; }
   },
-  { id:'ex',name:'EXECUTIONER CARD',   img:'executioner.png', rarity:'elite',
+  { id:'ex',name:'EXECUSIONER CARD',   img:'cards/execusioner.png', rarity:'elite',
     effect:'HP ศัตรู < 25% : ดาเมจ <strong>+50%</strong> + AK47 spawn เร็ว <strong>x2</strong>', tradeoff:null,
     apply(s){ s.cs_executioner = true; }
   },
-  { id:'wh',    name:'WHISPER CARD',       img:'whisper.png',     rarity:'elite',
+  { id:'wh',    name:'WHIZPER CARD',       img:'cards/whizper.png',     rarity:'elite',
     effect:'เก็บ AK47 ครบ = เวลา <strong>+1.5 วิ</strong> + Overdrive charge <strong>+10%</strong> (ถ้า OD active = OD timer <strong>+0.5 วิ</strong>) + combo ไม่ reset 2 วิ', tradeoff:'AK47 spawn ช้าลง <strong>2 เท่า</strong>',
     apply(s){ s.cs_whisper = true; }
   },
-  { id:'gl',name:'GOBLIN LEADER CARD',img:'goblin_leader.png',rarity:'elite',
+  { id:'gl',name:'GOBLIN WEEBER CARD',img:'cards/goblin_weeber.png',rarity:'elite',
     effect:'ทุกคลิก combo <strong>+2</strong> + Combo ≥ 30 = ดาเมจ <strong>+15%</strong>', tradeoff:'OD charge <strong>-20%</strong>',
     apply(s){ s.cs_goblinLeader = true; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
-  { id:'ar',     name:'AMON RA CARD',       img:'amon_ra.png',     rarity:'elite',
+  { id:'ar',     name:'AMOG RA CARD',       img:'cards/amog_ra.png',     rarity:'elite',
     effect:'Combo ≥ 40 : ดาเมจ <strong>+40%</strong> + coin <strong>x1.5</strong>', tradeoff:null,
     apply(s){ s.cs_amonRa = true; }
   },
-  { id:'mp',name:'MAYA PURPLE CARD',    img:'maya_purple.png', rarity:'elite',
+  { id:'mp',name:'MAYA PROBLEM CARD',    img:'cards/maya_problem.png', rarity:'elite',
     effect:'ดาเมจบอส <strong>+22%</strong> + crit chance <strong>+6%</strong>', tradeoff:null,
     apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.22; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.06; }
   },
-  { id:'ed',name:'EVIL DRUID CARD',     img:'evil_druid.png',  rarity:'elite',
+  { id:'ed',name:'WEEBVIL DUDE CARD',     img:'cards/weebvil_dude.png',  rarity:'elite',
     effect:'ดาเมจ <strong>+26%</strong> + คริติคอล ดาเมจ <strong>+15%</strong>', tradeoff:'เวลา <strong>-6 วินาที</strong>',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.26; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.15; s.cs_timePenalty=(s.cs_timePenalty||0)+6; }
   },
 
   // ── MYTHIC ใหม่ ──
-  { id:'kn',  name:'KTULLANUX CARD',     img:'ktullanux.png',   rarity:'mythic',
+  { id:'kn',  name:'CATULLANUX CARD',     img:'cards/catullanux.png',   rarity:'mythic',
     effect:'AK47 ดาเมจ <strong>x4</strong> + ทุก AK47 ครบ round = combo ไม่ reset <strong>5 วิ</strong>', tradeoff:'HP ศัตรู <strong>+50%</strong>',
     apply(s){ s.cs_ktullanux = true; }
   },
-  { id:'bz',  name:'BEELZEBUB CARD',     img:'beelzebub.png',   rarity:'mythic',
+  { id:'bz',  name:'BEELZEBRUH CARD',     img:'cards/beelzebruh.png',   rarity:'mythic',
     effect:'ทุกคลิก ดาเมจสะสม <strong>+0.4%</strong> (สูงสุด +40%)', tradeoff:'HP ศัตรู เริ่มต้น <strong>x2</strong>',
     apply(s){ s.cs_beelzebub = true; }
   },
-  { id:'vr', name:'VALKYRIE RANDGRIS CARD', img:'valkyrie_randgris.png', rarity:'mythic',
+  { id:'vr', name:'VALKYRIZZ CARD', img:'cards/valkyrizz.png', rarity:'mythic',
     effect:'ทุกครั้งที่เก็บ AK47 ครบ round = สุ่ม effect ใหม่จาก <strong>ELITE pool</strong>', tradeoff:null,
     apply(s){ s.cs_valkyrieRandgris = true; }
   },
-  { id:'at',     name:'ATROCE CARD',        img:'atroce.png',      rarity:'mythic',
+  { id:'at',     name:'ATROSUS CARD',        img:'cards/atrosus.png',      rarity:'mythic',
     effect:'ดาเมจ <strong>+42%</strong> + crit chance <strong>+8%</strong>', tradeoff:'Combo decay เร็วขึ้น 30%',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.42; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.08; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.30; }
   },
-  { id:'kl', name:'KIEL-D-01 CARD',     img:'kiel_d_01.png',   rarity:'mythic',
+  { id:'kl', name:'KILL-D01 CARD',     img:'cards/kill-d01.png',   rarity:'mythic',
     effect:'Overdrive charge <strong>+13%</strong> ต่อคลิก + OD timer <strong>+0.05 วิ</strong> ต่อคลิกระหว่าง OD', tradeoff:'ดาเมจ <strong>-12%</strong>',
     apply(s){ s.cs_odChargeBonus=(s.cs_odChargeBonus||0)+0.13; s.cs_odTimerOnClick=(s.cs_odTimerOnClick||0)+0.05; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.12; }
   },
-  { id:'if',     name:'IFRIT CARD',         img:'ifrit.png',       rarity:'mythic',
+  { id:'if',     name:'IFRIED CARD',         img:'cards/ifried.png',       rarity:'mythic',
     effect:'crit chance <strong>+10%</strong> + คริติคอล ดาเมจ <strong>+45%</strong> + ดาเมจบอส <strong>+28%</strong>', tradeoff:'ศัตรู HP เริ่มต้น <strong>+35%</strong>',
     apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.45; s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.28; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)-0.35; }
   },
-  { id:'rx',    name:'RSX-0806 CARD',      img:'rsx_0806.png',    rarity:'mythic',
+  { id:'rx',    name:'RSICK-0806 CARD',      img:'cards/rsick-0806.png',    rarity:'mythic',
     effect:'ดาเมจ <strong>x3.5</strong> + ทุก KO = score <strong>+200</strong>', tradeoff:'ไม่มี Overdrive + ไม่มี AK47 เลย',
     apply(s){ s.cs_rsx0806 = true; }
   },
