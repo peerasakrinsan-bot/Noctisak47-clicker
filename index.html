@@ -36,6 +36,7 @@
 <link rel="preload" href="47title.mp3" as="audio" type="audio/mpeg">
 <link rel="preload" href="suang_icon.webp" as="image">
 <link rel="preload" href="morgan_icon.webp" as="image">
+<link rel="preload" href="old-cringe-album.webp" as="image">
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
@@ -1834,7 +1835,7 @@
     width: 100%; height: auto; display: block;
     object-fit: contain;
   }
-  /* Fallback when oca.png fails — shows a coloured circle */
+  /* Fallback when OCA artwork fails — shows a coloured circle */
   .oca-drop-img.fallback {
     width: clamp(48px,12vw,72px); height: clamp(48px,12vw,72px);
     border-radius: 50%; display: block;
@@ -2060,7 +2061,7 @@
 <div id="ocaConfirmModal" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:1100;align-items:center;justify-content:center;">
   <div id="ocaConfirmOverlay" onclick="cancelOCA()" style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);"></div>
   <div id="ocaConfirmBox">
-    <img src="oca_item.webp" id="ocaConfirmImg" alt="" draggable="false">
+    <img src="old-cringe-album.webp" id="ocaConfirmImg" alt="" draggable="false">
     <div id="ocaConfirmTitle">OLD CRINGE ALBUM</div>
     <div id="ocaConfirmCost"></div>
     <div id="ocaConfirmDesc">สุ่มรับการ์ด 1 ใบ</div>
@@ -2091,7 +2092,7 @@
       <div class="oca-ticket-card standard" id="ocaTicketCard-standard"
            onclick="useOcaTicket('standard')">
         <div class="oca-ticket-img-wrap standard">
-          <img src="oca_item.webp" class="oca-ticket-img" alt="OCA" decoding="async">
+          <img src="old-cringe-album.webp" class="oca-ticket-img" alt="OCA" decoding="async">
         </div>
         <div class="oca-ticket-info">
           <div class="oca-ticket-tier">STANDARD</div>
@@ -2103,7 +2104,7 @@
       <div class="oca-ticket-card premium" id="ocaTicketCard-premium"
            onclick="useOcaTicket('premium')">
         <div class="oca-ticket-img-wrap premium">
-          <img src="oca_item.webp" class="oca-ticket-img" alt="OCA" decoding="async">
+          <img src="old-cringe-album.webp" class="oca-ticket-img" alt="OCA" decoding="async">
         </div>
         <div class="oca-ticket-info">
           <div class="oca-ticket-tier">PREMIUM</div>
@@ -2115,7 +2116,7 @@
       <div class="oca-ticket-card elite" id="ocaTicketCard-elite"
            onclick="useOcaTicket('elite')">
         <div class="oca-ticket-img-wrap elite">
-          <img src="oca_item.webp" class="oca-ticket-img" alt="OCA" decoding="async">
+          <img src="old-cringe-album.webp" class="oca-ticket-img" alt="OCA" decoding="async">
         </div>
         <div class="oca-ticket-info">
           <div class="oca-ticket-tier">ELITE</div>
@@ -2777,7 +2778,7 @@ const ASSETS = {
     // game UI critical
     'ak47.png','noobak47.png','wp5.png',
     'sound_on.png','sound_off.png',
-    'card_back.png','logo.png',
+    'card_back.png','logo.png','old-cringe-album.webp',
   ],
   audio: [] // audio loaded on-demand via Web Audio API
 };
@@ -3167,6 +3168,7 @@ function _openOcaDraw(result, onDone) {
   $('cardDrawPityBanner').textContent = '';
   $('cardDrawPityBanner').style.display = 'none';
   $('cardDrawHidden').style.display = 'block';
+  $('cardDrawHiddenImg').src = ITEM_IMGS.oca;
   $('cardDrawHidden').classList.remove('flipping');
   $('cardDrawRevealed').style.display = 'none';
   $('cardDrawDupeBanner').style.display = 'none';
@@ -5085,6 +5087,7 @@ function openCardDraw(onDone) {
 
   // reset state
   $('cardDrawHidden').style.display = 'block';
+  $('cardDrawHiddenImg').src = 'card_hidden.png';
   $('cardDrawHidden').classList.remove('flipping');
   $('cardDrawRevealed').style.display = 'none';
   $('cardDrawDupeBanner').style.display = 'none';
@@ -6970,7 +6973,7 @@ function showOcaDropFX(x, y, tier) {
   };
   img.style.filter = filterMap[tier] || '';
 
-  // fallback: if oca.png fails, show a coloured circle
+  // fallback: if OCA artwork fails, show a coloured circle
   img.onerror = function() {
     this.style.display = 'none';
     const fb = document.createElement('div');
@@ -6979,7 +6982,7 @@ function showOcaDropFX(x, y, tier) {
     fb.style.boxShadow  = '0 0 12px ' + color;
     wrap.insertBefore(fb, this);
   };
-  img.src = 'oca_item.webp';
+  img.src = 'old-cringe-album.webp';
 
   wrap.appendChild(img);
 
@@ -7042,7 +7045,7 @@ function showOcaDropToast(tier) {
     fb.style.cssText = 'width:32px;height:32px;border-radius:50%;flex-shrink:0;background:' + color + ';';
     toast.insertBefore(fb, this);
   };
-  img.src = 'oca_item.webp';
+  img.src = 'old-cringe-album.webp';
 
   const textWrap = document.createElement('div');
   textWrap.className = 'oca-toast-text';
