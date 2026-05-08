@@ -1,5 +1,5 @@
-// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v159
-const CACHE_NAME = 'noctisak47-v159';
+// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v160
+const CACHE_NAME = 'noctisak47-v160';
 
 const PRECACHE_ASSETS = [
   './',
@@ -43,17 +43,17 @@ const PRECACHE_ASSETS = [
   './card_back.png',
   './card.png',
   './card_hidden.png',
-  './oca_item.webp',
+  './old-cringe-album.webp',
   './weak.webp',
   './void_main.png',
   './best_main.png',
   // Shop item icons
-  './midas.webp',
-  './daedalus.webp',
-  './desolator.webp',
-  './moonshard.webp',
-  './aghanimscepter.webp',
-  './octarinecore.webp',
+  './stonks-hand.webp',
+  './rngesus.webp',
+  './de-so-later.webp',
+  './methstone.webp',
+  './buff-stick.webp',
+  './time-skip-core.webp',
   // Default boss skin
   './boxer.png',
   './boxer_hit1.png',

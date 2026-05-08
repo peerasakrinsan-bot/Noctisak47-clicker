@@ -2060,8 +2060,8 @@
 <div id="ocaConfirmModal" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:1100;align-items:center;justify-content:center;">
   <div id="ocaConfirmOverlay" onclick="cancelOCA()" style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);"></div>
   <div id="ocaConfirmBox">
-    <img src="oca_item.webp" id="ocaConfirmImg" alt="" draggable="false">
-    <div id="ocaConfirmTitle">OLD CARD ALBUM</div>
+    <img src="old-cringe-album.webp" id="ocaConfirmImg" alt="" draggable="false">
+    <div id="ocaConfirmTitle">OLD CRINGE ALBUM</div>
     <div id="ocaConfirmCost"></div>
     <div id="ocaConfirmDesc">สุ่มรับการ์ด 1 ใบ</div>
     <div id="ocaConfirmBtns">
@@ -2091,7 +2091,7 @@
       <div class="oca-ticket-card standard" id="ocaTicketCard-standard"
            onclick="useOcaTicket('standard')">
         <div class="oca-ticket-img-wrap standard">
-          <img src="oca_item.webp" class="oca-ticket-img" alt="OCA" decoding="async">
+          <img src="old-cringe-album.webp" class="oca-ticket-img" alt="OCA" decoding="async">
         </div>
         <div class="oca-ticket-info">
           <div class="oca-ticket-tier">STANDARD</div>
@@ -2103,7 +2103,7 @@
       <div class="oca-ticket-card premium" id="ocaTicketCard-premium"
            onclick="useOcaTicket('premium')">
         <div class="oca-ticket-img-wrap premium">
-          <img src="oca_item.webp" class="oca-ticket-img" alt="OCA" decoding="async">
+          <img src="old-cringe-album.webp" class="oca-ticket-img" alt="OCA" decoding="async">
         </div>
         <div class="oca-ticket-info">
           <div class="oca-ticket-tier">PREMIUM</div>
@@ -2115,7 +2115,7 @@
       <div class="oca-ticket-card elite" id="ocaTicketCard-elite"
            onclick="useOcaTicket('elite')">
         <div class="oca-ticket-img-wrap elite">
-          <img src="oca_item.webp" class="oca-ticket-img" alt="OCA" decoding="async">
+          <img src="old-cringe-album.webp" class="oca-ticket-img" alt="OCA" decoding="async">
         </div>
         <div class="oca-ticket-info">
           <div class="oca-ticket-tier">ELITE</div>
@@ -2361,7 +2361,7 @@ function formatNum(n) {
 const SHOP_DEF = [
   {
     id: 'oca',
-    name: 'OLD CARD ALBUM',
+    name: 'OLD CRINGE ALBUM',
     icon: '',
     tagline: 'สุ่มรับการ์ด 1 ใบ',
     _type: 'consumable',
@@ -2370,7 +2370,7 @@ const SHOP_DEF = [
   },
   {
     id: 'daedalus',
-    name: 'DAEDALUS',
+    name: 'RNGESUS',
     icon: 'SWD',
     tagline: 'โอกาสคริติคอล — ดาเมจพุ่ง',
     levels: [
@@ -2383,7 +2383,7 @@ const SHOP_DEF = [
   },
   {
     id: 'desolator',
-    name: 'DESOLATOR',
+    name: 'DE-SO-LATER',
     icon: '🗡️',
     tagline: 'เพิ่มดาเมจพื้นฐานทุกตี',
     levels: [
@@ -2396,7 +2396,7 @@ const SHOP_DEF = [
   },
   {
     id: 'moonshard',
-    name: 'MOON SHARD',
+    name: 'METHSTONE',
     icon: '🌙',
     tagline: 'โอกาสตีซ้ำในคลิกเดียว',
     levels: [
@@ -2409,7 +2409,7 @@ const SHOP_DEF = [
   },
   {
     id: 'aghanims',
-    name: "AGHANIM'S",
+    name: 'BUFF STICK',
     icon: '🔮',
     tagline: 'Overdrive ดาเมจทรงพลังขึ้น',
     levels: [
@@ -2422,7 +2422,7 @@ const SHOP_DEF = [
   },
   {
     id: 'octarine',
-    name: 'OCTARINE CORE',
+    name: 'TIME SKIP CORE',
     icon: '💎',
     tagline: 'Overdrive อยู่นานขึ้น',
     levels: [
@@ -2435,7 +2435,7 @@ const SHOP_DEF = [
   },
   {
     id: 'midas',
-    name: 'HAND OF MIDAS',
+    name: 'STONKS HAND',
     icon: 'GOLD',
     tagline: 'สัมผัสทองคำ — coin ที่ได้เพิ่มขึ้นทุกแหล่ง',
     levels: [
@@ -2449,13 +2449,13 @@ const SHOP_DEF = [
 ];
 
 const ITEM_IMGS = {
-  oca:       'oca_item.webp',
-  daedalus:  'daedalus.webp',
-  desolator: 'desolator.webp',
-  moonshard: 'moonshard.webp',
-  aghanims:  'aghanimscepter.webp',
-  octarine:  'octarinecore.webp',
-  midas:     'midas.webp',
+  oca:       'old-cringe-album.webp',
+  daedalus:  'rngesus.webp',
+  desolator: 'de-so-later.webp',
+  moonshard: 'methstone.webp',
+  aghanims:  'buff-stick.webp',
+  octarine:  'time-skip-core.webp',
+  midas:     'stonks-hand.webp',
 };
 
 // ══════════════════════════════════════════
@@ -2907,7 +2907,7 @@ function rebuildStatCache() {
     isTriple:   hasStat('moonshard','triple'),
     godBns:     getStatNum('aghanims','god_dmg'),
     durBns:     getStatNum('octarine','god_dur'),
-    coinMult:   getStatNum('midas','coin_mult'),  // Hand of Midas
+    coinMult:   getStatNum('midas','coin_mult'),  // STONKS HAND
   };
 }
 const boxer = $('boxer'), gun = $('gun'), fx = $('fxLayer'), flash = $('screenFlash');
@@ -6970,7 +6970,7 @@ function showOcaDropFX(x, y, tier) {
   };
   img.style.filter = filterMap[tier] || '';
 
-  // fallback: if oca.png fails, show a coloured circle
+  // fallback: if old-cringe-album image fails, show a coloured circle
   img.onerror = function() {
     this.style.display = 'none';
     const fb = document.createElement('div');
@@ -6979,7 +6979,7 @@ function showOcaDropFX(x, y, tier) {
     fb.style.boxShadow  = '0 0 12px ' + color;
     wrap.insertBefore(fb, this);
   };
-  img.src = 'oca_item.webp';
+  img.src = 'old-cringe-album.webp';
 
   wrap.appendChild(img);
 
@@ -7042,7 +7042,7 @@ function showOcaDropToast(tier) {
     fb.style.cssText = 'width:32px;height:32px;border-radius:50%;flex-shrink:0;background:' + color + ';';
     toast.insertBefore(fb, this);
   };
-  img.src = 'oca_item.webp';
+  img.src = 'old-cringe-album.webp';
 
   const textWrap = document.createElement('div');
   textWrap.className = 'oca-toast-text';
