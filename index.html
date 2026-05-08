@@ -3884,8 +3884,9 @@ function triggerBombExplosion() {
       _el.godFill.style.width = Math.min(100, cur + 10) + '%';
       if(parseFloat(_el.godFill.style.width) >= 100) activateGodLevel(1);
     }
-    window._csState._whisperComboProtect = true;
-    setTimeout(()=>{ if(window._csState) window._csState._whisperComboProtect = false; }, 2000);
+    const whisperState = window._csState;
+    whisperState._whisperComboProtect = true;
+    setTimeout(()=>{ if(window._csState === whisperState) whisperState._whisperComboProtect = false; }, 2000);
   }
   // HYDRA: เวลา +1.5วิ เมื่อ wpDmgMult === 3
   if(window._csState && window._csState.cs_wpDmgMult === 3) {
@@ -3904,8 +3905,9 @@ function triggerBombExplosion() {
   }
   // KTULLANUX: combo protect 5s
   if(window._csState && window._csState.cs_ktullanux) {
-    window._csState._ktullanuxComboProtect = true;
-    setTimeout(()=>{ if(window._csState) window._csState._ktullanuxComboProtect = false; }, 5000);
+    const ktullanuxState = window._csState;
+    ktullanuxState._ktullanuxComboProtect = true;
+    setTimeout(()=>{ if(window._csState === ktullanuxState) ktullanuxState._ktullanuxComboProtect = false; }, 5000);
   }
   // VALKYRIE RANDGRIS: สุ่ม effect ใหม่จาก Elite pool ทุกครั้งที่ AK47 ครบ
   if(window._csState && window._csState.cs_valkyrieRandgris) {
@@ -4532,8 +4534,7 @@ function _csConfirmClick() {
   const cs = {};
   card.apply(cs);
   window._csState = cs;
-  if(cs.cs_eddga)        _csStartEddga();
-  if(cs.cs_thanatos)     _csStartThanatosTimer();
+  _csRefreshVolatileCardEffects(cs);
   onChosen();
 }
 
@@ -4548,6 +4549,35 @@ function _csBack() {
   goMainMenu();
 }
 
+function _csResetOdFromExpiredEddga() {
+  if(!_csEddgaForcedOd) return;
+  clearTimeout(godTimeout);
+  clearInterval(godInterval);
+  godLevel = 0;
+  canEnterGod = true;
+  godSecondsLeft = 0;
+  godHitCount = 0;
+  _csEddgaForcedOd = false;
+  if(typeof gun !== 'undefined' && gun) gun.style.display = 'none';
+  if(_el && _el.godFill) _el.godFill.style.width = '0%';
+  if(_el && _el.godLevelWrap) _el.godLevelWrap.style.display = 'none';
+  if(typeof updateComboUI === 'function') updateComboUI();
+}
+
+function _csRefreshVolatileCardEffects(nextState) {
+  const nextHasEddga = !!(nextState && nextState.cs_eddga);
+  clearInterval(_csThanatosTimer);
+  clearInterval(_csEddgaInterval);
+  clearInterval(_csEddgaBurstInterval);
+  _csThanatosTimer = null;
+  _csEddgaInterval = null;
+  _csEddgaBurstInterval = null;
+
+  if(!nextHasEddga) _csResetOdFromExpiredEddga();
+  if(nextState && nextState.cs_eddga) _csStartEddga();
+  if(nextState && nextState.cs_thanatos) _csStartThanatosTimer();
+}
+
 function _csStartEddga() {
   clearInterval(_csEddgaInterval);
   clearInterval(_csEddgaBurstInterval);
@@ -4555,6 +4585,7 @@ function _csStartEddga() {
   _csEddgaInterval = setInterval(()=>{
     if(!gameRunning || gamePaused) return;
     if(godLevel === 0 && canEnterGod) {
+      _csEddgaForcedOd = true;
       godLevel = 1; canEnterGod = false;
       _el.godLevelWrap.style.display = 'block';
       updateGodLevelUI();
@@ -4564,12 +4595,14 @@ function _csStartEddga() {
   _csEddgaBurstInterval = setInterval(()=>{
     if(!gameRunning || gamePaused) return;
     // Temporarily bypass EDDGA Lv1 lock for the burst
-    window._csState._eddgaBurstActive = true;
+    const eddgaState = window._csState;
+    eddgaState._eddgaBurstActive = true;
+    _csEddgaForcedOd = true;
     activateGodLevel(2);
-    window._csState._eddgaBurstActive = false;
+    eddgaState._eddgaBurstActive = false;
     // After 5s, revert to Lv1
     setTimeout(()=>{
-      if(!gameRunning || !window._csState || !window._csState.cs_eddga) return;
+      if(!gameRunning || window._csState !== eddgaState || !eddgaState.cs_eddga) return;
       activateGodLevel(1);
     }, 5000);
   }, 15000);
@@ -4596,6 +4629,7 @@ function _csStartLodTimer() {
     const cs = {};
     newCard.apply(cs);
     window._csState = { cs_lordofdeath:true, ...cs };
+    _csRefreshVolatileCardEffects(window._csState);
     _csSyncWeakPointAvailability(prevHadRsx, true);
     // แสดงภาพการ์ด
     _lodShowCard(newCard, isFirst);
@@ -4707,6 +4741,7 @@ function _csStopAllTimers() {
   _csLodTimer = null;
   _csEddgaInterval = null;
   _csEddgaBurstInterval = null;
+  _csResetOdFromExpiredEddga();
   _lodHideCard();
 }
 
@@ -4892,31 +4927,14 @@ function _csValkyrieRandgrisSwap() {
     c.rarity === 'elite' && !CS_VALKYRIE_EXCLUDED_IDS.has(c.id)
   );
   if(!elitePool.length) return;
+  const prevHadRsx = !!window._csState.cs_rsx0806;
   const newCard = elitePool[Math.floor(Math.random()*elitePool.length)];
-  const eliteKeys = ['cs_doubleClick','cs_wpDmgMult','cs_hydraSpawnSlow','cs_wpOdCharge','cs_combo30','cs_drakeIgnoreThreshold',
-    'cs_taogunka','cs_draculaCoin','cs_incantation','cs_stormyKnight','cs_darkLord',
-    'cs_minorous','cs_executioner','cs_whisper','cs_goblinLeader','cs_amonRa','cs_amonRa_active',
-    'cs_bossDmgBonus','cs_bossCoinPct','cs_dmgBonus','cs_timePenalty','cs_critChanceBonus','cs_critDmgBonus',
-    '_stormyKnightAcc','_darkLordAcc','cs_odChargePenalty','_drakeTriggered','_whisperComboProtect'];
-  showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD','') + ' (IN 2s)', '#cc88ff');
-  // Old effect active for 2s before new card kicks in
-  setTimeout(()=>{
-    if(!window._csState || !gameRunning) return;
-    const cs = window._csState;
-    const keep = {
-      cs_valkyrieRandgris: true,
-      cs_rsx0806: cs.cs_rsx0806,
-      cs_baphomet: cs.cs_baphomet,
-      cs_goldenbug: cs.cs_goldenbug,
-      cs_eddga: cs.cs_eddga,
-      cs_lordofdeath: cs.cs_lordofdeath,
-    };
-    eliteKeys.forEach(k => { if(!keep[k]) delete window._csState[k]; });
-    newCard.apply(window._csState);
-    _csSyncWeakPointAvailability(false, true);
-    _showActiveCard(newCard);
-    showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD',''), '#cc88ff');
-  }, 2000);
+  const cs = { cs_valkyrieRandgris:true };
+  newCard.apply(cs);
+  window._csState = cs;
+  _csSyncWeakPointAvailability(prevHadRsx, true);
+  _showActiveCard(newCard);
+  showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD',''), '#cc88ff');
 }
 
 function csOnOdStart() {
@@ -5054,6 +5072,7 @@ let _csOdUseCount = 0;
 let _csOsirisUsed = false;
 let _csEddgaInterval = null;
 let _csEddgaBurstInterval = null;
+let _csEddgaForcedOd = false;
 let _csLastCards = null;
 let _csOnChosen = null;
 
@@ -5593,6 +5612,7 @@ function pauseGoMainMenu() {
   clearInterval(godInterval);
   clearTimeout(wpSchedule);
   clearTimeout(wpTimeout);
+  _csStopAllTimers();
   wpActive = false;
   $('weakPoint').style.display = 'none';
   $('pauseScreen').style.display = 'none';
