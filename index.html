@@ -37,6 +37,12 @@
 <link rel="preload" href="suang_icon.webp" as="image">
 <link rel="preload" href="morgan_icon.webp" as="image">
 <link rel="preload" href="old-cringe-album.webp" as="image">
+<link rel="preload" href="rngesus.webp" as="image">
+<link rel="preload" href="de-so-later.webp" as="image">
+<link rel="preload" href="methstone.webp" as="image">
+<link rel="preload" href="buff-stick.webp" as="image">
+<link rel="preload" href="time-skip-core.webp" as="image">
+<link rel="preload" href="stonks-hand.webp" as="image">
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
@@ -2778,7 +2784,9 @@ const ASSETS = {
     // game UI critical
     'ak47.png','noobak47.png','wp5.png',
     'sound_on.png','sound_off.png',
-    'card_back.png','logo.png','old-cringe-album.webp',
+    'card_back.png','logo.png',
+    // shop/OCA item art (optional, non-blocking; preload keeps renamed assets warm)
+    ...Object.values(ITEM_IMGS),
   ],
   audio: [] // audio loaded on-demand via Web Audio API
 };
@@ -2789,39 +2797,56 @@ function _preloadImg(src) {
   const img = new Image(); img.src = src; _imgObjCache[src] = img;
 }
 function preloadAll() {
-  const imgs = ASSETS.images;
+  // All entries are optional for startup: a bad image must never softlock the title screen.
+  const imgs = Array.from(new Set(ASSETS.images.filter(Boolean)));
   const total = imgs.length;
   if(total === 0) { onAllLoaded(); return; }
   let loaded = 0;
+  let preloadClosed = false;
+  const pending = new Set(imgs);
 
-  // แสดง 1% ทันทีเพื่อให้ผู้เล่นรู้ว่าเริ่ม load แล้ว
-  const _b = document.getElementById('loadBar');
-  const _p = document.getElementById('loadPct');
-  if(_b) _b.style.width = '1%';
-  if(_p) _p.textContent = '1%';
-
-  // fallback 5 วิ — ถ้า image ใดค้างก็ผ่านไปได้
-  const fallbackTimer = setTimeout(() => { onAllLoaded(); }, 5000);
-
-  function prog() {
-    loaded++;
-    const pct = Math.min(Math.round(loaded / total * 100), 99);
+  function setPreloadPct(pct) {
     const bar = document.getElementById('loadBar');
     const pctEl = document.getElementById('loadPct');
     if(bar) bar.style.width = pct + '%';
     if(pctEl) pctEl.textContent = pct + '%';
-    if(loaded >= total) { clearTimeout(fallbackTimer); onAllLoaded(); }
+  }
+
+  // แสดง 1% ทันทีเพื่อให้ผู้เล่นรู้ว่าเริ่ม load แล้ว
+  setPreloadPct(1);
+
+  // fallback 5 วิ — ถ้า image ใดค้างก็ผ่านไปได้ และ TAP TO START ต้องขึ้นเสมอ
+  const fallbackTimer = setTimeout(() => {
+    if (preloadClosed) return;
+    preloadClosed = true;
+    if (pending.size) console.warn('[preload] continuing with pending optional assets:', Array.from(pending));
+    onAllLoaded();
+  }, 5000);
+
+  function prog(src, ok) {
+    if (preloadClosed) return;
+    if (!pending.has(src)) return;
+    pending.delete(src);
+    loaded++;
+    if (!ok) console.warn('[preload] optional image failed:', src);
+    const pct = Math.min(Math.round(loaded / total * 100), 99);
+    setPreloadPct(pct);
+    if(loaded >= total) {
+      preloadClosed = true;
+      clearTimeout(fallbackTimer);
+      onAllLoaded();
+    }
   }
 
   imgs.forEach(src => {
     const i = new Image();
     _imgObjCache[src] = i;
     let _fired = false;
-    const _once = () => { if(!_fired){ _fired=true; prog(); } };
-    i.onload  = _once;
-    i.onerror = _once;
+    const _once = (ok) => { if(!_fired){ _fired=true; prog(src, ok); } };
+    i.onload  = () => _once(true);
+    i.onerror = () => _once(false);
     i.src = src;
-    if(i.complete) _once();
+    if(i.complete) _once(i.naturalWidth > 0);
   });
 }
 let _allLoadedCalled = false;
@@ -2856,7 +2881,10 @@ function onAllLoaded() {
     if (tapEl) tapEl.style.display = 'none';
     if (loadText) { loadText.style.display = 'block'; loadText.textContent = 'VERIFYING SAVE...'; }
     try {
-      await _saveReadyPromise;
+      await Promise.race([
+        _saveReadyPromise,
+        new Promise(resolve => setTimeout(resolve, 2000))
+      ]);
     } catch(err) {
       console.warn('[save] verification skipped after error', err);
       save = normalizeSaveData(save);
@@ -7075,7 +7103,7 @@ function showOcaDropToast(tier) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const APP_CACHE_NAME = 'noctisak47-v159';
+      const APP_CACHE_NAME = 'noctisak47-v160';
       const SW_PATH = new URL('./sw.js', location.href).pathname;
       const hadController = !!navigator.serviceWorker.controller;
       let refreshing = false;
