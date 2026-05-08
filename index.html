@@ -3654,6 +3654,8 @@ function scheduleWeakPoint() {
   }
   // WHISPER: spawn ช้าลง 2 เท่า
   if(window._csState && window._csState.cs_whisper) delay *= 2;
+  // HYDRA: spawn ช้าลง 1.5 เท่า
+  if(window._csState && window._csState.cs_hydraSpawnSlow) delay *= 1.5;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -4070,8 +4072,8 @@ const CARD_POOL = [
     apply(s){ s.cs_doubleClick = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
-    effect:'กด AK47 = ดาเมจ <strong>x3</strong> + เก็บครบชุด = เวลา <strong>+1.5 วิ</strong>', tradeoff:null,
-    apply(s){ s.cs_wpDmgMult = 3; }
+    effect:'กด AK47 = ดาเมจ <strong>x3</strong> + เก็บครบชุด = เวลา <strong>+1.5 วิ</strong>', tradeoff:'AK47 spawn ช้าลง <strong>1.5 เท่า</strong>',
+    apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
     effect:'กด AK47 = OD charge <strong>+20%</strong> | ถ้า OD active อยู่แล้ว = OD timer <strong>+1 วิ</strong> แทน', tradeoff:null,
@@ -4594,7 +4596,7 @@ function _csStartLodTimer() {
     const cs = {};
     newCard.apply(cs);
     window._csState = { cs_lordofdeath:true, ...cs };
-    _csSyncWeakPointAvailability(prevHadRsx);
+    _csSyncWeakPointAvailability(prevHadRsx, true);
     // แสดงภาพการ์ด
     _lodShowCard(newCard, isFirst);
     if(!isFirst) showBigSplash('# '+newCard.name,'CARD CHANGED','#ff2233',false);
@@ -4663,7 +4665,7 @@ function _lodHideCard() {
   if(img) img.className = '';
 }
 
-function _csSyncWeakPointAvailability(prevHadRsx=false) {
+function _csSyncWeakPointAvailability(prevHadRsx=false, reschedulePending=false) {
   if(!gameRunning) return;
   const hasRsx = !!(window._csState && window._csState.cs_rsx0806);
 
@@ -4686,6 +4688,11 @@ function _csSyncWeakPointAvailability(prevHadRsx=false) {
   if(prevHadRsx) {
     wpCollected = 0;
     updateWpCounter();
+  }
+
+  if(!wpActive && reschedulePending && wpSchedule) {
+    scheduleWeakPoint();
+    return;
   }
 
   if(!wpActive && !wpSchedule) scheduleWeakPoint();
@@ -4886,7 +4893,7 @@ function _csValkyrieRandgrisSwap() {
   );
   if(!elitePool.length) return;
   const newCard = elitePool[Math.floor(Math.random()*elitePool.length)];
-  const eliteKeys = ['cs_doubleClick','cs_wpDmgMult','cs_wpOdCharge','cs_combo30','cs_drakeIgnoreThreshold',
+  const eliteKeys = ['cs_doubleClick','cs_wpDmgMult','cs_hydraSpawnSlow','cs_wpOdCharge','cs_combo30','cs_drakeIgnoreThreshold',
     'cs_taogunka','cs_draculaCoin','cs_incantation','cs_stormyKnight','cs_darkLord',
     'cs_minorous','cs_executioner','cs_whisper','cs_goblinLeader','cs_amonRa','cs_amonRa_active',
     'cs_bossDmgBonus','cs_bossCoinPct','cs_dmgBonus','cs_timePenalty','cs_critChanceBonus','cs_critDmgBonus',
@@ -4906,6 +4913,7 @@ function _csValkyrieRandgrisSwap() {
     };
     eliteKeys.forEach(k => { if(!keep[k]) delete window._csState[k]; });
     newCard.apply(window._csState);
+    _csSyncWeakPointAvailability(false, true);
     _showActiveCard(newCard);
     showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD',''), '#cc88ff');
   }, 2000);
