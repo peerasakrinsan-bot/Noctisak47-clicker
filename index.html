@@ -4064,15 +4064,15 @@ const CARD_POOL = [
 
   // ── RARE ──
   { id:'dg',name:'DOPPELGANGER CARD', img:'cards/doppelganger.png',rarity:'elite',
-    effect:'ทุกคลิกนับเป็น <strong>2 คลิก</strong> (ดาเมจ & OD charge x2) + คลิกที่ 2 มีโอกาส crit <strong>20%</strong>', tradeoff:'ดาเมจของคลิกที่ 2 <strong>-20%</strong>',
+    effect:'ทุกคลิกโจมตีซ้ำอีก <strong>1 ครั้ง</strong> + hit ที่ 2 มีโอกาส crit <strong>20%</strong>', tradeoff:'hit ที่ 2 ทำดาเมจเพียง <strong>80%</strong> และไม่เพิ่ม OD charge',
     apply(s){ s.cs_doubleClick = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
-    effect:'เก็บ AK47 = ดาเมจ <strong>x3</strong> + เวลา <strong>+1.5 วิ</strong> ทุกครั้งที่ครบ', tradeoff:null,
+    effect:'กด AK47 = ดาเมจ <strong>x3</strong> + เก็บครบชุด = เวลา <strong>+1.5 วิ</strong>', tradeoff:null,
     apply(s){ s.cs_wpDmgMult = 3; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
-    effect:'เก็บ AK47 = OD charge <strong>+20%</strong> | ถ้า OD active อยู่แล้ว = OD timer <strong>+1 วิ</strong> แทน', tradeoff:null,
+    effect:'กด AK47 = OD charge <strong>+20%</strong> | ถ้า OD active อยู่แล้ว = OD timer <strong>+1 วิ</strong> แทน', tradeoff:null,
     apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.20; }
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
@@ -4090,11 +4090,11 @@ const CARD_POOL = [
 
   // ── VOID (MVP) ──
   { id:'th',   name:'THANABROS CARD',      img:'cards/thanabros.png',    rarity:'mythic',
-    effect:'เก็บ AK47 ครบ = OD charge เต็มทันที + ดาเมจ <strong>x2.5</strong>', tradeoff:'Combo reset ทุก 10 วินาที',
+    effect:'AK47 ดาเมจ <strong>x2.5</strong> + เก็บครบชุด = OD charge เต็มทันที', tradeoff:'Combo reset ทุก 10 วินาที',
     apply(s){ s.cs_thanatos = true; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
-    effect:'เก็บ AK47 = spawn ใหม่ทันที + triple hit + ทุก AK47 ครบ = ดาเมจ <strong>+5%</strong> สะสม (max +25%)', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
+    effect:'ทุกคลิกเป็น <strong>triple hit</strong> + กด AK47 แล้ว spawn ใหม่ทันที + เก็บครบชุด = ดาเมจ <strong>+5%</strong> สะสม (max +25%)', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
@@ -4114,7 +4114,7 @@ const CARD_POOL = [
     apply(s){ s.cs_goldenbug = true; }
   },
   { id:'oh',    name:'COKE ZERO CARD',      img:'cards/coke_zero.png',    rarity:'mythic',
-    effect:'OD charge <strong>x3</strong> + ไม่มี cooldown + ทุกครั้งที่ OD หมด = ดาเมจ <strong>+8%</strong> สะสม (max +24%)', tradeoff:'เวลา <strong>-15 วินาที</strong>',
+    effect:'OD charge <strong>x3</strong> + ทุกครั้งที่ OD หมด = ดาเมจ <strong>+8%</strong> สะสม (max +24%)', tradeoff:'เวลา <strong>-15 วินาที</strong>',
     apply(s){ s.cs_orchero = true; }
   },
   { id:'ld',name:'LORD OF DEBT CARD', img:'cards/lord_of_debt.png',rarity:'mythic',
