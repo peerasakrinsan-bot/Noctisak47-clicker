@@ -1658,6 +1658,105 @@
 
   @keyframes flash { to{opacity:0.5;} }
 
+
+  /* ══ PRESSURE SYSTEM V6 — AK47 SURVIVAL BREAK SYSTEM ══ */
+  #pressureOverlay {
+    position:absolute; inset:0; z-index:80; pointer-events:none; display:none;
+    background:rgba(0,0,0,0); transition:background 0.35s ease, backdrop-filter 0.35s ease;
+  }
+  #pressureOverlay.active { display:block; }
+  #pressureOverlay::before {
+    content:''; position:absolute; inset:-10%; opacity:0; pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 32%, rgba(0,0,0,0.62) 72%, rgba(0,0,0,0.92) 100%);
+    transition:opacity 0.35s ease;
+  }
+  #pressureOverlay.buildup {
+    background:rgba(0,0,0,0.28); backdrop-filter:saturate(0.78) brightness(0.82);
+  }
+  #pressureOverlay.lockin {
+    background:rgba(0,0,0,0.58); backdrop-filter:saturate(0.58) brightness(0.62) blur(1px);
+  }
+  #pressureOverlay.break,
+  #pressureOverlay.lastchance {
+    background:rgba(0,0,0,0.68); backdrop-filter:saturate(0.62) brightness(0.58);
+    pointer-events:auto;
+  }
+  #pressureOverlay.lastchance { background:rgba(0,0,0,0.84); }
+  #pressureOverlay.lockin::before,
+  #pressureOverlay.break::before,
+  #pressureOverlay.lastchance::before { opacity:1; }
+  #gameRoot.pressure-focus .dmg,
+  #gameRoot.pressure-focus .crit-text,
+  #gameRoot.pressure-focus .wp-hit-text { opacity:.34 !important; }
+  #gameRoot.pressure-focus #fxLayer { opacity:.5; }
+  #gameRoot.pressure-focus #comboWrap { filter:saturate(.6) brightness(.72); }
+  #gameRoot.pressure-focus #fighter { transform:translate(-50%, -40%) scale(1.03); }
+  #gameRoot.pressure-focus #weakPoint { filter:drop-shadow(0 0 18px #fff) drop-shadow(0 0 26px var(--gold)); }
+  #pressureBossFocus {
+    position:absolute; left:50%; top:50%; width:min(520px,94vw); height:min(680px,122vw);
+    transform:translate(-50%,-46%); border-radius:50%; pointer-events:none; opacity:0;
+    box-shadow:0 0 70px rgba(255,255,255,.16), inset 0 0 90px rgba(255,255,255,.05);
+    background:radial-gradient(ellipse at center, rgba(255,255,255,.08), transparent 62%);
+    transition:opacity .35s ease;
+  }
+  #pressureOverlay.lockin #pressureBossFocus,
+  #pressureOverlay.break #pressureBossFocus,
+  #pressureOverlay.lastchance #pressureBossFocus { opacity:1; }
+  /* V6 uses visual/audio lock-in only; no giant cinematic phase text. */
+  #pressureText { display:none !important; }
+  #pressureText.show { display:none !important; }
+  #pressureMain { font-size:clamp(38px,13vw,86px); }
+  #pressureSub { margin-top:8px; font-size:clamp(10px,3vw,15px); color:#8f98a3; letter-spacing:4px; }
+  @keyframes pressureTitlePop { 0%{opacity:0;transform:translate(-50%,-50%) scale(.82);} 22%{opacity:1;transform:translate(-50%,-50%) scale(1.05);} 100%{opacity:1;transform:translate(-50%,-50%) scale(1);} }
+  #pressureHud {
+    position:absolute; left:50%; bottom:clamp(72px,12vh,118px); transform:translateX(-50%);
+    width:min(340px,86vw); display:none; gap:8px; flex-direction:column; pointer-events:none;
+  }
+  #pressureHud.show { display:flex; }
+  #pressureProgressWrap { height:14px; border:1px solid rgba(255,255,255,.2); background:rgba(0,0,0,.78); box-shadow:0 0 24px rgba(0,0,0,.9); overflow:hidden; }
+  #pressureProgress { width:0%; height:100%; background:linear-gradient(90deg,#e9f7ff,#00ffee,#ffcc00); box-shadow:0 0 16px rgba(0,255,238,.8); transition:width .08s linear; }
+  #pressureHudMeta { display:flex; justify-content:space-between; font-size:10px; letter-spacing:3px; color:#aab3bb; text-shadow:0 2px 5px #000; }
+  #pressureStreak {
+    position:absolute; right:14px; top:clamp(104px,16vh,144px); z-index:11; pointer-events:none; display:none;
+    text-align:right; font-family:'Oswald',sans-serif; letter-spacing:2px; color:#eaf7ff; text-shadow:0 3px 10px #000;
+  }
+  #pressureStreak.show { display:block; }
+  #pressureStreakMain { font-size:clamp(18px,5vw,30px); line-height:1; }
+  #pressureStreakBonus { margin-top:3px; font-size:9px; color:var(--gold); letter-spacing:3px; }
+  #rageMeter {
+    position:absolute; left:50%; top:clamp(78px,12vh,112px); transform:translateX(-50%);
+    z-index:11; width:min(320px,82vw); display:none; pointer-events:none; opacity:.94;
+  }
+  #rageMeter.show { display:block; }
+  #rageBar { height:5px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.16); overflow:hidden; }
+  #rageFill { width:0%; height:100%; background:linear-gradient(90deg,#7a8590,#dbe8f0); box-shadow:0 0 14px rgba(255,255,255,.45); transition:width .25s ease; }
+  #rageLabel { margin-top:4px; display:flex; justify-content:space-between; font-size:9px; letter-spacing:3px; color:#7e8790; }
+  #gameRoot.rage-high::after {
+    content:''; position:absolute; inset:0; z-index:28; pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.38) 82%, rgba(0,0,0,.72) 100%);
+  }
+  .break-target {
+    position:absolute; width:clamp(110px,30vw,170px); aspect-ratio:1; border-radius:50%; border:0; padding:0;
+    background:radial-gradient(circle, rgba(255,255,255,.98) 0 28%, rgba(0,255,238,.9) 29% 48%, rgba(255,204,0,.9) 49% 57%, rgba(0,0,0,.25) 58% 100%);
+    box-shadow:0 0 26px rgba(0,255,238,.95), 0 0 54px rgba(255,204,0,.75), 0 18px 42px rgba(0,0,0,.95);
+    transform:translate(-50%,-50%) scale(.65); animation:breakTargetPop .26s cubic-bezier(.2,1.45,.32,1) forwards, breakTargetPulse .7s ease-in-out .26s infinite alternate;
+    touch-action:manipulation; -webkit-tap-highlight-color:transparent; cursor:pointer;
+  }
+  .break-target::before { content:''; position:absolute; inset:16%; background:url('ak47.png') center/contain no-repeat; filter:drop-shadow(0 4px 3px #000); }
+  .break-target::after { content:''; position:absolute; inset:-16px; border-radius:50%; border:3px solid rgba(255,255,255,.65); animation:breakTargetRing .62s ease-out infinite; }
+  .break-target:active { transform:translate(-50%,-50%) scale(.92); filter:brightness(1.35); }
+  @keyframes breakTargetPop { to{transform:translate(-50%,-50%) scale(1);} }
+  @keyframes breakTargetPulse { from{filter:brightness(1);} to{filter:brightness(1.32);} }
+  @keyframes breakTargetRing { to{transform:scale(1.22); opacity:0;} }
+  .break-impact {
+    position:absolute; width:38px; height:38px; border-radius:50%; pointer-events:none; z-index:95;
+    transform:translate(-50%,-50%); border:4px solid #fff; box-shadow:0 0 32px #00ffee, 0 0 56px #ffcc00;
+    animation:breakImpact .28s ease-out forwards;
+  }
+  @keyframes breakImpact { to{width:150px;height:150px;opacity:0;} }
+  body.reduce-flash .break-target { animation:breakTargetPop .26s ease forwards; }
+  body.reduce-flash .break-target::after { display:none; }
+
   /* ══ COUNTDOWN ══ */
   #countdownOverlay {
     position:absolute; top:0; left:0; right:0; bottom:0; z-index:200;
@@ -2471,6 +2570,28 @@
 
 <div id="streakLabel">TAP FAST</div>
 <div id="tapZone"></div>
+
+<div id="rageMeter" aria-hidden="true">
+  <div id="rageBar"><div id="rageFill"></div></div>
+  <div id="rageLabel"><span>PRESSURE</span><span id="rageNum">0%</span></div>
+</div>
+<div id="pressureStreak" aria-hidden="true">
+  <div id="pressureStreakMain">BREAK x0</div>
+  <div id="pressureStreakBonus">SURVIVAL BONUS +0%</div>
+</div>
+
+<div id="pressureOverlay" aria-hidden="true">
+  <div id="pressureBossFocus"></div>
+  <div id="pressureText">
+    <div id="pressureMain"></div>
+    <div id="pressureSub"></div>
+  </div>
+  <div id="pressureHud">
+    <div id="pressureHudMeta"><span id="pressureHitLabel">0/0 AK47</span><span id="pressureTimer">0.0</span></div>
+    <div id="pressureProgressWrap"><div id="pressureProgress"></div></div>
+  </div>
+</div>
+
 
 <!-- ══════════════ CARD SLOT SCREEN ══════════════ -->
 <div id="cardSlotScreen">
@@ -3351,7 +3472,7 @@ function _hideAllScreens() {
     const el = $(id); if(el) el.style.display = 'none';
   });
   // ซ่อน game UI elements ด้วย
-  const gameEls = ['topUI','fighter','tapZone','streakLabel','wpCounter','lodCardDisplay'];
+  const gameEls = ['topUI','fighter','tapZone','streakLabel','wpCounter','lodCardDisplay','pressureStreak'];
   gameEls.forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
   // ซ่อน save/transfer button
   $('dailyQuestWidget').classList.remove('visible');
@@ -3388,6 +3509,7 @@ function showMainMenu() {
   _el.godLevelWrap.style.display = 'none';
   _el.bossBar.style.display = 'none';
   $('wpCounter').style.display = 'none';
+  pressureHide();
   _el.multiBadge.classList.remove('show');
   // show save/transfer button
   _applyArenaBg();
@@ -3986,6 +4108,7 @@ function initState() {
   wpCompletions = 0;
   wp5FirstDone = false;
   _ocaDropCount = 0; // OCA Drop System — reset per-round cap
+  pressureReset();
   updateWpCounter();
   gun.style.display = 'none';
   // invalidate skin cache + preload skin ที่ active อยู่
@@ -5151,7 +5274,10 @@ function csApplyDmgMod(baseDmg, isGod) {
 
 // ── helper: apply card modifiers to coin gain ──
 function csApplyCoinMod(coins) {
-  if(!window._csState) return coins;
+  if(!window._csState) {
+    const mult = typeof pressureCoinMultiplier === 'function' ? pressureCoinMultiplier() : 1;
+    return Math.round(coins * mult);
+  }
   const cs = window._csState;
   let c = coins;
   if(cs.cs_coinPct)   c *= (1 + cs.cs_coinPct);
@@ -5159,6 +5285,7 @@ function csApplyCoinMod(coins) {
   if(cs.cs_osiris)    c *= 0.65;
   if(cs.cs_moonlightflower) c *= 2;
   if(cs.cs_amonRa_active) c *= 1.5;
+  if(typeof pressureCoinMultiplier === 'function') c *= pressureCoinMultiplier();
   return Math.round(c);
 }
 
@@ -5815,7 +5942,7 @@ function startGame() {
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
       else _showActiveCard(activeCard);
       $('tapZone').style.display='block';
-      scheduleWeakPoint(); startTimer(); playFightBGM(); INPUT.start();
+      scheduleWeakPoint(); startTimer(); playFightBGM(); INPUT.start(); pressureArm();
     });
   });
 }
@@ -5856,7 +5983,7 @@ function retryGame() {
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
       else _showActiveCard(activeCard); // แสดงการ์ดที่เลือก (non-LOD)
       $('tapZone').style.display='block';
-      scheduleWeakPoint(); startTimer(); playFightBGM(); INPUT.start();
+      scheduleWeakPoint(); startTimer(); playFightBGM(); INPUT.start(); pressureArm();
     });
   });
 }
@@ -5911,6 +6038,8 @@ function goMainMenu() {
 function pauseGame() {
   if(!gameRunning || gamePaused) return;
   INPUT.stop();
+  pressureClearTimers();
+  pressureHide();
   gamePaused = true;
   gameRunning = false;
   clearInterval(timerInterval);
@@ -5987,6 +6116,372 @@ function pauseGoMainMenu() {
   showMainMenu();
 }
 
+
+
+
+// ══════════════════════════════════════════
+// PRESSURE SYSTEM V6 — AK47 SURVIVAL BREAK SYSTEM
+// Additive survival pacing: chaos → focus → AK47 BREAK → rewards.
+// ══════════════════════════════════════════
+const PRESSURE = {
+  rage: 0,
+  phase: 'idle',
+  cooldown: 0,
+  targetHits: 0,
+  targetNeed: 12,
+  breakEndsAt: 0,
+  breakDuration: 2800,
+  lastChance: false,
+  activeTarget: null,
+  timers: [],
+  heartbeat: null,
+  lastAfkAt: 0,
+  breakAttempts: 0,
+  currentBreak: 0,
+  successStreak: 0,
+  successes: 0,
+  bestStreak: 0,
+  prePressureMusicVolume: null,
+};
+
+const PRESSURE_BREAK_TABLE = [
+  { min: 10, max: 14, duration: 3000 },
+  { min: 15, max: 18, duration: 2925 },
+  { min: 18, max: 22, duration: 2850 },
+  { min: 22, max: 25, duration: 2750 },
+  { min: 25, max: 28, duration: 2650 },
+];
+
+function pressureReset() {
+  pressureClearTimers();
+  PRESSURE.rage = 0;
+  PRESSURE.phase = 'idle';
+  PRESSURE.cooldown = 0;
+  PRESSURE.targetHits = 0;
+  PRESSURE.lastChance = false;
+  PRESSURE.lastAfkAt = Date.now();
+  PRESSURE.breakAttempts = 0;
+  PRESSURE.currentBreak = 0;
+  PRESSURE.successStreak = 0;
+  PRESSURE.successes = 0;
+  PRESSURE.bestStreak = 0;
+  PRESSURE._lastTarget = null;
+  pressureRestoreAudio();
+  pressureHide();
+  pressureUpdateRageUI();
+}
+
+function pressureArm() {
+  PRESSURE.cooldown = pressureNextCooldown();
+  PRESSURE.lastAfkAt = Date.now();
+  pressureUpdateRageUI();
+}
+
+function pressureRandomRange(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function pressureNextCooldown() {
+  const n = PRESSURE.breakAttempts;
+  if(n < 2) return pressureRandomRange(20000, 30000);
+  if(n < 4) return pressureRandomRange(15000, 20000);
+  const softPostFive = Math.min(2000, Math.max(0, PRESSURE.breakAttempts - 5) * 250);
+  return pressureRandomRange(10000 - softPostFive, 15000 - softPostFive);
+}
+
+function pressureClearTimers() {
+  PRESSURE.timers.forEach(clearTimeout);
+  PRESSURE.timers.length = 0;
+  if(PRESSURE.heartbeat) { clearInterval(PRESSURE.heartbeat); PRESSURE.heartbeat = null; }
+  pressureRemoveTarget();
+}
+
+function pressureSetTimer(fn, ms) {
+  const id = setTimeout(fn, ms);
+  PRESSURE.timers.push(id);
+  return id;
+}
+
+function pressureHide() {
+  const root = $('gameRoot');
+  const overlay = $('pressureOverlay');
+  if(overlay) { overlay.className = ''; overlay.style.display = 'none'; }
+  root.classList.remove('pressure-focus','rage-high');
+  if(PRESSURE.rage >= 70) root.classList.add('rage-high');
+  const txt = $('pressureText'); if(txt) txt.classList.remove('show');
+  const hud = $('pressureHud'); if(hud) hud.classList.remove('show');
+  if(!gameRunning) {
+    const meter = $('rageMeter'); if(meter) meter.classList.remove('show');
+    const streak = $('pressureStreak'); if(streak) streak.classList.remove('show');
+  }
+  pressureRemoveTarget();
+}
+
+function pressureUpdate(dtMs) {
+  if(!gameRunning || gamePaused) return;
+  if(PRESSURE.phase !== 'idle') return;
+  PRESSURE.cooldown -= dtMs;
+  const now = Date.now();
+  if(now - PRESSURE.lastAfkAt > 3200) {
+    pressureAddRage(4, 'AFK');
+    PRESSURE.lastAfkAt = now;
+  }
+  if(PRESSURE.cooldown <= 0) pressureStartBuildup(false);
+}
+
+function pressureStartBuildup(lastChance=false) {
+  if(!gameRunning || PRESSURE.phase !== 'idle') return;
+  pressureClearTimers();
+  PRESSURE.phase = 'buildup';
+  PRESSURE.lastChance = !!lastChance;
+  const root = $('gameRoot');
+  const overlay = $('pressureOverlay');
+  root.classList.add('pressure-focus');
+  overlay.style.display = 'block';
+  overlay.className = 'active buildup' + (lastChance ? ' lastchance' : '');
+  pressureMuffleAudio(lastChance ? 0.28 : 0.48);
+  pressureHeartbeat(lastChance ? 280 : 540);
+  pressureSetTimer(()=>pressureLockIn(lastChance), lastChance ? 1550 : Math.round(pressureRandomRange(1500, 2000)));
+}
+
+function pressureLockIn(lastChance=false) {
+  if(!gameRunning) return;
+  PRESSURE.phase = 'lockin';
+  const overlay = $('pressureOverlay');
+  overlay.className = 'active lockin' + (lastChance ? ' lastchance' : '');
+  // V6 intentionally avoids giant LOCK/BREAK text: the vignette, muffled music,
+  // heartbeat, boss isolation, and weak-point glow carry the lock-in cue.
+  pressureSetTimer(()=>pressureStartBreak(lastChance), lastChance ? 650 : Math.round(pressureRandomRange(600, 800)));
+}
+
+function pressureDifficulty() {
+  const breakNo = PRESSURE.currentBreak || (PRESSURE.breakAttempts + 1);
+  const tier = Math.min(5, Math.max(1, breakNo));
+  const base = PRESSURE_BREAK_TABLE[tier - 1];
+  let need = Math.round(pressureRandomRange(base.min, base.max));
+  let duration = base.duration;
+  if(breakNo > 5) {
+    // Soft post-BREAK-5 scaling: never exceed the human target-count cap.
+    need = Math.min(28, need + (Math.random() < 0.35 ? 1 : 0));
+    duration = Math.max(2450, duration - Math.min(200, (breakNo - 5) * 25));
+  }
+  if(PRESSURE.lastChance) {
+    need = Math.min(28, Math.max(18, need + 1));
+    duration = Math.max(2350, duration - 150);
+  }
+  return { need, duration, breakNo };
+}
+
+function pressureStartBreak(lastChance=false) {
+  if(!gameRunning) return;
+  PRESSURE.phase = 'break';
+  PRESSURE.targetHits = 0;
+  PRESSURE.breakAttempts++;
+  PRESSURE.currentBreak = PRESSURE.breakAttempts;
+  const d = pressureDifficulty();
+  PRESSURE.targetNeed = d.need;
+  PRESSURE.breakDuration = d.duration;
+  PRESSURE.breakEndsAt = performance.now() + d.duration;
+  const overlay = $('pressureOverlay');
+  overlay.className = 'active break' + (lastChance ? ' lastchance' : '');
+  $('pressureHud').classList.add('show');
+  pressureUpdateBreakHUD();
+  pressureSpawnTarget();
+  pressureBreakLoop();
+}
+
+function pressureBreakLoop() {
+  if(PRESSURE.phase !== 'break') return;
+  pressureUpdateBreakHUD();
+  if(performance.now() >= PRESSURE.breakEndsAt) {
+    pressureResolve(false);
+    return;
+  }
+  pressureSetTimer(pressureBreakLoop, 50);
+}
+
+function pressureUpdateBreakHUD() {
+  const pct = Math.min(100, (PRESSURE.targetHits / PRESSURE.targetNeed) * 100);
+  $('pressureProgress').style.width = pct + '%';
+  $('pressureHitLabel').textContent = `${PRESSURE.targetHits}/${PRESSURE.targetNeed} AK47`;
+  $('pressureTimer').textContent = Math.max(0, (PRESSURE.breakEndsAt - performance.now()) / 1000).toFixed(1);
+}
+
+function pressureSpawnTarget() {
+  pressureRemoveTarget();
+  if(PRESSURE.phase !== 'break') return;
+  const overlay = $('pressureOverlay');
+  const target = document.createElement('button');
+  target.className = 'break-target';
+  target.type = 'button';
+  target.setAttribute('aria-label','AK47 BREAK target');
+  const marginX = Math.min(96, Math.max(70, vvW()*0.18));
+  const marginTop = Math.min(140, Math.max(96, vvH()*0.18));
+  const marginBot = Math.min(150, Math.max(110, vvH()*0.2));
+  const minX = marginX, maxX = Math.max(minX, vvW() - marginX);
+  const minY = marginTop, maxY = Math.max(minY, vvH() - marginBot);
+  const old = PRESSURE._lastTarget || {x: vvW()/2, y: vvH()/2};
+  let x = minX + Math.random() * (maxX - minX);
+  let y = minY + Math.random() * (maxY - minY);
+  const maxTravel = Math.min(vvW(), vvH()) * (PRESSURE.currentBreak >= 4 ? 0.5 : 0.44);
+  const dist = Math.hypot(x-old.x, y-old.y);
+  if(dist > maxTravel) { x = old.x + (x-old.x) / dist * maxTravel; y = old.y + (y-old.y) / dist * maxTravel; }
+  x = Math.max(minX, Math.min(maxX, x));
+  y = Math.max(minY, Math.min(maxY, y));
+  PRESSURE._lastTarget = {x,y};
+  target.style.left = x + 'px';
+  target.style.top = y + 'px';
+  let handled = false;
+  const hit = ev => {
+    if(ev.cancelable) ev.preventDefault();
+    ev.stopPropagation();
+    if(handled) return;
+    handled = true;
+    pressureHitTarget(x, y);
+  };
+  target.addEventListener('touchstart', hit, {passive:false});
+  target.addEventListener('pointerdown', hit);
+  target.addEventListener('click', hit);
+  overlay.appendChild(target);
+  PRESSURE.activeTarget = target;
+  if(gameSettings.sfxOn) playAK();
+}
+
+function pressureRemoveTarget() {
+  if(PRESSURE.activeTarget) { PRESSURE.activeTarget.remove(); PRESSURE.activeTarget = null; }
+}
+
+function pressureHitTarget(x, y) {
+  if(PRESSURE.phase !== 'break') return;
+  PRESSURE.lastAfkAt = Date.now();
+  PRESSURE.targetHits++;
+  const impact = document.createElement('div');
+  impact.className = 'break-impact';
+  impact.style.left = x + 'px'; impact.style.top = y + 'px';
+  $('gameRoot').appendChild(impact); setTimeout(()=>impact.remove(), 300);
+  spawnFX(x, y, true, false);
+  $('gameRoot').classList.remove('shake-wp'); void $('gameRoot').offsetWidth; $('gameRoot').classList.add('shake-wp');
+  setTimeout(()=>$('gameRoot').classList.remove('shake-wp'), 140);
+  if(gameSettings.sfxOn) playAK();
+  if(PRESSURE.targetHits >= PRESSURE.targetNeed) pressureResolve(true);
+  else pressureSpawnTarget();
+}
+
+function pressureResolve(success) {
+  if(PRESSURE.phase === 'idle') return;
+  pressureClearTimers();
+  const wasLast = PRESSURE.lastChance;
+  PRESSURE.phase = 'idle';
+  PRESSURE.lastChance = false;
+  pressureRestoreAudio();
+  if(success) pressureSuccess(wasLast);
+  else pressureFail(wasLast);
+}
+
+function pressureSuccess(wasLastChance) {
+  PRESSURE.successes++;
+  PRESSURE.successStreak++;
+  PRESSURE.bestStreak = Math.max(PRESSURE.bestStreak, PRESSURE.successStreak);
+  PRESSURE.rage = wasLastChance ? 70 : Math.max(0, PRESSURE.rage - 22);
+  pressureUpdateRageUI();
+  pressureHide();
+  const bonus = pressureRewardBonusPct();
+  showBigSplash('SUPPRESSED', bonus > 0 ? `SURVIVAL BONUS +${bonus}%` : 'AK47 REFILLED', '#00ffee', true);
+  triggerFlash('flash-god');
+  $('gameRoot').classList.remove('shake'); void $('gameRoot').offsetWidth; $('gameRoot').classList.add('shake');
+  setTimeout(()=>$('gameRoot').classList.remove('shake'), 420);
+  // AK47 panic survival reward: refill the existing AK47 pickup meter and boost OD.
+  wpCollected = getWpMax();
+  updateWpCounter();
+  if(godLevel === 0 && canEnterGod) activateGodLevel(1);
+  else if(godLevel > 0) godSecondsLeft = Math.max(godSecondsLeft || 0, 5);
+  if(isBoss) applyDamage(Math.round(bossMaxHP * 0.08), {clientX:vvW()/2, clientY:vvH()/2}, false);
+  else applyDamage(Math.round(maxHP * 0.28), {clientX:vvW()/2, clientY:vvH()/2}, false);
+  if(wasLastChance) combo = 1;
+  PRESSURE.cooldown = pressureNextCooldown();
+  PRESSURE.lastAfkAt = Date.now();
+}
+
+function pressureFail(wasLastChance) {
+  pressureHide();
+  PRESSURE.successStreak = 0;
+  pressureUpdateRageUI();
+  if(wasLastChance) {
+    showBigSplash('GAME OVER','REWARDS KEPT','#dbe8f0',true);
+    endGame({gameOver:true});
+    return;
+  }
+  pressureAddRage(34, 'BREAK FAILED');
+  combo = Math.max(1, Math.floor(combo * 0.55));
+  lastHitTime = 0;
+  showBigSplash('PRESSURE +','BOSS ATTACK UNSUPPRESSED','#dbe8f0',true);
+  triggerFlash('flash-boss');
+  PRESSURE.cooldown = pressureNextCooldown();
+  PRESSURE.lastAfkAt = Date.now();
+}
+
+function pressureAddRage(amount, reason) {
+  PRESSURE.rage = Math.min(100, PRESSURE.rage + amount);
+  pressureUpdateRageUI();
+  if(PRESSURE.rage >= 100 && PRESSURE.phase === 'idle') {
+    PRESSURE.rage = 100;
+    pressureUpdateRageUI();
+    pressureStartBuildup(true);
+  }
+}
+
+function pressureRewardBonusPct() {
+  return Math.max(0, (PRESSURE.successStreak - 4) * 10);
+}
+
+function pressureCoinMultiplier() {
+  return 1 + pressureRewardBonusPct() / 100;
+}
+
+function pressureLootChanceMultiplier() {
+  return 1 + Math.max(0, PRESSURE.successStreak - 5) * 0.10;
+}
+
+function pressureUpdateRageUI() {
+  const meter = $('rageMeter');
+  if(!meter) return;
+  meter.classList.toggle('show', gameRunning || PRESSURE.rage > 0);
+  $('rageFill').style.width = PRESSURE.rage + '%';
+  $('rageNum').textContent = Math.round(PRESSURE.rage) + '%';
+  $('gameRoot').classList.toggle('rage-high', PRESSURE.rage >= 70);
+  const streak = $('pressureStreak');
+  if(streak) {
+    const bonus = pressureRewardBonusPct();
+    streak.classList.toggle('show', gameRunning && PRESSURE.successStreak > 0);
+    $('pressureStreakMain').textContent = `BREAK x${PRESSURE.successStreak}`;
+    $('pressureStreakBonus').textContent = bonus > 0 ? `SURVIVAL BONUS +${bonus}%` : 'SURVIVAL BONUS LOCKED';
+  }
+}
+
+function pressureHeartbeat(ms) {
+  if(PRESSURE.heartbeat) clearInterval(PRESSURE.heartbeat);
+  PRESSURE.heartbeat = setInterval(() => {
+    if(!gameRunning || PRESSURE.phase === 'idle') return;
+    if(gameSettings.sfxOn) playPunch();
+  }, ms);
+}
+
+function pressureMuffleAudio(scale) {
+  if(!_fightBgmCurrent) return;
+  if(PRESSURE.prePressureMusicVolume === null) PRESSURE.prePressureMusicVolume = _fightBgmCurrent.volume;
+  _fightBgmCurrent.volume = Math.max(0, PRESSURE.prePressureMusicVolume * scale);
+}
+
+function pressureRestoreAudio() {
+  if(_fightBgmCurrent && PRESSURE.prePressureMusicVolume !== null) {
+    _fightBgmCurrent.volume = PRESSURE.prePressureMusicVolume;
+  }
+  PRESSURE.prePressureMusicVolume = null;
+}
+
+function pressureIsBreak() { return PRESSURE.phase === 'break'; }
+
+
 // ══════════════════════════════════════════
 // TIMER
 // ══════════════════════════════════════════
@@ -5997,7 +6492,8 @@ const GOD_TIME_RATE = [1.0, 0.75, 0.55, 0.35];
 function startTimer() {
   clearInterval(timerInterval);
   timerInterval=setInterval(()=>{
-    const rate = GOD_TIME_RATE[godLevel] || 1.0;
+    pressureUpdate(50);
+    const rate = PRESSURE.phase !== 'idle' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0);
     timeLeft -= 0.05 * rate;
     if(timeLeft<=0){timeLeft=0;endGame();}
     renderTimer();
@@ -6009,13 +6505,16 @@ function renderTimer() {
   t.innerHTML=`${Math.floor(timeLeft)}<span style="font-size:16px">.${String(ms).padStart(2,'0')}</span>`;
   t.classList.toggle('urgent', timeLeft <= 10);
 }
-function endGame() {
+function endGame(opts = {}) {
+  const gameOver = !!(opts && opts.gameOver);
   // OSIRIS: extend time once
-  if(csOnTimeUp()) {
+  if(!gameOver && csOnTimeUp()) {
     startTimer();
     return;
   }
   INPUT.stop();
+  pressureClearTimers();
+  pressureHide();
   stopFightBGM();
   clearInterval(timerInterval);
   clearTimeout(godTimeout);
@@ -6052,8 +6551,12 @@ function endGame() {
   _el.bossBar.style.display='none';
   $('wpCounter').style.display='none';
   $('lodCardDisplay').style.display='none';
+  $('rageMeter').classList.remove('show');
+  $('pressureStreak').classList.remove('show');
 
   function _showResultScreen() {
+    const h2 = $('resultScreen').querySelector('h2');
+    if(h2) h2.textContent = gameOver ? 'GAME OVER' : '— BATTLE RESULT —';
     $('res-score').textContent = formatNum(score);
     $('coinsEarned').textContent = '+' + roundCoins + ' ZENY';
     $('res-hs-num').textContent = formatNum(save.stats.highScore);
@@ -6128,6 +6631,8 @@ const INPUT = (() => {
   function acceptInput(e) {
     if(!gameRunning) return;
     const now = Date.now();
+    PRESSURE.lastAfkAt = now;
+    if(pressureIsBreak()) return;
 
     // lift bot penalty if expired
     if(botPenalty && now > botPenaltyUntil) botPenalty = false;
@@ -7364,9 +7869,10 @@ const OCA_DROP_RATES = [
 
 function rollOcaDrop() {
   const r = Math.random();
-  if (r < 0.0001) return 'elite';
-  if (r < 0.001)  return 'premium';
-  if (r < 0.05)   return 'standard';
+  const boost = typeof pressureLootChanceMultiplier === 'function' ? pressureLootChanceMultiplier() : 1;
+  if (r < 0.0001 * boost) return 'elite';
+  if (r < 0.001  * boost) return 'premium';
+  if (r < 0.05   * boost) return 'standard';
   return null;
 }
 
