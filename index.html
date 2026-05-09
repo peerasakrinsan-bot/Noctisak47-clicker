@@ -1658,6 +1658,63 @@
 
   @keyframes flash { to{opacity:0.5;} }
 
+
+
+  /* ══ COMBAT PRESSURE SYSTEM (V1) ══ */
+  #pressureVignette {
+    position:absolute; inset:0; z-index:34; pointer-events:none; opacity:0;
+    background:radial-gradient(circle at 50% 42%, rgba(255,0,0,0) 34%, rgba(120,0,0,0.18) 62%, rgba(45,0,0,0.72) 100%);
+    mix-blend-mode:screen; transition:opacity 0.12s linear;
+  }
+  #pressureVignette.heartbeat { animation:pressureHeartbeat 0.55s ease-in-out infinite alternate; }
+  @keyframes pressureHeartbeat { from{filter:saturate(1); transform:scale(1);} to{filter:saturate(1.7); transform:scale(1.012);} }
+  #pressureUI {
+    position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); z-index:55;
+    width:min(420px,88vw); pointer-events:none; display:none; text-align:center;
+    font-family:'Oswald',sans-serif; text-transform:uppercase;
+  }
+  #pressureUI.active { display:block; }
+  #pressureWarning {
+    font-size:clamp(40px,16vw,82px); line-height:0.9; letter-spacing:5px;
+    color:#ff2233; text-shadow:0 0 10px #fff,0 0 24px #ff0000,0 0 50px #550000;
+    animation:pressureWarnPulse 0.22s ease-in-out infinite alternate;
+  }
+  #pressureSub {
+    margin-top:8px; font-size:clamp(11px,3.4vw,16px); letter-spacing:4px; color:#ffcc00;
+    text-shadow:0 0 18px #ff4400; min-height:18px;
+  }
+  #breakBarWrap {
+    margin:16px auto 0; width:100%; height:22px; border:2px solid #ff2233; border-radius:999px;
+    background:rgba(0,0,0,0.78); overflow:hidden; box-shadow:0 0 18px rgba(255,34,51,0.75), inset 0 0 10px #000;
+  }
+  #breakBarFill {
+    width:0%; height:100%; border-radius:999px;
+    background:linear-gradient(90deg,#ff2233,#ffcc00,#ffffff);
+    box-shadow:0 0 18px #ffcc00; transition:width 0.045s linear;
+  }
+  #rageMeter {
+    position:absolute; left:50%; top:112px; transform:translateX(-50%); z-index:13; pointer-events:none;
+    width:min(250px,56vw); display:none; font-family:'Oswald',sans-serif;
+  }
+  #rageMeter.visible { display:block; }
+  #rageLabel {
+    font-size:10px; letter-spacing:4px; color:#ff7777; text-align:center; text-shadow:0 0 8px #ff0000; margin-bottom:3px;
+  }
+  #rageBar { height:6px; border-radius:999px; background:rgba(0,0,0,0.65); border:1px solid rgba(255,34,51,0.55); overflow:hidden; }
+  #rageFill { height:100%; width:0%; background:linear-gradient(90deg,#661111,#ff2233,#ffcc00); box-shadow:0 0 14px #ff2233; transition:width 0.12s linear; }
+  #gameRoot.pressure-break #fighter { filter:drop-shadow(0 0 18px #ff0000) saturate(1.35); transform:scale(1.04); }
+  #gameRoot.pressure-high { filter:saturate(1.12) contrast(1.06); }
+  #gameRoot.last-chance { animation:lastChanceDistort 0.14s infinite alternate; }
+  #gameRoot.last-chance #fighter { transform:scale(1.10); filter:drop-shadow(0 0 28px #ff0000) saturate(1.8); }
+  @keyframes pressureWarnPulse { from{transform:scale(0.96); opacity:0.82;} to{transform:scale(1.04); opacity:1;} }
+  @keyframes lastChanceDistort { from{filter:saturate(1.4) contrast(1.1) hue-rotate(-3deg);} to{filter:saturate(2) contrast(1.28) hue-rotate(3deg);} }
+  .pressure-impact-text {
+    position:absolute; left:50%; top:36%; transform:translate(-50%,-50%); z-index:58; pointer-events:none;
+    font-family:'Oswald',sans-serif; text-align:center; letter-spacing:4px; text-transform:uppercase;
+    animation:pressureImpactText 0.9s forwards; text-shadow:0 0 24px currentColor,0 0 45px #000;
+  }
+  @keyframes pressureImpactText { 0%{opacity:0; transform:translate(-50%,-50%) scale(0.75);} 14%{opacity:1; transform:translate(-50%,-50%) scale(1.14);} 72%{opacity:1;} 100%{opacity:0; transform:translate(-50%,-62%) scale(0.92);} }
+
   /* ══ COUNTDOWN ══ */
   #countdownOverlay {
     position:absolute; top:0; left:0; right:0; bottom:0; z-index:200;
@@ -2069,6 +2126,17 @@
 <div id="screenFlash"></div>
 <div id="annihilationFlash"></div>
 <div id="bombFlash"></div>
+
+<div id="pressureVignette"></div>
+<div id="rageMeter">
+  <div id="rageLabel">RAGE <span id="rageNum">0</span>%</div>
+  <div id="rageBar"><div id="rageFill"></div></div>
+</div>
+<div id="pressureUI">
+  <div id="pressureWarning">BREAK!</div>
+  <div id="pressureSub">SPAM TAP — STOP THE BOSS</div>
+  <div id="breakBarWrap"><div id="breakBarFill"></div></div>
+</div>
 
 <!-- WEAK POINT COUNTER -->
 <div id="wpCounter">
@@ -3962,6 +4030,27 @@ let ko, score, maxCombo, annihilationCount, roundCoins;
 // Timer & loop
 let gameRunning, gamePaused = false, timerInterval, timeLeft, godSecondsLeft, waveKO;
 
+// Combat Pressure system (V1: BREAK / RAGE / LAST CHANCE)
+let bossPressure = {
+  active:false,
+  type:null,
+  rage:0,
+  breakNeed:0,
+  breakProgress:0,
+  until:0,
+  nextAt:0,
+  bonusUntil:0,
+  lastChance:false,
+  headshot:{
+    active:false,
+    start:0,
+    end:0,
+    perfectAt:0
+  },
+  stunnedUntil:0,
+  lastAfkAt:0
+};
+
 // Weak Point system
 let wpActive = false, wpTimeout = null, wpSchedule = null;
 let wpCollected = 0, wpRound = 1, wpCompletions = 0, wp5FirstDone = false;
@@ -4000,6 +4089,237 @@ function initState() {
   updateUI();
   rebuildStatCache();
   _resetHpTier();
+  resetBossPressure();
+}
+
+
+function resetBossPressure() {
+  bossPressure = {
+    active:false,
+    type:null,
+    rage:0,
+    breakNeed:0,
+    breakProgress:0,
+    until:0,
+    nextAt:0,
+    bonusUntil:0,
+    lastChance:false,
+    headshot:{ active:false, start:0, end:0, perfectAt:0 },
+    stunnedUntil:0,
+    lastAfkAt:Date.now()
+  };
+  renderBossPressureUI();
+}
+
+function startBossPressureCycle() {
+  const now = Date.now();
+  bossPressure.active = false;
+  bossPressure.type = null;
+  bossPressure.lastChance = false;
+  bossPressure.breakProgress = 0;
+  bossPressure.until = 0;
+  bossPressure.nextAt = now + getPressureDelay();
+  bossPressure.lastAfkAt = now;
+  renderBossPressureUI();
+}
+
+function getPressureDelay() {
+  let delay = 8000 + Math.random() * 7000;
+  if(window._csState && window._csState.cs_pressureDelay) delay *= (1 + window._csState.cs_pressureDelay);
+  return delay;
+}
+
+function isAkSuppressionActive() {
+  return godLevel > 0 || wpActive || wpCollected > 0;
+}
+
+function getBreakNeed(lastChance=false) {
+  let need = lastChance ? 22 : 16;
+  if(isAkSuppressionActive()) need *= 0.60;
+  if(window._csState && window._csState.cs_breakPower) need *= (1 - Math.min(0.45, window._csState.cs_breakPower));
+  if(window._csState && window._csState.cs_akSuppression && isAkSuppressionActive()) need *= (1 - Math.min(0.35, window._csState.cs_akSuppression));
+  return Math.max(lastChance ? 10 : 7, Math.round(need));
+}
+
+function triggerBossBreakEvent(now=Date.now(), lastChance=false) {
+  if(!gameRunning || gamePaused) return;
+  bossPressure.active = true;
+  bossPressure.type = 'BREAK';
+  bossPressure.lastChance = !!lastChance;
+  bossPressure.breakProgress = 0;
+  bossPressure.breakNeed = getBreakNeed(lastChance);
+  bossPressure.until = now + (lastChance ? 3000 : 2600);
+  bossPressure.nextAt = 0;
+  const root = $('gameRoot');
+  root.classList.add('pressure-break');
+  root.classList.toggle('last-chance', !!lastChance);
+  if(lastChance) {
+    showPressureImpact('LAST CHANCE', 'BREAK OR DIE', '#ff2233');
+    triggerFlash('flash-god3');
+    if(navigator.vibrate) navigator.vibrate([120,50,120,50,220]);
+  } else {
+    showPressureImpact('BREAK!', 'BOSS CHARGING', '#ff2233');
+    triggerFlash('flash-boss');
+    if(navigator.vibrate) navigator.vibrate([80,40,80]);
+  }
+  renderBossPressureUI();
+}
+
+function handleBossPressureInput(e, now) {
+  bossPressure.lastAfkAt = now;
+  if(!bossPressure.active || bossPressure.type !== 'BREAK') return;
+  let gain = 1;
+  if(isAkSuppressionActive()) gain *= 2;
+  if(window._csState && window._csState.cs_breakPower) gain *= (1 + window._csState.cs_breakPower);
+  if(window._csState && window._csState.cs_akSuppression && isAkSuppressionActive()) gain *= (1 + window._csState.cs_akSuppression);
+  bossPressure.breakProgress = Math.min(bossPressure.breakNeed, bossPressure.breakProgress + gain);
+  if(isAkSuppressionActive() && Math.random() < 0.28) showPressureImpact('SUPPRESSION FIRE', 'BREAK +' + Math.round(gain * 10) / 10, '#ffcc00');
+  renderBossPressureUI();
+  if(bossPressure.breakProgress >= bossPressure.breakNeed) completeBossBreak(now);
+}
+
+function completeBossBreak(now=Date.now()) {
+  const wasLastChance = bossPressure.lastChance;
+  bossPressure.active = false;
+  bossPressure.type = null;
+  bossPressure.breakProgress = 0;
+  bossPressure.until = 0;
+  bossPressure.bonusUntil = now + 2000;
+  bossPressure.stunnedUntil = now + 2000;
+  bossPressure.lastChance = false;
+  bossPressure.nextAt = now + getPressureDelay();
+  if(wasLastChance) {
+    bossPressure.rage = 70;
+    combo = 1;
+  } else {
+    addBossRage(-8);
+    const cur = parseFloat(_el.godFill.style.width)||0;
+    if(godLevel === 0 && (!window._csState || (!window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806))) {
+      _el.godFill.style.width = Math.min(100, cur + 12) + '%';
+      if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod) activateGodLevel(1);
+    }
+  }
+  $('gameRoot').classList.remove('pressure-break','last-chance');
+  showPressureImpact('BOSS BROKEN', 'DAMAGE x2.5', '#ffcc00');
+  triggerFlash('flash-god3');
+  if(navigator.vibrate) navigator.vibrate([180,45,180]);
+  renderBossPressureUI();
+}
+
+function failBossBreak(now=Date.now()) {
+  const wasLastChance = bossPressure.lastChance;
+  bossPressure.active = false;
+  bossPressure.type = null;
+  bossPressure.breakProgress = 0;
+  bossPressure.until = 0;
+  bossPressure.lastChance = false;
+  $('gameRoot').classList.remove('pressure-break','last-chance');
+  if(wasLastChance) {
+    renderBossPressureUI();
+    failRunGame();
+    return;
+  }
+  combo = 1;
+  addBossRage(24);
+  bossPressure.nextAt = now + getPressureDelay();
+  showPressureImpact('MOMENTUM BREAK', 'RAGE +' + 24, '#ff2233');
+  triggerFlash('flash-boss');
+  if(navigator.vibrate) navigator.vibrate([220]);
+  renderBossPressureUI();
+}
+
+function addBossRage(amount) {
+  const resist = window._csState && window._csState.cs_rageResist ? window._csState.cs_rageResist : 0;
+  const finalAmount = amount > 0 ? amount * (1 - Math.min(0.60, resist)) : amount;
+  bossPressure.rage = Math.max(0, Math.min(100, bossPressure.rage + finalAmount));
+  if(bossPressure.rage >= 100 && !bossPressure.lastChance) {
+    bossPressure.rage = 100;
+    triggerBossBreakEvent(Date.now(), true);
+  }
+  renderBossPressureUI();
+}
+
+function tickBossPressure(now=Date.now()) {
+  if(!gameRunning || gamePaused) return;
+  if(bossPressure.active && now >= bossPressure.until) failBossBreak(now);
+  if(!bossPressure.active && !bossPressure.lastChance && bossPressure.nextAt && now >= bossPressure.nextAt && now >= bossPressure.stunnedUntil) {
+    triggerBossBreakEvent(now, false);
+  }
+  if(!bossPressure.active && now - (bossPressure.lastAfkAt || now) > 4200) {
+    bossPressure.lastAfkAt = now;
+    addBossRage(6);
+    if(combo > 1) combo = Math.max(1, Math.floor(combo * 0.75));
+  }
+  renderBossPressureUI();
+}
+
+function renderBossPressureUI() {
+  const rageMeter = $('rageMeter');
+  const rageFill = $('rageFill');
+  const rageNum = $('rageNum');
+  const vignette = $('pressureVignette');
+  const ui = $('pressureUI');
+  const warn = $('pressureWarning');
+  const sub = $('pressureSub');
+  const fill = $('breakBarFill');
+  if(rageMeter) rageMeter.classList.toggle('visible', gameRunning && !gamePaused && bossPressure.rage > 0);
+  if(rageFill) rageFill.style.width = Math.round(bossPressure.rage) + '%';
+  if(rageNum) rageNum.textContent = Math.round(bossPressure.rage);
+  if(vignette) {
+    const base = bossPressure.lastChance ? 0.92 : Math.min(0.72, bossPressure.rage / 135);
+    vignette.style.opacity = gameRunning ? base : 0;
+    vignette.classList.toggle('heartbeat', bossPressure.rage >= 70 || bossPressure.lastChance);
+  }
+  $('gameRoot').classList.toggle('pressure-high', gameRunning && bossPressure.rage >= 70);
+  if(ui) ui.classList.toggle('active', !!bossPressure.active);
+  if(warn) warn.textContent = bossPressure.lastChance ? 'LAST CHANCE' : 'BREAK!';
+  if(sub) sub.textContent = bossPressure.lastChance ? 'BREAK OR DIE — 3 SEC' : (isAkSuppressionActive() ? 'SUPPRESSION FIRE — BREAK BOOST' : 'SPAM TAP — STOP THE BOSS');
+  if(fill) fill.style.width = bossPressure.breakNeed ? Math.min(100, (bossPressure.breakProgress / bossPressure.breakNeed) * 100) + '%' : '0%';
+}
+
+function showPressureImpact(main, sub, color) {
+  const el = document.createElement('div');
+  el.className = 'pressure-impact-text';
+  el.style.color = color || '#ff2233';
+  el.innerHTML = '<div style="font-size:clamp(24px,8vw,52px);line-height:0.95;">'+main+'</div>' +
+                 '<div style="font-size:clamp(10px,3vw,15px);color:#fff;margin-top:7px;">'+(sub||'')+'</div>';
+  document.getElementById('gameRoot').appendChild(el);
+  setTimeout(()=>el.remove(), 950);
+}
+
+function getBossPressureDamageMult() {
+  return Date.now() < bossPressure.bonusUntil ? 2.5 : 1;
+}
+
+function failRunGame() {
+  INPUT.stop();
+  stopFightBGM();
+  clearInterval(timerInterval);
+  clearTimeout(godTimeout);
+  clearInterval(godInterval);
+  clearTimeout(wpSchedule); clearTimeout(wpTimeout);
+  wpActive=false; $('weakPoint').style.display='none';
+  bossPressure.active=false; $('gameRoot').classList.remove('pressure-break','last-chance','pressure-high');
+  gameRunning=false;
+  renderBossPressureUI();
+  gamePaused=false;
+  _csStopAllTimers();
+  roundCoins = 0;
+  save.savedCards = null;
+  save.quitPenalty = false;
+  doSave();
+  ['topUI','fighter','tapZone','streakLabel','wpCounter','lodCardDisplay'].forEach(id => { const el=$(id); if(el) el.style.display='none'; });
+  _el.godLevelWrap.style.display='none';
+  _el.bossBar.style.display='none';
+  $('res-score').textContent = 'RUN FAILED';
+  $('coinsEarned').textContent = '+0 ZENY';
+  $('res-hs-num').textContent = formatNum(save.stats.highScore || 0);
+  $('newRecordBanner').style.display = 'none';
+  $('res-highscore').style.color = '#555';
+  $('resultScreen').style.display = 'flex';
+  showPressureImpact('RUN FAILED', 'NO REWARD', '#ff2233');
+  renderBossPressureUI();
+  updateShopCoinUI(); _syncSoundBtns();
 }
 
 function scheduleWeakPoint() {
@@ -4085,6 +4405,7 @@ function hideWeakPoint(hit=false) {
       wpCollected = 0;
       updateWpCounter();
       showWpMissPenalty();
+      addBossRage(8);
     }
     scheduleWeakPoint();
   }
@@ -4390,8 +4711,8 @@ const CARD_POOL = [
     apply(s){ s.cs_critDmgBonus = (s.cs_critDmgBonus||0) + 0.15; }
   },
   { id:'fa',      name:'FA-BRRR CARD',         img:'cards/fa-brrr.png',       rarity:'standard',
-    effect:'Combo decay <strong>ช้าลง 20%</strong>', tradeoff:null,
-    apply(s){ s.cs_comboDecaySlow = (s.cs_comboDecaySlow||0) + 0.20; }
+    effect:'Combo decay <strong>ช้าลง 20%</strong> + Rage gain <strong>-8%</strong>', tradeoff:null,
+    apply(s){ s.cs_comboDecaySlow = (s.cs_comboDecaySlow||0) + 0.20; s.cs_rageResist = (s.cs_rageResist||0) + 0.08; }
   },
   { id:'co',     name:'CONBRO CARD',        img:'cards/conbro.png',      rarity:'standard',
     effect:'<strong>5%</strong> โอกาส combo ไม่ reset เมื่อหยุดตี', tradeoff:null,
@@ -4442,12 +4763,12 @@ const CARD_POOL = [
     apply(s){ s.cs_doubleClick = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
-    effect:'กด AK47 = ดาเมจ <strong>x3</strong> + เก็บครบชุด = เวลา <strong>+1.5 วิ</strong>', tradeoff:'AK47 spawn ช้าลง <strong>1.5 เท่า</strong>',
-    apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; }
+    effect:'กด AK47 = ดาเมจ <strong>x3</strong> + BREAK power <strong>+15%</strong> + เก็บครบชุด = เวลา <strong>+1.5 วิ</strong>', tradeoff:'AK47 spawn ช้าลง <strong>1.5 เท่า</strong>',
+    apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.15; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
-    effect:'กด AK47 = OD charge <strong>+20%</strong> | ถ้า OD active อยู่แล้ว = OD timer <strong>+1 วิ</strong> แทน', tradeoff:null,
-    apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.20; }
+    effect:'กด AK47 = OD charge <strong>+20%</strong> | BREAK pressure delay <strong>+10%</strong> | ถ้า OD active อยู่แล้ว = OD timer <strong>+1 วิ</strong> แทน', tradeoff:null,
+    apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.20; s.cs_pressureDelay = (s.cs_pressureDelay||0) + 0.10; }
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
     effect:'Combo ≥ 30 : ดาเมจ <strong>+25%</strong> + ทุก KO = score <strong>+300</strong>', tradeoff:'coin จาก KO <strong>-30%</strong>',
@@ -4464,8 +4785,8 @@ const CARD_POOL = [
 
   // ── VOID (MVP) ──
   { id:'th',   name:'THANABROS CARD',      img:'cards/thanabros.png',    rarity:'mythic',
-    effect:'AK47 ดาเมจ <strong>x2.5</strong> + เก็บครบชุด = OD charge เต็มทันที', tradeoff:'Combo reset ทุก 10 วินาที',
-    apply(s){ s.cs_thanatos = true; }
+    effect:'AK47 ดาเมจ <strong>x2.5</strong> + Suppression BREAK <strong>+25%</strong> + เก็บครบชุด = OD charge เต็มทันที', tradeoff:'Combo reset ทุก 10 วินาที',
+    apply(s){ s.cs_thanatos = true; s.cs_akSuppression = (s.cs_akSuppression||0) + 0.25; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
     effect:'ทุกคลิกเป็น <strong>triple hit</strong> + กด AK47 แล้ว spawn ใหม่ทันที + เก็บครบชุด = ดาเมจ <strong>+5%</strong> สะสม (max +25%)', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
@@ -5815,7 +6136,7 @@ function startGame() {
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
       else _showActiveCard(activeCard);
       $('tapZone').style.display='block';
-      scheduleWeakPoint(); startTimer(); playFightBGM(); INPUT.start();
+      scheduleWeakPoint(); startTimer(); playFightBGM(); INPUT.start(); startBossPressureCycle();
     });
   });
 }
@@ -5856,7 +6177,7 @@ function retryGame() {
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
       else _showActiveCard(activeCard); // แสดงการ์ดที่เลือก (non-LOD)
       $('tapZone').style.display='block';
-      scheduleWeakPoint(); startTimer(); playFightBGM(); INPUT.start();
+      scheduleWeakPoint(); startTimer(); playFightBGM(); INPUT.start(); startBossPressureCycle();
     });
   });
 }
@@ -5920,6 +6241,9 @@ function pauseGame() {
   clearTimeout(wpTimeout);
   $('weakPoint').style.display = 'none';
   wpActive = false;
+  bossPressure.active = false;
+  $('gameRoot').classList.remove('pressure-break','last-chance','pressure-high');
+  renderBossPressureUI();
   if(_fightBgmCurrent && !_fightBgmCurrent.paused) _fightBgmCurrent.pause();
 
   // แสดงการ์ดที่เลือกในรอบนี้
@@ -5955,6 +6279,7 @@ function resumeGame() {
   }
   startTimer();
   scheduleWeakPoint();
+  startBossPressureCycle();
   if(godLevel > 0 && godSecondsLeft > 0) {
     clearInterval(godInterval);
     godInterval = setInterval(()=>{
@@ -5981,6 +6306,9 @@ function pauseGoMainMenu() {
   clearTimeout(wpTimeout);
   _csStopAllTimers();
   wpActive = false;
+  bossPressure.active = false;
+  $('gameRoot').classList.remove('pressure-break','last-chance','pressure-high');
+  renderBossPressureUI();
   $('weakPoint').style.display = 'none';
   $('pauseScreen').style.display = 'none';
   $('pauseBtn').textContent = '⏸';
@@ -5999,6 +6327,7 @@ function startTimer() {
   timerInterval=setInterval(()=>{
     const rate = GOD_TIME_RATE[godLevel] || 1.0;
     timeLeft -= 0.05 * rate;
+    tickBossPressure(Date.now());
     if(timeLeft<=0){timeLeft=0;endGame();}
     renderTimer();
   },50);
@@ -6022,7 +6351,9 @@ function endGame() {
   clearInterval(godInterval);
   clearTimeout(wpSchedule); clearTimeout(wpTimeout);
   wpActive=false; $('weakPoint').style.display='none';
+  bossPressure.active=false; $('gameRoot').classList.remove('pressure-break','last-chance','pressure-high');
   gameRunning=false;
+  renderBossPressureUI();
   _csStopAllTimers();
   // Hunter Fly end bonus
   const endBonus = csGetEndBonusCoins();
@@ -6289,6 +6620,7 @@ wpEl.addEventListener('click', e => {
 
 // ── processHit: the actual game logic (was hit()) ──
 function processHit(e, now) {
+  handleBossPressureInput(e, now);
   const gap = now - lastHitTime;
 
   // ── WEAK POINT CHECK (ทำก่อน combo เพื่อไม่ให้ WP hit รีเซ็ตคอมโบ) ──
@@ -6309,7 +6641,7 @@ function processHit(e, now) {
     (window._csState.cs_comboNoReset && Math.random() < window._csState.cs_comboNoReset)
   );
   if(isWpHit || gap < _comboWindow) combo = Math.min(combo + _comboInc, 47);
-  else if(!_suppressReset) combo = 1;
+  else if(!_suppressReset) combo = bossPressure.rage >= 70 ? Math.max(1, Math.floor(combo * 0.65)) : 1;
   // Golden Bug: extra +1 combo per click (on top of normal increment)
   if(window._csState && window._csState.cs_goldenbug && (isWpHit || gap < _comboWindow)) {
     combo = Math.min(combo + 1, 47);
@@ -6427,6 +6759,7 @@ function processHit(e, now) {
 
   // card damage mods
   dmg = csApplyDmgMod(dmg, godLevel>0);
+  dmg = Math.round(dmg * getBossPressureDamageMult());
 
   // moon shard
   const doubleHit=_sc.dblChance&&Math.random()<_sc.dblChance;
