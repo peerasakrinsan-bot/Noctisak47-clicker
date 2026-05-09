@@ -1259,9 +1259,10 @@
     top:50%; left:50%;
     transform:translate(-50%, -40%);
     width:min(546px,100vw); z-index:5; pointer-events:none;
-    display:none;
+    display:none; isolation:isolate;
   }
   #boxer {
+    position:relative; z-index:2;
     width:100%;
     height:min(780px,100vw);
     display:block;
@@ -1271,7 +1272,7 @@
     -webkit-transform:translateZ(0); transform:translateZ(0);
     image-rendering:auto;
   }
-  #gun { position:absolute; width:65%; left:55%; top:62%; transform:translate(-50%,-50%) rotate(-10deg); display:none; will-change:transform; }
+  #gun { position:absolute; z-index:3; width:65%; left:55%; top:62%; transform:translate(-50%,-50%) rotate(-10deg); display:none; will-change:transform; }
 
   /* ── TOEI ENIGMA AURA ── */
   #fighter.toei-enigma-aura::before {
@@ -1310,6 +1311,120 @@
   @keyframes enigmaAura {
     0%,100% { opacity:0.6; transform:translate(-50%,-45%) scale(1); }
     50%     { opacity:1;   transform:translate(-50%,-45%) scale(1.08); }
+  }
+
+  /* ── XUANG BLOOD AURA ── */
+  #xuangAura {
+    position:absolute;
+    inset:8% 6% 3%;
+    z-index:1;
+    pointer-events:none;
+    display:none;
+    opacity:0;
+    mix-blend-mode:screen;
+    transform:translateZ(0);
+    will-change:opacity,transform;
+  }
+  #fighter.xuang-blood-aura #xuangAura { display:block; opacity:1; }
+  #fighter.xuang-aura-hit #xuangAura { filter:drop-shadow(0 0 18px rgba(255,0,34,0.72)); }
+  #xuangAura::before,
+  #xuangAura::after,
+  .xuang-aura-core,
+  .xuang-aura-smoke,
+  .xuang-aura-ripple,
+  .xuang-particle {
+    content:'';
+    position:absolute;
+    left:50%; top:52%;
+    pointer-events:none;
+    transform:translate(-50%,-50%);
+  }
+  #xuangAura::before {
+    width:76%; height:74%; border-radius:50%;
+    background:
+      radial-gradient(ellipse at 50% 56%, rgba(255,20,35,0.46) 0%, rgba(120,0,10,0.24) 38%, rgba(5,0,0,0) 72%),
+      radial-gradient(ellipse at 50% 86%, rgba(0,0,0,0.54) 0%, rgba(120,0,12,0.24) 48%, transparent 76%);
+    filter:blur(18px) saturate(1.25);
+    animation:xuangCrimsonPulse 2.9s ease-in-out infinite;
+  }
+  #xuangAura::after {
+    width:88%; height:92%; border-radius:48% 52% 42% 58%;
+    background:conic-gradient(from 20deg, transparent 0 16%, rgba(140,0,18,0.22) 22%, transparent 34%, rgba(10,0,0,0.46) 46%, rgba(190,0,28,0.20) 58%, transparent 76%, rgba(40,0,0,0.36) 88%, transparent 100%);
+    filter:blur(24px);
+    opacity:0.74;
+    animation:xuangSmokeRoll 6.8s linear infinite;
+  }
+  .xuang-aura-core {
+    width:46%; height:72%; border-radius:50%;
+    background:radial-gradient(ellipse at 50% 50%, rgba(255,0,36,0.28) 0%, rgba(80,0,0,0.18) 42%, transparent 74%);
+    box-shadow:0 0 46px rgba(210,0,28,0.45), 0 24px 70px rgba(0,0,0,0.58);
+    filter:blur(12px);
+    animation:xuangCoreBreath 2.2s ease-in-out infinite;
+  }
+  .xuang-aura-smoke {
+    width:74%; height:78%; border-radius:44% 56% 58% 42%;
+    background:
+      radial-gradient(circle at 24% 60%, rgba(8,0,0,0.56) 0 14%, transparent 30%),
+      radial-gradient(circle at 72% 42%, rgba(95,0,12,0.34) 0 12%, transparent 30%),
+      radial-gradient(circle at 44% 24%, rgba(18,0,0,0.44) 0 16%, transparent 36%);
+    filter:blur(18px);
+    opacity:0.8;
+    animation:xuangSmokeDrift 5.6s ease-in-out infinite;
+  }
+  .xuang-aura-ripple {
+    top:88%; width:52%; height:13%; border-radius:50%;
+    background:radial-gradient(ellipse at center, rgba(255,0,36,0.42), rgba(50,0,0,0.24) 46%, transparent 72%);
+    filter:blur(10px);
+    animation:xuangGroundRipple 2.6s ease-in-out infinite;
+  }
+  .xuang-particle {
+    width:5px; height:5px; border-radius:50%;
+    background:rgba(255,30,48,0.85);
+    box-shadow:0 0 10px rgba(255,0,28,0.9);
+    opacity:0;
+    animation:xuangParticleRise 2.7s ease-in infinite;
+  }
+  .xuang-particle.p1 { left:31%; top:76%; animation-delay:0s; }
+  .xuang-particle.p2 { left:66%; top:80%; width:4px; height:4px; animation-delay:.45s; }
+  .xuang-particle.p3 { left:44%; top:84%; animation-delay:.9s; }
+  .xuang-particle.p4 { left:57%; top:72%; width:3px; height:3px; animation-delay:1.35s; }
+  .xuang-particle.p5 { left:24%; top:68%; width:3px; height:3px; animation-delay:1.8s; }
+  .xuang-particle.p6 { left:74%; top:70%; width:4px; height:4px; animation-delay:2.25s; }
+  #fighter.xuang-aura-hit #xuangAura::before,
+  #fighter.xuang-aura-hit .xuang-aura-core {
+    filter:blur(14px) saturate(1.7);
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1.12);
+  }
+  #fighter.xuang-aura-hit .xuang-aura-ripple {
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1.22,1.08);
+  }
+  @keyframes xuangCrimsonPulse {
+    0%,100% { opacity:.58; transform:translate(-50%,-50%) scale(.96); }
+    50% { opacity:1; transform:translate(-50%,-51%) scale(1.08); }
+  }
+  @keyframes xuangSmokeRoll {
+    0% { transform:translate(-50%,-50%) rotate(0deg) scale(1); }
+    50% { transform:translate(-50%,-52%) rotate(180deg) scale(1.06); }
+    100% { transform:translate(-50%,-50%) rotate(360deg) scale(1); }
+  }
+  @keyframes xuangCoreBreath {
+    0%,100% { opacity:.54; transform:translate(-50%,-50%) scale(.96); }
+    50% { opacity:.92; transform:translate(-50%,-52%) scale(1.07); }
+  }
+  @keyframes xuangSmokeDrift {
+    0%,100% { transform:translate(-51%,-49%) scale(1) skewX(0deg); opacity:.58; }
+    50% { transform:translate(-48%,-54%) scale(1.08) skewX(-4deg); opacity:.86; }
+  }
+  @keyframes xuangGroundRipple {
+    0%,100% { opacity:.42; transform:translate(-50%,-50%) scale(.88, .9); }
+    50% { opacity:.88; transform:translate(-50%,-50%) scale(1.18, 1.05); }
+  }
+  @keyframes xuangParticleRise {
+    0% { opacity:0; transform:translate(-50%,0) scale(.55); }
+    18% { opacity:.88; }
+    100% { opacity:0; transform:translate(-50%,-135px) scale(1.15); }
   }
 
   .recoil { animation:recoilAnim 0.12s ease-out; }
@@ -2262,6 +2377,13 @@
 </div>
 
 <div id="fighter">
+  <div id="xuangAura" aria-hidden="true">
+    <span class="xuang-aura-core"></span>
+    <span class="xuang-aura-smoke"></span>
+    <span class="xuang-aura-ripple"></span>
+    <span class="xuang-particle p1"></span><span class="xuang-particle p2"></span><span class="xuang-particle p3"></span>
+    <span class="xuang-particle p4"></span><span class="xuang-particle p5"></span><span class="xuang-particle p6"></span>
+  </div>
   <canvas id="boxer"></canvas>
   <img src="ak47.png" id="gun" alt="gun" decoding="async">
 </div>
@@ -3325,9 +3447,10 @@ const BOSS_SKINS = [
   {
     id: 'xuang',
     name: 'XUANG',
-    sub: '1,500 ZENY',
+    sub: '3,000 ZENY',
     icon: 'xuang_icon.webp',
-    cost: 1500,
+    auraClass: 'xuang-blood-aura',
+    cost: 3000,
     files: {
       idle: 'xuang.png',
       hits: ['xuang_hit1.png','xuang_hit2.png','xuang_hit3.png','xuang_hit4.png'],
@@ -3382,6 +3505,7 @@ const BOSS_SKINS = [
     name: 'TOEI (ENIGMA)',
     sub: '10,000 ZENY',
     icon: 'toei_icon.webp',
+    auraClass: 'toei-enigma-aura',
     cost: 10000,
     files: {
       idle: 'toei.png',
@@ -3478,19 +3602,28 @@ function applySkin(id) {
   // preload ภาพ skin ที่เลือก ทันที
   const sk = BOSS_SKINS.find(s=>s.id===id);
   if(sk){ _preloadImg(sk.files.idle); sk.files.hits.forEach(_preloadImg); }
-  // apply/remove enigma aura
-  _applyEnigmaAura(id);
+  // apply/remove skin-specific aura
+  _applyBossSkinAura(id);
   renderBossShop();
 }
 
-function _applyEnigmaAura(skinId) {
+function _applyBossSkinAura(skinId) {
   const fighter = $('fighter');
   if(!fighter) return;
-  if(skinId === 'toei') {
-    fighter.classList.add('toei-enigma-aura');
-  } else {
-    fighter.classList.remove('toei-enigma-aura');
-  }
+  const auraClasses = BOSS_SKINS.map(s => s.auraClass).filter(Boolean);
+  if(auraClasses.length) fighter.classList.remove(...auraClasses);
+  clearTimeout(fighter._xuangAuraHitTimer);
+  fighter.classList.remove('xuang-aura-hit');
+  const skin = BOSS_SKINS.find(s => s.id === skinId);
+  if(skin && skin.auraClass) fighter.classList.add(skin.auraClass);
+}
+
+function _pulseBossSkinAura() {
+  const fighter = $('fighter');
+  if(!fighter || !fighter.classList.contains('xuang-blood-aura')) return;
+  fighter.classList.add('xuang-aura-hit');
+  clearTimeout(fighter._xuangAuraHitTimer);
+  fighter._xuangAuraHitTimer = setTimeout(() => fighter.classList.remove('xuang-aura-hit'), 180);
 }
 
 // ══════════════════════════════════════════
@@ -3689,7 +3822,7 @@ function initState() {
   const _sk = getActiveSkin();
   _preloadImg(_sk.files.idle); _sk.files.hits.forEach(_preloadImg);
   boxerSetImg(_sk.files.idle);
-  _applyEnigmaAura(_sk.id);
+  _applyBossSkinAura(_sk.id);
   _el.bossBar.style.display = 'none';
   _el.godLevelWrap.style.display = 'none';
   _el.bossPhaseTag.textContent = '';
@@ -5935,6 +6068,7 @@ function _flushTickVisuals() {
     boxer.classList.remove('boss-hit','boss-hit-god');
     requestAnimationFrame(()=>{ boxer.classList.add(_tv.bossHitCls); });
     setTimeout(()=>boxer.classList.remove('boss-hit','boss-hit-god'), _tv.hitDur > 200 ? 200 : 150);
+    _pulseBossSkinAura();
   }
 
   // boxer image swap — once per tick
