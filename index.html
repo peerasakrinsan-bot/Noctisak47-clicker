@@ -1702,12 +1702,12 @@
   }
   #rageBar { height:6px; border-radius:999px; background:rgba(0,0,0,0.65); border:1px solid rgba(255,34,51,0.55); overflow:hidden; }
   #rageFill { height:100%; width:0%; background:linear-gradient(90deg,#661111,#ff2233,#ffcc00); box-shadow:0 0 14px #ff2233; transition:width 0.12s linear; }
-  #gameRoot.pressure-break #fighter { filter:drop-shadow(0 0 18px #ff0000) saturate(1.35); transform:scale(1.04); }
+  #gameRoot.pressure-break #fighter { filter:drop-shadow(0 0 14px #ff0000) saturate(1.22); transform:translate(-50%, -40%) scale(1.035); transform-origin:center center; }
   #gameRoot.pressure-high { filter:saturate(1.12) contrast(1.06); }
-  #gameRoot.last-chance { animation:lastChanceDistort 0.14s infinite alternate; }
-  #gameRoot.last-chance #fighter { transform:scale(1.10); filter:drop-shadow(0 0 28px #ff0000) saturate(1.8); }
+  #gameRoot.last-chance { animation:lastChanceDistort 0.45s ease-in-out infinite alternate; }
+  #gameRoot.last-chance #fighter { transform:translate(-50%, -40%) scale(1.06); transform-origin:center center; filter:drop-shadow(0 0 20px #ff0000) saturate(1.45); }
   @keyframes pressureWarnPulse { from{transform:scale(0.96); opacity:0.82;} to{transform:scale(1.04); opacity:1;} }
-  @keyframes lastChanceDistort { from{filter:saturate(1.4) contrast(1.1) hue-rotate(-3deg);} to{filter:saturate(2) contrast(1.28) hue-rotate(3deg);} }
+  @keyframes lastChanceDistort { from{filter:saturate(1.12) contrast(1.04);} to{filter:saturate(1.32) contrast(1.10);} }
   .pressure-impact-text {
     position:absolute; left:50%; top:36%; transform:translate(-50%,-50%); z-index:58; pointer-events:none;
     font-family:'Oswald',sans-serif; text-align:center; letter-spacing:4px; text-transform:uppercase;
@@ -4136,26 +4136,27 @@ function getPressureDelay() {
 }
 
 function isAkSuppressionActive() {
-  return godLevel > 0 || wpActive || wpCollected > 0;
+  return godLevel > 0 || wpCollected > 0;
 }
 
 function getBreakNeed(lastChance=false, now=Date.now()) {
   const elapsedTime = Math.max(0, (now - (bossPressure.roundStartAt || now)) / 1000);
-  const normalNeed = 20
-    + Math.floor(ko / 5) * 3
-    + Math.floor(elapsedTime / 30) * 5
-    + Math.floor(bossPressure.rage / 25) * 3;
+  const normalNeed = 18
+    + Math.floor(ko / 8) * 2
+    + Math.floor(elapsedTime / 45) * 4
+    + Math.floor(bossPressure.rage / 30) * 2;
   const cardBreakHelp = window._csState && window._csState.cs_breakPower
     ? Math.min(0.10, window._csState.cs_breakPower)
     : 0;
   const scaledNeed = Math.round(normalNeed * (1 - cardBreakHelp));
   return lastChance
-    ? Math.max(55, Math.min(75, scaledNeed + 35))
-    : Math.max(18, Math.min(60, scaledNeed));
+    ? Math.max(40, Math.min(48, scaledNeed + 22))
+    : Math.max(18, Math.min(38, scaledNeed));
 }
 
-function getBreakTapGain() {
-  return isAkSuppressionActive() ? 1.4 : 1.0;
+function getBreakTapGain(isWeakPointHit=false) {
+  if(isWeakPointHit) return 1.5;
+  return isAkSuppressionActive() ? 1.35 : 1.0;
 }
 
 function triggerBossBreakEvent(now=Date.now(), lastChance=false) {
@@ -4166,7 +4167,7 @@ function triggerBossBreakEvent(now=Date.now(), lastChance=false) {
   bossPressure.breakProgress = 0;
   bossPressure.breakTapCount = 0;
   bossPressure.breakNeed = getBreakNeed(lastChance, now);
-  bossPressure.until = now + (lastChance ? 3000 : 2000);
+  bossPressure.until = now + (lastChance ? 4000 : 3000);
   bossPressure.nextAt = 0;
   const root = $('gameRoot');
   root.classList.add('pressure-break');
@@ -4174,7 +4175,7 @@ function triggerBossBreakEvent(now=Date.now(), lastChance=false) {
   if(lastChance) {
     showPressureImpact('LAST CHANCE', 'BREAK OR DIE', '#ff2233');
     triggerFlash('flash-god3');
-    if(navigator.vibrate) navigator.vibrate([120,50,120,50,220]);
+    if(navigator.vibrate) navigator.vibrate([80,40,80]);
   } else {
     showPressureImpact('BREAK!', 'BOSS CHARGING', '#ff2233');
     triggerFlash('flash-boss');
@@ -4183,13 +4184,14 @@ function triggerBossBreakEvent(now=Date.now(), lastChance=false) {
   renderBossPressureUI();
 }
 
-function handleBossPressureInput(e, now) {
+function handleBossPressureInput(e, now, isWeakPointHit=false) {
   bossPressure.lastAfkAt = now;
   if(!bossPressure.active || bossPressure.type !== 'BREAK') return;
-  const gain = getBreakTapGain();
+  const gain = getBreakTapGain(isWeakPointHit);
   bossPressure.breakTapCount = (bossPressure.breakTapCount || 0) + 1;
   bossPressure.breakProgress = Math.min(bossPressure.breakNeed, bossPressure.breakProgress + gain);
-  if(isAkSuppressionActive() && Math.random() < 0.20) showPressureImpact('SUPPRESSION FIRE', 'BREAK +' + gain.toFixed(1), '#ffcc00');
+  if(isWeakPointHit) showPressureImpact('PRECISION BREAK', 'WEAK POINT +1.5', '#ffcc00');
+  else if(isAkSuppressionActive() && Math.random() < 0.12) showPressureImpact('SUPPRESSION FIRE', 'BREAK +' + gain.toFixed(2), '#ffcc00');
   renderBossPressureUI();
   if(bossPressure.breakProgress >= bossPressure.breakNeed && bossPressure.breakTapCount >= 12) completeBossBreak(now);
 }
@@ -4292,12 +4294,12 @@ function renderBossPressureUI() {
   if(ui) ui.classList.toggle('active', !!bossPressure.active);
   if(warn) warn.textContent = bossPressure.lastChance ? 'LAST CHANCE' : 'BREAK!';
   if(sub) {
-    const taps = bossPressure.breakTapCount || 0;
+    const progress = Math.floor((bossPressure.breakProgress || 0) * 10) / 10;
     const need = bossPressure.breakNeed || 0;
-    const tapInfo = need ? ' — ' + taps + '/' + Math.ceil(need / getBreakTapGain()) + ' TAPS' : '';
+    const tapInfo = need ? ' — ' + progress + '/' + need + ' BREAK' : '';
     sub.textContent = bossPressure.lastChance
-      ? 'BREAK OR DIE — 3 SEC' + tapInfo
-      : (isAkSuppressionActive() ? 'SUPPRESSION FIRE +40%' : 'SPAM TAP — STOP THE BOSS') + tapInfo;
+      ? 'BREAK OR DIE — 4 SEC' + tapInfo
+      : (isAkSuppressionActive() ? 'SUPPRESSION FIRE +35%' : 'TAP RHYTHM + AIM WEAK POINT') + tapInfo;
   }
   if(fill) fill.style.width = bossPressure.breakNeed ? Math.min(100, (bossPressure.breakProgress / bossPressure.breakNeed) * 100) + '%' : '0%';
 }
@@ -6645,13 +6647,13 @@ wpEl.addEventListener('click', e => {
 
 // ── processHit: the actual game logic (was hit()) ──
 function processHit(e, now) {
-  handleBossPressureInput(e, now);
   const gap = now - lastHitTime;
 
   // ── WEAK POINT CHECK (ทำก่อน combo เพื่อไม่ให้ WP hit รีเซ็ตคอมโบ) ──
   const rawX = e && e.clientX !== undefined ? e.clientX : e && e.touches ? e.touches[0].clientX : vvW()/2;
   const rawY = e && e.clientY !== undefined ? e.clientY : e && e.touches ? e.touches[0].clientY : vvH()/2;
   const isWpHit = checkWeakPointHit(rawX, rawY);
+  handleBossPressureInput(e, now, isWpHit);
 
   // คอมโบ: WP hit ไม่รีเซ็ตคอมโบ (นับเป็น "ตีทัน" เสมอ)
   const _comboInc = (window._csState && window._csState.cs_goblinLeader) ? 2 : 1;
