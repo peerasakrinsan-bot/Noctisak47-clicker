@@ -6840,11 +6840,17 @@ const DQ_COLORS     = DQ_DOT_COLORS; // alias used by new updateDailyQuestUI
 // Ticket type awarded each day (index 0–6)
 const DQ_REWARDS    = ['standard','standard','premium','standard','standard','premium','elite'];
 
-function getDailyWeekKey() {
+function getDailyRewardDate() {
   const now = new Date();
-  // Monday before 06:00 → still treated as previous week
-  if (now.getDay() === 1 && now.getHours() < 6) now.setDate(now.getDate() - 1);
-  // ISO week number: week containing first Thursday of the year
+  // Daily rewards roll over at 06:00 every day, so 00:00–05:59 still counts as yesterday.
+  if (now.getHours() < 6) now.setDate(now.getDate() - 1);
+  return now;
+}
+
+function getDailyWeekKey() {
+  const now = getDailyRewardDate();
+  // ISO week number: week containing first Thursday of the year.
+  // Because getDailyRewardDate() applies the 06:00 cutoff, Monday before 06:00 stays in the previous week.
   const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const dayNum = d.getUTCDay() || 7; // Sun→7
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
@@ -6854,8 +6860,7 @@ function getDailyWeekKey() {
 }
 
 function getDailyTodayKey() {
-  const now = new Date();
-  if (now.getDay() === 1 && now.getHours() < 6) now.setDate(now.getDate() - 1);
+  const now = getDailyRewardDate();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
