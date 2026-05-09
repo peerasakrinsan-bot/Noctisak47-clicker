@@ -5750,115 +5750,212 @@ function endGame() {
 
 // ══════════════════════════════════════════
 // ══════════════════════════════════════════
-// INPUT SYSTEM — Rate Limit + Anti-bot + Buffered Game Loop
+// INPUT SYSTEM — Silent Anti-click + Buffered requestAnimationFrame Loop
 // ══════════════════════════════════════════
 
-const INPUT = (() => {
-  // ── Constants ──
-  const MAX_TOUCHES        = 3;       // max simultaneous fingers
-  const MIN_INTERVAL_MS    = 100;     // ~10 taps/s per finger (100ms floor)
-  const TOTAL_CAP_PER_SEC  = 35;      // total inputs/s across all fingers
-  const BOT_WINDOW_MS      = 1000;    // window to measure rate
-  const BOT_RATE_THRESH    = 30;      // inputs/s that triggers bot suspicion
-  const BOT_CONSISTENCY_MS = 12;      // stddev < this → perfectly consistent → bot
-  const BOT_PENALTY_SCALE  = 0.25;    // scale factor when bot detected (75% ignored)
-  const LOOP_MS            = 33;      // ~30fps game loop tick
+const ANTI_CLICK_CONFIG = {
+  maxActivePointers: 3,
+  maxClicksPerSecond: 40,
+  burstAllowance: 3,
+  rollingWindowMs: 1000,
+  longWindowMs: 10000,
+  minHumanIntervalMs: 35,
+  samePositionTolerancePx: 3,
+  suspicionDecayPerSecond: 1,
+  warningThreshold: 8,
+  throttleThreshold: 14,
+  hardThrottleThreshold: 22,
+  maxFloatingTextsPerSecond: 9,
+  maxHitEffectsPerSecond: 12
+};
 
-  // ── State ──
-  const fingerTimestamps = new Map(); // touchId → last accepted timestamp
-  const recentTimestamps = [];        // rolling window for rate + consistency check
-  let   tapBuffer        = [];        // buffered taps to process next tick
-  let   botPenalty       = false;     // currently penalised?
-  let   botPenaltyUntil  = 0;
-  let   loopId           = null;
+const ANTI_CLICK_STATE = {
+  activePointers: new Set(),
+  activePointerPositions: new Map(),
+  acceptedTimestamps: [],
+  attemptTimestamps: [],
+  intervalSamples: [],
+  recentPositions: [],
+  queuedClicks: [],
+  suspicionScore: 0,
+  lastAttemptAt: 0,
+  lastAcceptedAt: 0,
+  lastAcceptedBatchId: null,
+  rafId: null,
+  lastSuspicionUpdateAt: 0
+};
 
-  // ── Helpers ──
-  function stddev(arr) {
-    if(arr.length < 3) return 999;
-    const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
-    return Math.sqrt(arr.map(x=>(x-mean)**2).reduce((a,b)=>a+b,0)/arr.length);
-  }
-
-  function checkBot(now) {
-    // trim window
-    while(recentTimestamps.length && now - recentTimestamps[0] > BOT_WINDOW_MS)
-      recentTimestamps.shift();
-
-    const rate = recentTimestamps.length; // inputs in last 1s
-    if(rate < BOT_RATE_THRESH) { botPenalty = false; return false; }
-
-    // compute intervals stddev — perfect bots have near-zero stddev
-    const intervals = [];
-    for(let i=1;i<recentTimestamps.length;i++)
-      intervals.push(recentTimestamps[i]-recentTimestamps[i-1]);
-    const sd = stddev(intervals);
-
-    if(sd < BOT_CONSISTENCY_MS) {
-      botPenalty = true;
-      botPenaltyUntil = now + 500;
-      return true;
-    }
-    botPenalty = false;
-    return false;
-  }
-
-  function acceptInput(e) {
-    if(!gameRunning) return;
-    const now = Date.now();
-
-    // lift bot penalty if expired
-    if(botPenalty && now > botPenaltyUntil) botPenalty = false;
-
-    // record timestamp for rate/consistency tracking
-    recentTimestamps.push(now);
-    checkBot(now);
-
-    // if bot penalty → accept only BOT_PENALTY_SCALE fraction (probabilistic)
-    if(botPenalty && Math.random() > BOT_PENALTY_SCALE) return;
-
-    // total rate cap — drop if over TOTAL_CAP_PER_SEC
-    const recentCount = recentTimestamps.filter(t => now - t < 1000).length;
-    if(recentCount > TOTAL_CAP_PER_SEC) return;
-
-    // per-finger rate limit
-    if(e.identifier !== undefined) {
-      const id   = e.identifier;
-      const last = fingerTimestamps.get(id) || 0;
-      if(now - last < MIN_INTERVAL_MS) return;
-      fingerTimestamps.set(id, now);
-    }
-
-    tapBuffer.push({ e, now });
-  }
-
-  // ── Game Loop ──
-  function tick() {
-    if(!gameRunning) { loopId = null; return; }
-    const batch = tapBuffer.splice(0, tapBuffer.length);
-    if(batch.length > 0) {
-      // process all game logic per hit
-      for(const { e, now } of batch) processHit(e, now);
-      // visual/UI refresh ONCE per tick regardless of batch size
-      updateUI();
-      updateComboUI();
-      // flush deferred visuals accumulated during this tick
-      _flushTickVisuals();
-    }
-    loopId = setTimeout(tick, LOOP_MS);
-  }
-
+function _antiNow() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+function _antiPointerId(event) { return event && event.identifier !== undefined ? 'touch:' + event.identifier : 'mouse'; }
+function _antiCloneEvent(event) {
   return {
-    start() {
-      fingerTimestamps.clear();
-      recentTimestamps.length = 0;
-      tapBuffer.length = 0;
-      botPenalty = false;
-      if(!loopId) loopId = setTimeout(tick, LOOP_MS);
-    },
-    stop()  { clearTimeout(loopId); loopId = null; tapBuffer.length = 0; },
-    accept: acceptInput,
+    clientX: event && event.clientX !== undefined ? event.clientX : vvW()/2,
+    clientY: event && event.clientY !== undefined ? event.clientY : vvH()/2,
+    identifier: event && event.identifier !== undefined ? event.identifier : undefined,
+    _antiPointerId: _antiPointerId(event)
   };
-})();
+}
+function _antiTrim(list, now, windowMs) {
+  while(list.length && now - list[0] > windowMs) list.shift();
+}
+function _antiStddev(values) {
+  if(values.length < 4) return 999;
+  const mean = values.reduce((a,b)=>a+b,0) / values.length;
+  return Math.sqrt(values.map(v => (v - mean) ** 2).reduce((a,b)=>a+b,0) / values.length);
+}
+function _antiDistance(a, b) {
+  if(!a || !b) return 99999;
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+function _antiDecaySuspicion(now) {
+  const state = ANTI_CLICK_STATE;
+  if(!state.lastSuspicionUpdateAt) state.lastSuspicionUpdateAt = now;
+  const elapsedSec = Math.max(0, (now - state.lastSuspicionUpdateAt) / 1000);
+  if(elapsedSec > 0) {
+    state.suspicionScore = Math.max(0, state.suspicionScore - elapsedSec * ANTI_CLICK_CONFIG.suspicionDecayPerSecond);
+    state.lastSuspicionUpdateAt = now;
+  }
+}
+function resetAntiClickState() {
+  const state = ANTI_CLICK_STATE;
+  state.activePointers.clear();
+  state.activePointerPositions.clear();
+  state.acceptedTimestamps.length = 0;
+  state.attemptTimestamps.length = 0;
+  state.intervalSamples.length = 0;
+  state.recentPositions.length = 0;
+  state.queuedClicks.length = 0;
+  if(typeof _antiFxLimiter !== 'undefined') {
+    _antiFxLimiter.hitText.length = 0;
+    _antiFxLimiter.hitFx.length = 0;
+  }
+  state.suspicionScore = 0;
+  state.lastAttemptAt = 0;
+  state.lastAcceptedAt = 0;
+  state.lastAcceptedBatchId = null;
+  state.lastSuspicionUpdateAt = _antiNow();
+  if(state.rafId) cancelAnimationFrame(state.rafId);
+  state.rafId = null;
+}
+function releaseAntiClickPointers(event) {
+  if(!event || !event.changedTouches) return;
+  for(const touch of event.changedTouches) {
+    const id = _antiPointerId(touch);
+    ANTI_CLICK_STATE.activePointers.delete(id);
+    ANTI_CLICK_STATE.activePointerPositions.delete(id);
+  }
+}
+
+function updateSuspicionScore(event) {
+  const state = ANTI_CLICK_STATE;
+  const cfg = ANTI_CLICK_CONFIG;
+  const now = _antiNow();
+  _antiDecaySuspicion(now);
+
+  _antiTrim(state.attemptTimestamps, now, cfg.longWindowMs);
+  state.attemptTimestamps.push(now);
+
+  if(state.lastAttemptAt) {
+    const interval = now - state.lastAttemptAt;
+    state.intervalSamples.push(interval);
+    if(state.intervalSamples.length > 30) state.intervalSamples.shift();
+    if(interval < cfg.minHumanIntervalMs) state.suspicionScore += 1.6;
+  }
+  state.lastAttemptAt = now;
+
+  const recentAttempts = state.attemptTimestamps.filter(t => now - t <= cfg.rollingWindowMs).length;
+  const longAttempts = state.attemptTimestamps.length;
+  if(recentAttempts > cfg.maxClicksPerSecond + cfg.burstAllowance) {
+    state.suspicionScore += (recentAttempts - cfg.maxClicksPerSecond - cfg.burstAllowance) * 0.4;
+  }
+  if(longAttempts > cfg.maxClicksPerSecond * (cfg.longWindowMs / 1000)) {
+    state.suspicionScore += 0.8;
+  }
+
+  const pos = { x: event && event.clientX !== undefined ? event.clientX : vvW()/2,
+                y: event && event.clientY !== undefined ? event.clientY : vvH()/2 };
+  state.recentPositions.push(pos);
+  if(state.recentPositions.length > 12) state.recentPositions.shift();
+  const sameSpotCount = state.recentPositions.filter(p => _antiDistance(p, pos) <= cfg.samePositionTolerancePx).length;
+  if(sameSpotCount >= 8) state.suspicionScore += 0.8;
+
+  if(state.intervalSamples.length >= 8) {
+    const sd = _antiStddev(state.intervalSamples.slice(-10));
+    const avg = state.intervalSamples.slice(-10).reduce((a,b)=>a+b,0) / Math.min(10, state.intervalSamples.length);
+    if(sd < 4 && avg < 140) state.suspicionScore += 1.2;
+  }
+
+  return state.suspicionScore;
+}
+
+function isClickAllowed(event) {
+  if(!gameRunning) return false;
+  const state = ANTI_CLICK_STATE;
+  const cfg = ANTI_CLICK_CONFIG;
+  const now = _antiNow();
+  const pointerId = _antiPointerId(event);
+
+  updateSuspicionScore(event);
+
+  if(event && event.identifier !== undefined && !state.activePointers.has(pointerId)) {
+    if(state.activePointers.size >= cfg.maxActivePointers) return false;
+    state.activePointers.add(pointerId);
+  }
+
+  _antiTrim(state.acceptedTimestamps, now, cfg.longWindowMs);
+  const rollingAccepted = state.acceptedTimestamps.filter(t => now - t <= cfg.rollingWindowMs).length;
+  const longAccepted = state.acceptedTimestamps.length;
+  const throttleCap = state.suspicionScore >= cfg.hardThrottleThreshold ? 3
+                    : state.suspicionScore >= cfg.throttleThreshold ? Math.ceil(cfg.maxClicksPerSecond * 0.5)
+                    : cfg.maxClicksPerSecond + cfg.burstAllowance;
+
+  if(rollingAccepted >= throttleCap) return false;
+  if(longAccepted >= cfg.maxClicksPerSecond * (cfg.longWindowMs / 1000)) return false;
+  const isSameTouchBatch = event && event._antiBatchId && state.lastAcceptedBatchId === event._antiBatchId;
+  if(!isSameTouchBatch && state.lastAcceptedAt && now - state.lastAcceptedAt < cfg.minHumanIntervalMs) return false;
+
+  state.acceptedTimestamps.push(now);
+  state.lastAcceptedAt = now;
+  state.lastAcceptedBatchId = event && event._antiBatchId ? event._antiBatchId : null;
+  if(event && event.identifier !== undefined) {
+    state.activePointerPositions.set(pointerId, { x: event.clientX, y: event.clientY });
+  }
+  return true;
+}
+
+function registerClickAttempt(event) {
+  if(!isClickAllowed(event)) return false;
+  ANTI_CLICK_STATE.queuedClicks.push({ e: _antiCloneEvent(event), now: Date.now() });
+  if(!ANTI_CLICK_STATE.rafId) {
+    ANTI_CLICK_STATE.rafId = requestAnimationFrame(processQueuedClicks);
+  }
+  return true;
+}
+
+function processQueuedClicks() {
+  ANTI_CLICK_STATE.rafId = null;
+  if(!gameRunning) {
+    ANTI_CLICK_STATE.queuedClicks.length = 0;
+    return;
+  }
+
+  const batch = ANTI_CLICK_STATE.queuedClicks.splice(0, ANTI_CLICK_STATE.queuedClicks.length);
+  if(batch.length > 0) {
+    for(const { e, now } of batch) processHit(e, now);
+    updateUI();
+    updateComboUI();
+    _flushTickVisuals();
+  }
+  if(ANTI_CLICK_STATE.queuedClicks.length > 0 && !ANTI_CLICK_STATE.rafId) {
+    ANTI_CLICK_STATE.rafId = requestAnimationFrame(processQueuedClicks);
+  }
+}
+
+const INPUT = {
+  start() { resetAntiClickState(); },
+  stop() { resetAntiClickState(); },
+  accept: registerClickAttempt
+};
 
 // ══════════════════════════════════════════
 // TICK VISUAL ACCUMULATOR
@@ -5936,14 +6033,15 @@ const wpEl = $('weakPoint');
 $('tapZone').addEventListener('touchstart', e => {
   e.preventDefault();
   if(!audioWarmedUp) warmUpAudio();
-  // จำกัด simultaneous touches ด้วย e.touches.length (touches ทั้งหมดบนจอ)
-  if(e.touches.length > 3) return;
-  const touches = [...e.changedTouches].slice(0, 3);
-  touches.forEach(t => INPUT.accept(t));
+  // Anti-click ใช้เฉพาะพื้นที่โจมตี: helper จะรับสูงสุด 3 touch และ ignore ส่วนเกินแบบเงียบ ๆ
+  const batchId = e.timeStamp + ':tap';
+  for(const touch of e.changedTouches) {
+    INPUT.accept({ clientX: touch.clientX, clientY: touch.clientY, identifier: touch.identifier, _antiBatchId: batchId });
+  }
 }, { passive: false });
 
 $('tapZone').addEventListener('click', e => {
-  if(e.sourceCapabilities && !e.sourceCapabilities.firesTouchEvents) {
+  if(!e.sourceCapabilities || !e.sourceCapabilities.firesTouchEvents) {
     if(!audioWarmedUp) warmUpAudio();
     INPUT.accept(e);
   }
@@ -5953,15 +6051,19 @@ wpEl.addEventListener('touchstart', e => {
   e.preventDefault();
   e.stopPropagation();
   if(!audioWarmedUp) warmUpAudio();
-  if(e.touches.length > 3) return;
-  const touches = [...e.changedTouches].slice(0, 3);
-  touches.forEach(t => INPUT.accept(t));
+  const batchId = e.timeStamp + ':wp';
+  for(const touch of e.changedTouches) {
+    INPUT.accept({ clientX: touch.clientX, clientY: touch.clientY, identifier: touch.identifier, _antiBatchId: batchId });
+  }
 }, { passive: false });
 
 wpEl.addEventListener('click', e => {
   e.stopPropagation();
-  if(e.sourceCapabilities && !e.sourceCapabilities.firesTouchEvents) INPUT.accept(e);
+  if(!e.sourceCapabilities || !e.sourceCapabilities.firesTouchEvents) INPUT.accept(e);
 });
+
+document.addEventListener('touchend', releaseAntiClickPointers, { passive: true });
+document.addEventListener('touchcancel', releaseAntiClickPointers, { passive: true });
 
 // ── processHit: the actual game logic (was hit()) ──
 function processHit(e, now) {
@@ -6122,11 +6224,11 @@ function processHit(e, now) {
     // THANATOS: WP dmg x2.5 (OD charge handled in triggerBombExplosion)
     const thanatosMult = (window._csState && window._csState.cs_thanatos) ? 2.5 : 1;
     const wpDmg = onWeakPointHit(pos.x, pos.y, baseDmg*multi, wpMult * thanatosMult);
-    applyDamage(wpDmg, e, false);
+    applyDamage(wpDmg, e, false, false);
     score += 20;
     csOnWpHit(pos.x, pos.y);
   } else {
-    applyDamage(dmg,e,isCrit);
+    applyDamage(dmg,e,isCrit,false);
     // DOPPELGANGER: second hit at 80% dmg with 20% crit chance
     if(window._csState && window._csState.cs_doubleClick) {
       const _dgDmg = Math.round(dmg * 0.8);
@@ -6166,10 +6268,12 @@ function processHit(e, now) {
 // ══════════════════════════════════════════
 // DAMAGE
 // ══════════════════════════════════════════
-function applyDamage(dmg,e,isCrit) {
+function applyDamage(dmg,e,isCrit,showVisual=true) {
   const pos=getPos(e);
-  spawnFX(pos.x,pos.y,godLevel>0);
-  showHitNum(pos.x,pos.y,dmg,godLevel>0,isCrit);
+  if(showVisual) {
+    spawnFX(pos.x,pos.y,godLevel>0);
+    showHitNum(pos.x,pos.y,dmg,godLevel>0,isCrit);
+  }
 
   if(isCrit){
     const el=document.createElement('div');
@@ -6416,7 +6520,17 @@ function updateMultiBadge(multi) {
 // FX & PARTICLES
 // ══════════════════════════════════════════
 const _hnPool=[];
+const _antiFxLimiter = { hitText: [], hitFx: [] };
+function _antiFxAllowed(bucket, limit) {
+  const now = _antiNow();
+  const list = _antiFxLimiter[bucket];
+  _antiTrim(list, now, ANTI_CLICK_CONFIG.rollingWindowMs);
+  if(list.length >= limit) return false;
+  list.push(now);
+  return true;
+}
 function showHitNum(x,y,dmg,isGun,isCrit) {
+  if(!_antiFxAllowed('hitText', ANTI_CLICK_CONFIG.maxFloatingTextsPerSecond)) return;
   const el=_hnPool.pop()||document.createElement('div');
   // ใช้ rAF แทน force reflow — ไม่ block main thread
   el.className='hit-num-reset';
@@ -6442,6 +6556,7 @@ function _retParticle(p){ p.style.animation='none'; _pPool.push(p); }
 function _retRing(r){ r.style.animation='none'; _rPool.push(r); }
 
 function spawnFX(x,y,isGun,isBomb){
+  if(!_antiFxAllowed('hitFx', ANTI_CLICK_CONFIG.maxHitEffectsPerSecond)) return;
   const count=isBomb?3:isGun?5:3; // ลด particle count — เพียงพอสายตาเห็น ไม่ทำ DOM หนัก
   const color=isGun?getGodColor():'#ff3344';
   const frag=document.createDocumentFragment();
