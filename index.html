@@ -2795,7 +2795,7 @@ function hasStat(id, key) {
 const ASSETS = {
   images: [
     // backgrounds
-    'default_bg.png','one_bg.png',
+    'default_bg.png','one_bg.png','colosseum_bg.webp','colosseum_bg.png',
     // default skin
     'boxer.png','boxer_hit1.png','boxer_hit2.png','boxer_hit3.png','boxer_hit4.png',
     // SORNSIT SPIRIT skin
@@ -3498,6 +3498,14 @@ const ARENA_SKINS = [
     sub: '500 ZENY',
     preview: 'one_bg.png',
     bg: 'one_bg.png',
+    cost: 500,
+  },
+  {
+    id: 'colosseum',
+    name: 'COLOSSEUM',
+    sub: '500 ZENY',
+    preview: 'colosseum_bg.webp',
+    bg: 'colosseum_bg.png',
     cost: 500,
   },
 ];
@@ -7181,7 +7189,7 @@ function showOcaDropToast(tier) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const APP_CACHE_NAME = 'noctisak47-v161';
+      const APP_CACHE_NAME = 'noctisak47-v162';
       const SW_PATH = new URL('./sw.js', location.href).pathname;
       const hadController = !!navigator.serviceWorker.controller;
       let refreshing = false;
