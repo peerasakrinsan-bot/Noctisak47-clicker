@@ -768,15 +768,15 @@
   }
 
   /* ══ CARD MODAL ══ */
-  #cardModal {
+  #cardModal, #bossSkinModal {
     position:absolute; top:0; left:0; right:0; bottom:0; z-index:1050;
     display:none; align-items:center; justify-content:center;
   }
-  #cardModalOverlay {
+  #cardModalOverlay, #bossSkinModalOverlay {
     position:absolute; top:0; left:0; right:0; bottom:0;
     background:rgba(0,0,0,0.85); backdrop-filter:blur(4px);
   }
-  #cardModalContent {
+  #cardModalContent, #bossSkinModalContent {
     position:relative; z-index:1; display:flex; flex-direction:column;
     align-items:center; gap:8px; padding:20px 16px;
     max-width:280px; width:90%;
@@ -786,6 +786,11 @@
     width:100%; max-width:200px; aspect-ratio:3/4; object-fit:cover; border-radius:4px;
     border:2px solid #333; transition:box-shadow 0.3s, border-color 0.3s;
   }
+  #bossSkinModalImg {
+    width:min(70vw,52vh,220px); height:min(70vw,52vh,220px);
+    object-fit:cover; border-radius:10px; border:2px solid #333;
+  }
+  #bossSkinModalName { font-family:'Oswald',sans-serif; font-size:18px; letter-spacing:3px; color:#fff; text-align:center; }
   #cardModalImg.aura-standard { border-color:#444; box-shadow:none; }
   #cardModalImg.aura-premium  { border-color:#0088ff; box-shadow:0 0 16px rgba(0,136,255,0.7); }
   #cardModalImg.aura-elite    { border-color:#c8a400; box-shadow:0 0 20px rgba(255,204,0,0.9); animation:eliteGlow 2s ease-in-out infinite; }
@@ -2049,6 +2054,16 @@
     <button id="bossBackBtn" class="back-btn" onclick="closeBossShop()"><span class="back-arrow"></span>BACK</button>
   </div>
   <div class="boss-skin-grid" id="bossSkinGrid"></div>
+</div>
+
+<!-- ══════════════ BOSS SKIN MODAL (expand skin icon) ══════════════ -->
+<div id="bossSkinModal" style="display:none;">
+  <div id="bossSkinModalOverlay" onclick="closeBossSkinPreview()"></div>
+  <div id="bossSkinModalContent">
+    <img id="bossSkinModalImg" src="" alt="" decoding="async">
+    <div id="bossSkinModalName"></div>
+    <button class="back-btn" onclick="closeBossSkinPreview()" style="margin-top:16px;min-width:132px;"><span class="back-arrow"></span>BACK</button>
+  </div>
 </div>
 
 <!-- ══ ARENA SKIN SHOP ══ -->
@@ -3408,13 +3423,28 @@ function renderBossShop() {
     }
 
     card.innerHTML = `
-      <img class="boss-skin-icon" src="${skin.icon}" alt="${skin.name}" onerror="this.style.background='#1a1a1a';this.src=''" decoding="async">
+      <img class="boss-skin-icon" src="${skin.icon}" alt="${skin.name}" onerror="this.style.background='#1a1a1a';this.src=''" decoding="async" onclick="openBossSkinPreview('${skin.id}', event)">
       <div class="boss-skin-name">${skin.name}</div>
       <div class="boss-skin-sub">${isOwned ? (isActive ? '<span class="css-check" style="color:#00ff88;display:inline-block;margin-right:4px;"></span>ใช้งานอยู่' : 'ซื้อแล้ว') : skin.sub}</div>
       ${actionHtml}
     `;
     grid.appendChild(card);
   });
+}
+
+function openBossSkinPreview(id, event) {
+  if (event) event.stopPropagation();
+  const skin = BOSS_SKINS.find(s => s.id === id);
+  if (!skin) return;
+  const img = $('bossSkinModalImg');
+  img.src = skin.icon || '';
+  img.alt = skin.name;
+  $('bossSkinModalName').textContent = skin.name;
+  $('bossSkinModal').style.display = 'flex';
+}
+
+function closeBossSkinPreview() {
+  $('bossSkinModal').style.display = 'none';
 }
 
 function buyBossSkin(id) {
