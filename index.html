@@ -1678,13 +1678,13 @@
   }
   #pressureOverlay.break,
   #pressureOverlay.lastchance {
-    background:rgba(0,0,0,0.74); backdrop-filter:saturate(0.56) brightness(0.52);
+    background:rgba(0,0,0,0.34); backdrop-filter:saturate(0.86) brightness(0.86);
     pointer-events:auto;
   }
-  #pressureOverlay.lastchance { background:rgba(0,0,0,0.86); }
-  #pressureOverlay.lockin::before,
+  #pressureOverlay.lastchance { background:rgba(0,0,0,0.42); }
+  #pressureOverlay.lockin::before { opacity:1; }
   #pressureOverlay.break::before,
-  #pressureOverlay.lastchance::before { opacity:1; }
+  #pressureOverlay.lastchance::before { opacity:0; }
   #gameRoot.pressure-focus .dmg,
   #gameRoot.pressure-focus .crit-text,
   #gameRoot.pressure-focus .wp-hit-text { opacity:.34 !important; }
@@ -1699,9 +1699,9 @@
     background:radial-gradient(ellipse at center, rgba(255,255,255,.08), transparent 62%);
     transition:opacity .35s ease;
   }
-  #pressureOverlay.lockin #pressureBossFocus,
+  #pressureOverlay.lockin #pressureBossFocus { opacity:1; }
   #pressureOverlay.break #pressureBossFocus,
-  #pressureOverlay.lastchance #pressureBossFocus { opacity:1; }
+  #pressureOverlay.lastchance #pressureBossFocus { opacity:0; }
   /* V6 uses visual/audio lock-in only; no giant cinematic phase text. */
   #pressureText { display:none !important; }
   #pressureText.show { display:none !important; }
@@ -6243,7 +6243,7 @@ function pressureStartBuildup(lastChance=false) {
   root.classList.add('pressure-focus');
   overlay.style.display = 'block';
   overlay.className = 'active buildup' + (lastChance ? ' lastchance' : '');
-  pressureMuffleAudio(lastChance ? 0.28 : 0.48);
+  pressureMuffleAudio(lastChance ? 0.75 : 0.85);
   pressureHeartbeat(lastChance ? 280 : 540);
   pressureSetTimer(()=>pressureLockIn(lastChance), lastChance ? 1550 : Math.round(pressureRandomRange(1500, 2000)));
 }
