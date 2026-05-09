@@ -1673,10 +1673,10 @@
   }
   #pressureOverlay.break,
   #pressureOverlay.lastchance {
-    background:rgba(0,0,0,0.34); backdrop-filter:saturate(0.86) brightness(0.86);
+    background:transparent; backdrop-filter:none;
     pointer-events:auto;
   }
-  #pressureOverlay.lastchance { background:rgba(0,0,0,0.42); }
+  #pressureOverlay.lastchance { background:transparent; }
   #gameRoot.pressure-focus .dmg,
   #gameRoot.pressure-focus .crit-text,
   #gameRoot.pressure-focus .wp-hit-text { opacity:.34 !important; }
@@ -1684,6 +1684,15 @@
   #gameRoot.pressure-focus #comboWrap { filter:saturate(.6) brightness(.72); }
   #gameRoot.pressure-focus #fighter { transform:translate(-50%, -40%) scale(1.03); }
   #gameRoot.pressure-focus #weakPoint { filter:drop-shadow(0 0 18px #fff) drop-shadow(0 0 26px var(--gold)); }
+  #gameRoot.pressure-break #bg { filter:brightness(.58) saturate(.72); }
+  #gameRoot.pressure-break #fxLayer { opacity:.38; }
+  #gameRoot.pressure-break #topUI,
+  #gameRoot.pressure-break #comboWrap,
+  #gameRoot.pressure-break #godLevelWrap,
+  #gameRoot.pressure-break #wpCounter { opacity:.72; }
+  #gameRoot.pressure-break #fighter { z-index:22; filter:drop-shadow(0 0 18px rgba(120,0,18,.7)); }
+  #gameRoot.pressure-break #boxer { filter:drop-shadow(0 10px 40px rgba(0,0,0,.92)) drop-shadow(0 0 16px rgba(140,0,22,.55)) brightness(1.08) contrast(1.08); }
+  #gameRoot.pressure-break #gun { filter:drop-shadow(0 0 12px rgba(255,255,255,.32)) brightness(1.04); }
   /* V6 uses visual/audio lock-in only; no giant cinematic phase text. */
   #pressureText { display:none !important; }
   #pressureText.show { display:none !important; }
@@ -6204,7 +6213,7 @@ function pressureHide() {
   const root = $('gameRoot');
   const overlay = $('pressureOverlay');
   if(overlay) { overlay.className = ''; overlay.style.display = 'none'; }
-  root.classList.remove('pressure-focus','rage-mid','rage-high','rage-critical');
+  root.classList.remove('pressure-focus','pressure-break','rage-mid','rage-high','rage-critical');
   pressureApplyRageClass();
   const txt = $('pressureText'); if(txt) txt.classList.remove('show');
   const hud = $('pressureHud'); if(hud) hud.classList.remove('show');
@@ -6282,6 +6291,7 @@ function pressureStartBreak(lastChance=false) {
   PRESSURE.breakEndsAt = performance.now() + d.duration;
   pressurePauseNormalSpawns();
   const overlay = $('pressureOverlay');
+  $('gameRoot').classList.add('pressure-break');
   overlay.className = 'active break' + (lastChance ? ' lastchance' : '');
   $('pressureHud').classList.add('show');
   pressureUpdateBreakHUD();
