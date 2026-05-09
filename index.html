@@ -1667,7 +1667,7 @@
   #pressureOverlay.active { display:block; }
   #pressureOverlay::before {
     content:''; position:absolute; inset:-10%; opacity:0; pointer-events:none;
-    background:radial-gradient(ellipse at center, transparent 32%, rgba(0,0,0,0.62) 72%, rgba(0,0,0,0.92) 100%);
+    background:radial-gradient(ellipse at center, transparent 38%, rgba(0,0,0,0.42) 76%, rgba(0,0,0,0.78) 100%);
     transition:opacity 0.35s ease;
   }
   #pressureOverlay.buildup {
@@ -1678,10 +1678,10 @@
   }
   #pressureOverlay.break,
   #pressureOverlay.lastchance {
-    background:rgba(0,0,0,0.68); backdrop-filter:saturate(0.62) brightness(0.58);
+    background:rgba(0,0,0,0.74); backdrop-filter:saturate(0.56) brightness(0.52);
     pointer-events:auto;
   }
-  #pressureOverlay.lastchance { background:rgba(0,0,0,0.84); }
+  #pressureOverlay.lastchance { background:rgba(0,0,0,0.86); }
   #pressureOverlay.lockin::before,
   #pressureOverlay.break::before,
   #pressureOverlay.lastchance::before { opacity:1; }
@@ -1737,12 +1737,13 @@
   }
   .break-target {
     position:absolute; width:clamp(110px,30vw,170px); aspect-ratio:1; border-radius:50%; border:0; padding:0;
-    background:radial-gradient(circle, rgba(255,255,255,.98) 0 28%, rgba(0,255,238,.9) 29% 48%, rgba(255,204,0,.9) 49% 57%, rgba(0,0,0,.25) 58% 100%);
-    box-shadow:0 0 26px rgba(0,255,238,.95), 0 0 54px rgba(255,204,0,.75), 0 18px 42px rgba(0,0,0,.95);
+    background:radial-gradient(circle, rgba(255,255,255,.98) 0 34%, rgba(0,255,238,.92) 35% 48%, rgba(255,255,255,.9) 49% 57%, rgba(0,0,0,.42) 58% 100%);
+    box-shadow:0 0 30px rgba(0,255,238,1), 0 0 62px rgba(255,255,255,.82), 0 18px 42px rgba(0,0,0,.95);
+    outline:4px solid rgba(255,255,255,.92);
     transform:translate(-50%,-50%) scale(.65); animation:breakTargetPop .26s cubic-bezier(.2,1.45,.32,1) forwards, breakTargetPulse .7s ease-in-out .26s infinite alternate;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent; cursor:pointer;
   }
-  .break-target::before { content:''; position:absolute; inset:16%; background:url('ak47.png') center/contain no-repeat; filter:drop-shadow(0 4px 3px #000); }
+  .break-target::before { content:''; position:absolute; inset:10%; background:url('weak.webp') center/contain no-repeat; filter:drop-shadow(0 0 10px #fff) drop-shadow(0 4px 4px #000); }
   .break-target::after { content:''; position:absolute; inset:-16px; border-radius:50%; border:3px solid rgba(255,255,255,.65); animation:breakTargetRing .62s ease-out infinite; }
   .break-target:active { transform:translate(-50%,-50%) scale(.92); filter:brightness(1.35); }
   @keyframes breakTargetPop { to{transform:translate(-50%,-50%) scale(1);} }
@@ -4129,6 +4130,7 @@ function scheduleWeakPoint() {
   clearTimeout(wpSchedule);
   wpSchedule = null;
   if(!gameRunning) return;
+  if(typeof pressureIsBreak === 'function' && pressureIsBreak()) return;
   // RSX-0806: ไม่มี AK47 เลย
   if(window._csState && window._csState.cs_rsx0806) return;
   let delay = 800 + Math.random()*400;
@@ -4153,6 +4155,7 @@ function scheduleWeakPoint() {
 function showWeakPoint() {
   wpSchedule = null;
   if(!gameRunning || wpActive) return;
+  if(typeof pressureIsBreak === 'function' && pressureIsBreak()) return;
   const wp = $('weakPoint');
   const W = vvW();
   const H = vvH();
@@ -4225,6 +4228,7 @@ function checkWeakPointHit(rawX, rawY) {
 }
 
 function onWeakPointHit(x, y, baseDmg, customMult) {
+  if(typeof pressureIsBreak === 'function' && pressureIsBreak()) return 0;
   hideWeakPoint(true);
   playWpBall();
   const mult = customMult || 4;
@@ -6282,6 +6286,7 @@ function pressureStartBreak(lastChance=false) {
   PRESSURE.targetNeed = d.need;
   PRESSURE.breakDuration = d.duration;
   PRESSURE.breakEndsAt = performance.now() + d.duration;
+  pressurePauseNormalSpawns();
   const overlay = $('pressureOverlay');
   overlay.className = 'active break' + (lastChance ? ' lastchance' : '');
   $('pressureHud').classList.add('show');
@@ -6351,6 +6356,25 @@ function pressureRemoveTarget() {
   if(PRESSURE.activeTarget) { PRESSURE.activeTarget.remove(); PRESSURE.activeTarget = null; }
 }
 
+function pressurePauseNormalSpawns() {
+  clearTimeout(wpSchedule);
+  wpSchedule = null;
+  clearTimeout(wpTimeout);
+  wpTimeout = null;
+  wpActive = false;
+  const wp = $('weakPoint');
+  if(wp) {
+    wp.style.display = 'none';
+    wp.classList.remove('wp-vanish');
+  }
+}
+
+function pressureResumeNormalSpawns() {
+  if(!gameRunning || gamePaused || pressureIsBreak()) return;
+  if(window._csState && window._csState.cs_rsx0806) return;
+  if(!wpActive && !wpSchedule) scheduleWeakPoint();
+}
+
 function pressureHitTarget(x, y) {
   if(PRESSURE.phase !== 'break') return;
   PRESSURE.lastAfkAt = Date.now();
@@ -6376,6 +6400,7 @@ function pressureResolve(success) {
   pressureRestoreAudio();
   if(success) pressureSuccess(wasLast);
   else pressureFail(wasLast);
+  pressureResumeNormalSpawns();
 }
 
 function pressureSuccess(wasLastChance) {
