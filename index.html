@@ -1015,17 +1015,6 @@
   }
   #pauseBtn:active { transform:scale(0.88); filter:brightness(0.75); }
 
-  /* soundToggleBtn — floating ขวาล่าง ใช้ได้ทุกหน้า */
-  #soundToggleBtn {
-    position:absolute; bottom:24px; right:16px;
-    background:transparent; border:none;
-    width:44px; height:44px;
-    z-index:500; cursor:pointer; display:none;
-    padding:0; touch-action:manipulation;
-    transition:transform 0.1s, opacity 0.15s;
-  }
-  #soundToggleBtn:active { transform:scale(0.9); opacity:0.7; }
-
   /* ── Save/Transfer Button (top-right, inside mainMenu) ── */
   #saveTransferBtn {
     position: fixed;
@@ -1773,6 +1762,93 @@
   }
   .pause-btn-menu:active { background:#1a1a1a; color:#fff; border-color:#888; }
 
+
+  /* ── Pause Settings ── */
+  .pause-settings {
+    width:min(280px,84vw);
+    margin:0 0 16px;
+    padding:12px 14px;
+    background:rgba(255,255,255,0.035);
+    border:1px solid #222;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .pause-settings-title {
+    font-size:13px;
+    letter-spacing:4px;
+    color:#ddd;
+    text-align:center;
+  }
+  .setting-row {
+    display:grid;
+    grid-template-columns:1fr auto;
+    align-items:center;
+    gap:10px;
+    font-family:'Sarabun',sans-serif;
+    font-size:11px;
+    color:#aaa;
+  }
+  .setting-label strong {
+    display:block;
+    font-family:'Oswald',sans-serif;
+    font-size:12px;
+    letter-spacing:2px;
+    color:#fff;
+    margin-bottom:2px;
+  }
+  .setting-label span { color:#666; line-height:1.35; }
+  .setting-toggle {
+    min-width:54px;
+    padding:7px 10px;
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--cyan);
+    background:transparent;
+    border:1px solid #444;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  .setting-toggle.off { color:#777; border-color:#333; }
+  .setting-slider-row { grid-column:1 / -1; display:flex; align-items:center; gap:10px; }
+  .setting-slider {
+    flex:1;
+    accent-color:var(--cyan);
+    height:18px;
+  }
+  .setting-value {
+    width:38px;
+    text-align:right;
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    color:#777;
+  }
+  body.reduce-flash #timerDisplay.urgent,
+  body.reduce-flash .combo-max #bigCombo {
+    animation:none !important;
+    opacity:1;
+    text-shadow:0 0 8px rgba(255,34,51,0.28);
+  }
+  body.reduce-flash .flash-punch,
+  body.reduce-flash .flash-god,
+  body.reduce-flash .flash-god2,
+  body.reduce-flash .flash-god3,
+  body.reduce-flash .flash-boss { animation:sfSoft 0.28s ease-out forwards !important; }
+  @keyframes sfSoft { 0%{opacity:0.055;background:white;} 100%{opacity:0;} }
+  body.reduce-flash #annihilationFlash.boom { animation:anniSoft 0.7s ease-out forwards !important; }
+  @keyframes anniSoft { 0%{opacity:0.18;background:#ffcc00;} 100%{opacity:0;} }
+  body.reduce-flash #bombFlash.boom { animation:bombSoft 0.7s ease-out forwards !important; }
+  @keyframes bombSoft { 0%{opacity:0.16;background:#ffcc00;} 100%{opacity:0;} }
+  body.reduce-flash #gameRoot.shake,
+  body.reduce-flash #gameRoot.shake-wp { animation:none !important; }
+  body.reduce-flash #weakPoint { animation:wpPulseSoft 1.2s ease-in-out infinite alternate; box-shadow:0 0 10px 3px rgba(255,34,51,0.35); }
+  @keyframes wpPulseSoft { 0%{transform:translate(-50%,-50%) scale(1);} 100%{transform:translate(-50%,-50%) scale(1.04);} }
+  body.reduce-flash .wp-slot.ready { animation:none; box-shadow:0 0 8px rgba(255,200,0,0.45); }
+  body.reduce-flash #fighter.xuang-aura-hit #xuangAura { filter:none; }
+  body.reduce-flash #fighter.xuang-aura-hit #xuangAura::before,
+  body.reduce-flash #fighter.xuang-aura-hit .xuang-aura-core { opacity:.55; transform:translate(-50%,-50%) scale(1.03); }
+
   /* ══ DAILY BATTLE REWARD SYSTEM ══ */
   @keyframes toastIn  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
   @keyframes toastOut { to{opacity:0;transform:translateY(-8px)} }
@@ -2063,8 +2139,6 @@
   <button class="menu-img-btn" onclick="openCardCollection()" style="width:min(280px,84vw);">
     <img src="card.png" alt="CARD" decoding="async">
   </button>
-  <!-- BTN: Sound Toggle -->
-  <button id="soundMenuBtn" onclick="toggleSound()" style="position:fixed;bottom:20px;right:16px;background:transparent;border:none;width:44px;height:44px;z-index:1000;cursor:pointer;touch-action:manipulation;padding:0;"><img src="sound_on.png" style="width:100%;height:100%;object-fit:contain;display:block;" draggable="false"></button>
   <!-- BTN: Save / Transfer (top-right) -->
   <button id="saveTransferBtn" onclick="openSaveModal()" title="บันทึก / โอน Account">
     <img src="transfer.png" alt="TRANSFER" decoding="async" draggable="false">
@@ -2321,7 +2395,6 @@
     <button class="res-btn cyan-btn" onclick="openShop('result')">SHOP</button>
     <button class="res-btn" onclick="goMainMenu()" style="border-color:#666;color:#888;">MENU</button>
   </div>
-  <button id="soundResultBtn" onclick="toggleSound()" title="เปิด/ปิดเสียง" style="position:absolute;bottom:24px;right:16px;background:transparent;border:none;width:44px;height:44px;z-index:500;cursor:pointer;touch-action:manipulation;padding:0;"><img src="sound_on.png" style="width:100%;height:100%;object-fit:contain;display:block;" draggable="false"></button>
 </div>
 
 <!-- ══════════════ GAME UI ══════════════ -->
@@ -2349,7 +2422,6 @@
   </div>
 </div>
 
-<button id="soundToggleBtn" onclick="toggleSound()" title="เปิด/ปิดเสียง"><img src="sound_on.png" style="width:100%;height:100%;object-fit:contain;display:block;" draggable="false"></button>
 
 <div id="comboWrap">
   <div id="bigCombo">1</div>
@@ -2429,11 +2501,33 @@
       <div id="pauseCardTradeoff"></div>
     </div>
   </div>
+  <div class="pause-settings" aria-label="Settings">
+    <div class="pause-settings-title">SETTINGS</div>
+    <div class="setting-row">
+      <div class="setting-label"><strong>MUSIC</strong><span>Background music</span></div>
+      <button class="setting-toggle" id="musicToggleBtn" onclick="toggleSetting('music')">ON</button>
+      <div class="setting-slider-row">
+        <input class="setting-slider" id="musicVolumeSlider" type="range" min="0" max="100" step="5" value="100" oninput="setSettingVolume('music', this.value)">
+        <div class="setting-value" id="musicVolumeValue">100%</div>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label"><strong>EFFECT / SFX</strong><span>Hits, countdown, rewards</span></div>
+      <button class="setting-toggle" id="sfxToggleBtn" onclick="toggleSetting('sfx')">ON</button>
+      <div class="setting-slider-row">
+        <input class="setting-slider" id="sfxVolumeSlider" type="range" min="0" max="100" step="5" value="100" oninput="setSettingVolume('sfx', this.value)">
+        <div class="setting-value" id="sfxVolumeValue">100%</div>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label"><strong>REDUCE FLASH EFFECTS</strong><span>Softer flashes and glow pulses</span></div>
+      <button class="setting-toggle" id="reduceFlashToggleBtn" onclick="toggleSetting('reduceFlash')">OFF</button>
+    </div>
+  </div>
   <div class="pause-btn-group">
     <button class="pause-btn pause-btn-resume" onclick="resumeGame()"><span class="pause-icon-play"></span>RESUME</button>
     <button class="pause-btn pause-btn-menu back-btn" onclick="pauseGoMainMenu()" style="justify-content:center;width:100%;border-radius:0;"><span class="back-arrow"></span>MAIN MENU</button>
   </div>
-  <button id="soundPauseBtn" onclick="toggleSound()" title="เปิด/ปิดเสียง" style="position:absolute;bottom:24px;right:16px;background:transparent;border:none;width:44px;height:44px;z-index:500;cursor:pointer;touch-action:manipulation;padding:0;"><img src="sound_on.png" style="width:100%;height:100%;object-fit:contain;display:block;" draggable="false"></button>
 </div>
 
 <!-- ══════════════ COUNTDOWN ══════════════ -->
@@ -2607,9 +2701,31 @@ const CARD_HIDDEN_IMG = 'card_hidden.png';
 // ══════════════════════════════════════════
 // SOUND SYSTEM
 // ══════════════════════════════════════════
-let soundEnabled = true;
-try { soundEnabled = localStorage.getItem('noctis_sound') !== 'off'; } catch(e){}
-// DOMContentLoaded removed — _syncSoundBtns called inline after load
+const DEFAULT_SETTINGS = { musicOn:true, musicVolume:1, sfxOn:true, sfxVolume:1, reduceFlash:false };
+function _clamp01(v) { v = Number(v); return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1; }
+function normalizeSettings(src) {
+  src = (src && typeof src === 'object') ? src : {};
+  return {
+    musicOn: src.musicOn !== false,
+    musicVolume: _clamp01(src.musicVolume === undefined ? 1 : src.musicVolume),
+    sfxOn: src.sfxOn !== false,
+    sfxVolume: _clamp01(src.sfxVolume === undefined ? 1 : src.sfxVolume),
+    reduceFlash: src.reduceFlash === true,
+  };
+}
+function _loadLocalSettings() {
+  let base = Object.assign({}, DEFAULT_SETTINGS);
+  try {
+    const legacySound = localStorage.getItem('noctis_sound');
+    if (legacySound === 'off') { base.musicOn = false; base.sfxOn = false; }
+    const raw = localStorage.getItem('noctis_settings');
+    if (raw) base = Object.assign(base, JSON.parse(raw));
+  } catch(e) {}
+  return normalizeSettings(base);
+}
+let gameSettings = _loadLocalSettings();
+let soundEnabled = gameSettings.musicOn || gameSettings.sfxOn; // legacy compatibility flag
+// DOMContentLoaded removed — settings UI sync called inline after load
 
 // volume ของแต่ละ channel (0–1)
 const VOL = {
@@ -2650,7 +2766,7 @@ const _sfxSrc = {}; // เก็บ source node ล่าสุดของแ�
 const _sfxQueue = {}; // เก็บ queue สำหรับ sfx ที่มี max overlap
 
 function _playSfx(id, vol, maxOverlap) {
-  if(!soundEnabled || !_actx || !_sfxBufs[id]) return;
+  if(!gameSettings.sfxOn || !_actx || !_sfxBufs[id]) return;
   try {
     if(maxOverlap === false) {
       // ไม่ overlap เลย — stop เก่าก่อน
@@ -2665,7 +2781,7 @@ function _playSfx(id, vol, maxOverlap) {
     const src = _actx.createBufferSource();
     src.buffer = _sfxBufs[id];
     const gain = _actx.createGain();
-    gain.gain.value = Math.min(1, vol || 1);
+    gain.gain.value = Math.min(1, vol || 1) * gameSettings.sfxVolume;
     src.connect(gain);
     gain.connect(_actx.destination);
     src.start(0);
@@ -2704,34 +2820,82 @@ function warmUpAudio() {
   fetch('collect.mp3').then(r=>r.arrayBuffer()).then(ab=>_getActx().decodeAudioData(ab)).then(buf=>{ window._collectBuf = buf; }).catch(()=>{});
 }
 
-function applyMute(muted) {
-  soundEnabled = !muted;
-  const bgm = $('bgmSound'); if(bgm) bgm.volume = muted ? 0 : TITLE_BGM_VOLUME;
-  [1,2,3,4].forEach(i=>{ const t=$('fightBgm'+i); if(t) t.volume=muted?0:FIGHT_BGM_VOLUME; });
-  // collect BGM ใช้ Web Audio gain node
+function _musicGain(base) { return gameSettings.musicOn ? base * gameSettings.musicVolume : 0; }
+function _sfxGain(base) { return gameSettings.sfxOn ? base * gameSettings.sfxVolume : 0; }
+
+function applyAudioSettings() {
+  soundEnabled = gameSettings.musicOn || gameSettings.sfxOn;
+  const bgm = $('bgmSound'); if(bgm) bgm.volume = _musicGain(TITLE_BGM_VOLUME);
+  [1,2,3,4].forEach(i=>{ const t=$('fightBgm'+i); if(t) t.volume = _musicGain(FIGHT_BGM_VOLUME); });
+  const cd = $('countdownSound'); if(cd) cd.volume = _sfxGain(1.0);
   if(window._collectAudio && window._collectAudio.gain) {
-    window._collectAudio.gain.gain.value = muted ? 0 : COLLECT_BGM_VOLUME;
+    window._collectAudio.gain.gain.value = _musicGain(COLLECT_BGM_VOLUME);
+  }
+  document.body.classList.toggle('reduce-flash', !!gameSettings.reduceFlash);
+  syncSettingsUI();
+}
+
+function persistSettings() {
+  gameSettings = normalizeSettings(gameSettings);
+  try { localStorage.setItem('noctis_settings', JSON.stringify(gameSettings)); } catch(e) {}
+  try { localStorage.setItem('noctis_sound', soundEnabled ? 'on' : 'off'); } catch(e) {}
+  if (typeof save !== 'undefined' && save) {
+    save.settings = gameSettings;
+    doSave('settings');
   }
 }
 
-function _syncSoundBtns() {
-  const src = soundEnabled ? 'sound_on.png' : 'sound_off.png';
-  ['soundToggleBtn','soundMenuBtn','soundPauseBtn','soundResultBtn'].forEach(id=>{
-    const b=$(id);
-    if(b) b.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:contain;display:block;" draggable="false">`;
-  });
+function syncSettingsUI() {
+  const musicBtn = $('musicToggleBtn');
+  if(musicBtn) { musicBtn.textContent = gameSettings.musicOn ? 'ON' : 'OFF'; musicBtn.classList.toggle('off', !gameSettings.musicOn); }
+  const sfxBtn = $('sfxToggleBtn');
+  if(sfxBtn) { sfxBtn.textContent = gameSettings.sfxOn ? 'ON' : 'OFF'; sfxBtn.classList.toggle('off', !gameSettings.sfxOn); }
+  const flashBtn = $('reduceFlashToggleBtn');
+  if(flashBtn) { flashBtn.textContent = gameSettings.reduceFlash ? 'ON' : 'OFF'; flashBtn.classList.toggle('off', !gameSettings.reduceFlash); }
+  const mv = $('musicVolumeSlider');
+  if(mv) mv.value = Math.round(gameSettings.musicVolume * 100);
+  const mvv = $('musicVolumeValue');
+  if(mvv) mvv.textContent = Math.round(gameSettings.musicVolume * 100) + '%';
+  const sv = $('sfxVolumeSlider');
+  if(sv) sv.value = Math.round(gameSettings.sfxVolume * 100);
+  const svv = $('sfxVolumeValue');
+  if(svv) svv.textContent = Math.round(gameSettings.sfxVolume * 100) + '%';
 }
+
+function toggleSetting(type) {
+  if(type === 'music') gameSettings.musicOn = !gameSettings.musicOn;
+  if(type === 'sfx') gameSettings.sfxOn = !gameSettings.sfxOn;
+  if(type === 'reduceFlash') gameSettings.reduceFlash = !gameSettings.reduceFlash;
+  applyAudioSettings();
+  persistSettings();
+}
+
+function setSettingVolume(type, value) {
+  const v = _clamp01(Number(value) / 100);
+  if(type === 'music') { gameSettings.musicVolume = v; if(v > 0) gameSettings.musicOn = true; }
+  if(type === 'sfx') { gameSettings.sfxVolume = v; if(v > 0) gameSettings.sfxOn = true; }
+  applyAudioSettings();
+  persistSettings();
+}
+
+function applyMute(muted) {
+  gameSettings.musicOn = !muted;
+  gameSettings.sfxOn = !muted;
+  applyAudioSettings();
+}
+function _syncSoundBtns() { syncSettingsUI(); }
 function toggleSound() {
-  soundEnabled = !soundEnabled;
-  try { localStorage.setItem('noctis_sound', soundEnabled ? 'on' : 'off'); } catch(e){}
-  applyMute(!soundEnabled);
-  _syncSoundBtns();
+  const next = !(gameSettings.musicOn || gameSettings.sfxOn);
+  gameSettings.musicOn = next;
+  gameSettings.sfxOn = next;
+  applyAudioSettings();
+  persistSettings();
 }
 
 // ── SFX play functions ──
 let _akLastPlay = 0;
 function playAK() {
-  if(!soundEnabled) return;
+  if(!gameSettings.sfxOn) return;
   const now = Date.now();
   if(now - _akLastPlay < 1000) return; // รอ 1 วินาทีระหว่างแต่ละเสียง
   _akLastPlay = now;
@@ -2766,6 +2930,7 @@ function defaultSave() {
            gamesCompleted:0,
            ocaTickets:{ standard:0, premium:0, elite:0 },
            dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
+           settings:normalizeSettings(gameSettings),
            cloudPlayerId:null };
 }
 
@@ -2790,6 +2955,7 @@ function normalizeSaveData(d) {
   ['standard','premium','elite'].forEach(t => { d.ocaTickets[t] = Math.max(0, Math.floor(Number(d.ocaTickets[t]) || 0)); });
   if (!d.dailyQuest || typeof d.dailyQuest !== 'object') d.dailyQuest = { weekKey:'', streak:0, lastClaimDate:'', claimed:[] };
   if (!Array.isArray(d.dailyQuest.claimed)) d.dailyQuest.claimed = [];
+  d.settings = normalizeSettings(d.settings || gameSettings);
   if (d.cloudPlayerId === undefined) d.cloudPlayerId = null;
   d.quitPenalty = false;
   d.unlockedCards = _migrateIds(d.unlockedCards);
@@ -2878,6 +3044,9 @@ async function verifyLocalSaveSignature() {
     return false;
   }
   save = normalizeSaveData(stored.legacyPayload || stored.payload);
+  gameSettings = normalizeSettings(save.settings || gameSettings);
+  save.settings = gameSettings;
+  applyAudioSettings();
   _storeLocalSave(save);
   _saveSignatureState = 'local';
   return true;
@@ -2890,6 +3059,9 @@ function doSave(action) {
 
 
 let save = loadSave();
+gameSettings = normalizeSettings(save.settings || gameSettings);
+save.settings = gameSettings;
+applyAudioSettings();
 const _saveReadyPromise = verifyLocalSaveSignature();
 
 // item level helper
@@ -3036,7 +3208,7 @@ function onAllLoaded() {
     // unlock + เล่น BGM ทันทีหลัง user gesture
     const bgm = $('bgmSound');
     if (bgm) {
-      bgm.volume = soundEnabled ? TITLE_BGM_VOLUME : 0;
+      bgm.volume = _musicGain(TITLE_BGM_VOLUME);
       bgm.play().catch(() => {});
     }
     setTimeout(() => {
@@ -3179,7 +3351,7 @@ function _hideAllScreens() {
     const el = $(id); if(el) el.style.display = 'none';
   });
   // ซ่อน game UI elements ด้วย
-  const gameEls = ['topUI','fighter','tapZone','streakLabel','wpCounter','soundToggleBtn','lodCardDisplay'];
+  const gameEls = ['topUI','fighter','tapZone','streakLabel','wpCounter','lodCardDisplay'];
   gameEls.forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
   // ซ่อน save/transfer button
   $('dailyQuestWidget').classList.remove('visible');
@@ -3217,7 +3389,6 @@ function showMainMenu() {
   _el.bossBar.style.display = 'none';
   $('wpCounter').style.display = 'none';
   _el.multiBadge.classList.remove('show');
-  $('soundToggleBtn').style.display='none';
   // show save/transfer button
   _applyArenaBg();
   playBGM();
@@ -4152,7 +4323,7 @@ function showWpHitFX(x, y, dmg) {
 function playBGM() {
   const bgm = $('bgmSound');
   if (!bgm) return;
-  bgm.volume = soundEnabled ? TITLE_BGM_VOLUME : 0;
+  bgm.volume = _musicGain(TITLE_BGM_VOLUME);
   if (bgm.paused) bgm.play().catch(() => {});
 }
 function stopBGM() {
@@ -4189,7 +4360,7 @@ function _pickFightTrack() {
   }
   const track = $('fightBgm' + (Math.floor(Math.random() * 4) + 1));
   if (!track) return;
-  track.volume = soundEnabled ? FIGHT_BGM_VOLUME : 0;
+  track.volume = _musicGain(FIGHT_BGM_VOLUME);
   track.currentTime = 0;
   track.play().catch(() => {});
   track.addEventListener('ended', _pickFightTrack, { once: true });
@@ -5355,7 +5526,7 @@ function openCardDraw(onDone) {
 
 function _playCollectBGM() {
   _stopCollectBGM();
-  if(!soundEnabled) return;
+  if(!gameSettings.musicOn) return;
   try {
     const ctx = _getActx();
     if(ctx.state === 'suspended') ctx.resume();
@@ -5365,7 +5536,7 @@ function _playCollectBGM() {
       src.buffer = buf;
       src.loop = true;
       const gain = ctx.createGain();
-      gain.gain.value = COLLECT_BGM_VOLUME;
+      gain.gain.value = _musicGain(COLLECT_BGM_VOLUME);
       src.connect(gain);
       gain.connect(ctx.destination);
       src.start(0);
@@ -5380,7 +5551,7 @@ function _playCollectBGM() {
       fetch('collect.mp3')
         .then(r => r.arrayBuffer())
         .then(ab => ctx.decodeAudioData(ab))
-        .then(buf => { window._collectBuf = buf; if(soundEnabled) _startWithBuf(buf); })
+        .then(buf => { window._collectBuf = buf; if(gameSettings.musicOn) _startWithBuf(buf); })
         .catch(e => console.warn('collect.mp3 fail', e));
     }
   } catch(e) { console.warn('collect BGM error', e); }
@@ -5615,7 +5786,6 @@ function startGame() {
   $('tapZone').style.display='none';
   $('streakLabel').style.display='none';
   $('wpCounter').style.display='none';
-  $('soundToggleBtn').style.display='none';
   initVolumes(); initState(); warmUpAudio();
   csReset(false);
   openCardSlot(()=>{
@@ -5624,7 +5794,7 @@ function startGame() {
     $('fighter').style.display='block';
     $('streakLabel').style.display='block';
     $('wpCounter').style.display='flex';
-    const _sb1=$('soundToggleBtn'); _sb1.style.display='block'; _syncSoundBtns();
+    _syncSoundBtns();
     requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ _bSetSize(); _bScheduleDraw(); }); });
     stopBGM();
     if(window._csState){
@@ -5661,7 +5831,7 @@ function retryGame() {
   $('tapZone').style.display='none';
   $('streakLabel').style.display='block';
   $('wpCounter').style.display='flex';
-  const _sb2=$('soundToggleBtn'); _sb2.style.display='block'; _syncSoundBtns();
+  _syncSoundBtns();
   initVolumes(); initState();
   csReset(true); // ล้าง savedCards — retry สุ่มใหม่เสมอ
   // เล่น title BGM ระหว่างหน้า card slot
@@ -5700,9 +5870,9 @@ function startCountdown(onDone) {
 
   // เล่นเสียง countdown
   const cdSound = $('countdownSound');
-  if(cdSound && soundEnabled) {
+  if(cdSound && gameSettings.sfxOn) {
     cdSound.currentTime = 0;
-    cdSound.volume = 1.0;
+    cdSound.volume = _sfxGain(1.0);
     cdSound.play().catch(()=>{});
   }
 
@@ -5881,7 +6051,6 @@ function endGame() {
   _el.godLevelWrap.style.display='none';
   _el.bossBar.style.display='none';
   $('wpCounter').style.display='none';
-  $('soundToggleBtn').style.display='none';
   $('lodCardDisplay').style.display='none';
 
   function _showResultScreen() {
@@ -6932,6 +7101,9 @@ async function svCloudDownload() {
 
     cloudSave.cloudPlayerId = id;
     Object.assign(save, normalizeSaveData(cloudSave));
+    gameSettings = normalizeSettings(save.settings || gameSettings);
+    save.settings = gameSettings;
+    applyAudioSettings();
     _storeLocalSave(save);
     _saveSignatureState = 'local';
     _cloudBindSave(id);
