@@ -4037,6 +4037,7 @@ let bossPressure = {
   rage:0,
   breakNeed:0,
   breakProgress:0,
+  breakTapCount:0,
   until:0,
   nextAt:0,
   bonusUntil:0,
@@ -4048,7 +4049,8 @@ let bossPressure = {
     perfectAt:0
   },
   stunnedUntil:0,
-  lastAfkAt:0
+  lastAfkAt:0,
+  roundStartAt:0
 };
 
 // Weak Point system
@@ -4100,13 +4102,15 @@ function resetBossPressure() {
     rage:0,
     breakNeed:0,
     breakProgress:0,
+    breakTapCount:0,
     until:0,
     nextAt:0,
     bonusUntil:0,
     lastChance:false,
     headshot:{ active:false, start:0, end:0, perfectAt:0 },
     stunnedUntil:0,
-    lastAfkAt:Date.now()
+    lastAfkAt:Date.now(),
+    roundStartAt:0
   };
   renderBossPressureUI();
 }
@@ -4118,6 +4122,8 @@ function startBossPressureCycle() {
   bossPressure.lastChance = false;
   bossPressure.breakProgress = 0;
   bossPressure.until = 0;
+  bossPressure.breakTapCount = 0;
+  if(!bossPressure.roundStartAt) bossPressure.roundStartAt = now;
   bossPressure.nextAt = now + getPressureDelay();
   bossPressure.lastAfkAt = now;
   renderBossPressureUI();
@@ -4133,12 +4139,23 @@ function isAkSuppressionActive() {
   return godLevel > 0 || wpActive || wpCollected > 0;
 }
 
-function getBreakNeed(lastChance=false) {
-  let need = lastChance ? 22 : 16;
-  if(isAkSuppressionActive()) need *= 0.60;
-  if(window._csState && window._csState.cs_breakPower) need *= (1 - Math.min(0.45, window._csState.cs_breakPower));
-  if(window._csState && window._csState.cs_akSuppression && isAkSuppressionActive()) need *= (1 - Math.min(0.35, window._csState.cs_akSuppression));
-  return Math.max(lastChance ? 10 : 7, Math.round(need));
+function getBreakNeed(lastChance=false, now=Date.now()) {
+  const elapsedTime = Math.max(0, (now - (bossPressure.roundStartAt || now)) / 1000);
+  const normalNeed = 20
+    + Math.floor(ko / 5) * 3
+    + Math.floor(elapsedTime / 30) * 5
+    + Math.floor(bossPressure.rage / 25) * 3;
+  const cardBreakHelp = window._csState && window._csState.cs_breakPower
+    ? Math.min(0.10, window._csState.cs_breakPower)
+    : 0;
+  const scaledNeed = Math.round(normalNeed * (1 - cardBreakHelp));
+  return lastChance
+    ? Math.max(55, Math.min(75, scaledNeed + 35))
+    : Math.max(18, Math.min(60, scaledNeed));
+}
+
+function getBreakTapGain() {
+  return isAkSuppressionActive() ? 1.4 : 1.0;
 }
 
 function triggerBossBreakEvent(now=Date.now(), lastChance=false) {
@@ -4147,8 +4164,9 @@ function triggerBossBreakEvent(now=Date.now(), lastChance=false) {
   bossPressure.type = 'BREAK';
   bossPressure.lastChance = !!lastChance;
   bossPressure.breakProgress = 0;
-  bossPressure.breakNeed = getBreakNeed(lastChance);
-  bossPressure.until = now + (lastChance ? 3000 : 2600);
+  bossPressure.breakTapCount = 0;
+  bossPressure.breakNeed = getBreakNeed(lastChance, now);
+  bossPressure.until = now + (lastChance ? 3000 : 2000);
   bossPressure.nextAt = 0;
   const root = $('gameRoot');
   root.classList.add('pressure-break');
@@ -4168,14 +4186,12 @@ function triggerBossBreakEvent(now=Date.now(), lastChance=false) {
 function handleBossPressureInput(e, now) {
   bossPressure.lastAfkAt = now;
   if(!bossPressure.active || bossPressure.type !== 'BREAK') return;
-  let gain = 1;
-  if(isAkSuppressionActive()) gain *= 2;
-  if(window._csState && window._csState.cs_breakPower) gain *= (1 + window._csState.cs_breakPower);
-  if(window._csState && window._csState.cs_akSuppression && isAkSuppressionActive()) gain *= (1 + window._csState.cs_akSuppression);
+  const gain = getBreakTapGain();
+  bossPressure.breakTapCount = (bossPressure.breakTapCount || 0) + 1;
   bossPressure.breakProgress = Math.min(bossPressure.breakNeed, bossPressure.breakProgress + gain);
-  if(isAkSuppressionActive() && Math.random() < 0.28) showPressureImpact('SUPPRESSION FIRE', 'BREAK +' + Math.round(gain * 10) / 10, '#ffcc00');
+  if(isAkSuppressionActive() && Math.random() < 0.20) showPressureImpact('SUPPRESSION FIRE', 'BREAK +' + gain.toFixed(1), '#ffcc00');
   renderBossPressureUI();
-  if(bossPressure.breakProgress >= bossPressure.breakNeed) completeBossBreak(now);
+  if(bossPressure.breakProgress >= bossPressure.breakNeed && bossPressure.breakTapCount >= 12) completeBossBreak(now);
 }
 
 function completeBossBreak(now=Date.now()) {
@@ -4183,6 +4199,7 @@ function completeBossBreak(now=Date.now()) {
   bossPressure.active = false;
   bossPressure.type = null;
   bossPressure.breakProgress = 0;
+  bossPressure.breakTapCount = 0;
   bossPressure.until = 0;
   bossPressure.bonusUntil = now + 2000;
   bossPressure.stunnedUntil = now + 2000;
@@ -4211,6 +4228,7 @@ function failBossBreak(now=Date.now()) {
   bossPressure.active = false;
   bossPressure.type = null;
   bossPressure.breakProgress = 0;
+  bossPressure.breakTapCount = 0;
   bossPressure.until = 0;
   bossPressure.lastChance = false;
   $('gameRoot').classList.remove('pressure-break','last-chance');
@@ -4273,7 +4291,14 @@ function renderBossPressureUI() {
   $('gameRoot').classList.toggle('pressure-high', gameRunning && bossPressure.rage >= 70);
   if(ui) ui.classList.toggle('active', !!bossPressure.active);
   if(warn) warn.textContent = bossPressure.lastChance ? 'LAST CHANCE' : 'BREAK!';
-  if(sub) sub.textContent = bossPressure.lastChance ? 'BREAK OR DIE — 3 SEC' : (isAkSuppressionActive() ? 'SUPPRESSION FIRE — BREAK BOOST' : 'SPAM TAP — STOP THE BOSS');
+  if(sub) {
+    const taps = bossPressure.breakTapCount || 0;
+    const need = bossPressure.breakNeed || 0;
+    const tapInfo = need ? ' — ' + taps + '/' + Math.ceil(need / getBreakTapGain()) + ' TAPS' : '';
+    sub.textContent = bossPressure.lastChance
+      ? 'BREAK OR DIE — 3 SEC' + tapInfo
+      : (isAkSuppressionActive() ? 'SUPPRESSION FIRE +40%' : 'SPAM TAP — STOP THE BOSS') + tapInfo;
+  }
   if(fill) fill.style.width = bossPressure.breakNeed ? Math.min(100, (bossPressure.breakProgress / bossPressure.breakNeed) * 100) + '%' : '0%';
 }
 
@@ -4763,8 +4788,8 @@ const CARD_POOL = [
     apply(s){ s.cs_doubleClick = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
-    effect:'กด AK47 = ดาเมจ <strong>x3</strong> + BREAK power <strong>+15%</strong> + เก็บครบชุด = เวลา <strong>+1.5 วิ</strong>', tradeoff:'AK47 spawn ช้าลง <strong>1.5 เท่า</strong>',
-    apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.15; }
+    effect:'กด AK47 = ดาเมจ <strong>x3</strong> + BREAK need <strong>-10%</strong> + เก็บครบชุด = เวลา <strong>+1.5 วิ</strong>', tradeoff:'AK47 spawn ช้าลง <strong>1.5 เท่า</strong>',
+    apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.10; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
     effect:'กด AK47 = OD charge <strong>+20%</strong> | BREAK pressure delay <strong>+10%</strong> | ถ้า OD active อยู่แล้ว = OD timer <strong>+1 วิ</strong> แทน', tradeoff:null,
@@ -4785,8 +4810,8 @@ const CARD_POOL = [
 
   // ── VOID (MVP) ──
   { id:'th',   name:'THANABROS CARD',      img:'cards/thanabros.png',    rarity:'mythic',
-    effect:'AK47 ดาเมจ <strong>x2.5</strong> + Suppression BREAK <strong>+25%</strong> + เก็บครบชุด = OD charge เต็มทันที', tradeoff:'Combo reset ทุก 10 วินาที',
-    apply(s){ s.cs_thanatos = true; s.cs_akSuppression = (s.cs_akSuppression||0) + 0.25; }
+    effect:'AK47 ดาเมจ <strong>x2.5</strong> + Rage gain <strong>-10%</strong> + เก็บครบชุด = OD charge เต็มทันที', tradeoff:'Combo reset ทุก 10 วินาที',
+    apply(s){ s.cs_thanatos = true; s.cs_rageResist = (s.cs_rageResist||0) + 0.10; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
     effect:'ทุกคลิกเป็น <strong>triple hit</strong> + กด AK47 แล้ว spawn ใหม่ทันที + เก็บครบชุด = ดาเมจ <strong>+5%</strong> สะสม (max +25%)', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
