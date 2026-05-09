@@ -2783,6 +2783,8 @@ const ASSETS = {
     'default_bg.png','one_bg.png',
     // default skin
     'boxer.png','boxer_hit1.png','boxer_hit2.png','boxer_hit3.png','boxer_hit4.png',
+    // SORNSIT SPIRIT skin
+    'sornsit_icon.webp','sornsit.png','sornsit_hit1.png','sornsit_hit2.png','sornsit_hit3.png','sornsit_hit4.png',
     // game UI critical
     'ak47.png','noobak47.png','wp5.png',
     'sound_on.png','sound_off.png',
@@ -3312,6 +3314,17 @@ const BOSS_SKINS = [
     files: {
       idle: 'rukawa.png',
       hits: ['rukawa_hit1.png','rukawa_hit2.png','rukawa_hit3.png','rukawa_hit4.png'],
+    }
+  },
+  {
+    id: 'sornsit_spirit',
+    name: 'SORNSIT SPIRIT',
+    sub: '1,000 ZENY',
+    icon: 'sornsit_icon.webp',
+    cost: 1000,
+    files: {
+      idle: 'sornsit.png',
+      hits: ['sornsit_hit1.png','sornsit_hit2.png','sornsit_hit3.png','sornsit_hit4.png'],
     }
   },
   {
@@ -7133,7 +7146,7 @@ function showOcaDropToast(tier) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const APP_CACHE_NAME = 'noctisak47-v160';
+      const APP_CACHE_NAME = 'noctisak47-v161';
       const SW_PATH = new URL('./sw.js', location.href).pathname;
       const hadController = !!navigator.serviceWorker.controller;
       let refreshing = false;
