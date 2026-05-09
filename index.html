@@ -1731,9 +1731,19 @@
   #rageBar { height:5px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.16); overflow:hidden; }
   #rageFill { width:0%; height:100%; background:linear-gradient(90deg,#7a8590,#dbe8f0); box-shadow:0 0 14px rgba(255,255,255,.45); transition:width .25s ease; }
   #rageLabel { margin-top:4px; display:flex; justify-content:space-between; font-size:9px; letter-spacing:3px; color:#7e8790; }
-  #gameRoot.rage-high::after {
+  #gameRoot.rage-mid::after,
+  #gameRoot.rage-high::after,
+  #gameRoot.rage-critical::after {
     content:''; position:absolute; inset:0; z-index:28; pointer-events:none;
-    background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.38) 82%, rgba(0,0,0,.72) 100%);
+  }
+  #gameRoot.rage-mid::after {
+    background:radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,.22) 86%, rgba(0,0,0,.42) 100%);
+  }
+  #gameRoot.rage-high::after {
+    background:radial-gradient(ellipse at center, transparent 56%, rgba(0,0,0,.36) 84%, rgba(0,0,0,.66) 100%);
+  }
+  #gameRoot.rage-critical::after {
+    background:radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,.48) 80%, rgba(0,0,0,.82) 100%);
   }
   .break-target {
     position:absolute; width:clamp(110px,30vw,170px); aspect-ratio:1; border-radius:50%; border:0; padding:0;
@@ -6156,6 +6166,14 @@ const PRESSURE_BREAK_TABLE = [
   { min: 25, max: 28, duration: 2650 },
 ];
 
+const PRESSURE_FAIL_RAGE_TABLE = [
+  { min: 18, max: 28 },
+  { min: 20, max: 32 },
+  { min: 22, max: 36 },
+  { min: 25, max: 40 },
+  { min: 28, max: 45 },
+];
+
 function pressureReset() {
   pressureClearTimers();
   PRESSURE.rage = 0;
@@ -6210,8 +6228,8 @@ function pressureHide() {
   const root = $('gameRoot');
   const overlay = $('pressureOverlay');
   if(overlay) { overlay.className = ''; overlay.style.display = 'none'; }
-  root.classList.remove('pressure-focus','rage-high');
-  if(PRESSURE.rage >= 70) root.classList.add('rage-high');
+  root.classList.remove('pressure-focus','rage-mid','rage-high','rage-critical');
+  pressureApplyRageClass();
   const txt = $('pressureText'); if(txt) txt.classList.remove('show');
   const hud = $('pressureHud'); if(hud) hud.classList.remove('show');
   if(!gameRunning) {
@@ -6244,7 +6262,7 @@ function pressureStartBuildup(lastChance=false) {
   overlay.style.display = 'block';
   overlay.className = 'active buildup' + (lastChance ? ' lastchance' : '');
   pressureMuffleAudio(lastChance ? 0.75 : 0.85);
-  pressureHeartbeat(lastChance ? 280 : 540);
+  pressureHeartbeat(lastChance ? 260 : pressureHeartbeatDelay());
   pressureSetTimer(()=>pressureLockIn(lastChance), lastChance ? 1550 : Math.round(pressureRandomRange(1500, 2000)));
 }
 
@@ -6436,13 +6454,20 @@ function pressureFail(wasLastChance) {
     endGame({gameOver:true});
     return;
   }
-  pressureAddRage(34, 'BREAK FAILED');
+  const rageGain = pressureFailRageGain();
+  pressureAddRage(rageGain, 'BREAK FAILED');
   combo = Math.max(1, Math.floor(combo * 0.55));
   lastHitTime = 0;
-  showBigSplash('PRESSURE +','BOSS ATTACK UNSUPPRESSED','#dbe8f0',true);
+  showBigSplash('PRESSURE +', '+' + rageGain + '% RAGE', '#dbe8f0', true);
   triggerFlash('flash-boss');
   PRESSURE.cooldown = pressureNextCooldown();
   PRESSURE.lastAfkAt = Date.now();
+}
+
+function pressureFailRageGain() {
+  const idx = Math.min(4, Math.max(0, (PRESSURE.currentBreak || 1) - 1));
+  const range = PRESSURE_FAIL_RAGE_TABLE[idx];
+  return Math.round(pressureRandomRange(range.min, range.max));
 }
 
 function pressureAddRage(amount, reason) {
@@ -6473,7 +6498,7 @@ function pressureUpdateRageUI() {
   meter.classList.toggle('show', gameRunning || PRESSURE.rage > 0);
   $('rageFill').style.width = PRESSURE.rage + '%';
   $('rageNum').textContent = Math.round(PRESSURE.rage) + '%';
-  $('gameRoot').classList.toggle('rage-high', PRESSURE.rage >= 70);
+  pressureApplyRageClass();
   const streak = $('pressureStreak');
   if(streak) {
     const bonus = pressureRewardBonusPct();
@@ -6481,6 +6506,19 @@ function pressureUpdateRageUI() {
     $('pressureStreakMain').textContent = `BREAK x${PRESSURE.successStreak}`;
     $('pressureStreakBonus').textContent = bonus > 0 ? `SURVIVAL BONUS +${bonus}%` : 'SURVIVAL BONUS LOCKED';
   }
+}
+
+function pressureApplyRageClass() {
+  const root = $('gameRoot');
+  if(!root) return;
+  root.classList.remove('rage-mid','rage-high','rage-critical');
+  if(PRESSURE.rage >= 90) root.classList.add('rage-critical');
+  else if(PRESSURE.rage >= 70) root.classList.add('rage-high');
+  else if(PRESSURE.rage >= 40) root.classList.add('rage-mid');
+}
+
+function pressureHeartbeatDelay() {
+  return Math.max(320, 560 - PRESSURE.rage * 2.2);
 }
 
 function pressureHeartbeat(ms) {
