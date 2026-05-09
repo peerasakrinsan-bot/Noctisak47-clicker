@@ -2796,6 +2796,8 @@ const ASSETS = {
   images: [
     // backgrounds
     'default_bg.png','one_bg.png','colosseum_bg.webp','colosseum_bg.png',
+    // XUANG skin
+    'xuang_icon.webp','xuang.png','xuang_hit1.png','xuang_hit2.png','xuang_hit3.png','xuang_hit4.png',
     // default skin
     'boxer.png','boxer_hit1.png','boxer_hit2.png','boxer_hit3.png','boxer_hit4.png',
     // SORNSIT SPIRIT skin
@@ -3318,6 +3320,17 @@ const BOSS_SKINS = [
     files: {
       idle: 'apologize.png',
       hits: ['apologize_hit1.png','apologize_hit2.png','apologize_hit3.png','apologize_hit4.png'],
+    }
+  },
+  {
+    id: 'xuang',
+    name: 'XUANG',
+    sub: '1,500 ZENY',
+    icon: 'xuang_icon.webp',
+    cost: 1500,
+    files: {
+      idle: 'xuang.png',
+      hits: ['xuang_hit1.png','xuang_hit2.png','xuang_hit3.png','xuang_hit4.png'],
     }
   },
   {
@@ -7189,7 +7202,7 @@ function showOcaDropToast(tier) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const APP_CACHE_NAME = 'noctisak47-v162';
+      const APP_CACHE_NAME = 'noctisak47-v163';
       const SW_PATH = new URL('./sw.js', location.href).pathname;
       const hadController = !!navigator.serviceWorker.controller;
       let refreshing = false;

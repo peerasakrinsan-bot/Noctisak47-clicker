@@ -1,5 +1,5 @@
-// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v162
-const CACHE_NAME = 'noctisak47-v162';
+// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v163
+const CACHE_NAME = 'noctisak47-v163';
 
 const PRECACHE_ASSETS = [
   './',
@@ -86,6 +86,13 @@ const PRECACHE_ASSETS = [
   './apologize_hit3.png',
   './apologize_hit4.png',
   './apologize_icon.webp',
+  // XUANG skin
+  './xuang.png',
+  './xuang_hit1.png',
+  './xuang_hit2.png',
+  './xuang_hit3.png',
+  './xuang_hit4.png',
+  './xuang_icon.webp',
   // RUKAWA skin
   './rukawa.png',
   './rukawa_hit1.png',
