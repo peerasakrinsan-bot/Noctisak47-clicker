@@ -1722,11 +1722,11 @@
   #gameRoot.rage-high::after { background:rgba(0,0,0,.14); }
   #gameRoot.rage-critical::after { background:rgba(0,0,0,.20); }
   .break-target {
-    position:absolute; width:clamp(110px,30vw,170px); aspect-ratio:1; border-radius:50%; border:0; padding:0;
+    position:absolute; width:var(--break-target-size, clamp(110px,30vw,170px)); height:var(--break-target-size, clamp(110px,30vw,170px)); border-radius:50%; border:0; padding:0;
     background:linear-gradient(135deg, rgba(255,255,255,.98), rgba(0,255,238,.92) 46%, rgba(255,255,255,.95));
     box-shadow:0 0 30px rgba(0,255,238,1), 0 0 62px rgba(255,255,255,.82), 0 18px 42px rgba(0,0,0,.95);
     outline:4px solid rgba(255,255,255,.92);
-    transform:translate(-50%,-50%); animation:breakTargetPop .16s ease-out forwards, breakTargetPulse .7s ease-in-out .16s infinite alternate;
+    transform:none; animation:breakTargetPop .16s ease-out forwards, breakTargetPulse .7s ease-in-out .16s infinite alternate;
     transition:none; will-change:filter,opacity;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent; cursor:pointer;
   }
@@ -6328,8 +6328,10 @@ function pressureSpawnTarget() {
   x = Math.max(minX, Math.min(maxX, x));
   y = Math.max(minY, Math.min(maxY, y));
   PRESSURE._lastTarget = {x,y};
-  target.style.left = x + 'px';
-  target.style.top = y + 'px';
+  const targetSize = Math.max(110, Math.min(170, vvW() * 0.30));
+  target.style.setProperty('--break-target-size', targetSize + 'px');
+  target.style.left = (x - targetSize / 2) + 'px';
+  target.style.top = (y - targetSize / 2) + 'px';
   let handled = false;
   const hit = ev => {
     if(ev.cancelable) ev.preventDefault();
