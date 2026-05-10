@@ -1169,7 +1169,7 @@
     position:absolute; top:50%; right:12px;
     transform:translateY(-50%);
     z-index:10; pointer-events:none; text-align:right;
-    display:none;
+    display:none !important;
   }
   #godLevelNum { font-size:clamp(34px,11vw,62px); line-height:1; text-shadow:0 0 30px currentColor; }
   #godLevelLabel { font-size:8px; letter-spacing:3px; color:#555; }
@@ -1762,7 +1762,7 @@
     position:absolute; left:50%; bottom:clamp(72px,12vh,118px); transform:translateX(-50%);
     width:min(340px,86vw); display:none; gap:8px; flex-direction:column; pointer-events:none;
   }
-  #pressureHud.show { display:flex; }
+  #pressureHud.show { display:none !important; }
   #pressureProgressWrap { height:14px; border:1px solid rgba(255,255,255,.2); background:rgba(0,0,0,.78); box-shadow:0 0 24px rgba(0,0,0,.9); overflow:hidden; }
   #pressureProgress { width:0%; height:100%; background:linear-gradient(90deg,#1a0505,#a40018,#ffcc00); box-shadow:0 0 16px rgba(160,0,24,.8); transition:width .08s linear; }
   #pressureHudMeta { display:flex; justify-content:space-between; font-size:10px; letter-spacing:3px; color:#aab3bb; text-shadow:0 2px 5px #000; }
@@ -1770,7 +1770,7 @@
     position:absolute; left:50%; top:clamp(78px,12vh,112px); transform:translateX(-50%);
     z-index:11; width:min(320px,82vw); display:none; pointer-events:none; opacity:.94;
   }
-  #rageMeter.show { display:block; }
+  #rageMeter.show { display:none !important; }
   #rageBar { height:5px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.16); overflow:hidden; }
   #rageFill { width:0%; height:100%; background:linear-gradient(90deg,#7a8590,#dbe8f0); box-shadow:0 0 14px rgba(255,255,255,.45); transition:width .25s ease; }
   #rageLabel { margin-top:4px; display:flex; justify-content:space-between; font-size:9px; letter-spacing:3px; color:#7e8790; }
@@ -6970,8 +6970,7 @@ function endGame(opts = {}) {
     const h2 = $('resultScreen').querySelector('h2');
     if(h2) h2.textContent = gameOver ? 'GAME OVER' : '— BATTLE RESULT —';
     $('res-score').textContent = formatNum(score);
-    const pressureText = pressureSummary.bonusPct > 0 ? ' (+' + pressureSummary.bonusPct + '%)' : '';
-    $('coinsEarned').textContent = '+' + formatNum(roundCoins) + ' ZENY' + pressureText;
+    $('coinsEarned').textContent = '+' + formatNum(roundCoins) + ' ZENY';
     $('res-hs-num').textContent = formatNum(save.stats.highScore);
     $('newRecordBanner').style.display = isNewRecord ? 'block' : 'none';
     $('res-highscore').style.color = isNewRecord ? 'var(--gold)' : '#555';
