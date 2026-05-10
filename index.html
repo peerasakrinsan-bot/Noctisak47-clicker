@@ -5054,11 +5054,11 @@ const CARD_POOL = [
     apply(s){ s.cs_ghostping=true; }
   },
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
-    effect:'ดาเมจ <strong>+40%</strong>', tradeoff:'ต่อสู้นานกว่า 30 วิ: coin จาก Boss KO <strong>-15%</strong>',
+    effect:'ดาเมจ <strong>+40%</strong>', tradeoff:'ต่อสู้นานกว่า 10 วิ: coin จาก Boss KO <strong>-15%</strong>',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.40; s.cs_devilingo=true; }
   },
   { id:'ltn', name:'LADY TRAINEE CARD',    img:'cards/lady_trainee_card.png',   rarity:'elite',
-    effect:'ทุก 15 OD charge สะสม = ดาเมจ <strong>+1%</strong> ชั่วคราว (สูงสุด <strong>+25%</strong>)', tradeoff:'ผลลัพธ์ reset เมื่อจบรอบ',
+    effect:'OD Level Up ครั้งละ: ดาเมจ <strong>+1%</strong> (สูงสุด <strong>+25%</strong>) | สะสมข้ามบอสทุกตัว | 25 stacks: <strong>Spotlight Mode</strong> (OD charge <strong>+5%/click</strong> bonus)', tradeoff:'OD Level ต่ำกว่า Lv.3 เมื่อ OD หมด: เสีย <strong>2 stacks</strong>',
     apply(s){ s.cs_ladyTrainee=true; }
   },
 
@@ -5072,7 +5072,7 @@ const CARD_POOL = [
     apply(s){ s.cs_detailed=true; }
   },
   { id:'gus', name:'GLOOM UNDER SIDE CARD',img:'cards/gloom_under_side_card.png',rarity:'mythic',
-    effect:'ยิ่งต่อสู้นาน ยิ่ง scale: ดาเมจ / coin <strong>+3%</strong> ทุก 4 วิ (สูงสุด <strong>+30%</strong>) | 10 stacks (40 วิ): <strong>Twilight State</strong> (bonus ×2 = +60%) | สะสมข้ามศัตรู (ไม่ reset ตอน KO ทั่วไป)', tradeoff:'Scaling reset เมื่อ Boss KO',
+    effect:'ทุก 5 วิระหว่าง combat: ดาเมจ / Zeny / BREAK reward <strong>+1% per stack</strong> (สูงสุด <strong>+20%</strong>) | Stacks สะสมข้ามบอสทุกตัว ไม่มีวันรีเซ็ตจาก KO', tradeoff:'OD Level ต่ำกว่า Lv.3 เมื่อ OD หมด: สูญเสีย <strong>50%</strong> ของ stacks ทันที',
     apply(s){ s.cs_gloomUnderSide=true; }
   },
   { id:'dsk', name:'DARK STAKE LORD CARD', img:'cards/dark_stake_lord_card.png', rarity:'mythic',
@@ -5305,6 +5305,10 @@ function _csRefreshVolatileCardEffects(nextState) {
   _csOrcBaddyTimer = null;
   _csOrcBaddyDrainInterval = null;
 
+  // GLOOM UNDER SIDE: clear old stack timer
+  clearInterval(_csGloomTimer);
+  _csGloomTimer = null;
+
   if(!nextHasEddga) _csResetOdFromExpiredEddga();
   if(nextState && nextState.cs_eddga) _csStartEddga();
   if(nextState && nextState.cs_thanatos) _csStartThanatosTimer();
@@ -5323,8 +5327,14 @@ function _csRefreshVolatileCardEffects(nextState) {
 
   // DEVILINGO: record combat start time
   if(nextState && nextState.cs_devilingo) nextState._devilingoCombatStart = Date.now();
-  // GLOOM UNDER SIDE: record combat start time
-  if(nextState && nextState.cs_gloomUnderSide) nextState._gloomCombatStart = Date.now();
+  // GLOOM UNDER SIDE: start 5s momentum stack timer (stacks persist; never reset on KO)
+  if(nextState && nextState.cs_gloomUnderSide) {
+    _csGloomTimer = setInterval(() => {
+      if(!gameRunning || gamePaused) return;
+      if(!window._csState || !window._csState.cs_gloomUnderSide) return;
+      window._csState._gloomStacks = Math.min(20, (window._csState._gloomStacks || 0) + 1);
+    }, 5000);
+  }
   // FALLEN WECHAT: init break flags
   if(nextState && nextState.cs_fallenWechat) {
     nextState._fallenWechatBreakActive = false;
@@ -5497,12 +5507,14 @@ function _csStopAllTimers() {
   clearInterval(_csEddgaBurstInterval);
   clearTimeout(_csOrcBaddyTimer);
   clearInterval(_csOrcBaddyDrainInterval);
+  clearInterval(_csGloomTimer);
   _csThanatosTimer = null;
   _csLodTimer = null;
   _csEddgaInterval = null;
   _csEddgaBurstInterval = null;
   _csOrcBaddyTimer = null;
   _csOrcBaddyDrainInterval = null;
+  _csGloomTimer = null;
   _csResetOdFromExpiredEddga();
   _lodHideCard();
 }
@@ -5560,15 +5572,8 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_fallenWechat && cs._fallenWechatBreakActive && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.50;
   // DETAILED: Analysis stacks during BREAK → +3% per stack
   if(cs.cs_detailed && typeof pressureIsBreak === 'function' && pressureIsBreak() && cs._analysisStacks) d *= (1 + (cs._analysisStacks * 0.03));
-  // GLOOM UNDER SIDE: time-scaling dmg bonus (+3% per 4s, max +30%, Twilight x2 at 10 stacks)
-  if(cs.cs_gloomUnderSide && cs._gloomCombatStart) {
-    const _gloomSteps = Math.min(10, Math.floor((Date.now() - cs._gloomCombatStart) / 4000));
-    if(_gloomSteps > 0) {
-      const _gloomBonus = _gloomSteps * 0.03;
-      const _gloomMult = _gloomSteps >= 10 ? 2 : 1;
-      d *= (1 + _gloomBonus * _gloomMult);
-    }
-  }
+  // GLOOM UNDER SIDE: run-scaling dmg bonus (+1% per stack, max +20%)
+  if(cs.cs_gloomUnderSide && cs._gloomStacks) d *= (1 + cs._gloomStacks * 0.01);
   // SALVAGE: during BREAK → dmg +15% additional
   if(cs.cs_salvageBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.15;
   // STONK: during BREAK → dmg +20% additional
@@ -5626,15 +5631,8 @@ function csApplyCoinMod(coins) {
   if(typeof pressureCoinMultiplier === 'function') c *= pressureCoinMultiplier();
   // A-LIST: Sponsor Rush +25% coin
   if(cs.cs_aListCard && cs._sponsorRushEndTime && performance.now() < cs._sponsorRushEndTime) c *= 1.25;
-  // GLOOM UNDER SIDE: time-scaling coin bonus (+3% per 4s, max +30%, Twilight x2 at 10 stacks)
-  if(cs.cs_gloomUnderSide && cs._gloomCombatStart) {
-    const _gloomStepsC = Math.min(10, Math.floor((Date.now() - cs._gloomCombatStart) / 4000));
-    if(_gloomStepsC > 0) {
-      const _gloomBonusC = _gloomStepsC * 0.03;
-      const _gloomMultC = _gloomStepsC >= 10 ? 2 : 1;
-      c *= (1 + _gloomBonusC * _gloomMultC);
-    }
-  }
+  // GLOOM UNDER SIDE: run-scaling coin bonus (+1% per stack, max +20%)
+  if(cs.cs_gloomUnderSide && cs._gloomStacks) c *= (1 + cs._gloomStacks * 0.01);
   return Math.round(c);
 }
 
@@ -5718,18 +5716,8 @@ function csOnClick(isGod) {
   if(cs.cs_elderWillow_active && !isGod) {
     // applied in hit() via charge multiplier
   }
-  // LADY TRAINEE: track OD charge accumulated per click (godLevel 0 only)
-  if(cs.cs_ladyTrainee && !isGod && _el && _el.godFill) {
-    const _newFill = parseFloat(_el.godFill.style.width) || 0;
-    const _prev = cs._prevOdFill || 0;
-    if(_newFill > _prev) {
-      cs._ladyOdAccum = (cs._ladyOdAccum || 0) + (_newFill - _prev);
-      const _stacks = Math.min(25, Math.floor(cs._ladyOdAccum / 15));
-      cs._ladyTraineeDmg = _stacks * 0.01;
-    }
-    cs._prevOdFill = _newFill;
-  }
 }
+
 
 // ── helper: on KO ──
 function csOnKO() {
@@ -5782,7 +5770,6 @@ function csOnKO() {
       if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
     }
   }
-  // GLOOM UNDER SIDE: stacks persist across normal KOs — reset only on boss KO (handled in csOnBossKO)
 }
 
 // ── helper: on OD end ──
@@ -5796,6 +5783,18 @@ function csOnOdEnd() {
   }
   // KILL-D01: reset per-OD click counter when OD expires
   if(cs.cs_killD01) cs._killD01OdClickCount = 0;
+  // OD collapse penalty: if peak level reached < Lv3 when OD ends
+  if((cs._currentOdPeakLevel || 0) < 3) {
+    // GLOOM UNDER SIDE: lose 50% stacks
+    if(cs.cs_gloomUnderSide && cs._gloomStacks) {
+      cs._gloomStacks = Math.floor(cs._gloomStacks * 0.5);
+    }
+    // LADY TRAINEE: lose 2 stacks
+    if(cs.cs_ladyTrainee && cs._ladyTraineeDmg) {
+      cs._ladyTraineeDmg = Math.max(0, cs._ladyTraineeDmg - 0.02);
+    }
+  }
+  cs._currentOdPeakLevel = 0;
 }
 
 // ── helpers: new card events ──
@@ -5860,16 +5859,11 @@ function csOnBreakEnd() {
 function csOnBreakSuccess() {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
-  // GLOOM UNDER SIDE: bonus coins proportional to scaling at break time
-  if(cs.cs_gloomUnderSide && cs._gloomCombatStart) {
-    const _gStepsB = Math.min(10, Math.floor((Date.now() - cs._gloomCombatStart) / 4000));
-    if(_gStepsB > 0) {
-      const _gMultB = _gStepsB >= 10 ? 2 : 1;
-      const bonusPct = _gStepsB * 0.03 * _gMultB;
-      const bonus = Math.max(1, Math.round(roundCoins * bonusPct * 0.15));
-      roundCoins += bonus;
-      spawnCoinPopup(bonus);
-    }
+  // GLOOM UNDER SIDE: bonus coins on BREAK success proportional to stacks
+  if(cs.cs_gloomUnderSide && cs._gloomStacks) {
+    const bonus = Math.max(1, Math.round(roundCoins * cs._gloomStacks * 0.005));
+    roundCoins += bonus;
+    spawnCoinPopup(bonus);
   }
   // DARK STAKE LORD: escalating jackpot system
   if(cs.cs_darkStakeLord) {
@@ -6011,10 +6005,16 @@ function csOnOdStart() {
   if(!window._csState) return;
   const cs = window._csState;
   _csOdUseCount++;
+  // track peak OD level reached this OD session (godLevel is set before csOnOdStart is called)
+  cs._currentOdPeakLevel = Math.max(cs._currentOdPeakLevel || 0, godLevel);
   // ZENORC: count OD uses for damage stack (max 3 → +24%)
   if(cs.cs_zenorc) {
     if(!cs._zenorcCount) cs._zenorcCount = 0;
     if(cs._zenorcCount < 3) cs._zenorcCount++;
+  }
+  // LADY TRAINEE: +1% dmg stack per OD Level Up (max +25%)
+  if(cs.cs_ladyTrainee && (cs._ladyTraineeDmg || 0) < 0.25) {
+    cs._ladyTraineeDmg = Math.min(0.25, (cs._ladyTraineeDmg || 0) + 0.01);
   }
 }
 
@@ -6173,6 +6173,7 @@ let _csLastCards = null;
 let _csOnChosen = null;
 let _csOrcBaddyTimer = null;
 let _csOrcBaddyDrainInterval = null;
+let _csGloomTimer = null;
 
 // weighted pick ใช้สำหรับ LOD pool (pool เล็ก ไม่ต้องแยก tier)
 function _csWeightedPick(pool) {
@@ -7117,13 +7118,9 @@ function pressureHitTarget(x, y) {
   if(window._csState && window._csState.cs_ifriedBreak && (window._csState._ifriedStacks || 0) > 5) {
     PRESSURE.targetHits += (window._csState._ifriedStacks - 5) * 0.02;
   }
-  // GLOOM UNDER SIDE: time-scaling BREAK progress bonus (max +15% at Twilight)
-  if(window._csState && window._csState.cs_gloomUnderSide && window._csState._gloomCombatStart) {
-    const _gStepsH = Math.min(10, Math.floor((Date.now() - window._csState._gloomCombatStart) / 4000));
-    if(_gStepsH > 0) {
-      const _gMultH = _gStepsH >= 10 ? 2 : 1;
-      PRESSURE.targetHits += _gStepsH * 0.015 * _gMultH;
-    }
+  // GLOOM UNDER SIDE: run-scaling BREAK progress bonus (+0.5% per stack, max +10%)
+  if(window._csState && window._csState.cs_gloomUnderSide && window._csState._gloomStacks) {
+    PRESSURE.targetHits += window._csState._gloomStacks * 0.005;
   }
   // BEELZEBRUH: corruption above 20% adds bonus BREAK progress per tap
   if(window._csState && window._csState.cs_beelzebub && (window._csState._beelzebubBonus || 0) > 0.20) {
@@ -7778,6 +7775,13 @@ function processHit(e, now) {
     const cur = parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width = Math.max(0, cur - penalty) + '%';
   }
+  // LADY TRAINEE: Spotlight Mode at 25 stacks → +5% OD charge per click
+  if(window._csState && window._csState.cs_ladyTrainee && (window._csState._ladyTraineeDmg || 0) >= 0.25
+     && godLevel === 0 && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
+    const cur = parseFloat(_el.godFill.style.width)||0;
+    _el.godFill.style.width = Math.min(100, cur + 5) + '%';
+    if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod) activateGodLevel(1);
+  }
   // BAPHOMET / GOLDEN BUG / RSX-0806: no OD charge
   if(window._csState && (window._csState.cs_baphomet || window._csState.cs_goldenbug || window._csState.cs_rsx0806)) {
     _el.godFill.style.width = '0%';
@@ -8059,10 +8063,8 @@ function csOnBossKO() {
   cs._aknightBossBreakUsed = false;
   cs._mayaBossBreakUsed = false;
   cs._weebvilBossBreakUsed = false;
-  // GLOOM UNDER SIDE: reset combat timer on boss KO (stacks survive normal KOs)
-  if(cs.cs_gloomUnderSide) cs._gloomCombatStart = Date.now();
-  // IFRIED: reset Inferno Stacks on boss KO
-  if(cs.cs_ifriedBreak) cs._ifriedStacks = 0;
+  // DEVILINGO: reset per-boss timer so each boss fight is judged independently
+  if(cs.cs_devilingo) cs._devilingoCombatStart = Date.now();
 }
 
 function bossKO() {
@@ -8075,9 +8077,9 @@ function bossKO() {
   // Dark Lord: KO coin -40%
   if(window._csState && window._csState.cs_darkLord) bossCoins = Math.round(bossCoins * 0.60);
   if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
-  // DEVILINGO: combat > 30s → boss KO coin -15% (penalty only, never below 0)
+  // DEVILINGO: boss alive > 10s → boss KO coin -15%
   if(window._csState && window._csState.cs_devilingo && window._csState._devilingoCombatStart) {
-    if(Date.now() - window._csState._devilingoCombatStart > 30000) {
+    if(Date.now() - window._csState._devilingoCombatStart > 10000) {
       bossCoins = Math.round(bossCoins * 0.85);
     }
   }
