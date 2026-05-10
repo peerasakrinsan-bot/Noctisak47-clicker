@@ -4728,8 +4728,8 @@ const CARD_POOL = [
     apply(s){ s.cs_koTimeBonus = true; }
   },
   { id:'sa',     name:'SALVAGE CARD',        img:'cards/salvage.png',      rarity:'premium',
-    effect:'ดาเมจ <strong>+15%</strong>', tradeoff:'Overdrive ชาร์จ -15%',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.15; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.15; }
+    effect:'ดาเมจ <strong>+12%</strong> | ช่วง BREAK: ดาเมจ <strong>+15%</strong> เพิ่มเติม', tradeoff:'Overdrive ชาร์จ -15%',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.12; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.15; s.cs_salvageBreak=true; }
   },
   { id:'oc',        name:'ORC WORRIER CARD',   img:'cards/orc_worrier.png',         rarity:'premium',
     effect:'คริติคอลทุกครั้ง = Overdrive charge <strong>+3%</strong>', tradeoff:null,
@@ -4770,8 +4770,8 @@ const CARD_POOL = [
     apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
   { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
-    effect:'ดาเมจบอส <strong>+32%</strong> + coin จาก boss KO <strong>+10%</strong>', tradeoff:null,
-    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.32; s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.10; }
+    effect:'ดาเมจบอส <strong>+25%</strong> + coin จาก boss KO <strong>+8%</strong> | 5 วิหลัง BREAK success: ดาเมจบอส <strong>+20%</strong> เพิ่มเติม (1 ครั้ง/บอส)', tradeoff:null,
+    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.25; s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.08; s.cs_aknightBreak=true; }
   },
 
   // ── VOID (MVP) ──
@@ -4868,8 +4868,8 @@ const CARD_POOL = [
     apply(s){ s.cs_elderWillow = true; }
   },
   { id:'si',      name:'STONK CARD',          img:'cards/stonk.png',       rarity:'premium',
-    effect:'ดาเมจ <strong>+12%</strong>', tradeoff:'Combo decay เร็วขึ้น 20%',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.12; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.20; }
+    effect:'ดาเมจ <strong>+8%</strong> | ช่วง BREAK: ดาเมจ <strong>+20%</strong> เพิ่มเติม', tradeoff:'Combo decay เร็วขึ้น 20%',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.08; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.20; s.cs_stonkBreak=true; }
   },
   { id:'nm',  name:'NIGHTMAYOR CARD',      img:'cards/nightmayor.png',   rarity:'premium',
     effect:'ทุก KO = Overdrive charge <strong>+2%</strong>', tradeoff:null,
@@ -4890,8 +4890,8 @@ const CARD_POOL = [
 
   // ── ELITE (RARE) ใหม่ ──
   { id:'tk',   name:'TAO FUNKA CARD',      img:'cards/tao_funka.png',   rarity:'elite',
-    effect:'ดาเมจ <strong>+45%</strong>', tradeoff:'Overdrive charge <strong>-20%</strong>',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
+    effect:'ดาเมจ <strong>+30%</strong> | ทุก BREAK success: ดาเมจ <strong>+4%</strong> สะสม (สูงสุด <strong>+15%</strong>)', tradeoff:'Overdrive charge <strong>-20%</strong>',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.30; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; s.cs_taoFunka=true; }
   },
   { id:'dc',    name:'DRUNKULA CARD',        img:'cards/drunkula.png',     rarity:'elite',
     effect:'คริติคอลทุกครั้ง = coin <strong>+2</strong> + OD charge <strong>+2%</strong>', tradeoff:null,
@@ -4930,8 +4930,8 @@ const CARD_POOL = [
 
   // ── PREMIUM ใหม่ ──
   { id:'gg', name:'GENERAL GRIEVOUS CARD', img:'cards/general_grievous.png', rarity:'premium',
-    effect:'ดาเมจ <strong>+10%</strong>', tradeoff:'เวลา -5 วินาที',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.10; s.cs_timePenalty=(s.cs_timePenalty||0)+5; }
+    effect:'ดาเมจ <strong>+8%</strong> | ช่วง BREAK: ดาเมจ <strong>+22%</strong> เพิ่มเติม', tradeoff:'เวลา -5 วินาที',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.08; s.cs_timePenalty=(s.cs_timePenalty||0)+5; s.cs_ggBreak=true; }
   },
   { id:'jk',       name:'JACKED CARD',          img:'cards/jacked.png',        rarity:'premium',
     effect:'ช่วง Overdrive: crit chance <strong>+20%</strong>', tradeoff:null,
@@ -4954,8 +4954,8 @@ const CARD_POOL = [
     apply(s){ s.cs_alligator = true; }
   },
   { id:'ss',name:'SOLDIER SKELLYTON CARD', img:'cards/soldier_skellyton.png', rarity:'premium',
-    effect:'คริติคอล ดาเมจ <strong>+22%</strong> + crit chance <strong>+2%</strong>', tradeoff:null,
-    apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.22; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.02; }
+    effect:'crit dmg <strong>+18%</strong> + crit <strong>+2%</strong> | เก็บ AK47 = crit chance <strong>+6%</strong> นาน 4 วิ', tradeoff:null,
+    apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.18; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.02; s.cs_skellytonWp=true; }
   },
   { id:'mc',     name:'MARVELC CARD',          img:'cards/marvelc.png',        rarity:'premium',
     effect:'เวลา <strong>+4 วินาที</strong> + Combo decay <strong>ช้าลง 10%</strong>', tradeoff:null,
@@ -4996,12 +4996,12 @@ const CARD_POOL = [
     apply(s){ s.cs_amonRa = true; }
   },
   { id:'mp',name:'MAYA PROBLEM CARD',    img:'cards/maya_problem.png', rarity:'elite',
-    effect:'ดาเมจบอส <strong>+22%</strong> + crit chance <strong>+6%</strong>', tradeoff:null,
-    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.22; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.06; }
+    effect:'ดาเมจบอส <strong>+18%</strong> + crit chance <strong>+6%</strong> | 5 วิหลัง BREAK success: ดาเมจบอส <strong>+20%</strong> เพิ่มเติม (1 ครั้ง/บอส)', tradeoff:null,
+    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.18; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.06; s.cs_mayaProblem=true; }
   },
   { id:'ed',name:'WEEBVIL DUDE CARD',     img:'cards/weebvil_dude.png',  rarity:'elite',
-    effect:'ดาเมจ <strong>+26%</strong> + คริติคอล ดาเมจ <strong>+15%</strong>', tradeoff:'เวลา <strong>-6 วินาที</strong>',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.26; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.15; s.cs_timePenalty=(s.cs_timePenalty||0)+6; }
+    effect:'ดาเมจ <strong>+20%</strong> + คริติคอล ดาเมจ <strong>+12%</strong> | 5 วิหลัง BREAK success: ดาเมจ <strong>+25%</strong> เพิ่มเติม', tradeoff:'เวลา <strong>-6 วินาที</strong>',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.20; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.12; s.cs_timePenalty=(s.cs_timePenalty||0)+6; s.cs_weebvilBreak=true; }
   },
 
   // ── MYTHIC ใหม่ ──
@@ -5018,16 +5018,16 @@ const CARD_POOL = [
     apply(s){ s.cs_valkyrieRandgris = true; }
   },
   { id:'at',     name:'ATROSUS CARD',        img:'cards/atrosus.png',      rarity:'mythic',
-    effect:'ดาเมจ <strong>+42%</strong> + crit chance <strong>+8%</strong>', tradeoff:'Combo decay เร็วขึ้น 30%',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.42; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.08; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.30; }
+    effect:'ดาเมจ <strong>+35%</strong> + crit chance <strong>+8%</strong> | 6 วิหลัง BREAK success: ดาเมจ <strong>+20%</strong> เพิ่มเติม', tradeoff:'Combo decay เร็วขึ้น 30%',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.35; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.08; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.30; s.cs_atrosusBreak=true; }
   },
   { id:'kl', name:'KILL-D01 CARD',     img:'cards/kill-d01.png',   rarity:'mythic',
     effect:'Overdrive charge <strong>+13%</strong> ต่อคลิก + OD timer <strong>+0.05 วิ</strong> ต่อคลิกระหว่าง OD', tradeoff:'ดาเมจ <strong>-12%</strong>',
     apply(s){ s.cs_odChargeBonus=(s.cs_odChargeBonus||0)+0.13; s.cs_odTimerOnClick=(s.cs_odTimerOnClick||0)+0.05; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.12; }
   },
   { id:'if',     name:'IFRIED CARD',         img:'cards/ifried.png',       rarity:'mythic',
-    effect:'crit chance <strong>+10%</strong> + คริติคอล ดาเมจ <strong>+45%</strong> + ดาเมจบอส <strong>+28%</strong>', tradeoff:'ศัตรู HP เริ่มต้น <strong>+35%</strong>',
-    apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.45; s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.28; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)-0.35; }
+    effect:'crit chance <strong>+10%</strong> + คริติคอล ดาเมจ <strong>+38%</strong> + ดาเมจบอส <strong>+25%</strong> | ช่วง BREAK: crit chance <strong>+10%</strong> เพิ่มเติม', tradeoff:'ศัตรู HP เริ่มต้น <strong>+35%</strong>',
+    apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.38; s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.25; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)-0.35; s.cs_ifriedBreak=true; }
   },
   { id:'rx',    name:'RSICK-0806 CARD',      img:'cards/rsick-0806.png',    rarity:'mythic',
     effect:'ดาเมจ <strong>x3.5</strong> + ทุก KO = score <strong>+200</strong>', tradeoff:'ไม่มี Overdrive + ไม่มี AK47 เลย',
@@ -5558,6 +5558,22 @@ function csApplyDmgMod(baseDmg, isGod) {
     const _gloomBonus = Math.min(0.09, Math.floor((Date.now() - cs._gloomCombatStart) / 5000) * 0.01);
     if(_gloomBonus > 0) d *= (1 + _gloomBonus);
   }
+  // SALVAGE: during BREAK → dmg +15% additional
+  if(cs.cs_salvageBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.15;
+  // STONK: during BREAK → dmg +20% additional
+  if(cs.cs_stonkBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.20;
+  // GENERAL GRIEVOUS: during BREAK → dmg +22% additional
+  if(cs.cs_ggBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.22;
+  // ABYSMELL KNIGHT: 5s post-BREAK boss dmg +20%
+  if(cs.cs_aknightBreak && isBoss && cs._aknightBreakEndTime && performance.now() < cs._aknightBreakEndTime) d *= 1.20;
+  // MAYA PROBLEM: 5s post-BREAK boss dmg +20%
+  if(cs.cs_mayaProblem && isBoss && cs._mayaBreakEndTime && performance.now() < cs._mayaBreakEndTime) d *= 1.20;
+  // WEEBVIL DUDE: 5s post-BREAK dmg +25%
+  if(cs.cs_weebvilBreak && cs._weebvilBreakEndTime && performance.now() < cs._weebvilBreakEndTime) d *= 1.25;
+  // ATROSUS: 6s post-BREAK dmg +20%
+  if(cs.cs_atrosusBreak && cs._atrosusBreakEndTime && performance.now() < cs._atrosusBreakEndTime) d *= 1.20;
+  // TAO FUNKA: accumulated BREAK bonus (max +15%)
+  if(cs.cs_taoFunka && cs._taoFunkaBonus) d *= (1 + cs._taoFunkaBonus);
   return Math.round(d);
 }
 
@@ -5799,6 +5815,22 @@ function csOnBreakSuccess() {
       cs._jackpotPenalty = true; // next break penalized
     }
   }
+  // ABYSMELL KNIGHT: 5s boss dmg window, once per boss
+  if(cs.cs_aknightBreak && isBoss && !cs._aknightBossBreakUsed) {
+    cs._aknightBreakEndTime = performance.now() + 5000;
+    cs._aknightBossBreakUsed = true;
+  }
+  // MAYA PROBLEM: 5s boss dmg window, once per boss
+  if(cs.cs_mayaProblem && isBoss && !cs._mayaBossBreakUsed) {
+    cs._mayaBreakEndTime = performance.now() + 5000;
+    cs._mayaBossBreakUsed = true;
+  }
+  // WEEBVIL DUDE: 5s dmg window (refreshes every BREAK)
+  if(cs.cs_weebvilBreak) cs._weebvilBreakEndTime = performance.now() + 5000;
+  // ATROSUS: 6s dmg window (refreshes every BREAK)
+  if(cs.cs_atrosusBreak) cs._atrosusBreakEndTime = performance.now() + 6000;
+  // TAO FUNKA: accumulate +4% dmg per BREAK success (max +15%)
+  if(cs.cs_taoFunka) cs._taoFunkaBonus = Math.min(0.15, (cs._taoFunkaBonus || 0) + 0.04);
 }
 
 function csOnWpMiss() {
@@ -5892,6 +5924,8 @@ function csOnWpHit(x, y) {
   if(cs.cs_detailed) {
     cs._analysisStacks = Math.min(10, (cs._analysisStacks || 0) + 1);
   }
+  // SOLDIER SKELLYTON: WP hit → crit chance +6% for 4s
+  if(cs.cs_skellytonWp) cs._skellytonCritEndTime = performance.now() + 4000;
 }
 
 // ── helper: on time up — osiris ──
@@ -7628,6 +7662,10 @@ function processHit(e, now) {
   if(window._csState) {
     if(window._csState.cs_critChanceBonus) _critChance += window._csState.cs_critChanceBonus;
     if(window._csState.cs_jakkCrit && godLevel>0) _critChance += 0.20;
+    // SOLDIER SKELLYTON: +6% crit for 4s after WP collect
+    if(window._csState.cs_skellytonWp && window._csState._skellytonCritEndTime && performance.now() < window._csState._skellytonCritEndTime) _critChance += 0.06;
+    // IFRIED: +10% crit during BREAK
+    if(window._csState.cs_ifriedBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) _critChance += 0.10;
   }
   if(_critChance&&Math.random()<_critChance){dmg=Math.round(dmg*(_sc.critMult||2));isCrit=true;}
   // LUNATIC: crit dmg +15%
@@ -7812,7 +7850,17 @@ function spawnBoss() {
   triggerFlash('flash-boss');
 }
 
+function csOnBossKO() {
+  if(!window._csState) return;
+  const cs = window._csState;
+  // Reset once-per-boss BREAK windows
+  cs._aknightBossBreakUsed = false;
+  cs._mayaBossBreakUsed = false;
+  cs._weebvilBossBreakUsed = false;
+}
+
 function bossKO() {
+  csOnBossKO();
   isBoss=false; ko++;
   window._bossesDefeated = (window._bossesDefeated||0) + 1;
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
