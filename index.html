@@ -4078,6 +4078,7 @@ function _applyBossSkinAura(skinId) {
 function _pulseBossSkinAura() {
   const fighter = $('fighter');
   if(!fighter || !fighter.classList.contains('xuang-blood-aura')) return;
+  if(PRESSURE._explosionRunning) return; // suppress during BREAK explosion to avoid stacking filters
   fighter.classList.add('xuang-aura-hit');
   clearTimeout(fighter._xuangAuraHitTimer);
   fighter._xuangAuraHitTimer = setTimeout(() => fighter.classList.remove('xuang-aura-hit'), 180);
@@ -4605,18 +4606,16 @@ function showWpHitFX(x, y, dmg) {
   el.style.top  = (y-40)+'px';
   document.getElementById("gameRoot").appendChild(el);
   setTimeout(()=>el.remove(), 850);
-  // particles พิเศษ เยอะกว่าปกติ
-  for(let i=0;i<18;i++){
-    const p=document.createElement('div'); p.className='particle';
-    p.style.left=x+'px'; p.style.top=y+'px';
-    p.style.width=p.style.height='7px';
-    p.style.background=i%2===0?'#ffcc00':'#ff2233';
-    const angle=(i/18)*Math.PI*2, dist=50+Math.random()*80;
-    p.style.setProperty('--dx',Math.cos(angle)*dist+'px');
-    p.style.setProperty('--dy',Math.sin(angle)*dist+'px');
-    p.style.animationDuration=(0.3+Math.random()*0.2)+'s';
-    fx.appendChild(p); setTimeout(()=>p.remove(),500);
+  // Use pool + fragment — 10 particles (was 18), avoids DOM thrashing on mobile
+  const _wpFrag=document.createDocumentFragment();
+  for(let i=0;i<10;i++){
+    const p=_getParticle();
+    const angle=(i/10)*Math.PI*2, dist=50+Math.random()*80;
+    p.style.cssText=`left:${x}px;top:${y}px;width:6px;height:6px;background:${i%2===0?'#ffcc00':'#ff2233'};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation:particle ${0.3+Math.random()*0.2}s forwards;`;
+    _wpFrag.appendChild(p);
+    setTimeout(()=>{ p.remove(); _retParticle(p); },500);
   }
+  fx.appendChild(_wpFrag);
 }
 
 function playBGM() {
@@ -6568,11 +6567,10 @@ function pressureUpdateBossAura(remainRatio) {
 function pressureReactBossAura() {
   const root = $('gameRoot');
   if(!root || PRESSURE.phase !== 'break') return;
-  root.classList.remove('pressure-aura-hit');
-  void root.offsetWidth;
-  root.classList.add('pressure-aura-hit');
+  // Debounce: no reflow — just extend the timeout if already showing
+  if(!PRESSURE._auraHitTimer) root.classList.add('pressure-aura-hit');
   clearTimeout(PRESSURE._auraHitTimer);
-  PRESSURE._auraHitTimer = setTimeout(()=>root.classList.remove('pressure-aura-hit'), 160);
+  PRESSURE._auraHitTimer = setTimeout(()=>{ root.classList.remove('pressure-aura-hit'); PRESSURE._auraHitTimer = null; }, 160);
 }
 
 function pressureReleaseBossAura(failed=false) {
@@ -6702,8 +6700,14 @@ function pressureHitTarget(x, y) {
   impact.style.left = x + 'px'; impact.style.top = y + 'px';
   $('gameRoot').appendChild(impact); setTimeout(()=>impact.remove(), 430);
   spawnFX(x, y, true, PRESSURE.targetHits / PRESSURE.targetNeed >= 0.5);
-  $('gameRoot').classList.remove('shake-wp'); void $('gameRoot').offsetWidth; $('gameRoot').classList.add('shake-wp');
-  setTimeout(()=>$('gameRoot').classList.remove('shake-wp'), 170);
+  // Throttle shake to max once per 140ms — avoids reflow spam on rapid tapping
+  const _sNow = performance.now();
+  if(!PRESSURE._lastBreakShake || _sNow - PRESSURE._lastBreakShake > 140) {
+    PRESSURE._lastBreakShake = _sNow;
+    const _gr = $('gameRoot');
+    _gr.classList.remove('shake-wp'); void _gr.offsetWidth; _gr.classList.add('shake-wp');
+    setTimeout(()=>_gr.classList.remove('shake-wp'), 170);
+  }
   if(gameSettings.sfxOn) playAK();
   pressureReactBossAura();
   pressureUpdateBreakHUD();
@@ -6755,8 +6759,10 @@ function pressureSpawnCrackBurst(point, failed=false) {
 }
 
 function pressurePlaySuccessRelease(point) {
+  if(PRESSURE._explosionRunning) return;
+  PRESSURE._explosionRunning = true;
   const root = $('gameRoot');
-  if(!root) return;
+  if(!root) { PRESSURE._explosionRunning = false; return; }
   root.classList.remove('pressure-impact-freeze','pressure-success-release');
   void root.offsetWidth;
   root.classList.add('pressure-impact-freeze','pressure-success-release');
@@ -6769,13 +6775,13 @@ function pressurePlaySuccessRelease(point) {
   burst.className = 'break-impact heavy';
   burst.style.left = cx + 'px'; burst.style.top = cy + 'px';
   root.appendChild(burst); setTimeout(()=>burst.remove(), 460);
-  for(let i=0;i<9;i++) {
-    const ox = cx + (Math.random() - 0.5) * 190;
-    const oy = cy + (Math.random() - 0.5) * 170;
-    spawnFX(ox, oy, true, i < 3);
-  }
+  // Batch-spawn 5 FX bursts across frames instead of 9 at once (bomb mode = 3 particles each)
+  const _bPos=[];
+  for(let i=0;i<5;i++) _bPos.push([cx+(Math.random()-.5)*190, cy+(Math.random()-.5)*170]);
+  let _bi=0;
+  (function _burst(){ const end=Math.min(_bi+2,5); for(;_bi<end;_bi++) spawnFX(_bPos[_bi][0],_bPos[_bi][1],false,true); if(_bi<5) requestAnimationFrame(_burst); })();
   if(gameSettings.sfxOn) playAK();
-  setTimeout(()=>root.classList.remove('pressure-impact-freeze','pressure-success-release'), 360);
+  setTimeout(()=>{ root.classList.remove('pressure-impact-freeze','pressure-success-release'); PRESSURE._explosionRunning = false; }, 360);
 }
 
 function pressureFail() {
@@ -6796,8 +6802,10 @@ function pressureFail() {
 
 
 function pressurePlayFailBacklash(point) {
+  if(PRESSURE._explosionRunning) return;
+  PRESSURE._explosionRunning = true;
   const root = $('gameRoot');
-  if(!root) return;
+  if(!root) { PRESSURE._explosionRunning = false; return; }
   const cx = point && point.x ? point.x : vvW()/2;
   const cy = point && point.y ? point.y : vvH()*0.42;
   root.classList.remove('pressure-fail-backlash','shake');
@@ -6809,14 +6817,14 @@ function pressurePlayFailBacklash(point) {
   burst.className = 'break-impact fail';
   burst.style.left = cx + 'px'; burst.style.top = cy + 'px';
   root.appendChild(burst); setTimeout(()=>burst.remove(), 520);
-  for(let i=0;i<7;i++) {
-    const ox = cx + (Math.random() - 0.5) * 220;
-    const oy = cy + (Math.random() - 0.5) * 180;
-    spawnFX(ox, oy, false, i < 2);
-  }
+  // Batch-spawn 4 FX bursts across frames instead of 7 at once
+  const _bPos=[];
+  for(let i=0;i<4;i++) _bPos.push([cx+(Math.random()-.5)*220, cy+(Math.random()-.5)*180]);
+  let _bi=0;
+  (function _burst(){ const end=Math.min(_bi+2,4); for(;_bi<end;_bi++) spawnFX(_bPos[_bi][0],_bPos[_bi][1],false,_bi<1); if(_bi<4) requestAnimationFrame(_burst); })();
   if(gameSettings.sfxOn) { playPunch(); playAK(); }
   pressureHeartbeat(190);
-  setTimeout(()=>root.classList.remove('pressure-fail-backlash','shake'), 520);
+  setTimeout(()=>{ root.classList.remove('pressure-fail-backlash','shake'); PRESSURE._explosionRunning = false; }, 520);
 }
 
 function pressureFailRageGain() {
