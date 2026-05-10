@@ -4724,7 +4724,7 @@ const CARD_POOL = [
 
   // ── UNCOMMON ──
   { id:'zo',     name:'ZOOMBIE CARD',        img:'cards/zoombie.png',      rarity:'premium',
-    effect:'ทุก KO = เวลา <strong>+0.01 วิ</strong> (สูงสุด <strong>+5 วิ</strong>)', tradeoff:null,
+    effect:'ทุก KO = เวลา <strong>+0.05 วิ</strong> (สูงสุด <strong>+5 วิ</strong>)', tradeoff:null,
     apply(s){ s.cs_koTimeBonus = true; }
   },
   { id:'sa',     name:'SALVAGE CARD',        img:'cards/salvage.png',      rarity:'premium',
@@ -4810,24 +4810,24 @@ const CARD_POOL = [
 
   // ── COMMON ใหม่ ──
   { id:'dr',      name:'DRIPZ CARD',         img:'cards/dripz.png',       rarity:'standard',
-    effect:'coin ที่ได้ <strong>+8%</strong>', tradeoff:null,
-    apply(s){ s.cs_coinPct = (s.cs_coinPct||0) + 0.08; }
+    effect:'coin ที่ได้ <strong>+5%</strong> + crit chance <strong>+3%</strong>', tradeoff:null,
+    apply(s){ s.cs_coinPct=(s.cs_coinPct||0)+0.05; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.03; }
   },
   { id:'st',    name:'STAYNOR CARD',        img:'cards/staynor.png',     rarity:'standard',
-    effect:'Combo decay <strong>ช้าลง 15%</strong>', tradeoff:null,
-    apply(s){ s.cs_comboDecaySlow = (s.cs_comboDecaySlow||0) + 0.15; }
+    effect:'Combo decay <strong>ช้าลง 15%</strong> + ทุก 10 combo = coin <strong>+3</strong>', tradeoff:null,
+    apply(s){ s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.15; s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+3; }
   },
   { id:'ro',     name:'BROCKER CARD',         img:'cards/brocker.png',      rarity:'standard',
     effect:'ทุก 10 combo = coin bonus <strong>+10</strong>', tradeoff:null,
     apply(s){ s.cs_comboMilestoneCoin = (s.cs_comboMilestoneCoin||0) + 10; }
   },
   { id:'ca',    name:'CARAMEME CARD',        img:'cards/carameme.png',     rarity:'standard',
-    effect:'ศัตรู HP เริ่มต้น <strong>ลดลง 10%</strong>', tradeoff:null,
-    apply(s){ s.cs_enemyHpReduce = (s.cs_enemyHpReduce||0) + 0.10; }
+    effect:'ศัตรู HP เริ่มต้น <strong>ลดลง 10%</strong> + เวลา <strong>+1 วิ</strong>', tradeoff:null,
+    apply(s){ s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)+0.10; s.cs_extraTime=(s.cs_extraTime||0)+1; }
   },
   { id:'rf',   name:'BRODA FROG CARD',      img:'cards/broda_frog.png',   rarity:'standard',
-    effect:'ดาเมจ <strong>+5%</strong>', tradeoff:null,
-    apply(s){ s.cs_dmgBonus = (s.cs_dmgBonus||0) + 0.05; }
+    effect:'ดาเมจ <strong>+7%</strong>', tradeoff:null,
+    apply(s){ s.cs_dmgBonus = (s.cs_dmgBonus||0) + 0.07; }
   },
   { id:'me',   name:'METALOL CARD',       img:'cards/metalol.png',    rarity:'standard',
     effect:'Overdrive charge <strong>+8%</strong> ต่อคลิก', tradeoff:null,
@@ -4838,28 +4838,28 @@ const CARD_POOL = [
     apply(s){ s.cs_extraTime = (s.cs_extraTime||0) + 4; }
   },
   { id:'wi',     name:'WEEBLOW CARD',         img:'cards/weeblow.png',      rarity:'standard',
-    effect:'คริติคอล ดาเมจ <strong>+10%</strong>', tradeoff:null,
-    apply(s){ s.cs_critDmgBonus = (s.cs_critDmgBonus||0) + 0.10; }
+    effect:'คริติคอล ดาเมจ <strong>+10%</strong> + coin ที่ได้ <strong>+3%</strong>', tradeoff:null,
+    apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.10; s.cs_coinPct=(s.cs_coinPct||0)+0.03; }
   },
   { id:'an',     name:'ANDRUH CARD',         img:'cards/andruh.png',       rarity:'standard',
-    effect:'ดาเมจ <strong>+4%</strong> + coin ที่ได้ <strong>+3%</strong>', tradeoff:null,
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.04; s.cs_coinPct=(s.cs_coinPct||0)+0.03; }
+    effect:'ดาเมจ <strong>+6%</strong> + coin ที่ได้ <strong>+5%</strong>', tradeoff:null,
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.06; s.cs_coinPct=(s.cs_coinPct||0)+0.05; }
   },
   { id:'ku',     name:'COOKRE CARD',         img:'cards/cookre.png',       rarity:'standard',
-    effect:'crit chance <strong>+3%</strong> + คริติคอล ดาเมจ <strong>+5%</strong>', tradeoff:null,
-    apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.03; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.05; }
+    effect:'crit chance <strong>+4%</strong> + คริติคอล ดาเมจ <strong>+8%</strong>', tradeoff:null,
+    apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.04; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.08; }
   },
   { id:'fm',     name:'FAMILIARUTO CARD',      img:'cards/familiaruto.png',    rarity:'standard',
-    effect:'coin ที่ได้ <strong>+5%</strong> + ทุก 10 combo = coin bonus <strong>+5</strong>', tradeoff:null,
-    apply(s){ s.cs_coinPct=(s.cs_coinPct||0)+0.05; s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+5; }
+    effect:'coin ที่ได้ <strong>+6%</strong> + ทุก 10 combo = coin bonus <strong>+8</strong>', tradeoff:null,
+    apply(s){ s.cs_coinPct=(s.cs_coinPct||0)+0.06; s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+8; }
   },
   { id:'pi',     name:'PICK-CHU CARD',         img:'cards/pick-chu.png',       rarity:'standard',
-    effect:'เวลา <strong>+2 วินาที</strong> + ศัตรู HP เริ่มต้น <strong>ลดลง 5%</strong>', tradeoff:null,
-    apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+2; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)+0.05; }
+    effect:'เวลา <strong>+2 วินาที</strong> + ศัตรู HP เริ่มต้น <strong>ลดลง 8%</strong>', tradeoff:null,
+    apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+2; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)+0.08; }
   },
   { id:'yy',     name:'JOJOYO CARD',          img:'cards/jojoyo.png',        rarity:'standard',
-    effect:'<strong>4%</strong> โอกาส combo ไม่ reset เมื่อหยุดตี + Combo decay <strong>ช้าลง 8%</strong>', tradeoff:null,
-    apply(s){ s.cs_comboNoReset=(s.cs_comboNoReset||0)+0.04; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.08; }
+    effect:'<strong>5%</strong> โอกาส combo ไม่ reset เมื่อหยุดตี + Combo decay <strong>ช้าลง 10%</strong>', tradeoff:null,
+    apply(s){ s.cs_comboNoReset=(s.cs_comboNoReset||0)+0.05; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.10; }
   },
 
   // ── UNCOMMON ใหม่ ──
@@ -4872,8 +4872,8 @@ const CARD_POOL = [
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.08; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.20; s.cs_stonkBreak=true; }
   },
   { id:'nm',  name:'NIGHTMAYOR CARD',      img:'cards/nightmayor.png',   rarity:'premium',
-    effect:'ทุก KO = Overdrive charge <strong>+2%</strong>', tradeoff:null,
-    apply(s){ s.cs_koOdCharge = (s.cs_koOdCharge||0) + 0.02; }
+    effect:'ทุก KO = Overdrive charge <strong>+3%</strong>', tradeoff:null,
+    apply(s){ s.cs_koOdCharge = (s.cs_koOdCharge||0) + 0.03; }
   },
   { id:'ze',     name:'XENORC CARD',         img:'cards/xenorc.png',      rarity:'premium',
     effect:'ทุก Overdrive ที่ใช้ = ดาเมจ <strong>+8%</strong> สะสม (สูงสุด +24%) | BREAK active: ดาเมจ <strong>+8%</strong> เพิ่มเติม', tradeoff:null,
@@ -4916,16 +4916,16 @@ const CARD_POOL = [
 
   // ── STANDARD ใหม่ ──
   { id:'ho',     name:'HORNYET CARD',        img:'cards/hornyet.png',      rarity:'standard',
-    effect:'crit chance <strong>+4%</strong>', tradeoff:null,
-    apply(s){ s.cs_critChanceBonus = (s.cs_critChanceBonus||0) + 0.04; }
+    effect:'crit chance <strong>+6%</strong>', tradeoff:null,
+    apply(s){ s.cs_critChanceBonus = (s.cs_critChanceBonus||0) + 0.06; }
   },
   { id:'tb',   name:'THUG BUG CARD',     img:'cards/thug_bug.png',   rarity:'standard',
-    effect:'Overdrive charge <strong>+5%</strong> ต่อคลิก', tradeoff:null,
-    apply(s){ s.cs_odChargeBonus = (s.cs_odChargeBonus||0) + 0.05; }
+    effect:'Overdrive charge <strong>+7%</strong> ต่อคลิก', tradeoff:null,
+    apply(s){ s.cs_odChargeBonus = (s.cs_odChargeBonus||0) + 0.07; }
   },
   { id:'ms',  name:'MASTER BLING CARD',     img:'cards/master_bling.png',   rarity:'standard',
-    effect:'ทุก 10 combo = เวลา <strong>+0.2 วิ</strong> (สูงสุด +2 วิ)', tradeoff:null,
-    apply(s){ s.cs_comboTimeBonus = true; }
+    effect:'ทุก 10 combo = coin <strong>+10</strong> + เวลา <strong>+0.3 วิ</strong> (สูงสุด +3 วิ)', tradeoff:null,
+    apply(s){ s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+10; s.cs_comboTimeBonus=true; }
   },
 
   // ── PREMIUM ใหม่ ──
@@ -4938,19 +4938,19 @@ const CARD_POOL = [
     apply(s){ s.cs_jakkCrit = true; }
   },
   { id:'mn',     name:'MARINAH CARD',        img:'cards/marinah.png',      rarity:'premium',
-    effect:'AK47 spawn เร็วขึ้น <strong>15%</strong> + BREAK window <strong>+0.2 วิ</strong>', tradeoff:null,
-    apply(s){ s.cs_marinaSpawn = true; s.cs_breakDuration = (s.cs_breakDuration||0) + 0.2; }
+    effect:'AK47 spawn เร็วขึ้น <strong>15%</strong> + BREAK window <strong>+0.35 วิ</strong> + BREAK progress <strong>+8%</strong>', tradeoff:null,
+    apply(s){ s.cs_marinaSpawn=true; s.cs_breakDuration=(s.cs_breakDuration||0)+0.35; s.cs_breakPower=(s.cs_breakPower||0)+0.08; }
   },
   { id:'dp',name:'DEMON FUNGUS CARD',  img:'cards/demon_fungus.png',rarity:'premium',
-    effect:'ทุก 5 KO = Overdrive charge <strong>+5%</strong>', tradeoff:null,
+    effect:'ทุก 5 KO = Overdrive charge <strong>+8%</strong>', tradeoff:null,
     apply(s){ s.cs_demonPungus = true; }
   },
   { id:'vi',     name:'VITAMOE CARD',        img:'cards/vitamoe.png',      rarity:'premium',
-    effect:'Combo ≥ 15 : Overdrive charge <strong>x1.3</strong>', tradeoff:'ดาเมจ -8%',
-    apply(s){ s.cs_vitata = true; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.08; }
+    effect:'Combo ≥ 15 : Overdrive charge <strong>x1.3</strong>', tradeoff:'ดาเมจ -5%',
+    apply(s){ s.cs_vitata = true; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.05; }
   },
   { id:'al',  name:'ALLEYGATOR CARD',     img:'cards/alleygator.png',   rarity:'premium',
-    effect:'ทุก 10 KO = coin <strong>+1%</strong> สะสม (สูงสุด +8%) | ช่วง BREAK: นับ KO เร็วขึ้น 2×', tradeoff:null,
+    effect:'ทุก 8 KO = coin <strong>+1%</strong> สะสม (สูงสุด +10%) | ช่วง BREAK: นับ KO เร็วขึ้น 2×', tradeoff:null,
     apply(s){ s.cs_alligator = true; }
   },
   { id:'ss',name:'SOLDIER SKELLYTON CARD', img:'cards/soldier_skellyton.png', rarity:'premium',
@@ -5040,8 +5040,8 @@ const CARD_POOL = [
     apply(s){ s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.12; s.cs_aListCard=true; }
   },
   { id:'rzw', name:'RIZZWORD CARD',        img:'cards/rizzword_card.png',       rarity:'premium',
-    effect:'AK47 active <strong>+0.4 วิ</strong> | เก็บ AK47 = OD charge <strong>+2%</strong> (สูงสุด 10 ครั้ง/8 วิ)', tradeoff:null,
-    apply(s){ s.cs_rizzword=true; s.cs_wpDuration=(s.cs_wpDuration||0)+0.4; }
+    effect:'AK47 active <strong>+0.5 วิ</strong> | เก็บ AK47 = OD charge <strong>+3%</strong> (สูงสุด 10 ครั้ง/8 วิ)', tradeoff:null,
+    apply(s){ s.cs_rizzword=true; s.cs_wpDuration=(s.cs_wpDuration||0)+0.5; }
   },
   { id:'orb', name:'ORC BADDY CARD',       img:'cards/orc_baddy_card.png',      rarity:'premium',
     effect:'OD bar ≥ 70% : ดาเมจ <strong>+18%</strong>', tradeoff:'ต่อสู้นานกว่า 25 วิ: OD หมดเร็วขึ้นเล็กน้อย',
@@ -5644,8 +5644,8 @@ function csOnClick(isGod) {
   // Mastering: combo milestone time bonus
   if(cs.cs_comboTimeBonus && combo > 0 && combo % 10 === 0) {
     if(!cs._comboTimeBonusAcc) cs._comboTimeBonusAcc = 0;
-    if(cs._comboTimeBonusAcc < 2) {
-      const gain = Math.min(0.2, 2 - cs._comboTimeBonusAcc);
+    if(cs._comboTimeBonusAcc < 3) {
+      const gain = Math.min(0.3, 3 - cs._comboTimeBonusAcc);
       cs._comboTimeBonusAcc += gain;
       timeLeft += gain;
     }
@@ -5691,8 +5691,8 @@ function csOnKO() {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
   if(cs.cs_koTimeBonus) {
-    _csKoTimeAcc += 0.01;
-    if(_csKoTimeAcc <= 5) timeLeft += 0.01;
+    _csKoTimeAcc += 0.05;
+    if(_csKoTimeAcc <= 5) timeLeft += 0.05;
   }
   // Dark Lord: +0.05s per KO + score +30
   if(cs.cs_darkLord) {
@@ -5718,22 +5718,22 @@ function csOnKO() {
   if(cs.cs_alligator) {
     if(!cs._alligatorKoCount) cs._alligatorKoCount = 0;
     if(!cs._alligatorPct) cs._alligatorPct = 0;
-    if(cs._alligatorPct < 0.08) {
+    if(cs._alligatorPct < 0.10) {
       cs._alligatorKoCount++;
       const inBreak = (typeof pressureIsBreak === 'function' && pressureIsBreak());
-      const threshold = inBreak ? 5 : 10;
+      const threshold = inBreak ? 4 : 8;
       if(cs._alligatorKoCount % threshold === 0) {
-        cs._alligatorPct = Math.min(0.08, cs._alligatorPct + 0.01);
+        cs._alligatorPct = Math.min(0.10, cs._alligatorPct + 0.01);
       }
     }
   }
-  // Demon Pungus: every 5 KO = OD charge +5%
+  // Demon Pungus: every 5 KO = OD charge +8%
   if(cs.cs_demonPungus) {
     if(!cs._demonPungusKO) cs._demonPungusKO = 0;
     cs._demonPungusKO++;
     if(cs._demonPungusKO % 5 === 0 && !cs.cs_baphomet && !cs.cs_goldenbug) {
       const cur = parseFloat(_el.godFill.style.width)||0;
-      _el.godFill.style.width = Math.min(100, cur + 5) + '%';
+      _el.godFill.style.width = Math.min(100, cur + 8) + '%';
       if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
     }
   }
@@ -5918,7 +5918,7 @@ function csOnWpHit(x, y) {
     $('weakPoint').style.display='none';
     setTimeout(showWeakPoint, 300);
   }
-  // RIZZWORD: +2% OD charge per WP collect (max 10 triggers per 8s)
+  // RIZZWORD: +3% OD charge per WP collect (max 10 triggers per 8s)
   if(cs.cs_rizzword && godLevel === 0 && !cs.cs_baphomet && !cs.cs_goldenbug && !cs.cs_rsx0806) {
     const _now = performance.now();
     if(!cs._rizzwordWindowStart || _now - cs._rizzwordWindowStart >= 8000) {
@@ -5929,7 +5929,7 @@ function csOnWpHit(x, y) {
       cs._rizzwordCount++;
       const _bar = _el.godFill;
       const _cur = parseFloat(_bar.style.width) || 0;
-      _bar.style.width = Math.min(100, _cur + 2) + '%';
+      _bar.style.width = Math.min(100, _cur + 3) + '%';
       if(parseFloat(_bar.style.width) >= 100 && canEnterGod) activateGodLevel(1);
     }
   }
