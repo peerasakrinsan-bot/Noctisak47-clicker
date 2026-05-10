@@ -4255,6 +4255,13 @@ function updateWpCounter() {
   }
 }
 
+function completeWeakPointRequirementInstant() {
+  if(!gameRunning) return;
+  wpCollected = getWpMax();
+  updateWpCounter();
+  triggerBombExplosion();
+}
+
 function triggerBombExplosion() {
   if(!gameRunning) return;
   const currentRound = wpRound;
@@ -6432,24 +6439,8 @@ function pressureSuccess(wasLastChance) {
   PRESSURE.rage = wasLastChance ? 70 : Math.max(0, PRESSURE.rage - 22);
   pressureUpdateRageUI();
   pressureHide();
-  triggerFlash('flash-god');
-  const root = $('gameRoot');
-  root.classList.remove('shake','pressure-impact-freeze'); void root.offsetWidth;
-  root.classList.add('shake','pressure-impact-freeze');
-  setTimeout(()=>root.classList.remove('pressure-impact-freeze'), 120);
-  setTimeout(()=>root.classList.remove('shake'), 480);
-  for(let i=0;i<5;i++) {
-    const ox = vvW()/2 + (Math.random() - 0.5) * 120;
-    const oy = vvH()*0.42 + (Math.random() - 0.5) * 120;
-    spawnFX(ox, oy, true, i === 0);
-  }
-  // AK47 panic survival reward: refill the existing AK47 pickup meter and boost OD.
-  wpCollected = getWpMax();
-  updateWpCounter();
-  if(godLevel === 0 && canEnterGod) activateGodLevel(1);
-  else if(godLevel > 0) godSecondsLeft = Math.max(godSecondsLeft || 0, 5);
-  if(isBoss) applyDamage(Math.round(bossMaxHP * 0.08), {clientX:vvW()/2, clientY:vvH()/2}, false);
-  else applyDamage(Math.round(maxHP * 0.28), {clientX:vvW()/2, clientY:vvH()/2}, false);
+  playWpBall();
+  completeWeakPointRequirementInstant();
   PRESSURE.cooldown = pressureNextCooldown();
   PRESSURE.lastAfkAt = Date.now();
 }
