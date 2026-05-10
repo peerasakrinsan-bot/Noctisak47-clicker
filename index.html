@@ -8234,8 +8234,8 @@ function normalKO() {
 
 function spawnBoss() {
   isBoss=true; bossPhase=1;
-  // HP เพิ่มขึ้น 20% ต่อบอสที่ KO ไปแล้ว (ไม่จำกัด)
-  const scale = 1 + (window._bossesDefeated||0) * 0.20;
+  // HP ทวีคูณ 20% ต่อบอส (exponential): boss n ได้รับ 1.20^n เท่า
+  const scale = Math.pow(1.20, window._bossesDefeated||0);
   bossMaxHP=Math.round(maxHP*5*scale);
   bossHP=bossMaxHP;
   _el.bossBar.style.display='block';
