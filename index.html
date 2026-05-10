@@ -4594,10 +4594,6 @@ function triggerBombExplosion() {
     _csValkyrieRandgrisSwap();
   }
 
-  // OCA Drop System — roll for ticket drop on every bomb
-  const _bx = window.innerWidth  / 2;
-  const _by = window.innerHeight * 0.4;
-  tryOcaBombDrop(_bx, _by);
 }
 
 function showWpMissPenalty() {
@@ -6375,6 +6371,7 @@ function pressureReset() {
   PRESSURE.failAssist = 0;
   PRESSURE.resolvePoint = null;
   PRESSURE._lastTarget = null;
+  PRESSURE._ocaDropDone = false;
   pressureHide();
   pressureUpdateRageUI();
 }
@@ -6898,11 +6895,13 @@ function pressureFinalSummary() {
 function pressureOcaTicketChance() {
   const wins = Math.max(0, PRESSURE.successes || 0);
   if(wins <= 0) return 0;
-  return Math.min(0.50, wins * 0.05);
+  return Math.min(0.05, wins * 0.01);
 }
 
 function pressureTryOcaTicketDrop(x, y) {
+  if(PRESSURE._ocaDropDone) return false;
   if(Math.random() >= pressureOcaTicketChance()) return false;
+  PRESSURE._ocaDropDone = true;
   if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
   save.ocaTickets.standard = (save.ocaTickets.standard || 0) + 1;
   doSave();
@@ -8387,7 +8386,7 @@ function rollOcaDrop() {
 }
 
 function tryOcaBombDrop(x, y) {
-  if (_ocaDropCount >= 10) return;
+  if (_ocaDropCount >= 1) return;
   const tier = rollOcaDrop();
   if (!tier) return;
   _ocaDropCount++;
