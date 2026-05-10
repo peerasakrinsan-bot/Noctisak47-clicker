@@ -1807,6 +1807,26 @@
     100%{transform:translate(-50%, -40%) scale(1.03);}
   }
   /* V7 uses visual/audio lock-in only; no giant cinematic phase text. */
+
+  /* ══ BREAK BARRIER OVERLAY ══ */
+  .break-barrier-overlay {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 180%;
+    height: 180%;
+    background-image: url('./break_barrier.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    opacity: 0;
+    mix-blend-mode: screen;
+    z-index: 4;
+    will-change: transform, opacity;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+
   #pressureText { display:none !important; }
   #pressureText.show { display:none !important; }
   #pressureMain { font-size:clamp(38px,13vw,86px); }
@@ -2738,6 +2758,7 @@
   </div>
   <canvas id="boxer"></canvas>
   <img src="ak47.png" id="gun" alt="gun" decoding="async">
+  <div id="breakBarrierOverlay" class="break-barrier-overlay" aria-hidden="true"></div>
 </div>
 
 <div id="weakPoint"><img src="weak.webp" alt="weak" decoding="async"></div>
@@ -6856,6 +6877,7 @@ function pressureHide() {
     const meter = $('rageMeter'); if(meter) meter.classList.remove('show');
   }
   pressureRemoveTarget();
+  _barrierHide();
 }
 
 function pressureUpdate(dtMs) {
@@ -6882,6 +6904,7 @@ function pressureStartBuildup() {
   overlay.className = 'active buildup';
   pressureHeartbeat(pressureHeartbeatDelay());
   pressureSetTimer(()=>pressureLockIn(), Math.round(pressureRandomRange(1500, 2000)));
+  _barrierStart();
 }
 
 function pressureLockIn() {
@@ -6933,6 +6956,7 @@ function pressureStartBreak() {
   $('pressureHud').classList.add('show');
   pressureUpdateBreakHUD();
   pressureSpawnTarget();
+  _barrierOverload();
   if(typeof csOnBreakStart === 'function') csOnBreakStart();
   pressureBreakLoop();
 }
@@ -7007,6 +7031,166 @@ function pressureReleaseBossAura(failed=false) {
   root.classList.add(failed ? 'pressure-aura-release' : 'pressure-aura-collapse');
   setTimeout(()=>root.classList.remove('pressure-aura-collapse','pressure-aura-release'), failed ? 560 : 420);
 }
+
+
+// ══════════════════════════════════════════
+// BREAK BARRIER OVERLAY SYSTEM
+// ══════════════════════════════════════════
+const _BARRIER = {
+  state: 'idle',      // idle | buildup | overload | breaking | shatter | fade
+  opacity: 0,
+  rotation: 0,        // degrees
+  scale: 1,
+  buildupStartTime: 0,
+  overloadStartTime: 0,
+  shatterStartTime: 0,
+  fadeStartTime: 0,
+  lastTs: 0,
+  raf: null,
+  el: null,
+};
+
+function _barrierEl() {
+  if (!_BARRIER.el) _BARRIER.el = document.getElementById('breakBarrierOverlay');
+  return _BARRIER.el;
+}
+
+function _barrierApply(el) {
+  el.style.opacity = _BARRIER.opacity;
+  el.style.transform = 'translate(-50%, -50%) scale(' + _BARRIER.scale + ') rotate(' + _BARRIER.rotation + 'deg)';
+}
+
+function _barrierTick(ts) {
+  const el = _barrierEl();
+  if (!el) { _BARRIER.raf = null; return; }
+
+  const dt = _BARRIER.lastTs ? Math.min((ts - _BARRIER.lastTs) / 1000, 0.05) : 0.016;
+  _BARRIER.lastTs = ts;
+
+  switch (_BARRIER.state) {
+    case 'buildup': {
+      const elapsed = ts - _BARRIER.buildupStartTime;
+      // Progress 0→1 over ~2500ms (buildup + lockin combined)
+      const buildProg = Math.min(1, elapsed / 2500);
+      const targetOpacity = buildProg * 0.40;
+      _BARRIER.opacity += (targetOpacity - _BARRIER.opacity) * Math.min(1, dt * 5);
+      // Slow rotation: slightly faster past 80% build-up
+      const rotSpeed = buildProg >= 0.8 ? 5.5 : 3.5; // deg/s
+      _BARRIER.rotation = (_BARRIER.rotation + rotSpeed * dt) % 360;
+      // Subtle pulse
+      _BARRIER.scale = 1 + Math.sin(ts * 0.002) * 0.02;
+      break;
+    }
+    case 'overload': {
+      const elapsed = ts - _BARRIER.overloadStartTime;
+      const t = Math.min(1, elapsed / 200);
+      _BARRIER.opacity = 0.40 + (0.85 - 0.40) * t;
+      _BARRIER.scale = 1 + (1.12 - 1) * t;
+      _BARRIER.rotation = (_BARRIER.rotation + 9 * dt) % 360;
+      if (elapsed >= 200) {
+        _BARRIER.state = 'breaking';
+        _BARRIER.opacity = 0.85;
+        _BARRIER.scale = 1.12;
+      }
+      break;
+    }
+    case 'breaking': {
+      _BARRIER.opacity = 0.85;
+      _BARRIER.scale = 1.12 + Math.sin(ts * 0.003) * 0.02;
+      _BARRIER.rotation = (_BARRIER.rotation + 7 * dt) % 360;
+      break;
+    }
+    case 'shatter': {
+      const elapsed = ts - _BARRIER.shatterStartTime;
+      const dur = 500;
+      const t = Math.min(1, elapsed / dur);
+      const eased = 1 - Math.pow(1 - t, 2);
+      _BARRIER.scale = 1.12 + (1.35 - 1.12) * eased;
+      _BARRIER.opacity = 0.85 * (1 - eased);
+      _BARRIER.rotation = (_BARRIER.rotation + 12 * dt) % 360;
+      if (elapsed >= dur) {
+        _BARRIER.state = 'idle';
+        _BARRIER.opacity = 0;
+        _BARRIER.scale = 1;
+        _BARRIER.rotation = 0;
+      }
+      break;
+    }
+    case 'fade': {
+      const elapsed = ts - _BARRIER.fadeStartTime;
+      const t = Math.min(1, elapsed / 350);
+      _BARRIER.opacity = (1 - t) * _BARRIER._fadeFromOpacity;
+      _BARRIER.rotation = (_BARRIER.rotation + 4 * dt) % 360;
+      if (elapsed >= 350) {
+        _BARRIER.state = 'idle';
+        _BARRIER.opacity = 0;
+      }
+      break;
+    }
+    default:
+      break;
+  }
+
+  _barrierApply(el);
+
+  if (_BARRIER.state === 'idle') {
+    _BARRIER.raf = null;
+    _BARRIER.lastTs = 0;
+    return;
+  }
+  _BARRIER.raf = requestAnimationFrame(_barrierTick);
+}
+
+function _barrierEnsureRaf() {
+  if (!_BARRIER.raf) _BARRIER.raf = requestAnimationFrame(_barrierTick);
+}
+
+function _barrierStart() {
+  _BARRIER.state = 'buildup';
+  _BARRIER.buildupStartTime = performance.now();
+  _BARRIER.opacity = 0;
+  _BARRIER.rotation = 0;
+  _BARRIER.scale = 1;
+  _BARRIER.lastTs = 0;
+  _barrierEnsureRaf();
+}
+
+function _barrierOverload() {
+  _BARRIER.state = 'overload';
+  _BARRIER.overloadStartTime = performance.now();
+  _barrierEnsureRaf();
+}
+
+function _barrierShatter() {
+  _BARRIER.state = 'shatter';
+  _BARRIER.shatterStartTime = performance.now();
+  _BARRIER.opacity = Math.max(_BARRIER.opacity, 0.85);
+  _BARRIER.scale = Math.max(_BARRIER.scale, 1.12);
+  _barrierEnsureRaf();
+}
+
+function _barrierFail() {
+  if (_BARRIER.state === 'idle') return;
+  _BARRIER._fadeFromOpacity = _BARRIER.opacity;
+  _BARRIER.state = 'fade';
+  _BARRIER.fadeStartTime = performance.now();
+  _barrierEnsureRaf();
+}
+
+function _barrierHide() {
+  // Let shatter and fade finish naturally; interrupt everything else immediately
+  if (_BARRIER.state === 'shatter' || _BARRIER.state === 'fade') return;
+  _BARRIER.state = 'idle';
+  _BARRIER.opacity = 0;
+  _BARRIER.scale = 1;
+  _BARRIER.rotation = 0;
+  const el = _barrierEl();
+  if (el) {
+    el.style.opacity = '0';
+    el.style.transform = 'translate(-50%, -50%) scale(1) rotate(0deg)';
+  }
+}
+
 
 function pressureSpawnTarget() {
   pressureRemoveTarget();
@@ -7182,6 +7366,7 @@ function pressureSuccess() {
   const relief = Math.round(pressureRandomRange(12, 18)) + _overloadBonus;
   PRESSURE.rage = Math.max(0, PRESSURE.rage - relief);
   pressureUpdateRageUI();
+  _barrierShatter();
   pressureHide();
   pressureReleaseBossAura(false);
   pressurePlaySuccessRelease(PRESSURE.resolvePoint);
@@ -7235,6 +7420,7 @@ function pressurePlaySuccessRelease(point) {
 }
 
 function pressureFail() {
+  _barrierFail();
   pressureHide();
   pressureReleaseBossAura(true);
   PRESSURE.successStreak = 0;
