@@ -6170,6 +6170,7 @@ const PRESSURE = {
   prePressureMusicVolume: null,
   auraStage: 'normal',
   successFreezeUntil: 0,
+  failAssist: 0,
 };
 
 const PRESSURE_BREAK_TABLE = [
@@ -6206,6 +6207,7 @@ function pressureReset() {
   PRESSURE.lastChanceFailed = false;
   PRESSURE.auraStage = 'normal';
   PRESSURE.successFreezeUntil = 0;
+  PRESSURE.failAssist = 0;
   PRESSURE._lastTarget = null;
   pressureHide();
   pressureUpdateRageUI();
@@ -6295,8 +6297,10 @@ function pressureLockIn(lastChance=false) {
 }
 
 function pressureDifficulty() {
-  const breakNo = PRESSURE.currentBreak || (PRESSURE.breakAttempts + 1);
-  const tier = Math.min(5, Math.max(1, breakNo));
+  // Progression follows successful BREAK count, not total appearances.
+  // A failed BREAK retries the same success tier with a small temporary assist.
+  const breakNo = Math.max(1, (PRESSURE.successes || 0) + 1);
+  const tier = Math.min(5, breakNo);
   const base = PRESSURE_BREAK_TABLE[tier - 1];
   let need = Math.round(pressureRandomRange(base.min, base.max));
   let duration = base.duration;
@@ -6309,6 +6313,11 @@ function pressureDifficulty() {
     need = Math.min(28, Math.max(18, need + 1));
     duration = Math.max(2350, duration - 150);
   }
+  const assist = Math.min(3, Math.max(0, PRESSURE.failAssist || 0));
+  if(assist > 0) {
+    need = Math.max(8, need - assist);
+    duration += assist * 120;
+  }
   return { need, duration, breakNo };
 }
 
@@ -6317,8 +6326,8 @@ function pressureStartBreak(lastChance=false) {
   PRESSURE.phase = 'break';
   PRESSURE.targetHits = 0;
   PRESSURE.breakAttempts++;
-  PRESSURE.currentBreak = PRESSURE.breakAttempts;
   const d = pressureDifficulty();
+  PRESSURE.currentBreak = d.breakNo;
   PRESSURE.targetNeed = d.need;
   PRESSURE.breakDuration = d.duration;
   PRESSURE.breakEndsAt = performance.now() + d.duration;
@@ -6486,6 +6495,7 @@ function pressureSuccess(wasLastChance) {
   PRESSURE.successes++;
   PRESSURE.successStreak++;
   PRESSURE.bestStreak = Math.max(PRESSURE.bestStreak, PRESSURE.successStreak);
+  PRESSURE.failAssist = Math.max(0, (PRESSURE.failAssist || 0) - 1);
   PRESSURE.rage = wasLastChance ? 70 : Math.max(0, PRESSURE.rage - 22);
   pressureUpdateRageUI();
   pressureHide();
@@ -6525,6 +6535,7 @@ function pressureFail(wasLastChance) {
     return;
   }
   PRESSURE.failedBreaks++;
+  PRESSURE.failAssist = Math.min(3, (PRESSURE.failAssist || 0) + 1);
   const rageGain = pressureFailRageGain();
   pressureAddRage(rageGain, 'BREAK FAILED');
   combo = Math.max(1, Math.floor(combo * 0.85));
