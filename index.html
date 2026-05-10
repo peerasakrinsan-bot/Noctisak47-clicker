@@ -7013,7 +7013,6 @@ function endGame(opts = {}) {
     spawnCoinPopup(endBonus);
   }
   const pressureSummary = pressureFinalSummary();
-  pressureTryOcaTicketDrop(window.innerWidth / 2, window.innerHeight * 0.4);
   // save stats + coins — เฉพาะจบเกมปกติ (ไม่ใช่ quit)
   const prevHS = save.stats.highScore || 0;
   const isNewRecord = score > prevHS;
