@@ -6562,25 +6562,24 @@ function pressureAddRage(amount, reason) {
   }
 }
 
-function pressureZenyEfficiencyPct() {
+function pressureBreakBonusPct() {
   const wins = Math.max(0, PRESSURE.successes || 0);
-  if(wins <= 0) return 50;
-  if(wins === 1) return 75;
-  if(wins <= 3) return 100;
-  return 100 + (wins - 3) * 10;
+  if(wins <= 0) return 0;
+  if(wins === 1) return 25;
+  if(wins <= 3) return 50;
+  return 50 + (wins - 3) * 10;
 }
 
 function pressureRewardBonusPct() {
-  return pressureZenyEfficiencyPct() - 100;
+  return pressureBreakBonusPct();
 }
 
 function pressureCoinMultiplier() {
-  return pressureZenyEfficiencyPct() / 100;
+  return 1 + pressureBreakBonusPct() / 100;
 }
 
 function pressureFinalSummary() {
-  const efficiencyPct = pressureZenyEfficiencyPct();
-  return { efficiencyPct, bonusPct: efficiencyPct - 100, successes: PRESSURE.successes || 0 };
+  return { bonusPct: pressureBreakBonusPct(), successes: PRESSURE.successes || 0 };
 }
 
 function pressureOcaTicketChance() {
@@ -6729,9 +6728,7 @@ function endGame(opts = {}) {
     const h2 = $('resultScreen').querySelector('h2');
     if(h2) h2.textContent = gameOver ? 'GAME OVER' : '— BATTLE RESULT —';
     $('res-score').textContent = formatNum(score);
-    const pressureText = pressureSummary.efficiencyPct === 100
-      ? ''
-      : ' (' + (pressureSummary.bonusPct > 0 ? '+' : '') + pressureSummary.bonusPct + '% PRESSURE)';
+    const pressureText = pressureSummary.bonusPct > 0 ? ' (BREAK BONUS +' + pressureSummary.bonusPct + '%)' : '';
     $('coinsEarned').textContent = '+' + roundCoins + ' ZENY' + pressureText;
     $('res-hs-num').textContent = formatNum(save.stats.highScore);
     $('newRecordBanner').style.display = isNewRecord ? 'block' : 'none';
