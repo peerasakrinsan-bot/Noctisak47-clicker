@@ -4691,12 +4691,12 @@ const CARD_POOL = [
     apply(s){ s.cs_doubleClick = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
-    effect:'กด AK47 = ดาเมจ <strong>x3</strong> + เก็บครบชุด = เวลา <strong>+1.5 วิ</strong>', tradeoff:'AK47 spawn ช้าลง <strong>1.5 เท่า</strong>',
-    apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; }
+    effect:'กด AK47 = ดาเมจ <strong>x3</strong> + เก็บครบชุด / BREAK success = เวลา <strong>+1.5 วิ</strong> + BREAK progress <strong>+15%</strong>', tradeoff:'AK47 spawn ช้าลง <strong>1.5 เท่า</strong>',
+    apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.15; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
-    effect:'กด AK47 = OD charge <strong>+20%</strong> | ถ้า OD active อยู่แล้ว = OD timer <strong>+1 วิ</strong> แทน', tradeoff:null,
-    apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.20; }
+    effect:'กด AK47 = OD charge <strong>+20%</strong> | OD active = OD timer <strong>+1 วิ</strong> + เก็บ AK47 / BREAK สำเร็จ = rage ลดเพิ่ม <strong>+3</strong>', tradeoff:null,
+    apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.20; s.cs_overloadReduce = (s.cs_overloadReduce||0) + 3; }
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
     effect:'Combo ≥ 30 : ดาเมจ <strong>+25%</strong> + ทุก KO = score <strong>+300</strong>', tradeoff:'coin จาก KO <strong>-30%</strong>',
@@ -4713,11 +4713,11 @@ const CARD_POOL = [
 
   // ── VOID (MVP) ──
   { id:'th',   name:'THANABROS CARD',      img:'cards/thanabros.png',    rarity:'mythic',
-    effect:'AK47 ดาเมจ <strong>x2.5</strong> + เก็บครบชุด = OD charge เต็มทันที', tradeoff:'Combo reset ทุก 10 วินาที',
+    effect:'AK47 ดาเมจ <strong>x2.5</strong> + เก็บครบชุด / BREAK success = OD charge เต็มทันที', tradeoff:'Combo reset ทุก 10 วินาที',
     apply(s){ s.cs_thanatos = true; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
-    effect:'ทุกคลิกเป็น <strong>triple hit</strong> + กด AK47 แล้ว spawn ใหม่ทันที + เก็บครบชุด = ดาเมจ <strong>+5%</strong> สะสม (max +25%)', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
+    effect:'ทุกคลิกเป็น <strong>triple hit</strong> + กด AK47 แล้ว spawn ใหม่ทันที + เก็บครบชุด / BREAK success = ดาเมจ <strong>+5%</strong> สะสม (max +25%)', tradeoff:'Overdrive ชาร์จไม่ได้เลย',
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
@@ -4835,7 +4835,7 @@ const CARD_POOL = [
     apply(s){ s.cs_draculaCoin = true; }
   },
   { id:'ic',name:'INCANTATION SCAMURAI CARD',img:'cards/incantation_scamurai.png',rarity:'elite',
-    effect:'Combo ≥ 35 : ดาเมจ <strong>x2.5</strong> + AK47 spawn เร็ว <strong>+20%</strong>', tradeoff:null,
+    effect:'Combo ≥ 35 : ดาเมจ <strong>x2.5</strong> + AK47 spawn เร็ว <strong>+20%</strong> + AK47 / BREAK progress <strong>+10%</strong>', tradeoff:null,
     apply(s){ s.cs_incantation = true; }
   },
   { id:'sk',name:'STORMYNITE CARD', img:'cards/stormynite.png',rarity:'elite',
@@ -4847,8 +4847,8 @@ const CARD_POOL = [
     apply(s){ s.cs_darkLord = true; }
   },
   { id:'mf', name:'MOONLIGHT FEVER CARD', img:'cards/moonlight_fever.png', rarity:'elite',
-    effect:'ดาเมจ x2, coin x2, OD charge x2, AK47 เหลือ 3 ลูก + spawn เร็ว x2 + ทุก KO = score <strong>+500</strong>', tradeoff:'เวลาเหลือครึ่งเดียว',
-    apply(s){ s.cs_moonlightflower = true; }
+    effect:'ดาเมจ x2, coin x2, OD charge x2, AK47 เหลือ 3 ลูก + spawn เร็ว x2 + BREAK window <strong>+0.5 วิ</strong> + ทุก KO = score <strong>+500</strong>', tradeoff:'เวลาเหลือครึ่งเดียว',
+    apply(s){ s.cs_moonlightflower = true; s.cs_breakDuration = (s.cs_breakDuration||0) + 0.5; }
   },
 
   // ── STANDARD ใหม่ ──
@@ -4875,8 +4875,8 @@ const CARD_POOL = [
     apply(s){ s.cs_jakkCrit = true; }
   },
   { id:'mn',     name:'MARINAH CARD',        img:'cards/marinah.png',      rarity:'premium',
-    effect:'AK47 spawn เร็วขึ้น <strong>15%</strong>', tradeoff:null,
-    apply(s){ s.cs_marinaSpawn = true; }
+    effect:'AK47 spawn เร็วขึ้น <strong>15%</strong> + BREAK window <strong>+0.2 วิ</strong>', tradeoff:null,
+    apply(s){ s.cs_marinaSpawn = true; s.cs_breakDuration = (s.cs_breakDuration||0) + 0.2; }
   },
   { id:'dp',name:'DEMON FUNGUS CARD',  img:'cards/demon_fungus.png',rarity:'premium',
     effect:'ทุก 5 KO = Overdrive charge <strong>+5%</strong>', tradeoff:null,
@@ -4917,12 +4917,12 @@ const CARD_POOL = [
     apply(s){ s.cs_minorous = true; }
   },
   { id:'ex',name:'EXECUSIONER CARD',   img:'cards/execusioner.png', rarity:'elite',
-    effect:'HP ศัตรู < 25% : ดาเมจ <strong>+50%</strong> + AK47 spawn เร็ว <strong>x2</strong>', tradeoff:null,
+    effect:'HP ศัตรู < 25% : ดาเมจ <strong>+50%</strong> + AK47 spawn <strong>x2</strong> + BREAK progress <strong>+15%</strong>', tradeoff:null,
     apply(s){ s.cs_executioner = true; }
   },
   { id:'wh',    name:'WHIZPER CARD',       img:'cards/whizper.png',     rarity:'elite',
-    effect:'เก็บ AK47 ครบ = เวลา <strong>+1.5 วิ</strong> + Overdrive charge <strong>+10%</strong> (ถ้า OD active = OD timer <strong>+0.5 วิ</strong>) + combo ไม่ reset 2 วิ', tradeoff:'AK47 spawn ช้าลง <strong>2 เท่า</strong>',
-    apply(s){ s.cs_whisper = true; }
+    effect:'เก็บ AK47 ครบ / BREAK success = เวลา <strong>+1.5 วิ</strong> + OD charge <strong>+10%</strong> (OD active = timer <strong>+0.5 วิ</strong>) + combo ไม่ reset 2 วิ + BREAK window <strong>+0.3 วิ</strong>', tradeoff:'AK47 spawn ช้าลง <strong>2 เท่า</strong>',
+    apply(s){ s.cs_whisper = true; s.cs_breakDuration = (s.cs_breakDuration||0) + 0.3; }
   },
   { id:'gl',name:'GOBLIN WEEBER CARD',img:'cards/goblin_weeber.png',rarity:'elite',
     effect:'ทุกคลิก combo <strong>+2</strong> + Combo ≥ 30 = ดาเมจ <strong>+15%</strong>', tradeoff:'OD charge <strong>-20%</strong>',
@@ -4943,15 +4943,15 @@ const CARD_POOL = [
 
   // ── MYTHIC ใหม่ ──
   { id:'kn',  name:'CATULLANUX CARD',     img:'cards/catullanux.png',   rarity:'mythic',
-    effect:'AK47 ดาเมจ <strong>x4</strong> + ทุก AK47 ครบ round = combo ไม่ reset <strong>5 วิ</strong>', tradeoff:'HP ศัตรู <strong>+50%</strong>',
-    apply(s){ s.cs_ktullanux = true; }
+    effect:'AK47 ดาเมจ <strong>x4</strong> + ทุก AK47 / BREAK ครบ = combo ไม่ reset <strong>5 วิ</strong> + BREAK progress <strong>+20%</strong>', tradeoff:'HP ศัตรู <strong>+50%</strong>',
+    apply(s){ s.cs_ktullanux = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.20; }
   },
   { id:'bz',  name:'BEELZEBRUH CARD',     img:'cards/beelzebruh.png',   rarity:'mythic',
     effect:'ทุกคลิก ดาเมจสะสม <strong>+0.4%</strong> (สูงสุด +40%)', tradeoff:'HP ศัตรู เริ่มต้น <strong>x2</strong>',
     apply(s){ s.cs_beelzebub = true; }
   },
   { id:'vr', name:'VALKYRIZZ CARD', img:'cards/valkyrizz.png', rarity:'mythic',
-    effect:'ทุกครั้งที่เก็บ AK47 ครบ round = สุ่ม effect ใหม่จาก <strong>ELITE pool</strong>', tradeoff:null,
+    effect:'ทุกครั้งที่เก็บ AK47 ครบ / BREAK success = สุ่ม effect ใหม่จาก <strong>ELITE pool</strong>', tradeoff:null,
     apply(s){ s.cs_valkyrieRandgris = true; }
   },
   { id:'at',     name:'ATROSUS CARD',        img:'cards/atrosus.png',      rarity:'mythic',
@@ -6443,8 +6443,9 @@ function pressureStartBreak() {
   const d = pressureDifficulty();
   PRESSURE.currentBreak = d.breakNo;
   PRESSURE.targetNeed = d.need;
-  PRESSURE.breakDuration = d.duration;
-  PRESSURE.breakEndsAt = performance.now() + d.duration;
+  const _extraBreakMs = Math.round(((window._csState && window._csState.cs_breakDuration) || 0) * 1000);
+  PRESSURE.breakDuration = d.duration + _extraBreakMs;
+  PRESSURE.breakEndsAt = performance.now() + PRESSURE.breakDuration;
   PRESSURE.auraStage = 'normal';
   pressurePauseNormalSpawns();
   const overlay = $('pressureOverlay');
@@ -6625,6 +6626,16 @@ function pressureHitTarget(x, y) {
   if(PRESSURE.phase !== 'break') return;
   PRESSURE.lastAfkAt = Date.now();
   PRESSURE.targetHits++;
+  // cs_breakPower: extra BREAK progress per tap (HYDRA +0.15, CATULLANUX +0.20, stacks)
+  const _bp = (window._csState && window._csState.cs_breakPower) || 0;
+  if(_bp > 0) PRESSURE.targetHits += _bp;
+  // INCANTATION SCAMURAI: +10% BREAK progress when combo >= 35
+  if(window._csState && window._csState.cs_incantation_active) PRESSURE.targetHits += 0.10;
+  // EXECUSIONER: +15% BREAK progress when boss/enemy HP < 25%
+  if(window._csState && window._csState.cs_executioner) {
+    const _hpRatio = isBoss ? (bossHP / bossMaxHP) : (hp / maxHP);
+    if(_hpRatio < 0.25) PRESSURE.targetHits += 0.15;
+  }
   const target = PRESSURE.activeTarget;
   if(target) {
     target.classList.remove('hit');
@@ -6661,7 +6672,8 @@ function pressureSuccess() {
   PRESSURE.bestStreak = Math.max(PRESSURE.bestStreak, PRESSURE.successStreak);
   PRESSURE.failAssist = Math.max(0, (PRESSURE.failAssist || 0) - 1);
   PRESSURE.failStreak = 0;
-  const relief = Math.round(pressureRandomRange(12, 18));
+  const _overloadBonus = (window._csState && window._csState.cs_overloadReduce) || 0;
+  const relief = Math.round(pressureRandomRange(12, 18)) + _overloadBonus;
   PRESSURE.rage = Math.max(0, PRESSURE.rage - relief);
   pressureUpdateRageUI();
   pressureHide();
@@ -6768,7 +6780,8 @@ function pressureOnWeakPointMiss() {
 
 function pressureOnWeakPointCollect() {
   if(!gameRunning || (typeof pressureIsBreak === 'function' && pressureIsBreak())) return;
-  PRESSURE.rage = Math.max(0, PRESSURE.rage - Math.round(pressureRandomRange(3, 5)));
+  const _overloadBonus = (window._csState && window._csState.cs_overloadReduce) || 0;
+  PRESSURE.rage = Math.max(0, PRESSURE.rage - Math.round(pressureRandomRange(3, 5)) - _overloadBonus);
   pressureUpdateRageUI();
 }
 
