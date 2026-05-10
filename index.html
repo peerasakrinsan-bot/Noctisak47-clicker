@@ -5432,8 +5432,10 @@ function _csStartLodTimer() {
   _csLodTimer = setInterval(()=>{
     if(!gameRunning || gamePaused) return;
     showBigSplash('LORD OF DEATH','CARD CHANGING IN 3s...','#cc88ff',false);
-    setTimeout(()=>{
+    _csLodSwapTimeout = setTimeout(()=>{
+      _csLodSwapTimeout = null;
       if(!gameRunning || gamePaused) return;
+      if(!window._csState || !window._csState.cs_lordofdeath) return;
       _lodPickAndApply(false);
     }, 3000);
   }, 10000);
@@ -5524,6 +5526,7 @@ function _csSyncWeakPointAvailability(prevHadRsx=false, reschedulePending=false)
 function _csStopAllTimers() {
   clearInterval(_csThanatosTimer);
   clearInterval(_csLodTimer);
+  clearTimeout(_csLodSwapTimeout);
   clearInterval(_csEddgaInterval);
   clearInterval(_csEddgaBurstInterval);
   clearTimeout(_csOrcBaddyTimer);
@@ -5531,6 +5534,7 @@ function _csStopAllTimers() {
   clearInterval(_csGloomTimer);
   _csThanatosTimer = null;
   _csLodTimer = null;
+  _csLodSwapTimeout = null;
   _csEddgaInterval = null;
   _csEddgaBurstInterval = null;
   _csOrcBaddyTimer = null;
@@ -6195,6 +6199,7 @@ let _csOnChosen = null;
 let _csOrcBaddyTimer = null;
 let _csOrcBaddyDrainInterval = null;
 let _csGloomTimer = null;
+let _csLodSwapTimeout = null;
 
 // weighted pick ใช้สำหรับ LOD pool (pool เล็ก ไม่ต้องแยก tier)
 function _csWeightedPick(pool) {
