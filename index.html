@@ -6174,10 +6174,10 @@ const PRESSURE = {
 };
 
 const PRESSURE_BREAK_TABLE = [
+  { min: 6, max: 9, duration: 3100 },
   { min: 10, max: 14, duration: 3000 },
   { min: 15, max: 18, duration: 2925 },
-  { min: 18, max: 22, duration: 2850 },
-  { min: 22, max: 25, duration: 2750 },
+  { min: 20, max: 24, duration: 2750 },
   { min: 25, max: 28, duration: 2650 },
 ];
 
@@ -6315,7 +6315,7 @@ function pressureDifficulty() {
   }
   const assist = Math.min(3, Math.max(0, PRESSURE.failAssist || 0));
   if(assist > 0) {
-    need = Math.max(8, need - assist);
+    need = Math.max(5, need - assist);
     duration += assist * 120;
   }
   return { need, duration, breakNo };
