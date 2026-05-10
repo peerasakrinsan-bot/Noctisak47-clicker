@@ -4876,7 +4876,7 @@ const CARD_POOL = [
     apply(s){ s.cs_koOdCharge = (s.cs_koOdCharge||0) + 0.02; }
   },
   { id:'ze',     name:'XENORC CARD',         img:'cards/xenorc.png',      rarity:'premium',
-    effect:'ทุก Overdrive ที่ใช้ = ดาเมจ <strong>+10%</strong> สะสม สูงสุด +20%', tradeoff:null,
+    effect:'ทุก Overdrive ที่ใช้ = ดาเมจ <strong>+8%</strong> สะสม (สูงสุด +24%) | BREAK active: ดาเมจ <strong>+8%</strong> เพิ่มเติม', tradeoff:null,
     apply(s){ s.cs_zenorc = true; }
   },
   { id:'hg',     name:'WRONG CARD',         img:'cards/wrong.png',      rarity:'premium',
@@ -4934,7 +4934,7 @@ const CARD_POOL = [
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.08; s.cs_timePenalty=(s.cs_timePenalty||0)+5; s.cs_ggBreak=true; }
   },
   { id:'jk',       name:'JACKED CARD',          img:'cards/jacked.png',        rarity:'premium',
-    effect:'ช่วง Overdrive: crit chance <strong>+20%</strong>', tradeoff:null,
+    effect:'ช่วง Overdrive: crit chance <strong>+20%</strong> + crit dmg <strong>+15%</strong> | ช่วง BREAK: crit chance <strong>+8%</strong>', tradeoff:null,
     apply(s){ s.cs_jakkCrit = true; }
   },
   { id:'mn',     name:'MARINAH CARD',        img:'cards/marinah.png',      rarity:'premium',
@@ -4950,7 +4950,7 @@ const CARD_POOL = [
     apply(s){ s.cs_vitata = true; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.08; }
   },
   { id:'al',  name:'ALLEYGATOR CARD',     img:'cards/alleygator.png',   rarity:'premium',
-    effect:'ทุก KO = coin <strong>+3</strong> (สูงสุด +45 zeny)', tradeoff:null,
+    effect:'ทุก 10 KO = coin <strong>+1%</strong> สะสม (สูงสุด +8%) | ช่วง BREAK: นับ KO เร็วขึ้น 2×', tradeoff:null,
     apply(s){ s.cs_alligator = true; }
   },
   { id:'ss',name:'SOLDIER SKELLYTON CARD', img:'cards/soldier_skellyton.png', rarity:'premium',
@@ -4958,8 +4958,8 @@ const CARD_POOL = [
     apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.18; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.02; s.cs_skellytonWp=true; }
   },
   { id:'mc',     name:'MARVELC CARD',          img:'cards/marvelc.png',        rarity:'premium',
-    effect:'เวลา <strong>+4 วินาที</strong> + Combo decay <strong>ช้าลง 10%</strong>', tradeoff:null,
-    apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+4; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.10; }
+    effect:'เวลา <strong>+4 วินาที</strong> + Combo decay <strong>ช้าลง 15%</strong> | เวลาเหลือ < 15 วิ: ดาเมจ <strong>+8%</strong>', tradeoff:null,
+    apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+4; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.15; s.cs_marvelcLowTime=true; }
   },
   { id:'sd', name:'SIDEWHINER CARD',    img:'cards/sidewhiner.png',  rarity:'premium',
     effect:'ดาเมจ <strong>+16%</strong>', tradeoff:'Overdrive charge <strong>-20%</strong>',
@@ -5520,6 +5520,8 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_combo30_active) d *= 1.25;
   if(cs.cs_incantation_active) d *= 2.5;
   if(cs.cs_horong_active) d *= 1.35;
+  // MARVELC: dmg +8% when time < 15s
+  if(cs.cs_marvelcLowTime && cs._marvelcLowTimeActive) d *= 1.08;
   if(cs.cs_raydric && cs._raydricActive) d *= 1.20;
   if(cs.cs_zenorc_active) d *= (1 + cs.cs_zenorc_active);
   if(cs.cs_moonlightflower) d *= 2;
@@ -5586,6 +5588,8 @@ function csApplyCoinMod(coins) {
   const cs = window._csState;
   let c = coins;
   if(cs.cs_coinPct)   c *= (1 + cs.cs_coinPct);
+  // ALLEYGATOR: accumulated percentage bonus from KO stacks
+  if(cs._alligatorPct) c *= (1 + cs._alligatorPct);
   if(cs.cs_goldenbug) c *= 4;
   if(cs.cs_osiris)    c *= 0.65;
   if(cs.cs_moonlightflower) c *= 2;
@@ -5627,6 +5631,8 @@ function csOnClick(isGod) {
   if(cs.cs_incantation) cs.cs_incantation_active = combo >= 35;
   if(cs.cs_elderWillow) cs.cs_elderWillow_active = combo >= 25;
   if(cs.cs_horong)      cs.cs_horong_active = timeLeft < 20;
+  // MARVELC: low-time dmg bonus (<15s)
+  if(cs.cs_marvelcLowTime) cs._marvelcLowTimeActive = timeLeft < 15;
   // Amon Ra: combo >= 40 → dmg+40% + coin x1.5
   if(cs.cs_amonRa) cs.cs_amonRa_active = combo >= 40;
   // Goblin Leader: combo+2 per click (applied in processHit combo line)
@@ -5658,8 +5664,11 @@ function csOnClick(isGod) {
       godSecondsLeft += 0.2;
     }
   }
-  // Zenorc: OD usage stacks handled in csOnOdStart
-  if(cs.cs_zenorc) cs.cs_zenorc_active = (cs._zenorcCount||0) * 0.10;
+  // Zenorc: OD usage stacks handled in csOnOdStart; BREAK adds flat +8%
+  if(cs.cs_zenorc) {
+    cs.cs_zenorc_active = (cs._zenorcCount||0) * 0.08;
+    if(typeof pressureIsBreak === 'function' && pressureIsBreak()) cs.cs_zenorc_active += 0.08;
+  }
   // Elder Willow: boost OD charge
   if(cs.cs_elderWillow_active && !isGod) {
     // applied in hit() via charge multiplier
@@ -5705,13 +5714,17 @@ function csOnKO() {
     if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
   }
   // Zenorc OD stack tracked in csOnOdStart
-  // Alligator: +3 coin per KO (max 45 per round)
+  // Alligator: every 10 KOs = +1% coin bonus (max +8%); during BREAK counts 2x
   if(cs.cs_alligator) {
-    if(!cs._alligatorCoins) cs._alligatorCoins = 0;
-    if(cs._alligatorCoins < 45) {
-      const gain = Math.min(3, 45 - cs._alligatorCoins);
-      cs._alligatorCoins += gain;
-      roundCoins += gain;
+    if(!cs._alligatorKoCount) cs._alligatorKoCount = 0;
+    if(!cs._alligatorPct) cs._alligatorPct = 0;
+    if(cs._alligatorPct < 0.08) {
+      cs._alligatorKoCount++;
+      const inBreak = (typeof pressureIsBreak === 'function' && pressureIsBreak());
+      const threshold = inBreak ? 5 : 10;
+      if(cs._alligatorKoCount % threshold === 0) {
+        cs._alligatorPct = Math.min(0.08, cs._alligatorPct + 0.01);
+      }
     }
   }
   // Demon Pungus: every 5 KO = OD charge +5%
@@ -5870,10 +5883,10 @@ function csOnOdStart() {
   if(!window._csState) return;
   const cs = window._csState;
   _csOdUseCount++;
-  // ZENORC: count OD uses for damage stack (max 2 → +20%)
+  // ZENORC: count OD uses for damage stack (max 3 → +24%)
   if(cs.cs_zenorc) {
     if(!cs._zenorcCount) cs._zenorcCount = 0;
-    if(cs._zenorcCount < 2) cs._zenorcCount++;
+    if(cs._zenorcCount < 3) cs._zenorcCount++;
   }
 }
 
@@ -7662,6 +7675,8 @@ function processHit(e, now) {
   if(window._csState) {
     if(window._csState.cs_critChanceBonus) _critChance += window._csState.cs_critChanceBonus;
     if(window._csState.cs_jakkCrit && godLevel>0) _critChance += 0.20;
+    // JACKED: +8% crit during BREAK (even outside OD)
+    if(window._csState.cs_jakkCrit && godLevel===0 && typeof pressureIsBreak === 'function' && pressureIsBreak()) _critChance += 0.08;
     // SOLDIER SKELLYTON: +6% crit for 4s after WP collect
     if(window._csState.cs_skellytonWp && window._csState._skellytonCritEndTime && performance.now() < window._csState._skellytonCritEndTime) _critChance += 0.06;
     // IFRIED: +10% crit during BREAK
@@ -7670,6 +7685,8 @@ function processHit(e, now) {
   if(_critChance&&Math.random()<_critChance){dmg=Math.round(dmg*(_sc.critMult||2));isCrit=true;}
   // LUNATIC: crit dmg +15%
   if(isCrit && window._csState && window._csState.cs_critDmgBonus) dmg = Math.round(dmg*(1+window._csState.cs_critDmgBonus));
+  // JACKED: +15% crit dmg during OD
+  if(isCrit && window._csState && window._csState.cs_jakkCrit && godLevel>0) dmg = Math.round(dmg*1.15);
   // ORC WARRIOR: crit → OD charge
   if(isCrit && window._csState && window._csState.cs_critOdCharge && !window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
     const cur=parseFloat(_el.godFill.style.width)||0;
