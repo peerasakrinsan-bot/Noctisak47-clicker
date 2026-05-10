@@ -1696,6 +1696,18 @@
   #gameRoot.pressure-break #boxer { filter:drop-shadow(0 10px 40px rgba(0,0,0,.82)) drop-shadow(0 0 18px rgba(140,0,22,.58)) brightness(1.04) contrast(1.08); }
   #gameRoot.pressure-break #gun { filter:drop-shadow(0 0 12px rgba(255,255,255,.32)) brightness(1.04); }
   #gameRoot.pressure-impact-freeze #fighter { transform:translate(-50%, -40%) scale(1.055); filter:drop-shadow(0 0 28px rgba(255,20,40,.9)) brightness(1.14); }
+  #gameRoot.pressure-success-release #fighter { animation:pressureBossStagger .34s cubic-bezier(.2,.95,.2,1); }
+  #gameRoot.pressure-success-release #boxer { filter:drop-shadow(0 0 34px rgba(255,32,48,.9)) brightness(1.22) contrast(1.15); }
+  #gameRoot.pressure-streak-hot #fighter { filter:drop-shadow(0 0 12px rgba(160,0,24,.34)); }
+  #gameRoot.pressure-streak-insane #fighter { filter:drop-shadow(0 0 18px rgba(190,0,28,.48)); }
+  #gameRoot.pressure-break.pressure-streak-hot #fxLayer { opacity:.42; }
+  #gameRoot.pressure-break.pressure-streak-insane #fxLayer { opacity:.5; }
+  @keyframes pressureBossStagger {
+    0%{transform:translate(-50%, -40%) scale(1.03);}
+    18%{transform:translate(-50%, -40%) scale(1.075) rotate(-.7deg);}
+    46%{transform:translate(-50%, -40%) scale(1.045) rotate(.45deg);}
+    100%{transform:translate(-50%, -40%) scale(1.03);}
+  }
   /* V7 uses visual/audio lock-in only; no giant cinematic phase text. */
   #pressureText { display:none !important; }
   #pressureText.show { display:none !important; }
@@ -1737,9 +1749,17 @@
   }
   .break-target::before { content:''; position:absolute; inset:10%; background:url('weak.webp') center/contain no-repeat; filter:drop-shadow(0 0 12px #b00018) drop-shadow(0 5px 5px #000) saturate(1.35) contrast(1.08); }
   .break-target::after { content:''; position:absolute; inset:-16px; border-radius:50%; border:3px solid rgba(130,0,20,.72); box-shadow:0 0 26px rgba(80,0,0,.82); animation:breakTargetRing .62s ease-out infinite; }
+  .break-target.panic { box-shadow:0 0 42px rgba(220,0,34,1), 0 0 92px rgba(45,0,0,1), 0 20px 54px rgba(0,0,0,1); animation:breakTargetPanic .42s ease-in-out infinite alternate; }
+  .break-target.panic::before { filter:drop-shadow(0 0 18px #d60020) drop-shadow(0 8px 8px #000) saturate(1.55) contrast(1.14); }
+  .break-target.panic::after { inset:-22px; border-color:rgba(160,0,26,.88); animation-duration:.42s; }
+  .break-target.critical { box-shadow:0 0 56px rgba(255,0,42,1), 0 0 120px rgba(45,0,0,1), 0 22px 60px rgba(0,0,0,1); animation:breakTargetCritical .24s ease-in-out infinite alternate; }
+  .break-target.critical::before { filter:drop-shadow(0 0 24px #ff002a) drop-shadow(0 9px 10px #000) saturate(1.85) contrast(1.22); }
+  .break-target.critical::after { inset:-30px; border-color:rgba(210,0,36,.95); animation-duration:.28s; }
   .break-target:active { filter:brightness(1.35) saturate(1.25); }
   @keyframes breakTargetPop { from{opacity:.72; transform:scale(.92); filter:brightness(1.65) saturate(1.4);} to{opacity:1; transform:scale(1); filter:brightness(1) saturate(1);} }
   @keyframes breakTargetPulse { from{transform:scale(1); filter:brightness(.92) saturate(1.05);} to{transform:scale(1.055); filter:brightness(1.28) saturate(1.38);} }
+  @keyframes breakTargetPanic { from{transform:scale(1.02); filter:brightness(1.02) saturate(1.22);} to{transform:scale(1.085); filter:brightness(1.42) saturate(1.58);} }
+  @keyframes breakTargetCritical { 0%{transform:translate(0,0) scale(1.04); filter:brightness(1.12) saturate(1.45);} 100%{transform:translate(1px,-1px) scale(1.12); filter:brightness(1.62) saturate(1.9);} }
   @keyframes breakTargetRing { to{transform:scale(1.22); opacity:0;} }
   .break-impact {
     position:absolute; width:38px; height:38px; border-radius:50%; pointer-events:none; z-index:95;
@@ -1747,8 +1767,13 @@
     animation:breakImpact .28s ease-out forwards;
   }
   @keyframes breakImpact { to{width:150px;height:150px;opacity:0;} }
-  body.reduce-flash .break-target { animation:breakTargetPop .16s ease forwards; }
+  body.reduce-flash .break-target,
+  body.reduce-flash .break-target.panic,
+  body.reduce-flash .break-target.critical { animation:breakTargetPop .16s ease forwards; box-shadow:0 0 18px rgba(160,0,24,.58), 0 0 38px rgba(35,0,0,.7); }
   body.reduce-flash .break-target::after { display:none; }
+  body.reduce-flash #gameRoot.pressure-success-release #fighter { animation:none !important; }
+  body.reduce-flash #gameRoot.pressure-streak-hot #fighter,
+  body.reduce-flash #gameRoot.pressure-streak-insane #fighter { filter:drop-shadow(0 0 8px rgba(150,0,22,.25)); }
 
   /* ══ COUNTDOWN ══ */
   #countdownOverlay {
@@ -1933,7 +1958,8 @@
   body.reduce-flash #bombFlash.boom { animation:bombSoft 0.7s ease-out forwards !important; }
   @keyframes bombSoft { 0%{opacity:0.16;background:#ffcc00;} 100%{opacity:0;} }
   body.reduce-flash #gameRoot.shake,
-  body.reduce-flash #gameRoot.shake-wp { animation:none !important; }
+  body.reduce-flash #gameRoot.shake-wp,
+  body.reduce-flash #gameRoot.pressure-impact-freeze { animation:none !important; }
   body.reduce-flash #weakPoint { animation:wpPulseSoft 1.2s ease-in-out infinite alternate; box-shadow:0 0 10px 3px rgba(255,34,51,0.35); }
   @keyframes wpPulseSoft { 0%{transform:translate(-50%,-50%) scale(1);} 100%{transform:translate(-50%,-50%) scale(1.04);} }
   body.reduce-flash .wp-slot.ready { animation:none; box-shadow:0 0 8px rgba(255,200,0,0.45); }
@@ -6142,6 +6168,8 @@ const PRESSURE = {
   maxRage: 0,
   lastChanceFailed: false,
   prePressureMusicVolume: null,
+  auraStage: 'normal',
+  successFreezeUntil: 0,
 };
 
 const PRESSURE_BREAK_TABLE = [
@@ -6176,6 +6204,8 @@ function pressureReset() {
   PRESSURE.failedBreaks = 0;
   PRESSURE.maxRage = 0;
   PRESSURE.lastChanceFailed = false;
+  PRESSURE.auraStage = 'normal';
+  PRESSURE.successFreezeUntil = 0;
   PRESSURE._lastTarget = null;
   pressureHide();
   pressureUpdateRageUI();
@@ -6216,8 +6246,9 @@ function pressureHide() {
   const root = $('gameRoot');
   const overlay = $('pressureOverlay');
   if(overlay) { overlay.className = ''; overlay.style.display = 'none'; }
-  root.classList.remove('pressure-focus','pressure-break','rage-mid','rage-high','rage-critical');
+  root.classList.remove('pressure-focus','pressure-break','pressure-impact-freeze','pressure-success-release','rage-mid','rage-high','rage-critical');
   pressureApplyRageClass();
+  pressureApplyStreakClass();
   const txt = $('pressureText'); if(txt) txt.classList.remove('show');
   const hud = $('pressureHud'); if(hud) hud.classList.remove('show');
   if(!gameRunning) {
@@ -6245,6 +6276,7 @@ function pressureStartBuildup(lastChance=false) {
   PRESSURE.lastChance = !!lastChance;
   const root = $('gameRoot');
   const overlay = $('pressureOverlay');
+  pressureApplyStreakClass();
   root.classList.add('pressure-focus');
   overlay.style.display = 'block';
   overlay.className = 'active buildup' + (lastChance ? ' lastchance' : '');
@@ -6290,8 +6322,10 @@ function pressureStartBreak(lastChance=false) {
   PRESSURE.targetNeed = d.need;
   PRESSURE.breakDuration = d.duration;
   PRESSURE.breakEndsAt = performance.now() + d.duration;
+  PRESSURE.auraStage = 'normal';
   pressurePauseNormalSpawns();
   const overlay = $('pressureOverlay');
+  pressureApplyStreakClass();
   $('gameRoot').classList.add('pressure-break');
   overlay.className = 'active break' + (lastChance ? ' lastchance' : '');
   $('pressureHud').classList.add('show');
@@ -6312,9 +6346,25 @@ function pressureBreakLoop() {
 
 function pressureUpdateBreakHUD() {
   const pct = Math.min(100, (PRESSURE.targetHits / PRESSURE.targetNeed) * 100);
+  const remainMs = Math.max(0, PRESSURE.breakEndsAt - performance.now());
+  const remainRatio = PRESSURE.breakDuration ? remainMs / PRESSURE.breakDuration : 1;
   $('pressureProgress').style.width = pct + '%';
   $('pressureHitLabel').textContent = PRESSURE.lastChance ? 'LAST CHANCE' : 'SUPPRESSION';
-  $('pressureTimer').textContent = Math.max(0, (PRESSURE.breakEndsAt - performance.now()) / 1000).toFixed(1);
+  $('pressureTimer').textContent = (remainMs / 1000).toFixed(1);
+  pressureUpdateTargetAura(remainRatio);
+}
+
+
+function pressureUpdateTargetAura(remainRatio) {
+  const target = PRESSURE.activeTarget;
+  if(!target) return;
+  const stage = remainRatio <= 0.10 ? 'critical' : remainRatio <= 0.30 ? 'panic' : 'normal';
+  if(PRESSURE.auraStage === stage) return;
+  PRESSURE.auraStage = stage;
+  target.classList.toggle('panic', stage === 'panic');
+  target.classList.toggle('critical', stage === 'critical');
+  if(stage === 'critical') pressureHeartbeat(210);
+  else if(stage === 'panic') pressureHeartbeat(280);
 }
 
 function pressureSpawnTarget() {
@@ -6439,10 +6489,29 @@ function pressureSuccess(wasLastChance) {
   PRESSURE.rage = wasLastChance ? 70 : Math.max(0, PRESSURE.rage - 22);
   pressureUpdateRageUI();
   pressureHide();
+  pressurePlaySuccessRelease();
   playWpBall();
   completeWeakPointRequirementInstant();
   PRESSURE.cooldown = pressureNextCooldown();
   PRESSURE.lastAfkAt = Date.now();
+}
+
+
+function pressurePlaySuccessRelease() {
+  const root = $('gameRoot');
+  if(!root) return;
+  root.classList.remove('pressure-impact-freeze','pressure-success-release');
+  void root.offsetWidth;
+  root.classList.add('pressure-impact-freeze','pressure-success-release');
+  PRESSURE.successFreezeUntil = performance.now() + 320;
+  triggerFlash('flash-god');
+  for(let i=0;i<6;i++) {
+    const ox = vvW()/2 + (Math.random() - 0.5) * 150;
+    const oy = vvH()*0.42 + (Math.random() - 0.5) * 130;
+    spawnFX(ox, oy, true, i === 0);
+  }
+  if(gameSettings.sfxOn) playAK();
+  setTimeout(()=>root.classList.remove('pressure-impact-freeze','pressure-success-release'), 360);
 }
 
 function pressureFail(wasLastChance) {
@@ -6533,6 +6602,15 @@ function pressureApplyRageClass() {
   else if(PRESSURE.rage >= 40) root.classList.add('rage-mid');
 }
 
+
+function pressureApplyStreakClass() {
+  const root = $('gameRoot');
+  if(!root) return;
+  root.classList.remove('pressure-streak-hot','pressure-streak-insane');
+  if((PRESSURE.successes || 0) >= 8) root.classList.add('pressure-streak-insane');
+  else if((PRESSURE.successes || 0) >= 5) root.classList.add('pressure-streak-hot');
+}
+
 function pressureHeartbeatDelay() {
   return Math.max(320, 560 - PRESSURE.rage * 2.2);
 }
@@ -6567,7 +6645,7 @@ function startTimer() {
   clearInterval(timerInterval);
   timerInterval=setInterval(()=>{
     pressureUpdate(50);
-    const rate = PRESSURE.phase === 'break' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0);
+    const rate = performance.now() < (PRESSURE.successFreezeUntil || 0) ? 0.18 : (PRESSURE.phase === 'break' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0));
     timeLeft -= 0.05 * rate;
     if(timeLeft<=0){timeLeft=0;endGame();}
     renderTimer();
