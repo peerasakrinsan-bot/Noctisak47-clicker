@@ -6331,10 +6331,28 @@ function pressureRandomRange(min, max) {
 
 function pressureNextCooldown() {
   const n = PRESSURE.breakAttempts;
-  if(n < 2) return pressureRandomRange(20000, 30000);
-  if(n < 4) return pressureRandomRange(15000, 20000);
-  const softPostFive = Math.min(2000, Math.max(0, PRESSURE.breakAttempts - 5) * 250);
-  return pressureRandomRange(10000 - softPostFive, 15000 - softPostFive);
+  let min = 15000;
+  let max = 22000;
+  if(n >= 2 && n < 5) {
+    min = 12000;
+    max = 18000;
+  } else if(n >= 5) {
+    min = 10000;
+    max = 15000;
+  }
+
+  // Successful, controlled runs should naturally intensify without making BREAK
+  // feel like a constant interruption. Overdrive is intentionally not a primary
+  // frequency driver so normal no-OD runs still see the system regularly.
+  const wins = Math.max(0, PRESSURE.successes || 0);
+  let accel = Math.min(0.16, Math.max(0, wins - 2) * 0.035);
+  if((combo || 0) >= 80) accel += 0.05;
+  else if((combo || 0) >= 40) accel += 0.03;
+  if((PRESSURE.rage || 0) <= 35 && wins >= 2) accel += 0.025;
+  accel = Math.min(0.22, accel);
+
+  const cooldown = pressureRandomRange(min, max) * (1 - accel);
+  return Math.max(9000, cooldown);
 }
 
 function pressureClearTimers() {
@@ -6952,8 +6970,8 @@ function endGame(opts = {}) {
     const h2 = $('resultScreen').querySelector('h2');
     if(h2) h2.textContent = gameOver ? 'GAME OVER' : '— BATTLE RESULT —';
     $('res-score').textContent = formatNum(score);
-    const pressureText = pressureSummary.bonusPct > 0 ? ' (BREAK BONUS +' + pressureSummary.bonusPct + '%)' : '';
-    $('coinsEarned').textContent = '+' + roundCoins + ' ZENY' + pressureText;
+    const pressureText = pressureSummary.bonusPct > 0 ? ' (+' + pressureSummary.bonusPct + '%)' : '';
+    $('coinsEarned').textContent = '+' + formatNum(roundCoins) + ' ZENY' + pressureText;
     $('res-hs-num').textContent = formatNum(save.stats.highScore);
     $('newRecordBanner').style.display = isNewRecord ? 'block' : 'none';
     $('res-highscore').style.color = isNewRecord ? 'var(--gold)' : '#555';
