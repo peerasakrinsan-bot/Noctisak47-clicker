@@ -33,6 +33,15 @@
 <!-- preload critical assets -->
 <link rel="preload" href="logo.png" as="image">
 <link rel="preload" href="default_bg.png"      as="image">
+<link rel="preload" href="title_bg.png" as="image">
+<link rel="preload" href="break_barrier.png" as="image">
+<link rel="preload" href="weak.webp" as="image">
+<link rel="preload" href="play.png" as="image">
+<link rel="preload" href="shop.png" as="image">
+<link rel="preload" href="card.png" as="image">
+<link rel="preload" href="transfer.png" as="image">
+<link rel="preload" href="void_main.png" as="image">
+<link rel="preload" href="best_main.png" as="image">
 <link rel="preload" href="47title.mp3" as="audio" type="audio/mpeg">
 <link rel="preload" href="suang_icon.webp" as="image">
 <link rel="preload" href="morgan_icon.webp" as="image">
@@ -3558,8 +3567,8 @@ function hasStat(id, key) {
 // ══════════════════════════════════════════
 const ASSETS = {
   images: [
-    // backgrounds
-    'default_bg.png','one_bg.png','colosseum_bg.webp','colosseum_bg.png',
+    // backgrounds / title first-screen
+    'title_bg.png','default_bg.png','one_bg.png','colosseum_bg.webp','colosseum_bg.png',
     // XUANG skin
     'xuang_icon.webp','xuang.png','xuang_hit1.png','xuang_hit2.png','xuang_hit3.png','xuang_hit4.png',
     // default skin
@@ -3567,8 +3576,9 @@ const ASSETS = {
     // SORNSIT SPIRIT skin
     'sornsit_icon.webp','sornsit.png','sornsit_hit1.png','sornsit_hit2.png','sornsit_hit3.png','sornsit_hit4.png',
     // game UI critical
-    'ak47.png','noobak47.png','wp5.png','break_core.png',
-    'sound_on.png','sound_off.png',
+    'ak47.png','noobak47.png','wp5.png','break_core.png','break_barrier.png','weak.webp',
+    'sound_on.png','sound_off.png','transfer.png','card.png','shop.png','play.png','arena.png','pause.png',
+    'void_main.png','best_main.png',
     CARD_HIDDEN_IMG,'card_back.png','logo.png',
     // shop/OCA item art (optional, non-blocking; preload keeps renamed assets warm)
     ...Object.values(ITEM_IMGS),
