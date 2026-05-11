@@ -513,7 +513,7 @@
   }
   .cs-spacer { display:none; }
   .cs-header {
-    text-align:center; margin-bottom:clamp(6px,1.5vh,12px);
+    text-align:center; margin-bottom:clamp(4px,1vh,8px);
     position:relative; z-index:1; flex-shrink:0;
   }
   .cs-title {
@@ -528,13 +528,13 @@
   /* wrapper รวมการ์ด + ปุ่ม — fixed height ไม่ขยับ */
   .cs-content-wrap {
     display:flex; flex-direction:column; align-items:center;
-    gap:clamp(12px,2.5vh,20px);
+    gap:clamp(8px,1.8vh,14px);
     position:relative; z-index:1; flex-shrink:0;
     width:100%;
   }
   .cs-cards-wrap {
     display:flex; flex-direction:row;
-    gap:clamp(6px,2vw,12px);
+    gap:clamp(5px,1.6vw,10px);
     align-items:stretch; justify-content:center;
     width:100%; max-width:500px;
     flex-shrink:0;
@@ -544,7 +544,7 @@
     display:flex; flex-direction:column; align-items:center;
     background:#0a0a0a;
     border:2px solid #222;
-    padding:clamp(6px,1.8vw,10px) clamp(5px,1.4vw,8px) clamp(6px,1.8vw,10px);
+    padding:clamp(5px,1.4vw,8px) clamp(4px,1.2vw,7px) clamp(5px,1.4vw,8px);
     cursor:pointer; position:relative; overflow:hidden;
     transition:transform 0.15s ease, border-color 0.15s ease;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
@@ -602,6 +602,7 @@
     image-rendering:auto;
     filter:drop-shadow(0 4px 12px rgba(0,0,0,0.8));
     display:block;
+    max-height:min(32vh,220px);
   }
   .rarity-premium .cs-card-img { filter:drop-shadow(0 0 8px rgba(0,136,255,0.5)); }
   .rarity-elite     .cs-card-img { filter:drop-shadow(0 0 12px rgba(255,204,0,0.8)); }
@@ -612,21 +613,21 @@
     font-family:'Oswald',sans-serif;
     font-size:clamp(8px,2.2vw,12px);
     letter-spacing:0.5px; color:#ddd; text-align:center;
-    margin-top:clamp(4px,1.2vw,7px); line-height:1.1; flex-shrink:0;
+    margin-top:clamp(3px,0.9vw,5px); line-height:1.1; flex-shrink:0;
   }
   /* card effect */
   .cs-card-effect {
     font-family:'Sarabun',sans-serif;
-    font-size:clamp(8px,2vw,10px);
-    color:#aaa; text-align:center; line-height:1.25;
+    font-size:clamp(7px,1.85vw,10px);
+    color:#aaa; text-align:center; line-height:1.2;
     margin-top:clamp(3px,1vw,5px);
     display:-webkit-box;
-    -webkit-line-clamp:2;
+    -webkit-line-clamp:4;
     -webkit-box-orient:vertical;
     overflow:hidden;
     text-overflow:ellipsis;
-    min-height:2.5em;
-    max-height:2.5em;
+    min-height:4.8em;
+    max-height:4.8em;
     flex-shrink:0;
   }
   .cs-card-effect strong { color:#bbb; }
@@ -635,11 +636,27 @@
   .cs-card-tradeoff {
     font-family:'Sarabun',sans-serif;
     font-size:clamp(7px,1.8vw,9px);
-    color:#ff5555; text-align:center; line-height:1.3;
+    color:#ff5555; text-align:center; line-height:1.25;
     margin-top:clamp(3px,0.8vw,5px);
     border-top:1px solid #1e1e1e;
     padding-top:clamp(3px,0.8vw,5px); flex-shrink:0;
     width:100%;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    min-height:2.5em;
+    max-height:2.5em;
+  }
+
+  /* 5-line effect on taller screens where layout permits */
+  @media (min-height: 760px) {
+    .cs-card-effect {
+      -webkit-line-clamp:5;
+      min-height:6em;
+      max-height:6em;
+    }
   }
 
   /* selected checkmark */
