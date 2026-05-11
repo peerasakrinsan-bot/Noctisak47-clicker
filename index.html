@@ -30,32 +30,20 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="NOCTISAK47: OVERDRIVE RAMPAGE">
 <meta name="twitter:description" content="กดให้แรง กดให้เร็ว ก่อนเวลาจะหมด ⚡ เกม Action Clicker สาย Overdrive + การ์ดสุ่มสุดปั่น เล่นฟรีบนมือถือ">
-<!-- preload critical assets — first-screen images + title audio -->
-<link rel="preload" href="logo.png"         as="image">
-<link rel="preload" href="title_bg.png"     as="image">
-<link rel="preload" href="default_bg.png"   as="image">
-<link rel="preload" href="void_main.png"    as="image">
-<link rel="preload" href="best_main.png"    as="image">
-<link rel="preload" href="play.png"         as="image">
-<link rel="preload" href="shop.png"         as="image">
-<link rel="preload" href="boss.png"         as="image">
-<link rel="preload" href="arena.png"        as="image">
-<link rel="preload" href="card.png"         as="image">
-<link rel="preload" href="transfer.png"     as="image">
-<link rel="preload" href="pause.png"        as="image">
-<link rel="preload" href="weak.webp"        as="image" type="image/webp">
-<link rel="preload" href="break_core.png"   as="image">
-<link rel="preload" href="break_barrier.png" as="image">
-<link rel="preload" href="47title.mp3"      as="audio" type="audio/mpeg">
-<link rel="preload" href="suang_icon.webp"  as="image">
+<!-- preload critical assets -->
+<link rel="preload" href="logo.png" as="image">
+<link rel="preload" href="default_bg.png"      as="image">
+<link rel="preload" href="47title.mp3" as="audio" type="audio/mpeg">
+<link rel="preload" href="suang_icon.webp" as="image">
 <link rel="preload" href="morgan_icon.webp" as="image">
 <link rel="preload" href="old-cringe-album.webp" as="image">
-<link rel="preload" href="rngesus.webp"     as="image">
+<link rel="preload" href="rngesus.webp" as="image">
 <link rel="preload" href="de-so-later.webp" as="image">
-<link rel="preload" href="methstone.webp"   as="image">
-<link rel="preload" href="buff-stick.webp"  as="image">
+<link rel="preload" href="methstone.webp" as="image">
+<link rel="preload" href="buff-stick.webp" as="image">
 <link rel="preload" href="time-skip-core.webp" as="image">
 <link rel="preload" href="stonks-hand.webp" as="image">
+<link rel="preload" href="break_core.png" as="image">
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
@@ -140,7 +128,6 @@
     bottom: clamp(80px,14vh,120px);
     left:50%; transform:translateX(-50%);
     white-space:nowrap;
-    transition: opacity 0.4s ease;
   }
 
   /* ══ MAIN MENU ══ */
@@ -2395,7 +2382,7 @@
   <div id="loadPct">0%</div>
   <div id="loadBarWrap"><div id="loadBar"></div></div>
   <div id="loadText">LOADING ASSETS...</div>
-  <div id="tapToStart" style="opacity:0;pointer-events:none;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:4px;color:#ff2233;animation:pulse-btn 1.2s ease-in-out infinite;cursor:pointer;">TAP TO START</div>
+  <div id="tapToStart" style="display:none;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:4px;color:#ff2233;animation:pulse-btn 1.2s ease-in-out infinite;cursor:pointer;">TAP TO START</div>
 </div>
 
 <!-- ── DAILY BATTLE REWARD WIDGET ── -->
@@ -3418,246 +3405,113 @@ function hasStat(id, key) {
 // ══════════════════════════════════════════
 const ASSETS = {
   images: [
-    // ── critical first-screen: preloader ──
-    'logo.png','title_bg.png',
-    // ── critical first-screen: main menu HUD ──
-    'void_main.png','best_main.png',
-    // ── critical first-screen: main menu buttons ──
-    'play.png','shop.png','boss.png','arena.png','card.png','transfer.png',
-    // ── critical first-screen: game UI shown immediately ──
-    'default_bg.png','pause.png','weak.webp',
-    'break_core.png','break_barrier.png',
-    CARD_HIDDEN_IMG,'card_back.png',
-    // ── backgrounds ──
-    'one_bg.png','colosseum_bg.webp','colosseum_bg.png',
-    // ── XUANG skin ──
+    // backgrounds
+    'default_bg.png','one_bg.png','colosseum_bg.webp','colosseum_bg.png',
+    // XUANG skin
     'xuang_icon.webp','xuang.png','xuang_hit1.png','xuang_hit2.png','xuang_hit3.png','xuang_hit4.png',
-    // ── default skin ──
+    // default skin
     'boxer.png','boxer_hit1.png','boxer_hit2.png','boxer_hit3.png','boxer_hit4.png',
-    // ── SORNSIT SPIRIT skin ──
+    // SORNSIT SPIRIT skin
     'sornsit_icon.webp','sornsit.png','sornsit_hit1.png','sornsit_hit2.png','sornsit_hit3.png','sornsit_hit4.png',
-    // ── game UI ──
-    'ak47.png','noobak47.png','wp5.png',
+    // game UI critical
+    'ak47.png','noobak47.png','wp5.png','break_core.png',
     'sound_on.png','sound_off.png',
-    // ── shop / item art ──
+    CARD_HIDDEN_IMG,'card_back.png','logo.png',
+    // shop/OCA item art (optional, non-blocking; preload keeps renamed assets warm)
     ...Object.values(ITEM_IMGS),
   ],
-  audio: [] // SFX loaded on-demand via Web Audio API; title BGM buffered in preloadAll()
+  audio: [] // audio loaded on-demand via Web Audio API
 };
-// ── Skin image preload cache (HTMLImageElement cache — prevents re-fetch on src swap) ──
+// ── Skin image preload cache (ใช้ HTMLImageElement แคช ป้องกัน re-fetch ตอน src swap) ──
 const _imgObjCache = {};
 function _preloadImg(src) {
   if(_imgObjCache[src]) return;
   const img = new Image(); img.src = src; _imgObjCache[src] = img;
 }
+function preloadAll() {
+  // All entries are optional for startup: a bad image must never softlock the title screen.
+  const imgs = Array.from(new Set(ASSETS.images.filter(Boolean)));
+  const total = imgs.length;
+  if(total === 0) { onAllLoaded(); return; }
+  let loaded = 0;
+  let preloadClosed = false;
+  const pending = new Set(imgs);
 
-// ══════════════════════════════════════════
-// PRELOAD STATE
-// isPreloadReady must be true before any menu entry is allowed.
-// ══════════════════════════════════════════
-let isPreloadReady       = false;
-let _allLoadedCalled     = false;
-let _preloadEnterStarted = false;
-let _preloadBarFrozen    = false; // stop bar updates after onAllLoaded freezes it at 100%
+  function setPreloadPct(pct) {
+    const bar = document.getElementById('loadBar');
+    const pctEl = document.getElementById('loadPct');
+    if(bar) bar.style.width = pct + '%';
+    if(pctEl) pctEl.textContent = pct + '%';
+  }
 
-function _setPreloadPct(pct) {
-  if(_preloadBarFrozen) return;
-  const bar   = document.getElementById('loadBar');
-  const pctEl = document.getElementById('loadPct');
-  if(bar)   bar.style.width   = pct + '%';
-  if(pctEl) pctEl.textContent = pct + '%';
-}
+  // แสดง 1% ทันทีเพื่อให้ผู้เล่นรู้ว่าเริ่ม load แล้ว
+  setPreloadPct(1);
 
-// ── Images visible on the FIRST SCREEN (preloader + main menu) ──
-// These MUST be decoded before isPreloadReady = true.
-const CRITICAL_IMGS = [
-  'logo.png',       // preloader + main menu logo
-  'title_bg.png',   // CSS background of #preloader and #mainMenu
-  'void_main.png',  // HUD coin card
-  'best_main.png',  // HUD high-score card
-  'play.png',       // main menu button
-  'shop.png',
-  'boss.png',
-  'arena.png',
-  'card.png',
-  'transfer.png',   // save/transfer button (top-right)
-  'default_bg.png', // arena bg injected by _applyArenaBg() on showMainMenu
-];
+  // fallback 5 วิ — ถ้า image ใดค้างก็ผ่านไปได้ และ TAP TO START ต้องขึ้นเสมอ
+  const fallbackTimer = setTimeout(() => {
+    if (preloadClosed) return;
+    preloadClosed = true;
+    if (pending.size) console.warn('[preload] continuing with pending optional assets:', Array.from(pending));
+    onAllLoaded();
+  }, 5000);
 
-async function preloadAll() {
-  // Merge CRITICAL_IMGS first so browsers with priority queues fetch them first.
-  const allImgs = Array.from(new Set([
-    ...CRITICAL_IMGS,
-    ...ASSETS.images,
-  ].filter(Boolean)));
-
-  const total      = allImgs.length;
-  let   loaded     = 0;
-  const pendingSet = new Set(allImgs);
-
-  _setPreloadPct(1);
-
-  function onProgress(src) {
-    if(!pendingSet.has(src)) return;
-    pendingSet.delete(src);
+  function prog(src, ok) {
+    if (preloadClosed) return;
+    if (!pending.has(src)) return;
+    pending.delete(src);
     loaded++;
-    _setPreloadPct(Math.min(Math.round(loaded / total * 100), 99));
-  }
-
-  // Load + decode one image.
-  // A 2-second per-image decode timeout prevents any single image from blocking
-  // the whole preload on low-memory mobile devices where decode() can stall.
-  function loadImage(src) {
-    return new Promise(resolve => {
-      const img = _imgObjCache[src] || new Image();
-      if(!_imgObjCache[src]) _imgObjCache[src] = img;
-
-      if(img.complete) {
-        if(img.naturalWidth > 0 && img.decode) {
-          Promise.race([
-            img.decode(),
-            new Promise(r => setTimeout(r, 2000)),
-          ]).catch(() => {}).finally(() => { onProgress(src); resolve(); });
-        } else { onProgress(src); resolve(); }
-        return;
-      }
-
-      let fired = false;
-      const done = async (ok) => {
-        if(fired) return; fired = true;
-        if(!ok) {
-          console.warn('[preload] image failed:', src);
-        } else if(img.decode) {
-          try {
-            await Promise.race([
-              img.decode(),
-              new Promise(r => setTimeout(r, 2000)),
-            ]);
-          } catch(e) { console.warn('[preload] decode failed:', src); }
-        }
-        onProgress(src);
-        resolve();
-      };
-      img.onload  = () => done(true);
-      img.onerror = () => done(false);
-      if(!img.src) img.src = src;
-      if(img.complete) done(img.naturalWidth > 0); // synchronous cache hit
-    });
-  }
-
-  // Decode the actual <img> DOM elements inside #mainMenu.
-  // decode() on a JS Image object primes the browser's image resource cache,
-  // but decoding the real DOM elements directly is the safest guarantee on
-  // mobile WebKit where the caches may not be fully shared.
-  async function _decodeMenuDomImages() {
-    const menu = document.getElementById('mainMenu');
-    if(!menu) return;
-    await Promise.all(Array.from(menu.querySelectorAll('img')).map(async img => {
-      if(!img.complete) {
-        await new Promise(r => {
-          img.addEventListener('load',  r, { once: true });
-          img.addEventListener('error', r, { once: true });
-        });
-      }
-      if(img.naturalWidth > 0 && img.decode) {
-        try {
-          await Promise.race([img.decode(), new Promise(r => setTimeout(r, 2000))]);
-        } catch(e) {}
-      }
-    }));
-  }
-
-  // Buffer title BGM before READY so it plays instantly after the user's tap.
-  // readyState 2 = HAVE_CURRENT_DATA: the `loadeddata` event has already fired at
-  // this level, so we must check >= 2 to avoid a permanently-hanging promise when
-  // the event fires before our listener is registered.
-  // A 6-second per-audio timeout prevents a slow network from blocking images.
-  function loadTitleAudio() {
-    return new Promise(resolve => {
-      const bgm = document.getElementById('bgmSound');
-      if(!bgm) { resolve(); return; }
-      if(bgm.readyState >= 2) { resolve(); return; }
-      let done = false;
-      const finish = () => { if(!done) { done = true; resolve(); } };
-      const onError = () => {
-        console.warn('[preload] 47title.mp3 failed to buffer — continuing');
-        finish();
-      };
-      bgm.addEventListener('canplaythrough', finish,  { once: true });
-      bgm.addEventListener('loadeddata',     finish,  { once: true });
-      bgm.addEventListener('error',          onError, { once: true });
-      setTimeout(() => {
-        console.warn('[preload] audio timeout — continuing without full buffer');
-        finish();
-      }, 6000);
-    });
-  }
-
-  // 12-second hard failsafe: log exactly which assets are still pending and proceed.
-  const failsafe = new Promise(resolve => setTimeout(() => {
-    if(pendingSet.size) {
-      console.warn('[preload] 12 s failsafe triggered — pending assets:', Array.from(pendingSet));
+    if (!ok) console.warn('[preload] optional image failed:', src);
+    const pct = Math.min(Math.round(loaded / total * 100), 99);
+    setPreloadPct(pct);
+    if(loaded >= total) {
+      preloadClosed = true;
+      clearTimeout(fallbackTimer);
+      onAllLoaded();
     }
-    resolve();
-  }, 12000));
+  }
 
-  // Start ALL image loads immediately (critical ones first in the array).
-  const imagePromises = allImgs.map(loadImage);
-
-  // Only CRITICAL images (+ DOM decode + audio) block the READY state.
-  // Non-critical images continue loading in the background.
-  const critSet      = new Set(CRITICAL_IMGS.filter(Boolean));
-  const critPromises = imagePromises.filter((_, i) => critSet.has(allImgs[i]));
-
-  await Promise.race([
-    Promise.all([
-      ...critPromises,
-      _decodeMenuDomImages(),
-      loadTitleAudio(),
-    ]),
-    failsafe,
-  ]);
-
-  // 100ms settle: gives the browser a frame to finish micro-tasks from decode().
-  await new Promise(r => setTimeout(r, 100));
-
-  onAllLoaded();
+  imgs.forEach(src => {
+    const i = new Image();
+    _imgObjCache[src] = i;
+    let _fired = false;
+    const _once = (ok) => { if(!_fired){ _fired=true; prog(src, ok); } };
+    i.onload  = () => _once(true);
+    i.onerror = () => _once(false);
+    i.src = src;
+    if(i.complete) _once(i.naturalWidth > 0);
+  });
 }
-
+let _allLoadedCalled = false;
+let _preloadEnterStarted = false;
 function onAllLoaded() {
   if(_allLoadedCalled) return;
-  _allLoadedCalled  = true;
-  _preloadBarFrozen = true; // prevent late non-critical onProgress() from reverting bar
-  isPreloadReady    = true;
+  _allLoadedCalled = true;
   initVolumes();
-
+  // ให้ progress bar animate ไปถึง 100% ก่อน แล้วค่อยแสดง TAP TO START
   const loadBar  = document.getElementById('loadBar');
   const loadPct  = document.getElementById('loadPct');
   const loadText = $('loadText');
   const tapEl    = $('tapToStart');
 
-  // Drive bar to 100%
-  if(loadBar) loadBar.style.width   = '100%';
-  if(loadPct) loadPct.textContent   = '100%';
+  // force 100%
+  if (loadBar)  loadBar.style.width = '100%';
+  if (loadPct)  loadPct.textContent  = '100%';
 
-  // After bar animation: show READY status and fade in TAP TO START
+  // รอให้ transition animation ของ bar เสร็จก่อน (~200ms) แล้วค่อยซ่อน text และแสดง TAP
   setTimeout(() => {
-    if(loadText) loadText.textContent = 'READY';
-    if(tapEl) {
-      tapEl.style.pointerEvents = 'auto';
-      tapEl.style.opacity       = '1';
-    }
+    if (loadText) loadText.style.display = 'none';
+    if (tapEl)    tapEl.style.display    = 'block';
   }, 300);
 
   async function doEnter(e) {
-    if(!isPreloadReady) return;
-    if(e) { if(e.cancelable) e.preventDefault(); e.stopPropagation(); }
-    if(_preloadEnterStarted) return;
+    if (e) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+    }
+    if (_preloadEnterStarted) return;
     _preloadEnterStarted = true;
-
-    if(tapEl)    tapEl.style.opacity  = '0';
-    if(loadText) loadText.textContent = 'VERIFYING SAVE...';
-
+    if (tapEl) tapEl.style.display = 'none';
+    if (loadText) { loadText.style.display = 'block'; loadText.textContent = 'VERIFYING SAVE...'; }
     try {
       await Promise.race([
         _saveReadyPromise,
@@ -3667,55 +3521,39 @@ function onAllLoaded() {
       console.warn('[save] verification skipped after error', err);
       save = normalizeSaveData(save);
     }
-
-    if(loadText) loadText.style.display = 'none';
-
-    // Re-decode main menu <img> elements immediately before they are painted.
-    // On memory-constrained devices, GPU texture memory for decoded images can
-    // be evicted between the initial preload and the user's tap. Re-decoding
-    // here (inside the gesture handler, so still synchronous enough) prevents
-    // pop-in when the menu becomes visible.
-    try {
-      const menuEl = document.getElementById('mainMenu');
-      if(menuEl) {
-        const menuImgs = Array.from(menuEl.querySelectorAll('img'));
-        await Promise.race([
-          Promise.all(menuImgs.map(img =>
-            (img.naturalWidth && img.decode) ? img.decode().catch(() => {}) : Promise.resolve()
-          )),
-          new Promise(r => setTimeout(r, 1000)), // 1-second cap — user is waiting
-        ]);
-      }
-    } catch(e) {}
-
-    // Play BGM immediately inside the user-gesture handler
+    if (loadText) loadText.style.display = 'none';
+    // unlock + เล่น BGM ทันทีหลัง user gesture
     const bgm = $('bgmSound');
-    if(bgm) {
+    if (bgm) {
       bgm.volume = _musicGain(TITLE_BGM_VOLUME);
       bgm.play().catch(() => {});
     }
-
     setTimeout(() => {
       const preloader = $('preloader');
-      if(preloader) preloader.style.display = 'none';
+      if (preloader) preloader.style.display = 'none';
       showMainMenu();
     }, 150);
   }
 
-  if(tapEl) {
-    tapEl.addEventListener('click',      doEnter, { once: true });
+  if (tapEl) {
+    tapEl.addEventListener('click', doEnter, { once: true });
     tapEl.addEventListener('touchstart', doEnter, { once: true, passive: false });
   }
-  // Fallback: tapping anywhere on the preloader background also enters.
-  // Guard inline so stale listeners cannot fire if something re-attaches.
+  // fallback: คลิกที่ preloader ได้เลย
   const preloaderEl = $('preloader');
-  if(preloaderEl) {
-    preloaderEl.addEventListener('click',      (e) => { if(isPreloadReady) doEnter(e); });
-    preloaderEl.addEventListener('touchstart', (e) => { if(isPreloadReady) doEnter(e); }, { passive: false });
+  if (preloaderEl) {
+    preloaderEl.addEventListener('click', doEnter, { once: true });
+    preloaderEl.addEventListener('touchstart', doEnter, { once: true, passive: false });
   }
 }
-
 preloadAll();
+// Emergency bypass: ถ้า 2 วินาทียังอยู่ที่ 0% (SW cache เก่าบล็อก) → ข้ามไปเลย
+setTimeout(() => {
+  const pctEl = document.getElementById('loadPct');
+  if(pctEl && (pctEl.textContent === '0%' || pctEl.textContent === '')) {
+    onAllLoaded();
+  }
+}, 2000);
 
 // ══════════════════════════════════════════
 // STAT CACHE
@@ -3854,7 +3692,6 @@ function closeShop() {
   }
 }
 function showMainMenu() {
-  if(!isPreloadReady) return;
   checkDailyQuestReset();
   updateDailyQuestUI();
   $('mainMenu').style.display = 'flex';
