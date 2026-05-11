@@ -4968,13 +4968,8 @@ const CARD_POOL = [
   // ── RARE ──
   { id:'dg',name:'DOPPELGANGER CARD', img:'cards/doppelganger.png',rarity:'elite',
     effect:'ทุก Hit ที่สำเร็จ: เรียก <strong>SHADOW STRIKE</strong> หลัง 0.08 วิ (DMG 45%, Crit +20%)', tradeoff:'เงาโจมตีไม่สร้าง Combo/OD/BREAK/AK47 และไม่ทริกเกอร์ซ้ำตัวเอง',
-    shortDescription:'ทุก Hit เรียก SHADOW STRIKE หลัง 0.08 วิ
-แรง 45% + โอกาสคริ +20%',
-    fullDescription:'[SHADOW STRIKE] ทุกการโจมตีที่โดน จะมีเงาตาม 0.08 วิ
-• ดาเมจ 45% ของฮิตต้นทาง
-• โอกาสคริติคอลเพิ่ม +20%
-• ถ้าฮิตต้นทางเป็นคริ ดาเมจเงาเพิ่มอีก +15%
-[Safety] เงาไม่สร้าง Combo, ไม่นับคลิกเพิ่ม, ไม่นับเป็น AK47/BREAK, ไม่เพิ่ม OD และไม่ทริกเกอร์เงาซ้ำ',
+    shortDescription:'ทุก Hit เรียก SHADOW STRIKE หลัง 0.08 วิ\nแรง 45% + โอกาสคริ +20%',
+    fullDescription:'[SHADOW STRIKE] ทุกการโจมตีที่โดน จะมีเงาตาม 0.08 วิ\n• ดาเมจ 45% ของฮิตต้นทาง\n• โอกาสคริติคอลเพิ่ม +20%\n• ถ้าฮิตต้นทางเป็นคริ ดาเมจเงาเพิ่มอีก +15%\n[Safety] เงาไม่สร้าง Combo, ไม่นับคลิกเพิ่ม, ไม่นับเป็น AK47/BREAK, ไม่เพิ่ม OD และไม่ทริกเกอร์เงาซ้ำ',
     balanceNote:'REWORK - นักลอบสังหารเงาตามจังหวะ เน้น burst เสริมแบบคุมเพดาน ปลอดภัยจาก recursive hit',
     apply(s){ s.cs_doppelShadow = true; }
   },
@@ -5372,13 +5367,8 @@ const CARD_POOL = [
   },
   { id:'wh',    name:'WHIZPER CARD',       img:'cards/whizper.png',     rarity:'elite',
     effect:'BREAK สำเร็จ: เปิด <strong>GHOST PROTOCOL</strong> 4 วิ (CD 10 วิ)', tradeoff:'โอกาสเกิด AK47 จุดซ้ำ +35%',
-    shortDescription:'BREAK สำเร็จเปิด GHOST PROTOCOL 4วิ (CD 10วิ)
-พักคอมโบ 1.2วิ + BREAK window +0.15วิ + OD +6%',
-    fullDescription:'[GHOST PROTOCOL] หลัง BREAK สำเร็จ จะทำงาน 4 วินาที (คูลดาวน์ 10 วินาที)
-• หยุดการหล่นคอมโบ 1.2 วิ
-• เพิ่ม BREAK window +0.15 วิ
-• รับ OD +6% 1 ครั้ง
-[Trade-off] โอกาสเกิด AK47 จุดซ้ำเพิ่ม +35% ระหว่างเล่นการ์ดนี้',
+    shortDescription:'BREAK สำเร็จเปิด GHOST PROTOCOL 4วิ (CD 10วิ)\nพักคอมโบ 1.2วิ + BREAK window +0.15วิ + OD +6%',
+    fullDescription:'[GHOST PROTOCOL] หลัง BREAK สำเร็จ จะทำงาน 4 วินาที (คูลดาวน์ 10 วินาที)\n• หยุดการหล่นคอมโบ 1.2 วิ\n• เพิ่ม BREAK window +0.15 วิ\n• รับ OD +6% 1 ครั้ง\n[Trade-off] โอกาสเกิด AK47 จุดซ้ำเพิ่ม +35% ระหว่างเล่นการ์ดนี้',
     balanceNote:'REWORK - สายคุมจังหวะหลัง BREAK แบบชั่วคราว ไม่ยืดเวลา ไม่ลูป BREAK/OD และยังมีความเสี่ยงจากจุดซ้ำ',
     apply(s){ s.cs_whisper = true; s.cs_whizperGhostProtocol = true; s.cs_ak47DuplicateChance = (s.cs_ak47DuplicateChance||0) + 0.35; }
   },
@@ -5494,16 +5484,9 @@ const CARD_POOL = [
     apply(s){ s.cs_ghostping=true; }
   },
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
-    shortDescription:'15วิแรกบุกสุด: Boss DMG +70%, Zeny +30%, AK47 เร็วขึ้น
-หลังจากนั้นติด CURSED PANIC ทั้งรอบ',
+    shortDescription:'15วิแรกบุกสุด: Boss DMG +70%, Zeny +30%, AK47 เร็วขึ้น\nหลังจากนั้นติด CURSED PANIC ทั้งรอบ',
     effect:'เปิดรอบ 15 วิแรก: Boss DMG <strong>+70%</strong> | Zeny <strong>+30%</strong> | AK47 spawn <strong>+20%</strong>', tradeoff:'หลัง 15 วิ: <strong>CURSED PANIC</strong> (เวลาไหลเร็ว +15%, คอมโบร่วงเร็ว +20%)',
-    fullDescription:'[Speedrun Opener] 15 วินาทีแรกของรอบ
-• Boss DMG +70%
-• Zeny +30%
-• AK47 spawn rate +20%
-[CURSED PANIC] หลังพ้น 15 วินาที จะติดสถานะจนจบรอบ
-• เวลาไหลเร็วขึ้น +15%
-• คอมโบร่วงเร็วขึ้น +20%',
+    fullDescription:'[Speedrun Opener] 15 วินาทีแรกของรอบ\n• Boss DMG +70%\n• Zeny +30%\n• AK47 spawn rate +20%\n[CURSED PANIC] หลังพ้น 15 วินาที จะติดสถานะจนจบรอบ\n• เวลาไหลเร็วขึ้น +15%\n• คอมโบร่วงเร็วขึ้น +20%',
     balanceNote:'REWORK - เร่งต้นเกมแรงมากแล้วกดดันปลายเกมชัดเจน เป็นการ์ดสปีดรันที่มีความเสี่ยงจริง',
     apply(s){ s.cs_devilingo=true; }
   },
