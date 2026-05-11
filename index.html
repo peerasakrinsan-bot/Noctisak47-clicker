@@ -1279,22 +1279,12 @@
     50%     { text-shadow:0 0 22px #4488ff, 0 0 44px rgba(68,136,255,0.8), 0 0 64px rgba(68,136,255,0.3); }
   }
 
-  /* ── OD LV3 — aggressive red glitch flicker + vibration ── */
-  #godLevelWrap.od-lv3 #godLevelLabel { color:#ff2233; animation:odFlicker3lbl 0.6s ease-in-out infinite; }
-  #godLevelWrap.od-lv3 #godLevelNum   { color:#ff2233; animation:odGlitchMax 0.52s linear infinite; }
-  @keyframes odFlicker3lbl {
-    0%,100% { text-shadow:0 0 10px #ff2233, 0 0 20px rgba(255,34,51,0.5); opacity:1; }
-    40%     { text-shadow:0 0 18px #ff2233, 0 0 36px rgba(255,34,51,0.8); opacity:1; }
-    65%     { text-shadow:0 0 6px  #ff2233, 0 0 12px rgba(255,34,51,0.35); opacity:0.82; }
-  }
-  @keyframes odGlitchMax {
-    0%   { text-shadow:0 0 14px #ff2233, 0 0 28px rgba(255,34,51,0.6);  opacity:1;    transform:translateX(0); }
-    18%  { text-shadow:0 0 24px #ff2233, 0 0 48px rgba(255,34,51,0.9),0 0 70px rgba(255,34,51,0.35); opacity:1; transform:translateX(1.5px); }
-    35%  { text-shadow:0 0 8px  #ff2233, 0 0 16px rgba(255,34,51,0.4);  opacity:0.8;  transform:translateX(0); }
-    52%  { text-shadow:0 0 28px #ff2233, 0 0 56px rgba(255,34,51,0.9);  opacity:1;    transform:translateX(-1.5px); }
-    70%  { text-shadow:0 0 6px  #ff2233, 0 0 12px rgba(255,34,51,0.35); opacity:0.85; transform:translateX(0); }
-    85%  { text-shadow:0 0 20px #ff2233, 0 0 40px rgba(255,34,51,0.75); opacity:1;    transform:translateX(1px); }
-    100% { text-shadow:0 0 14px #ff2233, 0 0 28px rgba(255,34,51,0.6);  opacity:1;    transform:translateX(0); }
+  /* ── OD LV3 — smooth crimson pulse (no strobe/glitch) ── */
+  #godLevelWrap.od-lv3 #godLevelLabel,
+  #godLevelWrap.od-lv3 #godLevelNum { color:#ff334d; animation:odCrimsonPulse 1.8s ease-in-out infinite; }
+  @keyframes odCrimsonPulse {
+    0%,100% { text-shadow:0 0 8px rgba(255,34,70,.55), 0 0 18px rgba(110,0,140,.32); opacity:.92; transform:translateX(0) scale(1); }
+    50%     { text-shadow:0 0 16px rgba(255,34,70,.78), 0 0 34px rgba(120,0,160,.46); opacity:1; transform:translateX(0) scale(1.025); }
   }
 
   /* ── Level-up impact flash ── */
@@ -1303,6 +1293,11 @@
     0%   { filter:brightness(5) saturate(2.5); transform:scale(1.25); }
     45%  { filter:brightness(2) saturate(1.5);  transform:scale(1.07); }
     100% { filter:none;                          transform:scale(1); }
+  }
+  body.reduce-flash #godLevelNum.od-levelup { animation:odLvUpSoft .55s ease-out forwards !important; }
+  @keyframes odLvUpSoft {
+    0%   { filter:brightness(1.45) saturate(1.15); transform:scale(1.08); }
+    100% { filter:none; transform:scale(1); }
   }
 
   /* ══ COMBO ══ */
@@ -1566,7 +1561,7 @@
   }
   @keyframes bossHitGodAnim {
     0%  { filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)) brightness(1) saturate(1); }
-    25% { filter:drop-shadow(0 0 50px rgba(0,255,238,1)) brightness(3.5) saturate(0); }
+    35% { filter:drop-shadow(0 0 24px rgba(180,20,90,.62)) drop-shadow(0 0 34px rgba(85,0,150,.35)) brightness(1.45) saturate(.75); }
     100%{ filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)) brightness(1) saturate(1); }
   }
 
@@ -1580,12 +1575,6 @@
   @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1);} 100%{opacity:0;transform:translateY(-70px) scale(0.7);} }
 
   /* ─── SPLASHES ─── */
-  #godSplash {
-    position:absolute; top:50%; left:50%;
-    transform:translate(-50%,-50%) scale(0);
-    width:min(260px,60vw); opacity:0; z-index:50;
-    filter:drop-shadow(0 0 30px cyan); pointer-events:none;
-  }
   #wp5Splash {
     position:absolute; top:50%; left:50%;
     transform:translate(-50%,-50%) scale(0);
@@ -1624,11 +1613,6 @@
     100%{opacity:0;transform:translate(-50%,-55%);}
   }
 
-  /* ══ ANNIHILATION FLASH ══ */
-  #annihilationFlash { position:absolute; top:0; left:0; right:0; bottom:0; z-index:60; pointer-events:none; opacity:0; background:white; }
-  #annihilationFlash.boom { animation:anniBoom 0.9s forwards; }
-  @keyframes anniBoom { 0%{opacity:0.9;} 30%{opacity:0.6;background:#ff2233;} 60%{opacity:0.3;background:#ffcc00;} 100%{opacity:0;} }
-
   /* ══ BOSS ARRIVAL ══ */
   #bossArrival.show { animation:bossArrive 1.5s forwards; }
   .boss-name-big { font-size:clamp(22px,7vw,44px); color:var(--red); letter-spacing:3px; text-shadow:0 0 30px #ff0000; }
@@ -1639,6 +1623,49 @@
     70%{opacity:1;} 100%{opacity:0;}
   }
 
+  /* ══ OVERDRIVE EDGE AURA ══ */
+  #odEdgeAura {
+    position:absolute; inset:-2%; z-index:12; pointer-events:none; opacity:0;
+    transition:opacity .65s ease; overflow:hidden; transform:translateZ(0);
+    mix-blend-mode:screen;
+    background:
+      radial-gradient(ellipse at center, transparent 0 68%, rgba(22,0,28,.015) 78%, rgba(92,0,82,.14) 90%, rgba(180,0,54,.24) 100%),
+      linear-gradient(90deg, rgba(120,0,74,.34), transparent 10%, transparent 90%, rgba(150,0,58,.38)),
+      linear-gradient(180deg, rgba(72,0,96,.30), transparent 10%, transparent 90%, rgba(140,0,54,.35));
+  }
+  #odEdgeAura::before,
+  #odEdgeAura::after {
+    content:''; position:absolute; inset:0; pointer-events:none;
+    -webkit-mask:radial-gradient(ellipse at center, transparent 0 66%, #000 82%);
+    mask:radial-gradient(ellipse at center, transparent 0 66%, #000 82%);
+  }
+  #odEdgeAura::before {
+    background:
+      radial-gradient(circle at 0% 18%, rgba(255,40,82,.52), transparent 30%),
+      radial-gradient(circle at 100% 76%, rgba(126,42,255,.42), transparent 32%),
+      radial-gradient(circle at 48% 100%, rgba(255,68,28,.34), transparent 28%),
+      radial-gradient(circle at 52% 0%, rgba(112,0,160,.35), transparent 30%);
+    filter:blur(12px); opacity:.72; animation:odAuraBreath 1.8s ease-in-out infinite;
+  }
+  #odEdgeAura::after {
+    background:
+      conic-gradient(from 20deg, transparent 0 12%, rgba(255,40,80,.16) 18%, transparent 28%, rgba(130,42,255,.14) 42%, transparent 56%, rgba(255,92,36,.13) 70%, transparent 84%);
+    filter:blur(18px); opacity:.42; animation:odAuraFlow 7s linear infinite;
+  }
+  #odEdgeAura.od-active { opacity:.72; }
+  #odEdgeAura.od-active.od-lv2 { opacity:.82; }
+  #odEdgeAura.od-active.od-lv3 { opacity:.92; }
+  body.reduce-flash #odEdgeAura.od-active { opacity:.34; mix-blend-mode:normal; }
+  body.reduce-flash #odEdgeAura.od-active.od-lv2 { opacity:.40; }
+  body.reduce-flash #odEdgeAura.od-active.od-lv3 { opacity:.46; }
+  body.reduce-flash #odEdgeAura::before { opacity:.48; filter:blur(16px); }
+  body.reduce-flash #odEdgeAura::after { opacity:.22; }
+  @keyframes odAuraBreath {
+    0%,100% { transform:scale(1); opacity:.58; }
+    50%     { transform:scale(1.035); opacity:.86; }
+  }
+  @keyframes odAuraFlow { to { transform:rotate(360deg) scale(1.02); } }
+
   /* ══ SCREEN FLASH ══ */
   #screenFlash { position:absolute; top:0; left:0; right:0; bottom:0; z-index:30; pointer-events:none; opacity:0; }
   .flash-punch { animation:sfPunch 0.12s forwards; }
@@ -1646,11 +1673,11 @@
   .flash-god2  { animation:sfGod2  0.2s  forwards; }
   .flash-god3  { animation:sfGod3  0.25s forwards; }
   .flash-boss  { animation:sfBoss  0.15s forwards; }
-  @keyframes sfPunch { 0%{opacity:0.12;background:white;} 100%{opacity:0;} }
-  @keyframes sfGod   { 0%{opacity:0.15;background:cyan;} 100%{opacity:0;} }
-  @keyframes sfGod2  { 0%{opacity:0.3;background:#4488ff;} 100%{opacity:0;} }
-  @keyframes sfGod3  { 0%{opacity:0.35;background:#ff2233;} 100%{opacity:0;} }
-  @keyframes sfBoss  { 0%{opacity:0.12;background:#660000;} 100%{opacity:0;} }
+  @keyframes sfPunch { 0%{opacity:0.07;background:rgba(255,120,40,0.85);} 100%{opacity:0;} }
+  @keyframes sfGod   { 0%{opacity:0.10;background:rgba(0,220,220,0.8);} 100%{opacity:0;} }
+  @keyframes sfGod2  { 0%{opacity:0.18;background:rgba(68,136,255,0.78);} 100%{opacity:0;} }
+  @keyframes sfGod3  { 0%{opacity:0.22;background:rgba(255,68,20,0.82);} 100%{opacity:0;} }
+  @keyframes sfBoss  { 0%{opacity:0.09;background:rgba(120,0,0,0.82);} 100%{opacity:0;} }
 
   /* ══ FX & PARTICLES ══ */
   #fxLayer { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:15; -webkit-transform:translateZ(0); transform:translateZ(0); will-change:contents; }
@@ -1661,8 +1688,8 @@
     animation:impact 0.22s forwards;
   }
   @keyframes impact {
-    0%  {width:20px;height:20px;opacity:1;border:3px solid white;}
-    100%{width:80px;height:80px;opacity:0;border:3px solid white;}
+    0%  {width:18px;height:18px;opacity:.72;border:2px solid rgba(255,190,110,.9);}
+    100%{width:68px;height:68px;opacity:0;border:2px solid rgba(255,120,60,.55);}
   }
   .particle {
     position:absolute; border-radius:50%;
@@ -1676,20 +1703,23 @@
 
   /* ══ SCREEN SHAKE ══ */
   @keyframes screenShake {
-    0%{transform:translate(0,0);}10%{transform:translate(-6px,4px);}20%{transform:translate(6px,-4px);}
-    30%{transform:translate(-5px,5px);}40%{transform:translate(5px,-3px);}50%{transform:translate(-4px,4px);}
-    60%{transform:translate(4px,-2px);}80%{transform:translate(-2px,2px);}100%{transform:translate(0,0);}
+    0%{transform:translate(0,0);}10%{transform:translate(-3px,2px);}20%{transform:translate(3px,-2px);}
+    30%{transform:translate(-3px,3px);}40%{transform:translate(3px,-2px);}50%{transform:translate(-2px,2px);}
+    60%{transform:translate(2px,-1px);}80%{transform:translate(-1px,1px);}100%{transform:translate(0,0);}
   }
   #gameRoot.shake { animation:screenShake 0.5s ease-out; }
   #gameRoot.shake-wp { animation:screenShakeWp 0.3s ease-out; }
   #gameRoot.shake-wp2 { animation:screenShakeWp2 0.3s ease-out; }
   @keyframes screenShakeWp {
-    0%{transform:translate(0,0);}20%{transform:translate(-4px,3px);}40%{transform:translate(4px,-3px);}
-    60%{transform:translate(-3px,2px);}80%{transform:translate(2px,-1px);}100%{transform:translate(0,0);}
+    0%{transform:translate(0,0);}20%{transform:translate(-2px,1.5px);}40%{transform:translate(2px,-1.5px);}
+    60%{transform:translate(-1.5px,1px);}80%{transform:translate(1px,-.5px);}100%{transform:translate(0,0);}
   }
   @keyframes screenShakeWp2 {
-    0%{transform:translate(0,0);}20%{transform:translate(-4px,3px);}40%{transform:translate(4px,-3px);}
-    60%{transform:translate(-3px,2px);}80%{transform:translate(2px,-1px);}100%{transform:translate(0,0);}
+    0%{transform:translate(0,0);}20%{transform:translate(-2px,1.5px);}40%{transform:translate(2px,-1.5px);}
+    60%{transform:translate(-1.5px,1px);}80%{transform:translate(1px,-.5px);}100%{transform:translate(0,0);}
+  }
+  @keyframes screenShakeSoft {
+    0%{transform:translate(0,0);}35%{transform:translate(-1px,.7px);}70%{transform:translate(.8px,-.5px);}100%{transform:translate(0,0);}
   }
 
   /* ══ TAP ZONE ══ */
@@ -1764,10 +1794,9 @@
   #bombFlash.boom { animation:bombBoom 1.0s forwards; }
   @keyframes bombBoom {
     0%  {opacity:0;}
-    5%  {opacity:1;  background:#ffffff;}
-    20% {opacity:0.8;background:#ffcc00;}
-    45% {opacity:0.5;background:#ff4400;}
-    70% {opacity:0.2;background:#ff2233;}
+    8%  {opacity:.42;background:rgba(255,118,24,.86);}
+    28% {opacity:.34;background:rgba(255,70,20,.78);}
+    58% {opacity:.18;background:rgba(150,0,0,.62);}
     100%{opacity:0;}
   }
 
@@ -2206,14 +2235,12 @@
   body.reduce-flash .flash-god2,
   body.reduce-flash .flash-god3,
   body.reduce-flash .flash-boss { animation:sfSoft 0.28s ease-out forwards !important; }
-  @keyframes sfSoft { 0%{opacity:0.055;background:white;} 100%{opacity:0;} }
-  body.reduce-flash #annihilationFlash.boom { animation:anniSoft 0.7s ease-out forwards !important; }
-  @keyframes anniSoft { 0%{opacity:0.18;background:#ffcc00;} 100%{opacity:0;} }
+  @keyframes sfSoft { 0%{opacity:0.045;background:rgba(170,42,12,.78);} 100%{opacity:0;} }
   body.reduce-flash #bombFlash.boom { animation:bombSoft 0.7s ease-out forwards !important; }
   @keyframes bombSoft { 0%{opacity:0.16;background:#ffcc00;} 100%{opacity:0;} }
   body.reduce-flash #gameRoot.shake,
   body.reduce-flash #gameRoot.shake-wp,
-  body.reduce-flash #gameRoot.shake-wp2,
+  body.reduce-flash #gameRoot.shake-wp2 { animation:screenShakeSoft .24s ease-out !important; }
   body.reduce-flash #gameRoot.pressure-impact-freeze { animation:none !important; }
   body.reduce-flash #weakPoint { animation:wpPulseSoft 1.2s ease-in-out infinite alternate; box-shadow:0 0 10px 3px rgba(255,34,51,0.35); }
   @keyframes wpPulseSoft { 0%{transform:translate(-50%,-50%) scale(1);} 100%{transform:translate(-50%,-50%) scale(1.04);} }
@@ -2221,6 +2248,24 @@
   body.reduce-flash #fighter.xuang-aura-hit #xuangAura { filter:none; }
   body.reduce-flash #fighter.xuang-aura-hit #xuangAura::before,
   body.reduce-flash #fighter.xuang-aura-hit .xuang-aura-core { opacity:.55; transform:translate(-50%,-50%) scale(1.03); }
+
+  body.reduce-flash #screenFlash { mix-blend-mode:normal; }
+  body.reduce-flash .impact { filter:none; }
+  body.reduce-flash .particle { opacity:.72; }
+  body.reduce-flash .crit-text,
+  body.reduce-flash .hit-num,
+  body.reduce-flash .wp-hit-text { text-shadow:0 0 8px currentColor !important; }
+  body.reduce-flash #godLevelWrap,
+  body.reduce-flash #godFill,
+  body.reduce-flash #weakPoint,
+  body.reduce-flash .wp-slot.filled,
+  body.reduce-flash .break-impact,
+  body.reduce-flash .break-target { filter:none !important; }
+  body.reduce-flash #gameRoot.pressure-break #pressureBossAura { opacity:.24 !important; }
+  body.reduce-flash #gameRoot.pressure-break.pressure-aura-mid #pressureBossAura,
+  body.reduce-flash #gameRoot.pressure-break.pressure-aura-high #pressureBossAura,
+  body.reduce-flash #gameRoot.pressure-break.pressure-aura-critical #pressureBossAura { opacity:.34 !important; transform:translateZ(0) scale(1.02); }
+  body.reduce-flash #xuangAura { opacity:.5; mix-blend-mode:normal; }
 
   /* ══ DAILY BATTLE REWARD SYSTEM ══ */
   @keyframes toastIn  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
@@ -2440,7 +2485,7 @@
 <div id="bg"></div>
 <div id="fxLayer"></div>
 <div id="screenFlash"></div>
-<div id="annihilationFlash"></div>
+<div id="odEdgeAura" aria-hidden="true"></div>
 <div id="bombFlash"></div>
 
 <!-- WEAK POINT COUNTER -->
@@ -2844,7 +2889,6 @@
 
 <div id="weakPoint"><img src="weak.webp" alt="weak" decoding="async"></div>
 
-<img src="noobak47.png" id="godSplash" alt="" decoding="async">
 <div id="bossArrival"><span id="bossArrivalPhase"></span></div>
 <div id="bigSplashText">
   <div class="splash-main" id="splashMain"></div>
@@ -2918,7 +2962,7 @@
       </div>
     </div>
     <div class="setting-row">
-      <div class="setting-label"><strong>REDUCE FLASH EFFECTS</strong><span>Softer flashes and glow pulses</span></div>
+      <div class="setting-label"><strong>REDUCED FLASH EFFECTS</strong><span>Softer flashes, glow, particles, and shake</span></div>
       <button class="setting-toggle" id="reduceFlashToggleBtn" onclick="toggleSetting('reduceFlash')">OFF</button>
     </div>
   </div>
@@ -2941,7 +2985,7 @@
 <audio id="fightBgm3" src="fight3.mp3"  preload="none"></audio>
 <audio id="fightBgm4" src="fight4.mp3"  preload="none"></audio>
 
-<!-- WP5 ROUND SPLASH (เหมือน godSplash) -->
+<!-- WP5 ROUND SPLASH -->
 <img src="wp5.png" id="wp5Splash" alt="" decoding="async">
 
 <script>
@@ -3652,7 +3696,12 @@ function rebuildStatCache() {
     coinMult:   getStatNum('midas','coin_mult'),  // Hand of Midas
   };
 }
-const boxer = $('boxer'), gun = $('gun'), fx = $('fxLayer'), flash = $('screenFlash');
+const boxer = $('boxer'), gun = $('gun'), fx = $('fxLayer'), flash = $('screenFlash'), odEdgeAura = $('odEdgeAura');
+function setOdEdgeAura(lv) {
+  if(!odEdgeAura) return;
+  odEdgeAura.classList.remove('od-active','od-lv1','od-lv2','od-lv3');
+  if(lv > 0) odEdgeAura.classList.add('od-active','od-lv' + Math.min(lv, 3));
+}
 
 // ── DOM cache สำหรับ hot path (ไม่ getElementById ซ้ำทุก hit) ──
 const _el = {};
@@ -3786,6 +3835,7 @@ function showMainMenu() {
   _el.godLevelWrap.style.display = 'none';
   _el.bossBar.style.display = 'none';
   $('wpCounter').style.display = 'none';
+  setOdEdgeAura(0);
   pressureHide();
   _el.multiBadge.classList.remove('show');
   // show save/transfer button
@@ -4386,6 +4436,7 @@ function initState() {
   isBoss = false; bossPhase = 1;
   combo = 1; lastHitTime = 0; lastIndex = -1;
   godLevel = 0; canEnterGod = true; godHitCount = 0;
+  setOdEdgeAura(0);
   bossTapCount = 0; lastTapTime = 0;
   ko = 0; score = 0; maxCombo = 0; annihilationCount = 0; roundCoins = 0;
   waveKO = 0; timeLeft = 60;
@@ -4524,9 +4575,7 @@ function onWeakPointHit(x, y, baseDmg, customMult) {
   const mult = customMult || 4;
   const wpDmg = Math.round(baseDmg * mult);
   showWpHitFX(x, y, wpDmg);
-  document.getElementById("gameRoot").classList.remove('shake-wp'); void document.getElementById("gameRoot").offsetWidth;
-  document.getElementById("gameRoot").classList.add('shake-wp');
-  setTimeout(()=>document.getElementById("gameRoot").classList.remove('shake-wp'), 300);
+  requestScreenShake('shake-wp', 300);
   triggerFlash('flash-god3');
 
   // เพิ่ม counter
@@ -4575,7 +4624,7 @@ function triggerBombExplosion() {
   updateWpCounter();
 
   // Haptic feedback — สั่นแรงขึ้นตามรอบ
-  if(navigator.vibrate) {
+  if(navigator.vibrate && !_reducedEffectsOn()) {
     const patterns = [
       [80],                    // รอบ 1
       [80, 40, 80],            // รอบ 2
@@ -4597,14 +4646,12 @@ function triggerBombExplosion() {
   // screen effects — rวม reflow ไว้ครั้งเดียวลด layout thrashing
   const bf = $('bombFlash');
   bf.className='';
-  document.getElementById("gameRoot").classList.remove('shake');
   void bf.offsetWidth; // reflow ครั้งเดียว
   bf.className='boom';
-  document.getElementById("gameRoot").classList.add('shake');
-  setTimeout(()=>document.getElementById("gameRoot").classList.remove('shake'),600);
+  requestScreenShake('shake', 520);
 
   // spawn particles ทั่วหน้าจอ — จำกัดจำนวนและใช้ rAF batching ลด lag
-  const pCount = Math.min(6 + currentRound * 2, 16); // รอบ1=8 … รอบ5=16 (ลดจาก 30–70)
+  const pCount = Math.min(6 + currentRound * 2, _reducedEffectsOn() ? EFFECT_TUNING.reducedBombParticleCap : EFFECT_TUNING.bombParticleCap); // capped for readability/perf
   const _W = vvW(), _H = vvH() * 0.8;
   const _pos = [];
   for(let i=0;i<pCount;i++) _pos.push([Math.random()*_W, Math.random()*_H]);
@@ -4742,16 +4789,18 @@ function showWpHitFX(x, y, dmg) {
   el.style.top  = (y-40)+'px';
   document.getElementById("gameRoot").appendChild(el);
   setTimeout(()=>el.remove(), 850);
-  // Use pool + fragment — 10 particles (was 18), avoids DOM thrashing on mobile
+  // Use pool + fragment and cap particles to avoid BREAK/OD/AK47 overlap spam.
+  let _wpCount = _reducedEffectsOn() ? EFFECT_TUNING.reducedWeakPointParticles : EFFECT_TUNING.weakPointParticles;
+  _wpCount = _fxAllowance(_wpCount);
   const _wpFrag=document.createDocumentFragment();
-  for(let i=0;i<10;i++){
+  for(let i=0;i<_wpCount;i++){
     const p=_getParticle();
-    const angle=(i/10)*Math.PI*2, dist=50+Math.random()*80;
+    const angle=(i/Math.max(1,_wpCount))*Math.PI*2, dist=(_reducedEffectsOn()?38:50)+Math.random()*(_reducedEffectsOn()?46:80);
     p.style.cssText=`left:${x}px;top:${y}px;width:6px;height:6px;background:${i%2===0?'#ffcc00':'#ff2233'};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation:particle ${0.3+Math.random()*0.2}s forwards;`;
     _wpFrag.appendChild(p);
     setTimeout(()=>{ p.remove(); _retParticle(p); },500);
   }
-  fx.appendChild(_wpFrag);
+  if(_wpCount > 0) fx.appendChild(_wpFrag);
 }
 
 function playBGM() {
@@ -5409,6 +5458,7 @@ function _csResetOdFromExpiredEddga() {
   if(typeof gun !== 'undefined' && gun) gun.style.display = 'none';
   if(_el && _el.godFill) _el.godFill.style.width = '0%';
   if(_el && _el.godLevelWrap) _el.godLevelWrap.style.display = 'none';
+  setOdEdgeAura(0);
   if(typeof updateComboUI === 'function') updateComboUI();
 }
 
@@ -5969,7 +6019,7 @@ function csOnBreakEnd() {
   if(cs.cs_fallenWechat && cs._fallenWechatBreakActive) {
     cs._fallenWechatBreakActive = false;
     if(_el && _el.godFill) _el.godFill.style.width = '0%';
-    if(typeof godLevel !== 'undefined') { godLevel = 0; canEnterGod = true; }
+    if(typeof godLevel !== 'undefined') { godLevel = 0; canEnterGod = true; setOdEdgeAura(0); }
   }
   // KILL-D01: remove temporary breakPower boost after BREAK resolves
   if(cs.cs_killD01 && cs._killD01BreakPowerBonus) {
@@ -7435,17 +7485,8 @@ function pressureHitTarget(x, y) {
   $('gameRoot').appendChild(impact);
   setTimeout(()=>{ impact.remove(); _retBreakImpact(impact); }, 320);
   spawnBreakFX(x, y, _bp >= 0.5);
-  // Throttle shake to max once per 200ms — avoids reflow spam on rapid tapping
-  const _sNow = performance.now();
-  if(!PRESSURE._lastBreakShake || _sNow - PRESSURE._lastBreakShake > 200) {
-    PRESSURE._lastBreakShake = _sNow;
-    const _gr = $('gameRoot');
-    const _useShake2 = _gr.classList.contains('shake-wp');
-    _gr.classList.remove('shake-wp','shake-wp2');
-    _gr.classList.add(_useShake2 ? 'shake-wp2' : 'shake-wp');
-    clearTimeout(PRESSURE._shakeTO);
-    PRESSURE._shakeTO = setTimeout(()=>_gr.classList.remove('shake-wp','shake-wp2'), 320);
-  }
+  // Central shake helper throttles sources globally, preventing same-frame stacking.
+  requestScreenShake('shake-wp', 300);
   if(gameSettings.sfxOn) playAK();
   pressureReactBossAura();
   pressureUpdateBreakHUD();
@@ -7557,7 +7598,8 @@ function pressurePlayFailBacklash(point) {
   const cy = point && point.y ? point.y : vvH()*0.42;
   root.classList.remove('pressure-fail-backlash','shake-wp','shake-wp2');
   void root.offsetWidth;
-  root.classList.add('pressure-fail-backlash','shake-wp');
+  root.classList.add('pressure-fail-backlash');
+  requestScreenShake('shake-wp', 320);
   triggerFlash('flash-boss');
   pressureSpawnCrackBurst(point, true);
   const burst = document.createElement('div');
@@ -7768,6 +7810,7 @@ function endGame(opts = {}) {
   $('wpCounter').style.display='none';
   $('lodCardDisplay').style.display='none';
   $('rageMeter').classList.remove('show');
+  setOdEdgeAura(0);
 
   function _showResultScreen() {
     const h2 = $('resultScreen').querySelector('h2');
@@ -7931,7 +7974,7 @@ function _tickVisualAccum(x, y, dmg, isGun, isCrit, recoilCls, flashCls, bossHit
   _tv.lastX = x; _tv.lastY = y;
   _tv.lastIsGun = isGun; _tv.lastIsCrit = isCrit; _tv.lastDmg = dmg;
   _tv.doRecoil  = true; _tv.recoilCls = recoilCls;
-  _tv.doFlash   = true; _tv.flashCls  = flashCls;
+  _tv.doFlash   = !!flashCls; _tv.flashCls  = flashCls || '';
   _tv.doBossHit = true; _tv.bossHitCls = bossHitCls;
   _tv.doBoxerImg = true; _tv.nextImg = nextImg; _tv.idleImg = idleImg; _tv.hitDur = hitDur;
 }
@@ -7949,8 +7992,8 @@ function _flushTickVisuals() {
     setTimeout(()=>boxer.classList.remove('recoil','recoil-god'), 90);
   }
 
-  // flash — once per tick
-  if(_tv.doFlash) triggerFlash(_tv.flashCls);
+  // flash — once per tick; OD hits use the edge aura instead of screen flashes.
+  if(_tv.doFlash && _tv.flashCls) triggerFlash(_tv.flashCls);
 
   // boss hit flash — once per tick
   if(_tv.doBossHit) {
@@ -8313,7 +8356,7 @@ function processHit(e, now) {
 
   // ── Collect visual params → accumulate for tick flush (1 render per tick) ──
   const _rc   = godLevel>0 ? 'recoil-god' : 'recoil';
-  const _fcls = godLevel===3?'flash-god3':godLevel===2?'flash-god2':godLevel===1?'flash-god':'flash-punch';
+  const _fcls = godLevel>0 ? '' : 'flash-punch';
   const _bhc  = godLevel>0 ? 'boss-hit-god' : 'boss-hit';
   const _skin2 = getActiveSkin();
   const _hitImgs2 = _skin2.files.hits;
@@ -8543,15 +8586,12 @@ function activateGodLevel(lv) {
   godSecondsLeft=dur;
   _el.godLevelWrap.style.display='block';
   updateGodLevelUI();
+  setOdEdgeAura(lv);
   _el.godLevelNum.classList.remove('od-levelup');
   void _el.godLevelNum.offsetWidth;
   _el.godLevelNum.classList.add('od-levelup');
   setTimeout(()=>_el.godLevelNum.classList.remove('od-levelup'),450);
 
-  if(lv===1){
-    const sp=$('godSplash');
-    sp.classList.remove('showSplash'); void sp.offsetWidth; sp.classList.add('showSplash');
-  }
   showBigSplash(
     lv===1?'OVERDRIVE Lv1':lv===2?'OVERDRIVE Lv2':'ANNIHILATION!!!',
     lv===1?'DMG x5':lv===2?'DMG x8':'DMG x12',
@@ -8559,9 +8599,7 @@ function activateGodLevel(lv) {
     lv===3 // เฉพาะ Lv3 กลางจอ
   );
   if(lv===3){
-    document.getElementById("gameRoot").classList.remove('shake'); void document.getElementById("gameRoot").offsetWidth;
-    document.getElementById("gameRoot").classList.add('shake');
-    setTimeout(()=>document.getElementById("gameRoot").classList.remove('shake'),500);
+    requestScreenShake('shake', 420);
   }
 
   godHitCount=0; // reset hit counter สำหรับ upgrade
@@ -8586,6 +8624,7 @@ function exitGodMode() {
   _el.godFill.style.width='0%';
   _el.godLevelWrap.style.display='none';
   _el.godLevelWrap.classList.remove('od-lv1','od-lv2','od-lv3');
+  setOdEdgeAura(0);
   updateComboUI();
   setTimeout(()=>{canEnterGod=true;},1500);
 }
@@ -8596,14 +8635,11 @@ function finalAnnihilation() {
   const bonus=Math.round((8+annihilationCount*4) * (1.25 + (_sc.coinMult||0)));
   roundCoins+=bonus; score+=1000+combo*25;
 
-  document.getElementById("gameRoot").classList.remove('shake'); void document.getElementById("gameRoot").offsetWidth;
-  document.getElementById("gameRoot").classList.add('shake');
+  requestScreenShake('shake', 420);
 
-  const af=$('annihilationFlash');
-  af.className=''; void af.offsetWidth; af.className='boom';
-
-  for(let i=0;i<5;i++){
-    setTimeout(()=>{spawnFX(Math.random()*vvW(),Math.random()*vvH(),true);},i*80);
+  const anniBursts = _reducedEffectsOn() ? 2 : 4;
+  for(let i=0;i<anniBursts;i++){
+    setTimeout(()=>{spawnFX(Math.random()*vvW(),Math.random()*vvH(),true);},i*110);
   }
   spawnCoinPopup(bonus);
   showBigSplash('ANNIHILATION','+'+bonus+' ZENY','#ffcc00',true);
@@ -8619,6 +8655,7 @@ function updateGodLevelUI() {
   _el.godTimer2.textContent = godSecondsLeft>0 ? godSecondsLeft+'s' : '';
   _el.godLevelWrap.classList.remove('od-lv1','od-lv2','od-lv3');
   if(godLevel>0) _el.godLevelWrap.classList.add('od-lv'+Math.min(godLevel,3));
+  setOdEdgeAura(godLevel);
 }
 
 // ══════════════════════════════════════════
@@ -8640,8 +8677,8 @@ function updateUI() {
     if (isNaN(chipNow) || pct < chipNow) chip.style.width = pct + '%';
   }
 
-  // HP hit flash — intensity scales with tap ramp (base 2.2, +0.015 per tap, cap 4.5)
-  const _flashBright = Math.min(4.5, 2.2 + bossTapCount * 0.015);
+  // HP hit flash — intensity scales with tap ramp but is clamped in Reduced Flash mode.
+  const _flashBright = _reducedEffectsOn() ? Math.min(1.55, 1.18 + bossTapCount * 0.003) : Math.min(3.2, 1.8 + bossTapCount * 0.01);
   _el.hpFill.style.setProperty('--ramp-flash', _flashBright);
   _el.hpFill.classList.remove('hp-hit');
   void _el.hpFill.offsetWidth; // force reflow so re-adding fires
@@ -8692,18 +8729,49 @@ function showHitNum(x,y,dmg,isGun,isCrit) {
 }
 function getGodColor(){return godLevel===3?'#ff2233':godLevel===2?'#4488ff':'#00ffee';}
 
+// ── Comfort/performance tuning ──
+// These constants globally limit visual intensity without changing damage, timers, BREAK, OD, or AK47 logic.
+const EFFECT_TUNING = {
+  flashCooldownMs: 90,
+  reducedFlashCooldownMs: 190,
+  shakeCooldownMs: 130,
+  reducedShakeCooldownMs: 320,
+  maxLiveParticles: 54,
+  reducedMaxLiveParticles: 28,
+  weakPointParticles: 8,
+  reducedWeakPointParticles: 5,
+  bombParticleCap: 12,
+  reducedBombParticleCap: 6,
+};
+let _lastFlashAt = 0;
+let _lastShakeAt = 0;
+let _shakeFrame = -1;
+let _liveParticles = 0;
+function _reducedEffectsOn(){ return !!(gameSettings && gameSettings.reduceFlash); }
+function _fxParticleCap(){ return _reducedEffectsOn() ? EFFECT_TUNING.reducedMaxLiveParticles : EFFECT_TUNING.maxLiveParticles; }
+function _fxAllowance(requested){
+  return Math.max(0, Math.min(requested, _fxParticleCap() - _liveParticles));
+}
+
 // ── Particle Pool (ลด DOM thrashing บน iOS) ──
 const _pPool=[], _rPool=[], _biPool=[];
 function _getParticle(){
   const p=_pPool.pop()||document.createElement('div');
-  p.className='particle'; return p;
+  p.className='particle';
+  if(!p.dataset.fxActive) { p.dataset.fxActive = '1'; _liveParticles++; }
+  return p;
 }
 function _getRing(){
   const r=_rPool.pop()||document.createElement('div');
   r.className='impact'; return r;
 }
-function _retParticle(p){ p.style.animation='none'; _pPool.push(p); }
-function _retRing(r){ r.style.animation='none'; _rPool.push(r); }
+function _retParticle(p){
+  p.style.animation='none';
+  p.style.cssText='';
+  if(p.dataset.fxActive) { delete p.dataset.fxActive; _liveParticles = Math.max(0, _liveParticles - 1); }
+  _pPool.push(p);
+}
+function _retRing(r){ r.style.animation='none'; r.style.cssText=''; _rPool.push(r); }
 function _getBreakImpact(heavy){
   const el=_biPool.pop()||document.createElement('div');
   el.className='break-impact'+(heavy?' heavy':'');
@@ -8712,8 +8780,11 @@ function _getBreakImpact(heavy){
 function _retBreakImpact(el){ el.style.animation='none'; el.className='break-impact'; _biPool.push(el); }
 
 function spawnFX(x,y,isGun,isBomb){
-  const count=isBomb?3:isGun?5:3; // ลด particle count — เพียงพอสายตาเห็น ไม่ทำ DOM หนัก
-  const color=isGun?getGodColor():'#ff3344';
+  let count=isBomb?3:isGun?5:3; // ลด particle count — เพียงพอสายตาเห็น ไม่ทำ DOM หนัก
+  if(_reducedEffectsOn()) count = Math.max(1, Math.ceil(count * 0.45));
+  count = _fxAllowance(count);
+  if(count <= 0) return;
+  const color=isGun?getGodColor():'#ff5533';
   const frag=document.createDocumentFragment();
   for(let i=0;i<count;i++){
     const p=_getParticle();
@@ -8722,14 +8793,17 @@ function spawnFX(x,y,isGun,isBomb){
     setTimeout(()=>{ p.remove(); _retParticle(p); },320);
   }
   const ring=_getRing();
-  ring.style.cssText=`left:${x}px;top:${y}px;border-color:${isGun?getGodColor():'white'};animation:impact 0.22s forwards;`;
+  ring.style.cssText=`left:${x}px;top:${y}px;border-color:${isGun?getGodColor():'rgba(255,190,120,.9)'};animation:impact ${_reducedEffectsOn()?'0.3':'0.22'}s forwards;`;
   frag.appendChild(ring);
   fx.appendChild(frag);
   setTimeout(()=>{ ring.remove(); _retRing(ring); },220);
 }
 
 function spawnBreakFX(x,y,heavy){
-  const count=heavy?2:1;
+  let count=heavy?2:1;
+  if(_reducedEffectsOn()) count = 1;
+  count = _fxAllowance(count);
+  if(count <= 0) return;
   const color=getGodColor();
   const frag=document.createDocumentFragment();
   for(let i=0;i<count;i++){
@@ -8742,8 +8816,31 @@ function spawnBreakFX(x,y,heavy){
   fx.appendChild(frag);
 }
 function triggerFlash(cls){
+  if(!flash) return;
+  const now = performance.now();
+  const cooldown = _reducedEffectsOn() ? EFFECT_TUNING.reducedFlashCooldownMs : EFFECT_TUNING.flashCooldownMs;
+  if(now - _lastFlashAt < cooldown) return;
+  _lastFlashAt = now;
   flash.className='';
   requestAnimationFrame(()=>{ flash.className=cls; });
+}
+
+function requestScreenShake(kind='shake', duration=320){
+  const root = $('gameRoot');
+  if(!root) return false;
+  const now = performance.now();
+  const frame = Math.floor(now / 16.7);
+  const cooldown = _reducedEffectsOn() ? EFFECT_TUNING.reducedShakeCooldownMs : EFFECT_TUNING.shakeCooldownMs;
+  // One shake source per frame and a short cooldown prevents stacking during BREAK + AK47 + OD overlaps.
+  if(frame === _shakeFrame || now - _lastShakeAt < cooldown) return false;
+  _shakeFrame = frame;
+  _lastShakeAt = now;
+  const cls = kind === 'shake-wp2' ? 'shake-wp2' : kind === 'shake-wp' ? 'shake-wp' : 'shake';
+  root.classList.remove('shake','shake-wp','shake-wp2');
+  void root.offsetWidth;
+  root.classList.add(cls);
+  setTimeout(()=>root.classList.remove(cls), _reducedEffectsOn() ? Math.min(duration, 240) : duration);
+  return true;
 }
 function showKOFlash(isBossKO){
   const el=document.createElement('div');
@@ -8762,7 +8859,7 @@ function showBigSplash(main,sub,color,center){
   const el=$('bigSplashText');
   $('splashMain').textContent=main;
   $('splashMain').style.color=color||'white';
-  $('splashMain').style.textShadow=`0 0 20px ${color||'white'}`;
+  $('splashMain').style.textShadow=_reducedEffectsOn() ? `0 0 8px ${color||'white'}` : `0 0 20px ${color||'white'}`;
   $('splashSub').textContent=sub;
   el.className=''; void el.offsetWidth;
   el.className = center ? 'show-center' : 'show';
