@@ -513,7 +513,7 @@
   }
   .cs-spacer { display:none; }
   .cs-header {
-    text-align:center; margin-bottom:clamp(4px,1vh,8px);
+    text-align:center; margin-bottom:clamp(6px,1.5vh,12px);
     position:relative; z-index:1; flex-shrink:0;
   }
   .cs-title {
@@ -528,13 +528,13 @@
   /* wrapper รวมการ์ด + ปุ่ม — fixed height ไม่ขยับ */
   .cs-content-wrap {
     display:flex; flex-direction:column; align-items:center;
-    gap:clamp(8px,1.8vh,14px);
+    gap:clamp(12px,2.5vh,20px);
     position:relative; z-index:1; flex-shrink:0;
     width:100%;
   }
   .cs-cards-wrap {
     display:flex; flex-direction:row;
-    gap:clamp(5px,1.6vw,10px);
+    gap:clamp(6px,2vw,12px);
     align-items:stretch; justify-content:center;
     width:100%; max-width:500px;
     flex-shrink:0;
@@ -544,7 +544,7 @@
     display:flex; flex-direction:column; align-items:center;
     background:#0a0a0a;
     border:2px solid #222;
-    padding:clamp(5px,1.4vw,8px) clamp(4px,1.2vw,7px) clamp(5px,1.4vw,8px);
+    padding:clamp(6px,1.8vw,10px) clamp(5px,1.4vw,8px) clamp(6px,1.8vw,10px);
     cursor:pointer; position:relative; overflow:hidden;
     transition:transform 0.15s ease, border-color 0.15s ease;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
@@ -602,7 +602,6 @@
     image-rendering:auto;
     filter:drop-shadow(0 4px 12px rgba(0,0,0,0.8));
     display:block;
-    max-height:min(32vh,220px);
   }
   .rarity-premium .cs-card-img { filter:drop-shadow(0 0 8px rgba(0,136,255,0.5)); }
   .rarity-elite     .cs-card-img { filter:drop-shadow(0 0 12px rgba(255,204,0,0.8)); }
@@ -613,21 +612,21 @@
     font-family:'Oswald',sans-serif;
     font-size:clamp(8px,2.2vw,12px);
     letter-spacing:0.5px; color:#ddd; text-align:center;
-    margin-top:clamp(3px,0.9vw,5px); line-height:1.1; flex-shrink:0;
+    margin-top:clamp(4px,1.2vw,7px); line-height:1.1; flex-shrink:0;
   }
   /* card effect */
   .cs-card-effect {
     font-family:'Sarabun',sans-serif;
-    font-size:clamp(7px,1.85vw,10px);
-    color:#aaa; text-align:center; line-height:1.2;
+    font-size:clamp(8px,2vw,10px);
+    color:#aaa; text-align:center; line-height:1.25;
     margin-top:clamp(3px,1vw,5px);
     display:-webkit-box;
-    -webkit-line-clamp:4;
+    -webkit-line-clamp:2;
     -webkit-box-orient:vertical;
     overflow:hidden;
     text-overflow:ellipsis;
-    min-height:4.8em;
-    max-height:4.8em;
+    min-height:2.5em;
+    max-height:2.5em;
     flex-shrink:0;
   }
   .cs-card-effect strong { color:#bbb; }
@@ -636,27 +635,11 @@
   .cs-card-tradeoff {
     font-family:'Sarabun',sans-serif;
     font-size:clamp(7px,1.8vw,9px);
-    color:#ff5555; text-align:center; line-height:1.25;
+    color:#ff5555; text-align:center; line-height:1.3;
     margin-top:clamp(3px,0.8vw,5px);
     border-top:1px solid #1e1e1e;
     padding-top:clamp(3px,0.8vw,5px); flex-shrink:0;
     width:100%;
-    display:-webkit-box;
-    -webkit-line-clamp:2;
-    -webkit-box-orient:vertical;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    min-height:2.5em;
-    max-height:2.5em;
-  }
-
-  /* 5-line effect on taller screens where layout permits */
-  @media (min-height: 760px) {
-    .cs-card-effect {
-      -webkit-line-clamp:5;
-      min-height:6em;
-      max-height:6em;
-    }
   }
 
   /* selected checkmark */
@@ -5049,10 +5032,10 @@ const CARD_POOL = [
     apply(s){ s.cs_eddga = true; }
   },
   { id:'os',     name:'NOSIRIS CARD',        img:'cards/nosiris.png',      rarity:'mythic',
-    shortDescription:'BREAK สะสม Soul Stack เพื่อเปิด JUDGMENT',
-    effect:'BREAK:<br>Soul Stack +1 และรับ Zeny <strong>+25/Stack</strong><br>(สูงสุด 5)<br><br>ครบ 5 Stack:<br><strong>JUDGMENT</strong> 8 วิ<br>DMG ×2 & Zeny ×2<br><br>เวลาหมด:<br>หากมี 3+ Stack<br>เหลือเวลา +15 วิ 1 ครั้ง', tradeoff:null,
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    shortDescription:'สะสม Soul Stack จาก BREAK\nปฏิเสธความตาย และเปิด JUDGMENT',
+    effect:'BREAK:<br>Soul Stack +1 & Zeny <strong>+25/Stack</strong><br>(สูงสุด 5)<br><br>ครบ 5 Stack:<br><strong>JUDGMENT</strong> 8 วิ<br>• DMG ×2<br>• Zeny ×2<br>• Boss ถูกพิพากษา<br><br>เมื่อเวลาหมด:<br>หากมี Soul Stack 3+<br><strong>ปฏิเสธความตาย</strong> 1 ครั้ง<br>• เวลา +15 วิ<br>• ล้าง Soul Stack ทั้งหมด', tradeoff:null,
+    fullDescription:'[Soul Stack] สะสมจาก BREAK สำเร็จ สูงสุด 5 Stack; ได้ Zeny +25 ต่อ Stack\n[JUDGMENT] ครบ 5 Stack — Boss ถูกพิพากษา 8 วิ: DMG ×2, Zeny ×2\n[ปฏิเสธความตาย] เมื่อเวลาหมดถ้ามี 3+ Stack: เวลา +15 วิ, ล้าง Soul Stack — ใช้ได้ 1 ครั้งต่อรอบ',
+    balanceNote:'POLISH - ปรับถ้อยคำให้ดูเป็น Mythic / supernatural มากขึ้น ไม่แก้ค่าเกมเพลย์',
     apply(s){ s.cs_osiris = true; }
   },
   { id:'mt',   name:'MISSSTRESS CARD',      img:'cards/missstress.png',    rarity:'mythic',
@@ -5524,17 +5507,17 @@ const CARD_POOL = [
     apply(s){ s.cs_fallenWechat=true; }
   },
   { id:'dtl', name:'DETAILED CARD',        img:'cards/detailed_card.png',       rarity:'mythic',
-    shortDescription:'เก็บ AK47 สะสม Analysis เพื่อปลด Analyzed BREAK',
-    effect:'เก็บ AK47:<br>Analysis Stack +1<br>(สูงสุด 8)<br><br>ระหว่าง BREAK:<br>DMG <strong>+4%/Stack</strong><br><br>ครบ 8 Stack:<br><strong>Analyzed BREAK</strong><br>window ×2 & progress ×2<br><br>สำเร็จ:<br><strong>Critical Analysis</strong> 10 วิ<br>Crit +25% & Crit DMG +35%', tradeoff:'พลาด AK47: Stack <strong>-2</strong> & Combo <strong>-3</strong>',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    shortDescription:'เก็บ AK47 สะสม Analysis Stack\nครบ 8: มองเห็นจุดอ่อนทั้งหมด — ANALYZED BREAK',
+    effect:'เก็บ AK47:<br>Analysis Stack +1 (สูงสุด 8)<br><br>ระหว่าง BREAK:<br>DMG <strong>+4%/Stack</strong><br><br>ครบ 8 Stack:<br><strong>ANALYZED BREAK</strong><br>มองเห็นจุดอ่อนทั้งหมด<br>• BREAK window ×2<br>• BREAK gauge gain ×2<br><br>เมื่อ BREAK สำเร็จ:<br><strong>Critical Analysis</strong> 10 วิ<br>Crit +25% & Crit DMG +35%', tradeoff:'พลาด AK47: Stack <strong>-2</strong> & Combo <strong>-3</strong>',
+    fullDescription:'[Analysis Stack] สะสมจากการเก็บ AK47 สูงสุด 8 Stack\n• ระหว่าง BREAK: DMG +4% ต่อ Stack\n[ANALYZED BREAK] เมื่อครบ 8 Stack — มองเห็นจุดอ่อนทั้งหมด\n• BREAK window ×2\n• BREAK gauge gain ×2\n[Critical Analysis] เมื่อ BREAK สำเร็จ: Crit +25%, Crit DMG +35% นาน 10 วิ\n[ความเสี่ยง] พลาด AK47 = Stack -2, Combo -3 — ยิ่งใกล้ 8 ยิ่งเจ็บ',
+    balanceNote:'POLISH - เปลี่ยนคำศัพท์ developer เป็นภาษาธีมที่อ่านง่าย ไม่แก้ค่าเกมเพลย์',
     apply(s){ s.cs_detailed=true; }
   },
   { id:'gus', name:'GLOOM UNDER SIDE CARD',img:'cards/gloom_under_side_card.png',rarity:'mythic',
-    shortDescription:'บัฟ DMG/Zeny/BREAK อัตโนมัติทุก 2 วิจนเต็ม Stack',
-    effect:'ทุก 2 วิ:<br>DMG +3% & Zeny +3% & BREAK +3%<br>(สูงสุด +60%)', tradeoff:null,
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    shortDescription:'ทุก 2 วิสะสม OBSESSION STACK\nแรงขึ้น แต่เวลาไหลเร็วขึ้นทุก Stack',
+    effect:'ทุก 2 วิ:<br><strong>OBSESSION STACK</strong> +1<br>(สูงสุด 20)<br><br>ต่อ Stack:<br>• DMG +3%<br>• Zeny +3%<br>• BREAK progress +3%<br><br>ที่ 20 Stack: +60% ทุกด้าน', tradeoff:'ต่อ Stack: เวลาไหลเร็วขึ้น <strong>+1%</strong><br>(สูงสุด 20 Stack = เวลาไหล <strong>×1.20</strong>)',
+    fullDescription:'[OBSESSION STACK] สะสมทุก 2 วิ สูงสุด 20 Stack; ต่อ Stack: DMG +3%, Zeny +3%, BREAK +3%\n[ความเสี่ยง] ต่อ Stack เวลาไหลเร็วขึ้น +1% รวมสูงสุด +20% — ยิ่งแข็งแกร่งยิ่งถูกกดดัน\n[รีเซ็ต] Stack จะหายทั้งหมดเมื่อจบรอบหรือเปลี่ยนการ์ด',
+    balanceNote:'REWORK - เพิ่ม tradeoff timer drain ต่อ Stack ทำให้รู้สึกอันตรายและ Mythic จริง ไม่ใช่ passive ฟรี',
     apply(s){ s.cs_gloomUnderSide=true; }
   },
   { id:'dsk', name:'DARK STAKE LORD CARD', img:'cards/dark_stake_lord_card.png', rarity:'mythic',
@@ -5829,13 +5812,23 @@ function _csRefreshVolatileCardEffects(nextState) {
 
   // DEVILINGO: record combat start time
   if(nextState && nextState.cs_devilingo) { nextState._devilingoCombatStart = Date.now(); _csDebugLog('DEVILINGO started', nextState._devilingoCombatStart); }
-  // GLOOM UNDER SIDE: start 2s momentum stack timer (+4%/stack, max 20 stacks = +80%)
+  // GLOOM UNDER SIDE: start 2s obsession stack timer (+3%/stack up to 20; each stack also drains timer +1%)
   // Stacks persist through KO, Boss KO, and all combat. Reset only on run end.
   if(nextState && nextState.cs_gloomUnderSide) {
     _csGloomTimer = setInterval(() => {
       if(!gameRunning || gamePaused) return;
       if(!window._csState || !window._csState.cs_gloomUnderSide) return;
-      window._csState._gloomStacks = Math.min(20, (window._csState._gloomStacks || 0) + 1);
+      const prevStacks = window._csState._gloomStacks || 0;
+      if(prevStacks < 20) {
+        window._csState._gloomStacks = prevStacks + 1;
+      }
+      // Timer drain: each stack makes time flow 1% faster (applied as -0.02s every 2s per stack)
+      // This is safe: minimum drain per tick = 0, never drives timeLeft below 0
+      const stacks = window._csState._gloomStacks || 0;
+      if(stacks > 0 && typeof timeLeft !== 'undefined') {
+        const drain = stacks * 0.02; // 1% of 2s per stack per tick
+        timeLeft = Math.max(0, timeLeft - drain);
+      }
     }, 2000);
   }
   // FALLEN WECHAT: init break flags
@@ -6755,7 +6748,7 @@ function csOnTimeUp() {
   if(cs.cs_osiris && !_csOsirisUsed && (cs._osirisStacks || 0) >= 3) {
     _csOsirisUsed = true;
     timeLeft = 15;
-    showBigSplash('OSIRIS RESURRECTION','+15s (Soul Stacks consumed)','#cc88ff',true);
+    showBigSplash('ปฏิเสธความตาย','NOSIRIS — +15 วิ (Soul Stack ถูกล้าง)','#cc88ff',true);
     cs._osirisStacks = 0;
     return true; // prevent game end
   }
