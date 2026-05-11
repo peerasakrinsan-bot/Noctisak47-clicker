@@ -3907,7 +3907,8 @@ function _bSetSize() {
 
 function _bDraw() {
   _bRafId = null;
-  if(!_bCurrentImg || !_bCurrentImg.complete || !_bCurrentImg.naturalWidth) return;
+  if(!_bCurrentImg) { console.warn('[Boxer] _bCurrentImg not set — canvas blank'); return; }
+  if(!_bCurrentImg.complete || !_bCurrentImg.naturalWidth) return;
   const dpr = window.devicePixelRatio || 1;
   const cW = boxer.width / dpr;
   const cH = boxer.height / dpr;
@@ -3927,12 +3928,30 @@ function _bScheduleDraw() {
 
 // แทนที่ boxer.src = ... ทั้งหมดด้วยฟังก์ชันนี้
 function boxerSetImg(img) {
+  const _src = (typeof img === 'string') ? img : null;
   if(typeof img === 'string') img = _imgObjCache[img];
-  if(!img) return;
-  if(_bCurrentImg === img && img.complete) { _bScheduleDraw(); return; }
+  if(!img) {
+    if(_src) console.warn('[Boxer] image not in cache:', _src);
+    return;
+  }
+  // Attach onerror fallback once — prevents canvas staying blank on broken image
+  if(!img._boxerErrSet) {
+    img._boxerErrSet = true;
+    img.onerror = function() {
+      console.warn('[Boxer] image failed to load:', this.src);
+      const fb = _imgObjCache['boxer.png'];
+      if(fb && fb !== this && _bCurrentImg === this) boxerSetImg(fb);
+    };
+  }
+  if(_bCurrentImg === img && img.complete && img.naturalWidth > 0) { _bScheduleDraw(); return; }
   _bCurrentImg = img;
   if(img.complete && img.naturalWidth > 0) {
     _bSetSize(); _bScheduleDraw();
+  } else if(img.complete && !img.naturalWidth) {
+    // Image finished but failed (404/CORS etc.) — fall back to default boxer
+    console.warn('[Boxer] image broken (naturalWidth=0):', img.src);
+    const fb = _imgObjCache['boxer.png'];
+    if(fb && fb !== img) { boxerSetImg(fb); return; }
   } else {
     img.onload = () => { if(_bCurrentImg === img) { _bSetSize(); _bScheduleDraw(); } };
   }
@@ -6856,7 +6875,8 @@ function startGame() {
     $('streakLabel').style.display='block';
     $('wpCounter').style.display='flex';
     _syncSoundBtns();
-    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ _bSetSize(); _bScheduleDraw(); }); });
+    // Resize canvas to real dimensions then force-redraw idle image
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ _bSetSize(); boxerSetImg(getIdleImg()); }); });
     stopBGM();
     if(window._csState){
       if(window._csState.cs_extraTime)  timeLeft += window._csState.cs_extraTime;
@@ -6888,7 +6908,8 @@ function retryGame() {
   $('resultScreen').style.display='none';
   $('topUI').style.display='block';
   $('fighter').style.display='block';
-  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ _bSetSize(); _bScheduleDraw(); }); });
+  // Resize canvas to real dimensions then force-redraw idle image
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ _bSetSize(); boxerSetImg(getIdleImg()); }); });
   $('tapZone').style.display='none';
   $('streakLabel').style.display='block';
   $('wpCounter').style.display='flex';
