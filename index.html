@@ -4355,9 +4355,10 @@ let combo, lastHitTime, lastIndex;
 let godLevel, canEnterGod, godTimeout, godInterval, godHitCount;
 
 // ── Infinite Tap Ramp ──
-// Normal taps (including OD taps) accumulate bossTapCount.
-// Damage bonus = bossTapCount * 0.005 (+0.5% per tap, no cap).
-// Resets on boss KO, idle >1500ms, or new run.
+// Normal taps (including OD extra hits) accumulate bossTapCount.
+// Damage bonus = bossTapCount * 0.02 (+2% per tap — 50 taps = +100%, 100 = +200%, no cap).
+// WP, BREAK, AK47 and passive damage are excluded.
+// Resets on boss KO, idle >1500ms, defeat, restart, or new run.
 let bossTapCount = 0, lastTapTime = 0;
 
 // HP & boss
@@ -7335,6 +7336,15 @@ function pressureSpawnTarget() {
     if(now - last < 70) return;
     pointerTapAt.set(id, now);
     pressureHitTarget(x, y);
+    // ── Meth Shard extra hit during BREAK ──
+    // dblChance = Meth Shard shop upgrade. Fires a second pressureHitTarget on the same
+    // physical tap — same as its behaviour on normal taps.
+    // OD level is NOT checked here: OD extra hits are intentionally excluded from BREAK.
+    if(_sc.dblChance && Math.random() < _sc.dblChance) {
+      pressureHitTarget(x, y);
+      // isTriple (Meth Shard max upgrade): third hit
+      if(_sc.isTriple) pressureHitTarget(x, y);
+    }
   };
   const releasePointer = ev => {
     if(ev.pointerId) activePointers.delete(ev.pointerId);
@@ -8203,11 +8213,28 @@ function processHit(e, now) {
     score += 20;
     csOnWpHit(pos.x, pos.y);
   } else {
-    // Apply ramp bonus — WP path above is excluded entirely
+    // ── Normal tap — Tap Ramp + OD multi-hit ──
+    // Only this branch touches bossTapCount. WP/BREAK/AK47 never reach here.
     bossTapCount++;
-    const _rampBonus = bossTapCount * 0.005;
+    const _rampBonus = bossTapCount * 0.02; // +2% per tap (50 taps = +100%, 100 = +200%)
     dmg = Math.round(dmg * (1 + _rampBonus));
-    applyDamage(dmg,e,isCrit);
+    applyDamage(dmg, e, isCrit);
+
+    // ── OD multi-hit (normal tap ONLY — Lv2 = 2 hits/tap, Lv3 = 3 hits/tap) ──
+    // Extra hits repeat the same already-ramped dmg. They do NOT re-increment bossTapCount
+    // (one tap = one ramp tick) and do NOT trigger BREAK/WP/AK47 side-effects.
+    // No recursion: extra hits call applyDamage directly, nothing else.
+    if(godLevel >= 2) {
+      const _odExtraHits = godLevel >= 3 ? 2 : 1; // Lv2 → +1 extra, Lv3 → +2 extra
+      const _odHitDmg = dmg; // snapshot — same value for every extra hit this tap
+      for(let _hi = 1; _hi <= _odExtraHits; _hi++) {
+        const _delay = _hi * 20 + Math.floor(Math.random() * 21); // 20–40ms stagger
+        setTimeout(()=>{
+          if(!gameRunning || gamePaused) return;
+          applyDamage(_odHitDmg, e, false); // plain damage only — no ramp re-calc, no side-effects
+        }, _delay);
+      }
+    }
     // DOPPELGANGER: second hit at 80% dmg with 20% crit chance
     if(window._csState && window._csState.cs_doubleClick) {
       const _dgDmg = Math.round(dmg * 0.8);
@@ -8350,8 +8377,11 @@ function normalKO() {
 
 function spawnBoss() {
   isBoss=true; bossPhase=1;
-  // HP ทวีคูณ 20% ต่อบอส (exponential): boss n ได้รับ 1.20^n เท่า
-  const scale = Math.pow(1.20, window._bossesDefeated||0);
+  // ── Tiered HP scaling based on lifetime KO count ──
+  // 0–250 KO: ×1.040 | 251–500: ×1.047 | 501–750: ×1.052 | 751+: ×1.057
+  const _lifetimeKO = (save && save.stats && save.stats.totalKO) || 0;
+  const _hpMult = _lifetimeKO > 750 ? 1.057 : _lifetimeKO > 500 ? 1.052 : _lifetimeKO > 250 ? 1.047 : 1.040;
+  const scale = Math.pow(_hpMult, window._bossesDefeated||0);
   bossMaxHP=Math.round(maxHP*5*scale);
   bossHP=bossMaxHP;
   _el.bossBar.style.display='block';
