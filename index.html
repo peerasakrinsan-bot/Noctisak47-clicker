@@ -825,8 +825,9 @@
   #cardModalTier.tier-premium  { color:#0088ff; }
   #cardModalTier.tier-elite    { color:#ffcc00; }
   #cardModalTier.tier-mythic   { color:#ff2233; }
-  #cardModalEffect { font-family:'Sarabun',sans-serif; font-size:12px; color:#aaa; text-align:center; line-height:1.5; }
-  #cardModalTradeoff { font-family:'Sarabun',sans-serif; font-size:11px; color:#ff5555; text-align:center; }
+  #cardModalEffect { font-family:'Sarabun',sans-serif; font-size:12px; color:#aaa; text-align:center; line-height:1.75; }
+  #cardModalTradeoff { font-family:'Sarabun',sans-serif; font-size:11px; color:#ff5555; text-align:center; margin-top:6px; }
+  .card-modal-section-header { color:#ffcc00; font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:2px; display:inline-block; margin-top:4px; }
 
   @keyframes mythicModalAura {
     0%, 100% {
@@ -4967,9 +4968,9 @@ const CARD_POOL = [
 
   // ── RARE ──
   { id:'dg',name:'DOPPELGANGER CARD', img:'cards/doppelganger.png',rarity:'elite',
-    effect:'ทุก Hit ที่สำเร็จ: เรียก <strong>SHADOW STRIKE</strong> หลัง 0.08 วิ (DMG 45%, Crit +20%)', tradeoff:'เงาโจมตีไม่สร้าง Combo/OD/BREAK/AK47 และไม่ทริกเกอร์ซ้ำตัวเอง',
+    effect:'ทุก Hit ที่สำเร็จ: เรียก <strong>SHADOW STRIKE</strong> หลัง 0.08 วิ (DMG 45%, Crit +20%)', tradeoff:null,
     shortDescription:'ทุก Hit เรียก SHADOW STRIKE หลัง 0.08 วิ\nแรง 45% + โอกาสคริ +20%',
-    fullDescription:'[SHADOW STRIKE] ทุกการโจมตีที่โดน จะมีเงาตาม 0.08 วิ\n• ดาเมจ 45% ของฮิตต้นทาง\n• โอกาสคริติคอลเพิ่ม +20%\n• ถ้าฮิตต้นทางเป็นคริ ดาเมจเงาเพิ่มอีก +15%\n[Safety] เงาไม่สร้าง Combo, ไม่นับคลิกเพิ่ม, ไม่นับเป็น AK47/BREAK, ไม่เพิ่ม OD และไม่ทริกเกอร์เงาซ้ำ',
+    fullDescription:'[SHADOW STRIKE]\nทุกการโจมตีติดเงาตาม 0.08 วิ\n\n• ดาเมจ 45% ของต้นทาง\n• Crit rate +20%\n• ถ้าต้นทางเป็น Crit:\nเงา Crit เพิ่มอีก +15%\n\n[Safety]\nเงา:\n• ไม่สร้าง Combo\n• ไม่นับ AK47/BREAK\n• ไม่เพิ่ม OD\n• ไม่สร้างเงาซ้ำ',
     balanceNote:'REWORK - นักลอบสังหารเงาตามจังหวะ เน้น burst เสริมแบบคุมเพดาน ปลอดภัยจาก recursive hit',
     apply(s){ s.cs_doppelShadow = true; }
   },
@@ -4990,7 +4991,7 @@ const CARD_POOL = [
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
     effect:'Combo ≥25 เปิด SHOGUN STANCE 6วิ: DMG +45% | BREAK DMG +25% | KO +250', tradeoff:'ระหว่าง STANCE คอมโบร่วงเร็วขึ้น 35% (CD 12วิ)',
     shortDescription:'คอมโบ 25+ เปิด SHOGUN STANCE 6วิ\nแรงขึ้น แต่คอมโบร่วงไว',
-    fullDescription:'[SHOGUN STANCE] เมื่อ Combo ถึง 25 จะเข้า Stance 6 วิ (CD 12 วิ): DMG +45%, BREAK DMG +25%, KO score +250\n[Trade-off] ระหว่าง Stance คอมโบ decay เร็วขึ้น 35%',
+    fullDescription:'[SHOGUN STANCE]\nเมื่อ Combo ถึง 25\nเข้า Stance 6 วิ (CD 12 วิ)\n\n• DMG +45%\n• BREAK DMG +25%\n• KO score +250\n\nTRADE-OFF:\nCombo decay เร็วขึ้น 35%',
     balanceNote:'REWORK - สายโมเมนตัม burst เป็นช่วง มีความเสี่ยงคอมโบร่วงชัดเจน',
     apply(s){ s.cs_turtleShogun = true; }
   },
@@ -5004,7 +5005,7 @@ const CARD_POOL = [
   { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
     shortDescription:'คอมโบ 30+ เปิด EXECUTION READY 5 วิ\nต้องคุมคอมโบเพื่อจบงานบอส',
     effect:'Combo ≥30: ได้ <strong>EXECUTION READY</strong> 5 วิ<br>ระหว่าง READY ถ้าบอส HP ≤5% จะ <strong>EXECUTE</strong> ทันที', tradeoff:'EXECUTE: KO บอสทันที + Zeny +30% + Score burst (CD 12 วิ หลัง READY จบ)',
-    fullDescription:'[EXECUTION READY] เมื่อคอมโบถึง 30 จะได้สถานะ 5 วินาที\n• READY หายทันทีเมื่อคอมโบหลุด หรือหมดเวลา\n• ระหว่าง READY ถ้าบอสเหลือ HP ≤5% จะ EXECUTE ทันที\n[EXECUTE] ฆ่าบอสทันที, รับ Zeny โบนัส +30% และ Score burst\n[Safety] ไม่ตรวจ EXECUTE ระหว่าง BREAK และมีคูลดาวน์ 12 วินาทีหลัง READY จบ',
+    fullDescription:'[EXECUTION READY]\nเมื่อ Combo ถึง 30\nเข้าสถานะ READY 5 วิ\n\nREADY จะหายเมื่อ:\n• คอมโบหลุด\n• หมดเวลา\n\nระหว่าง READY:\nถ้าบอส HP ≤5%\nจะ EXECUTE ทันที\n\nEXECUTE:\n• KO boss ทันที\n• Zeny โบนัส +30%\n• Score burst\n\n[Safety]\nไม่ตรวจ EXECUTE ระหว่าง BREAK\n\nTRADE-OFF:\nหลัง READY จบ ติดคูลดาวน์ 12 วิ',
     balanceNote:'REWORK - สายปิดงานจังหวะสูง ต้องรักษาคอมโบและกดดันช่วงท้ายบอส ไม่ใช่พาสซีฟถาวร',
     apply(s){ s.cs_aknightExecute=true; }
   },
@@ -5509,14 +5510,14 @@ const CARD_POOL = [
   { id:'dtl', name:'DETAILED CARD',        img:'cards/detailed_card.png',       rarity:'mythic',
     shortDescription:'เก็บ AK47 สะสม Analysis Stack\nครบ 8: มองเห็นจุดอ่อนทั้งหมด — ANALYZED BREAK',
     effect:'เก็บ AK47:<br>Analysis Stack +1 (สูงสุด 8)<br><br>ระหว่าง BREAK:<br>DMG <strong>+4%/Stack</strong><br><br>ครบ 8 Stack:<br><strong>ANALYZED BREAK</strong><br>มองเห็นจุดอ่อนทั้งหมด<br>• BREAK window ×2<br>• BREAK gauge gain ×2<br><br>เมื่อ BREAK สำเร็จ:<br><strong>Critical Analysis</strong> 10 วิ<br>Crit +25% & Crit DMG +35%', tradeoff:'พลาด AK47: Stack <strong>-2</strong> & Combo <strong>-3</strong>',
-    fullDescription:'[Analysis Stack] สะสมจากการเก็บ AK47 สูงสุด 8 Stack\n• ระหว่าง BREAK: DMG +4% ต่อ Stack\n[ANALYZED BREAK] เมื่อครบ 8 Stack — มองเห็นจุดอ่อนทั้งหมด\n• BREAK window ×2\n• BREAK gauge gain ×2\n[Critical Analysis] เมื่อ BREAK สำเร็จ: Crit +25%, Crit DMG +35% นาน 10 วิ\n[ความเสี่ยง] พลาด AK47 = Stack -2, Combo -3 — ยิ่งใกล้ 8 ยิ่งเจ็บ',
+    fullDescription:'[ANALYSIS STACK]\nเก็บจากการเก็บ AK47 (สูงสุด 8 Stack)\n\nระหว่าง BREAK:\nDMG +4% ต่อ Stack\n\n[ANALYZED BREAK]\nเมื่อครบ 8 Stack:\n• BREAK window ×2\n• BREAK gauge gain ×2\n\n[CRITICAL ANALYSIS]\nหลัง BREAK สำเร็จ:\n• Crit +25%\n• Crit DMG +35%\n• นาน 10 วิ\n\nTRADE-OFF:\nพลาด AK47:\nStack -2, Combo -3',
     balanceNote:'POLISH - เปลี่ยนคำศัพท์ developer เป็นภาษาธีมที่อ่านง่าย ไม่แก้ค่าเกมเพลย์',
     apply(s){ s.cs_detailed=true; }
   },
   { id:'gus', name:'GLOOM UNDER SIDE CARD',img:'cards/gloom_under_side_card.png',rarity:'mythic',
     shortDescription:'ทุก 2 วิสะสม OBSESSION STACK\nแรงขึ้น แต่เวลาไหลเร็วขึ้นทุก Stack',
     effect:'ทุก 2 วิ:<br><strong>OBSESSION STACK</strong> +1<br>(สูงสุด 20)<br><br>ต่อ Stack:<br>• DMG +3%<br>• Zeny +3%<br>• BREAK progress +3%<br><br>ที่ 20 Stack: +60% ทุกด้าน', tradeoff:'ต่อ Stack: เวลาไหลเร็วขึ้น <strong>+1%</strong><br>(สูงสุด 20 Stack = เวลาไหล <strong>×1.20</strong>)',
-    fullDescription:'[OBSESSION STACK] สะสมทุก 2 วิ สูงสุด 20 Stack; ต่อ Stack: DMG +3%, Zeny +3%, BREAK +3%\n[ความเสี่ยง] ต่อ Stack เวลาไหลเร็วขึ้น +1% รวมสูงสุด +20% — ยิ่งแข็งแกร่งยิ่งถูกกดดัน\n[รีเซ็ต] Stack จะหายทั้งหมดเมื่อจบรอบหรือเปลี่ยนการ์ด',
+    fullDescription:'[OBSESSION STACK]\nสะสมทุก 2 วิ (สูงสุด 20 Stack)\n\nต่อ Stack:\n• DMG +3%\n• Zeny +3%\n• BREAK +3%\n\nTRADE-OFF:\nเวลาไหลเร็วขึ้น +1% ต่อ Stack\n\n[ความเสี่ยง]\nยิ่ง Stack สูง ยิ่งเร่งเกมหนักขึ้น\n\n[รีเซ็ต]\nStack หายเมื่อจบรอบ หรือเปลี่ยนการ์ด',
     balanceNote:'REWORK - เพิ่ม tradeoff timer drain ต่อ Stack ทำให้รู้สึกอันตรายและ Mythic จริง ไม่ใช่ passive ฟรี',
     apply(s){ s.cs_gloomUnderSide=true; }
   },
@@ -7165,7 +7166,11 @@ function openCardModal(card) {
   const tierEl = $('cardModalTier');
   tierEl.textContent = card.rarity.toUpperCase();
   tierEl.className = 'tier-'+card.rarity;
-  $('cardModalEffect').innerHTML = card.fullDescription || card.effect || '';
+  const rawDesc = card.fullDescription || card.effect || '';
+  const formattedDesc = rawDesc
+    .replace(/\n/g, '<br>')
+    .replace(/\[([^\]]+)\]/g, '<span class="card-modal-section-header">[$1]</span>');
+  $('cardModalEffect').innerHTML = formattedDesc;
   $('cardModalTradeoff').innerHTML = card.tradeoff ? 'TRADE-OFF: '+card.tradeoff : '';
   $('cardModal').style.display = 'flex';
 }
