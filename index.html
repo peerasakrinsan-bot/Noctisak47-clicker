@@ -3455,106 +3455,180 @@ function _preloadImg(src) {
 // PRELOAD STATE
 // isPreloadReady must be true before any menu entry is allowed.
 // ══════════════════════════════════════════
-let isPreloadReady      = false;
-let _allLoadedCalled    = false;
+let isPreloadReady       = false;
+let _allLoadedCalled     = false;
 let _preloadEnterStarted = false;
+let _preloadBarFrozen    = false; // stop bar updates after onAllLoaded freezes it at 100%
 
 function _setPreloadPct(pct) {
+  if(_preloadBarFrozen) return;
   const bar   = document.getElementById('loadBar');
   const pctEl = document.getElementById('loadPct');
-  if(bar)   bar.style.width    = pct + '%';
-  if(pctEl) pctEl.textContent  = pct + '%';
+  if(bar)   bar.style.width   = pct + '%';
+  if(pctEl) pctEl.textContent = pct + '%';
 }
 
+// ── Images visible on the FIRST SCREEN (preloader + main menu) ──
+// These MUST be decoded before isPreloadReady = true.
+const CRITICAL_IMGS = [
+  'logo.png',       // preloader + main menu logo
+  'title_bg.png',   // CSS background of #preloader and #mainMenu
+  'void_main.png',  // HUD coin card
+  'best_main.png',  // HUD high-score card
+  'play.png',       // main menu button
+  'shop.png',
+  'boss.png',
+  'arena.png',
+  'card.png',
+  'transfer.png',   // save/transfer button (top-right)
+  'default_bg.png', // arena bg injected by _applyArenaBg() on showMainMenu
+];
+
 async function preloadAll() {
-  const imgs  = Array.from(new Set(ASSETS.images.filter(Boolean)));
-  const total = imgs.length;
-  let   loaded = 0;
+  // Merge CRITICAL_IMGS first so browsers with priority queues fetch them first.
+  const allImgs = Array.from(new Set([
+    ...CRITICAL_IMGS,
+    ...ASSETS.images,
+  ].filter(Boolean)));
+
+  const total      = allImgs.length;
+  let   loaded     = 0;
+  const pendingSet = new Set(allImgs);
 
   _setPreloadPct(1);
 
-  function onProgress() {
+  function onProgress(src) {
+    if(!pendingSet.has(src)) return;
+    pendingSet.delete(src);
     loaded++;
     _setPreloadPct(Math.min(Math.round(loaded / total * 100), 99));
   }
 
-  // Load one image, await decode() so it is paint-ready before READY.
+  // Load + decode one image.
+  // A 2-second per-image decode timeout prevents any single image from blocking
+  // the whole preload on low-memory mobile devices where decode() can stall.
   function loadImage(src) {
     return new Promise(resolve => {
-      const existing = _imgObjCache[src];
-      if(existing && existing.complete) {
-        if(existing.naturalWidth > 0 && existing.decode) {
-          existing.decode().catch(() => {}).finally(() => { onProgress(); resolve(); });
-        } else { onProgress(); resolve(); }
+      const img = _imgObjCache[src] || new Image();
+      if(!_imgObjCache[src]) _imgObjCache[src] = img;
+
+      if(img.complete) {
+        if(img.naturalWidth > 0 && img.decode) {
+          Promise.race([
+            img.decode(),
+            new Promise(r => setTimeout(r, 2000)),
+          ]).catch(() => {}).finally(() => { onProgress(src); resolve(); });
+        } else { onProgress(src); resolve(); }
         return;
       }
-      const img = new Image();
-      _imgObjCache[src] = img;
+
       let fired = false;
       const done = async (ok) => {
         if(fired) return; fired = true;
         if(!ok) {
           console.warn('[preload] image failed:', src);
         } else if(img.decode) {
-          try { await img.decode(); }
-          catch(e) { console.warn('[preload] decode failed:', src); }
+          try {
+            await Promise.race([
+              img.decode(),
+              new Promise(r => setTimeout(r, 2000)),
+            ]);
+          } catch(e) { console.warn('[preload] decode failed:', src); }
         }
-        onProgress();
+        onProgress(src);
         resolve();
       };
       img.onload  = () => done(true);
       img.onerror = () => done(false);
-      img.src = src;
-      if(img.complete) done(img.naturalWidth > 0);
+      if(!img.src) img.src = src;
+      if(img.complete) done(img.naturalWidth > 0); // synchronous cache hit
     });
   }
 
-  // Buffer title BGM so it starts instantly after the tap gesture.
-  // Resolves safely on error — audio failure must never block READY.
+  // Decode the actual <img> DOM elements inside #mainMenu.
+  // decode() on a JS Image object primes the browser's image resource cache,
+  // but decoding the real DOM elements directly is the safest guarantee on
+  // mobile WebKit where the caches may not be fully shared.
+  async function _decodeMenuDomImages() {
+    const menu = document.getElementById('mainMenu');
+    if(!menu) return;
+    await Promise.all(Array.from(menu.querySelectorAll('img')).map(async img => {
+      if(!img.complete) {
+        await new Promise(r => {
+          img.addEventListener('load',  r, { once: true });
+          img.addEventListener('error', r, { once: true });
+        });
+      }
+      if(img.naturalWidth > 0 && img.decode) {
+        try {
+          await Promise.race([img.decode(), new Promise(r => setTimeout(r, 2000))]);
+        } catch(e) {}
+      }
+    }));
+  }
+
+  // Buffer title BGM before READY so it plays instantly after the user's tap.
+  // readyState 2 = HAVE_CURRENT_DATA: the `loadeddata` event has already fired at
+  // this level, so we must check >= 2 to avoid a permanently-hanging promise when
+  // the event fires before our listener is registered.
+  // A 6-second per-audio timeout prevents a slow network from blocking images.
   function loadTitleAudio() {
     return new Promise(resolve => {
       const bgm = document.getElementById('bgmSound');
       if(!bgm) { resolve(); return; }
-      // readyState 4 = HAVE_ENOUGH_DATA
-      if(bgm.readyState >= 4) { resolve(); return; }
-      const cleanup = () => {
-        bgm.removeEventListener('canplaythrough', onReady);
-        bgm.removeEventListener('loadeddata',     onReady);
-        bgm.removeEventListener('error',          onError);
-      };
-      const onReady = () => { cleanup(); resolve(); };
+      if(bgm.readyState >= 2) { resolve(); return; }
+      let done = false;
+      const finish = () => { if(!done) { done = true; resolve(); } };
       const onError = () => {
-        cleanup();
         console.warn('[preload] 47title.mp3 failed to buffer — continuing');
-        resolve();
+        finish();
       };
-      bgm.addEventListener('canplaythrough', onReady, { once: true });
-      bgm.addEventListener('loadeddata',     onReady, { once: true });
+      bgm.addEventListener('canplaythrough', finish,  { once: true });
+      bgm.addEventListener('loadeddata',     finish,  { once: true });
       bgm.addEventListener('error',          onError, { once: true });
+      setTimeout(() => {
+        console.warn('[preload] audio timeout — continuing without full buffer');
+        finish();
+      }, 6000);
     });
   }
 
-  // 10-second hard failsafe — log pending assets and proceed.
+  // 12-second hard failsafe: log exactly which assets are still pending and proceed.
   const failsafe = new Promise(resolve => setTimeout(() => {
-    const pending = imgs.slice(loaded);
-    if(pending.length) console.warn('[preload] 10 s failsafe — pending assets:', pending);
+    if(pendingSet.size) {
+      console.warn('[preload] 12 s failsafe triggered — pending assets:', Array.from(pendingSet));
+    }
     resolve();
-  }, 10000));
+  }, 12000));
 
-  const imagePromises = total > 0 ? imgs.map(loadImage) : [];
+  // Start ALL image loads immediately (critical ones first in the array).
+  const imagePromises = allImgs.map(loadImage);
+
+  // Only CRITICAL images (+ DOM decode + audio) block the READY state.
+  // Non-critical images continue loading in the background.
+  const critSet      = new Set(CRITICAL_IMGS.filter(Boolean));
+  const critPromises = imagePromises.filter((_, i) => critSet.has(allImgs[i]));
 
   await Promise.race([
-    Promise.all([...imagePromises, loadTitleAudio()]),
+    Promise.all([
+      ...critPromises,
+      _decodeMenuDomImages(),
+      loadTitleAudio(),
+    ]),
     failsafe,
   ]);
+
+  // 100ms settle: gives the browser a frame to finish micro-tasks from decode().
+  await new Promise(r => setTimeout(r, 100));
 
   onAllLoaded();
 }
 
 function onAllLoaded() {
   if(_allLoadedCalled) return;
-  _allLoadedCalled = true;
-  isPreloadReady = true;
+  _allLoadedCalled  = true;
+  _preloadBarFrozen = true; // prevent late non-critical onProgress() from reverting bar
+  isPreloadReady    = true;
   initVolumes();
 
   const loadBar  = document.getElementById('loadBar');
@@ -3581,7 +3655,7 @@ function onAllLoaded() {
     if(_preloadEnterStarted) return;
     _preloadEnterStarted = true;
 
-    if(tapEl)    tapEl.style.opacity = '0';
+    if(tapEl)    tapEl.style.opacity  = '0';
     if(loadText) loadText.textContent = 'VERIFYING SAVE...';
 
     try {
@@ -3595,6 +3669,24 @@ function onAllLoaded() {
     }
 
     if(loadText) loadText.style.display = 'none';
+
+    // Re-decode main menu <img> elements immediately before they are painted.
+    // On memory-constrained devices, GPU texture memory for decoded images can
+    // be evicted between the initial preload and the user's tap. Re-decoding
+    // here (inside the gesture handler, so still synchronous enough) prevents
+    // pop-in when the menu becomes visible.
+    try {
+      const menuEl = document.getElementById('mainMenu');
+      if(menuEl) {
+        const menuImgs = Array.from(menuEl.querySelectorAll('img'));
+        await Promise.race([
+          Promise.all(menuImgs.map(img =>
+            (img.naturalWidth && img.decode) ? img.decode().catch(() => {}) : Promise.resolve()
+          )),
+          new Promise(r => setTimeout(r, 1000)), // 1-second cap — user is waiting
+        ]);
+      }
+    } catch(e) {}
 
     // Play BGM immediately inside the user-gesture handler
     const bgm = $('bgmSound');
