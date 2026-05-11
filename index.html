@@ -6922,18 +6922,22 @@ function startGame() {
     }
     startCountdown(()=>{
       gameRunning=true;
-      // [DEBUG] fighter visibility — remove after diagnosing regression
-      !function(){ const _f=$('fighter'); console.log('[Boss Debug] startGame',{
-        fighterStyleDisplay:_f&&_f.style.display,
-        fighterComputedDisplay:_f&&getComputedStyle(_f).display,
-        fighterComputedOpacity:_f&&getComputedStyle(_f).opacity,
-        fighterComputedVisibility:_f&&getComputedStyle(_f).visibility,
-        fighterZ:_f&&getComputedStyle(_f).zIndex,
-        bCurrentImgSrc:_bCurrentImg?_bCurrentImg.src:'null',
-        bCurrentImgComplete:_bCurrentImg&&_bCurrentImg.complete,
-        bCurrentImgNW:_bCurrentImg&&_bCurrentImg.naturalWidth,
-        canvasW:boxer.width,canvasH:boxer.height
-      }); }();
+      // [DEBUG] boss visibility — steps 1-3 audit
+      !function(){
+        const _f=$('fighter'), _bx=$('boxer');
+        // step 1: DOM
+        console.log('[BossDebug] 1:DOM',{fighter:!!_f, boxer:!!_bx});
+        // step 2: image source (canvas uses _bCurrentImg, not boxer.src)
+        console.log('[BossDebug] 2:IMG',{
+          _bCurrentImgSrc:_bCurrentImg?_bCurrentImg.src:'null',
+          complete:_bCurrentImg&&_bCurrentImg.complete,
+          naturalWidth:_bCurrentImg&&_bCurrentImg.naturalWidth,
+          canvasW:_bx&&_bx.width, canvasH:_bx&&_bx.height
+        });
+        // step 3: computed style
+        if(_f){const cs=getComputedStyle(_f);console.log('[BossDebug] 3:FIGHTER',{display:cs.display,opacity:cs.opacity,visibility:cs.visibility,zIndex:cs.zIndex});}
+        if(_bx){const cs=getComputedStyle(_bx);console.log('[BossDebug] 3:BOXER',{display:cs.display,opacity:cs.opacity,visibility:cs.visibility});}
+      }();
       ensureBossVisible();
       if(window._csState && window._csState.cs_eddga) _csStartEddga();
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
@@ -6977,18 +6981,19 @@ function retryGame() {
     }
     startCountdown(()=>{
       gameRunning=true;
-      // [DEBUG] fighter visibility — remove after diagnosing regression
-      !function(){ const _f=$('fighter'); console.log('[Boss Debug] retryGame',{
-        fighterStyleDisplay:_f&&_f.style.display,
-        fighterComputedDisplay:_f&&getComputedStyle(_f).display,
-        fighterComputedOpacity:_f&&getComputedStyle(_f).opacity,
-        fighterComputedVisibility:_f&&getComputedStyle(_f).visibility,
-        fighterZ:_f&&getComputedStyle(_f).zIndex,
-        bCurrentImgSrc:_bCurrentImg?_bCurrentImg.src:'null',
-        bCurrentImgComplete:_bCurrentImg&&_bCurrentImg.complete,
-        bCurrentImgNW:_bCurrentImg&&_bCurrentImg.naturalWidth,
-        canvasW:boxer.width,canvasH:boxer.height
-      }); }();
+      // [DEBUG] boss visibility — steps 1-3 audit
+      !function(){
+        const _f=$('fighter'), _bx=$('boxer');
+        console.log('[BossDebug] 1:DOM',{fighter:!!_f, boxer:!!_bx});
+        console.log('[BossDebug] 2:IMG',{
+          _bCurrentImgSrc:_bCurrentImg?_bCurrentImg.src:'null',
+          complete:_bCurrentImg&&_bCurrentImg.complete,
+          naturalWidth:_bCurrentImg&&_bCurrentImg.naturalWidth,
+          canvasW:_bx&&_bx.width, canvasH:_bx&&_bx.height
+        });
+        if(_f){const cs=getComputedStyle(_f);console.log('[BossDebug] 3:FIGHTER',{display:cs.display,opacity:cs.opacity,visibility:cs.visibility,zIndex:cs.zIndex});}
+        if(_bx){const cs=getComputedStyle(_bx);console.log('[BossDebug] 3:BOXER',{display:cs.display,opacity:cs.opacity,visibility:cs.visibility});}
+      }();
       ensureBossVisible();
       if(window._csState && window._csState.cs_eddga) _csStartEddga();
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
@@ -8239,7 +8244,7 @@ function _flushTickVisuals() {
   if(_tv.doBoxerImg && _tv.nextImg) {
     clearTimeout(boxer._rt);
     boxerSetImg(_tv.nextImg);
-    boxer._rt = setTimeout(()=>{ boxerSetImg(_tv.idleImg || _tv.nextImg); }, _tv.hitDur);
+    boxer._rt = setTimeout(()=>{ boxerSetImg(_tv.idleImg || DEFAULT_BOSS_IMAGE); }, _tv.hitDur);
   }
 
   // updateMultiBadge handled in processHit (cheap)
@@ -8521,8 +8526,8 @@ function processHit(e, now) {
     pos.x, pos.y, isBoss ? Math.round(bossHP) : dmg,
     godLevel>0, isCrit,
     _rc, _fcls, _bhc,
-    _imgObjCache[_hitImgs2[_ii]] || _hitImgs2[_ii],
-    _imgObjCache[_skin2.files.idle],
+    _imgObjCache[_hitImgs2[_ii]] || _hitImgs2[_ii] || DEFAULT_BOSS_IMAGE,
+    _imgObjCache[_skin2.files.idle] || _skin2.files.idle || DEFAULT_BOSS_IMAGE,
     _hitDur2
   );
 
