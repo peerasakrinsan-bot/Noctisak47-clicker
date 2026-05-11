@@ -4511,10 +4511,8 @@ function scheduleWeakPoint() {
   // INCANTATION SAMURAI: spawn เร็วขึ้น 20% เมื่อ combo >= 35
   if(window._csState && window._csState.cs_incantation_active) delay *= 0.80;
   // EXECUTIONER: spawn เร็วขึ้น x2 เมื่อ HP < 25%
-  if(window._csState && window._csState.cs_executioner) {
-    const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
-    if(ratio < 0.25) delay *= 0.50;
-  }
+  if(window._csState && window._csState._executionModeEndTime && performance.now() < window._csState._executionModeEndTime) delay *= 0.65;
+  if(window._csState && window._csState._amogAkBoostEndTime && performance.now() < window._csState._amogAkBoostEndTime) delay *= 0.70;
   // WHISPER: spawn ช้าลง 2 เท่า
   if(window._csState && window._csState.cs_whisper) delay *= 1.20;
   // HYDRA: spawn ช้าลง 1.25 เท่า
@@ -5011,11 +5009,11 @@ const CARD_POOL = [
     apply(s){ s.cs_freeoni = true; s.cs_overloadReduce = (s.cs_overloadReduce||0) + 12; }
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
-    effect:'Combo ≥ 25: DMG <strong>+35%</strong><br>KO: score <strong>+400</strong>', tradeoff:'Zeny จาก KO <strong>-15%</strong>',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_combo30 = true; }
+    effect:'Combo ≥25 เปิด SHOGUN STANCE 6วิ: DMG +45% | BREAK DMG +25% | KO +250', tradeoff:'ระหว่าง STANCE คอมโบร่วงเร็วขึ้น 35% (CD 12วิ)',
+    shortDescription:'คอมโบ 25+ เปิด SHOGUN STANCE 6วิ\nแรงขึ้น แต่คอมโบร่วงไว',
+    fullDescription:'[SHOGUN STANCE] เมื่อ Combo ถึง 25 จะเข้า Stance 6 วิ (CD 12 วิ): DMG +45%, BREAK DMG +25%, KO score +250\n[Trade-off] ระหว่าง Stance คอมโบ decay เร็วขึ้น 35%',
+    balanceNote:'REWORK - สายโมเมนตัม burst เป็นช่วง มีความเสี่ยงคอมโบร่วงชัดเจน',
+    apply(s){ s.cs_turtleShogun = true; }
   },
   { id:'dk',      name:'DRAKE CARD',         img:'cards/drake.png',       rarity:'elite',
     effect:'HP Phase 75/50/25%:<br><strong>Phase Burst</strong> แรงขึ้นทุกเฟส<br><br>75%: OD <strong>+20%</strong> + DMG <strong>+15%</strong> 4s<br>50%: OD <strong>+30%</strong> + DMG <strong>+25%</strong> + Combo lock 4s<br>25%: OD <strong>+50%</strong> + Rage Stack <strong>+2</strong> + BREAK DMG boost<br><br>ครบทั้ง 3 เฟส: <strong>DRAKE TAKE</strong> 6s (OD x2, BREAK x2, AK47 spawn เร็วขึ้น)', tradeoff:null,
@@ -5257,11 +5255,11 @@ const CARD_POOL = [
     apply(s){ s.cs_stormyKnight = true; }
   },
   { id:'dl',   name:'DORK LORD CARD',      img:'cards/dork_lord.png',   rarity:'elite',
-    shortDescription:'ยิ่งเล่นนาน ยิ่งแรง',
-    effect:'เวลาเกิน 90 วิ: DMG <strong>+5%</strong> ทุก 10 วิ (สูงสุด +50%)', tradeoff:null,
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_darkLord = true; }
+    shortDescription:'ทุก 15วิได้ NIGHT STACK\nยิ่งแรง แต่เวลาเดินเร็วขึ้น',
+    effect:'ทุก 15วิรับ NIGHT STACK (สูงสุด 5): ต่อ Stack DMG +6% / BREAK DMG +4%', tradeoff:'ต่อ Stack timer speed +3% (เร่งได้สูงสุด +15%)',
+    fullDescription:'[NIGHT STACK] ทุก 15 วินาทีได้ 1 Stack สูงสุด 5\n• DMG +6% ต่อ Stack\n• BREAK DMG +4% ต่อ Stack\n[Trade-off] เวลาเดินเร็วขึ้น +3% ต่อ Stack',
+    balanceNote:'REWORK - การ์ดคอร์รัปชันสะสมแบบมีเพดาน ป้องกันยืดเวลาเกินขอบเขต',
+    apply(s){ s.cs_dorkLord = true; }
   },
   { id:'mf', name:'MOONLIGHT FEVER CARD', img:'cards/moonlight_fever.png', rarity:'elite',
     effect:'DMG ×2 | Zeny ×2 | OD ×2 | AK47 3 ลูก & spawn ×2 | BREAK window <strong>+0.5 วิ</strong> | KO: score <strong>+500</strong>', tradeoff:'เวลาเหลือ <strong>ครึ่งเดียว</strong>',
@@ -5382,10 +5380,10 @@ const CARD_POOL = [
     apply(s){ s.cs_minorous = true; }
   },
   { id:'ex',name:'EXECUSIONER CARD',   img:'cards/execusioner.png', rarity:'elite',
-    effect:'HP < 25%: DMG <strong>+50%</strong> & AK47 spawn <strong>×2</strong> & BREAK <strong>+15%</strong>', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    effect:'HP <30% เข้า EXECUTION MODE 5วิ: DMG +60% | BREAK DMG +35% | AK47 spawn +35%', tradeoff:'ระหว่างโหมด HP ลดต่อเนื่อง และฮีลมีผลเพียง 20% (CD 18วิ)',
+    shortDescription:'HP ต่ำกว่า 30% เปิด EXECUTION MODE\nแรงมาก แต่เสี่ยงตายจากเลือดไหล',
+    fullDescription:'[EXECUTION MODE] เมื่อ HP ต่ำกว่า 30% เปิดโหมด 5 วิ (CD 18 วิ)\n• DMG +60%\n• BREAK DMG +35%\n• AK47 spawn +35%\n[Trade-off] HP drain ต่อเนื่อง + Healing effectiveness -80%',
+    balanceNote:'REWORK - นักประหารสายเสี่ยงตาย ปิดงานแรงแลกความอยู่รอด',
     apply(s){ s.cs_executioner = true; }
   },
   { id:'wh',    name:'WHIZPER CARD',       img:'cards/whizper.png',     rarity:'elite',
@@ -5403,11 +5401,11 @@ const CARD_POOL = [
     apply(s){ s.cs_goblinLeader = true; }
   },
   { id:'ar',     name:'AMOG RA CARD',       img:'cards/amog_ra.png',     rarity:'elite',
-    effect:'Combo ≥ 40: DMG <strong>+40%</strong> & Zeny <strong>×1.5</strong>', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_amonRa = true; }
+    effect:'ทุกครั้งที่ Combo แตะ 20 จะสุ่มผล 5วิ: 70% ได้ DMG +35% + Crit +20% | 30% SUS EVENT', tradeoff:'SUS EVENT: หักเวลา -2วิทันที + ได้ BREAK DMG +60% และ AK47 spawn +30% 4วิ (CD 8วิ)',
+    shortDescription:'แตะคอมโบ 20 = สุ่มบัฟ 5วิ\n70% ดีจัด / 30% SUS แลกเวลา',
+    fullDescription:'[AMOG GAMBLE] เมื่อ Combo แตะ 20 จะสุ่มเอฟเฟกต์ 5 วิ (CD 8 วิ)\n• 70%: DMG +35%, Crit +20%\n• 30% SUS: ลดเวลา -2 วิ (ไม่ต่ำกว่า 1 วิ), BREAK DMG +60%\nหลัง SUS: AK47 spawn +30% อีก 4 วิ',
+    balanceNote:'REWORK - สายพนันจังหวะ มี burst สูงและความเสี่ยงคุมได้',
+    apply(s){ s.cs_amogRa = true; }
   },
   { id:'mp',name:'MAYA PROBLEM CARD',    img:'cards/maya_problem.png', rarity:'elite',
     shortDescription:'BREAK แล้ว burst หนัก',
@@ -6061,7 +6059,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   // MISSSTRESS no longer has a non-OD damage penalty.
   if(cs.cs_mummy_active) d *= (1 + (cs.cs_combo20Dmg||0));
   if(cs.cs_skelworker_bonus) d *= (1 + cs.cs_skelworker_bonus);
-  if(cs.cs_combo30_active) d *= 1.45;
+  if(cs._turtleShogunEndTime && performance.now() < cs._turtleShogunEndTime) d *= 1.45;
   if(cs.cs_incantation_active) d *= 2.2;
   if(cs.cs_incantation_penalty) d *= 0.80;
   if(cs.cs_horong_active) d *= 1.35;
@@ -6077,7 +6075,7 @@ function csApplyDmgMod(baseDmg, isGod) {
     if(ratio > 0.70) d *= 1.40;
   }
   // Executioner: +50% when HP < 25%
-  if(cs.cs_executioner) { const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP); if(ratio < 0.25) d *= 1.50; }
+  if(cs._executionModeEndTime && performance.now() < cs._executionModeEndTime) d *= 1.60;
   // Beelzebub: accumulated corruption dmg bonus
   if(cs.cs_beelzebub && cs._beelzebubBonus) d *= (1 + cs._beelzebubBonus);
   // Beelzebub: coin-burst window (applied in coin mod)
@@ -6088,7 +6086,7 @@ function csApplyDmgMod(baseDmg, isGod) {
     if(cs._rsxExecutionEndTime && performance.now() < cs._rsxExecutionEndTime) d *= 1.5;
   }
   // Amon Ra: combo >= 40 dmg +40%
-  if(cs.cs_amonRa_active) d *= 1.40;
+  if(cs._amogBuffEndTime && performance.now() < cs._amogBuffEndTime) d *= 1.35;
   // Goblin Leader: combo >= 30 dmg +20%
   if(cs.cs_goblinLeader && combo >= 30) d *= 1.20;
   if(cs.cs_freeoni && cs._freeoniOdDmgStack) d *= (1 + cs._freeoniOdDmgStack);
@@ -6167,7 +6165,7 @@ function csApplyCoinMod(coins) {
   if(cs.cs_beelzebub && cs._beelzebubCoinEndTime && performance.now() < cs._beelzebubCoinEndTime) c *= 1.5;
   if(cs.cs_moonlightflower) c *= 2;
   if(cs.cs_devilingo && isBoss && cs._devilingoCombatStart && Date.now() - cs._devilingoCombatStart <= 15000) c *= 1.30;
-  if(cs.cs_amonRa_active) c *= 1.5;
+  
   if(typeof pressureCoinMultiplier === 'function') c *= pressureCoinMultiplier();
   // A-LIST: Sponsor Rush +25% coin
   if(cs.cs_aListCard && cs._sponsorRushEndTime && performance.now() < cs._sponsorRushEndTime) c *= 1.25;
@@ -6210,7 +6208,7 @@ function csOnClick(isGod) {
   }
   // update combo-based states
   if(cs.cs_combo20Dmg)  cs.cs_mummy_active  = combo >= 20;
-  if(cs.cs_combo30)     cs.cs_combo30_active = combo >= 25;
+  
   if(cs.cs_incantation) { cs.cs_incantation_active = combo >= 35; cs.cs_incantation_penalty = combo < 20; }
   if(cs.cs_elderWillow) cs.cs_elderWillow_active = combo >= 25;
   if(cs.cs_horong)      cs.cs_horong_active = timeLeft < 20;
@@ -6232,7 +6230,11 @@ function csOnClick(isGod) {
   // MARVELC: low-time dmg bonus (<15s)
   if(cs.cs_marvelcLowTime) cs._marvelcLowTimeActive = timeLeft < 15;
   // Amon Ra: combo >= 40 → dmg+40% + coin x1.5
-  if(cs.cs_amonRa) cs.cs_amonRa_active = combo >= 40;
+  
+  if(cs.cs_turtleShogun){ const now=performance.now(); if(combo>=25 && now>=(cs._turtleShogunCooldownUntil||0) && now>=(cs._turtleShogunEndTime||0)){ cs._turtleShogunEndTime=now+6000; cs._turtleShogunCooldownUntil=now+12000; cs._turtleComboDecayFast=0.35; } if((cs._turtleShogunEndTime||0)<=now) cs._turtleComboDecayFast=0; }
+  if(cs.cs_amogRa){ const now=performance.now(); if(combo>=20 && now>=(cs._amogCooldownUntil||0) && !cs._amogTriggerLock){ cs._amogTriggerLock=true; cs._amogCooldownUntil=now+8000; if(Math.random()<0.7){ cs._amogBuffEndTime=now+5000; cs._amogCritEndTime=now+5000; cs._amogSusEndTime=0; } else { timeLeft=Math.max(1,timeLeft-2); cs._amogBuffEndTime=0; cs._amogCritEndTime=0; cs._amogSusEndTime=now+5000; cs._amogAkBoostEndTime=now+4000; } } if(combo<20) cs._amogTriggerLock=false; }
+  if(cs.cs_executioner){ const now=performance.now(); const ratio=isBoss?(bossHP/bossMaxHP):(hp/maxHP); if(ratio<0.30 && now>=(cs._executionCooldownUntil||0) && now>=(cs._executionModeEndTime||0)){ cs._executionModeEndTime=now+5000; cs._executionCooldownUntil=now+18000; } }
+  if(cs.cs_dorkLord){ const now=performance.now(); if(!cs._dorkNextStackAt) cs._dorkNextStackAt=now+15000; while((cs._dorkNightStacks||0)<5 && now>=cs._dorkNextStackAt){ cs._dorkNightStacks=(cs._dorkNightStacks||0)+1; cs._dorkNextStackAt+=15000; } cs._dorkTimerRateBonus=Math.min(0.15,(cs._dorkNightStacks||0)*0.03); }
   // Goblin Leader: combo+2 per click (applied in processHit combo line)
   // Beelzebub: accumulate corruption per click (max 50%)
   if(cs.cs_beelzebub) {
@@ -6300,15 +6302,8 @@ function csOnKO() {
     if(_csKoTimeAcc <= 5) timeLeft += 0.05;
   }
   // DORK LORD: +0.08s per KO + score +80
-  if(cs.cs_darkLord) {
-    timeLeft += 0.15;
-    score += 150;
-    roundCoins += csApplyCoinMod(15);
-  }
-  // Turtle General: score +300 per KO when combo >= 30
-  if(cs.cs_combo30_active) {
-    score += 300;
-  }
+    // Turtle General: score +300 per KO when combo >= 30
+  if(cs._turtleShogunEndTime && performance.now() < cs._turtleShogunEndTime) score += 250;
   // Drake: reset threshold tracking on KO (new enemy spawns)
   if(cs.cs_drakeIgnoreThreshold) {
     cs._drakeTriggered = new Set();
@@ -7890,10 +7885,10 @@ function pressureHitTarget(x, y) {
   // INCANTATION SCAMURAI: +10% BREAK progress when combo >= 35
   if(window._csState && window._csState.cs_incantation_active) PRESSURE.targetHits += 0.10;
   // EXECUSIONER: +15% BREAK progress when boss/enemy HP < 25%
-  if(window._csState && window._csState.cs_executioner) {
-    const _hpRatio = isBoss ? (bossHP / bossMaxHP) : (hp / maxHP);
-    if(_hpRatio < 0.25) PRESSURE.targetHits += 0.15;
-  }
+  if(window._csState && window._csState._executionModeEndTime && performance.now() < window._csState._executionModeEndTime) PRESSURE.targetHits += 0.35;
+  if(window._csState && window._csState._turtleShogunEndTime && performance.now() < window._csState._turtleShogunEndTime) PRESSURE.targetHits += 0.25;
+  if(window._csState && window._csState._amogSusEndTime && performance.now() < window._csState._amogSusEndTime) PRESSURE.targetHits += 0.60;
+  if(window._csState && window._csState._dorkNightStacks) PRESSURE.targetHits += window._csState._dorkNightStacks * 0.04;
   // IFRIED: Inferno Stacks above 5 add extra BREAK progress per tap (+2% per stack above 5)
   if(window._csState && window._csState.cs_ifriedBreak && (window._csState._ifriedStacks || 0) > 5) {
     PRESSURE.targetHits += (window._csState._ifriedStacks - 5) * 0.02;
@@ -8195,8 +8190,14 @@ function startTimer() {
   clearInterval(timerInterval);
   timerInterval=setInterval(()=>{
     pressureUpdate(50);
-    const rate = performance.now() < (PRESSURE.successFreezeUntil || 0) ? 0.18 : (PRESSURE.phase === 'break' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0));
-    timeLeft -= 0.05 * rate;
+    const baseRate = performance.now() < (PRESSURE.successFreezeUntil || 0) ? 0.18 : (PRESSURE.phase === 'break' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0));
+    const rate = baseRate * (1 + ((window._csState && window._csState._dorkTimerRateBonus) || 0));
+    timeLeft -= 0.05 * Math.min(1.15, rate);
+    if(window._csState && window._csState._executionModeEndTime && performance.now() < window._csState._executionModeEndTime){
+      if(isBoss) bossHP = Math.max(1, bossHP - Math.max(1, bossMaxHP*0.0015));
+      else hp = Math.max(1, hp - Math.max(1, maxHP*0.0015));
+      updateUI();
+    }
     if(timeLeft<=0){timeLeft=0;endGame();}
     renderTimer();
   },50);
@@ -8513,7 +8514,8 @@ function processHit(e, now) {
   // FABRE/STAINER: extend combo window; STING tradeoff: shorten combo window
   const _comboWindow = 220
     * (1 + (window._csState && window._csState.cs_comboDecaySlow || 0))
-    * (1 - (window._csState && window._csState.cs_comboDecayFast || 0));
+    * (1 - (window._csState && window._csState.cs_comboDecayFast || 0))
+    * (1 - (window._csState && window._csState._turtleComboDecayFast || 0));
   const _suppressReset = window._csState && (
     window._csState._whisperComboProtect ||
     window._csState._ktullanuxComboProtect ||
@@ -8656,6 +8658,7 @@ function processHit(e, now) {
     if(window._csState.cs_ifriedBreak && window._csState._ifriedBurstEndTime && performance.now() < window._csState._ifriedBurstEndTime) _critChance += 0.25;
     // DETAILED: Critical Analysis — +20% crit chance for 8s
     if(window._csState.cs_detailed && window._csState._analysisCritEndTime && performance.now() < window._csState._analysisCritEndTime) _critChance += 0.25;
+    if(window._csState._amogCritEndTime && performance.now() < window._csState._amogCritEndTime) _critChance += 0.20;
   }
   if(_critChance&&Math.random()<_critChance){dmg=Math.round(dmg*(_sc.critMult||2));isCrit=true;}
   // LUNATIC: crit dmg +15%
@@ -8883,9 +8886,7 @@ function normalKO() {
   ko++; waveKO++;
   let baseCoins = Math.round((1 + Math.floor(combo * 0.05)) * (1.25 + (_sc.coinMult||0)));
   // Turtle Shogun: KO Zeny -15%
-  if(window._csState && window._csState.cs_combo30) baseCoins = Math.round(baseCoins * 0.85);
-  // Dork Lord: KO Zeny -15%
-  if(window._csState && window._csState.cs_darkLord) baseCoins = Math.round(baseCoins * 0.85);
+  if(window._csState && (window._csState.cs_turtleShogun || window._csState.cs_dorkLord)) baseCoins = Math.round(baseCoins * 0.85);
   baseCoins = csApplyCoinMod(baseCoins);
   // ── Zeny KO reduction (late-game economy rebalance) ──
   // Applied per-KO at earn time so totalRunZeny is never reduced retroactively.
@@ -8944,7 +8945,7 @@ function bossKO() {
   window._bossesDefeated = (window._bossesDefeated||0) + 1;
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
   // Turtle Shogun: KO Zeny -15%
-  if(window._csState && window._csState.cs_combo30) bossCoins = Math.round(bossCoins * 0.85);
+  if(window._csState && window._csState.cs_turtleShogun) bossCoins = Math.round(bossCoins * 0.85);
     if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
   // DEVILINGO: boss defeated within 15s → Boss KO Zeny +30%
   if(window._csState && window._csState.cs_devilingo && window._csState._devilingoCombatStart) {
