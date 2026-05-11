@@ -3960,6 +3960,23 @@ function boxerSetImg(img) {
 // ปรับ canvas size เมื่อ window resize
 window.addEventListener('resize', () => { _bSetSize(); _bScheduleDraw(); });
 
+// ── Failsafe: ensure #fighter is visible and canvas has content ──
+// Call after any state transition that could leave the fighter invisible.
+function ensureBossVisible() {
+  const _f = $('fighter');
+  if(!_f) return;
+  if(_f.style.display !== 'block') {
+    console.warn('[ensureBossVisible] #fighter.style.display=' + JSON.stringify(_f.style.display) + ' — forcing block');
+    _f.style.display = 'block';
+  }
+  if(!_bCurrentImg || !_bCurrentImg.complete || !_bCurrentImg.naturalWidth) {
+    console.warn('[ensureBossVisible] image not ready (' + (_bCurrentImg ? _bCurrentImg.src : 'null') + ') — re-applying idle');
+    boxerSetImg(getIdleImg());
+  } else {
+    _bScheduleDraw();
+  }
+}
+
 // hitImgs เปลี่ยนแปลงตาม skin — ใช้ฟังก์ชัน getter แทน const
 function getHitImgs() { return getActiveSkin().files.hits; }
 function getIdleImg()  { return getActiveSkin().files.idle; }
@@ -6892,6 +6909,19 @@ function startGame() {
     }
     startCountdown(()=>{
       gameRunning=true;
+      // [DEBUG] fighter visibility — remove after diagnosing regression
+      !function(){ const _f=$('fighter'); console.log('[Boss Debug] startGame',{
+        fighterStyleDisplay:_f&&_f.style.display,
+        fighterComputedDisplay:_f&&getComputedStyle(_f).display,
+        fighterComputedOpacity:_f&&getComputedStyle(_f).opacity,
+        fighterComputedVisibility:_f&&getComputedStyle(_f).visibility,
+        fighterZ:_f&&getComputedStyle(_f).zIndex,
+        bCurrentImgSrc:_bCurrentImg?_bCurrentImg.src:'null',
+        bCurrentImgComplete:_bCurrentImg&&_bCurrentImg.complete,
+        bCurrentImgNW:_bCurrentImg&&_bCurrentImg.naturalWidth,
+        canvasW:boxer.width,canvasH:boxer.height
+      }); }();
+      ensureBossVisible();
       if(window._csState && window._csState.cs_eddga) _csStartEddga();
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
       else _showActiveCard(activeCard);
@@ -6934,6 +6964,19 @@ function retryGame() {
     }
     startCountdown(()=>{
       gameRunning=true;
+      // [DEBUG] fighter visibility — remove after diagnosing regression
+      !function(){ const _f=$('fighter'); console.log('[Boss Debug] retryGame',{
+        fighterStyleDisplay:_f&&_f.style.display,
+        fighterComputedDisplay:_f&&getComputedStyle(_f).display,
+        fighterComputedOpacity:_f&&getComputedStyle(_f).opacity,
+        fighterComputedVisibility:_f&&getComputedStyle(_f).visibility,
+        fighterZ:_f&&getComputedStyle(_f).zIndex,
+        bCurrentImgSrc:_bCurrentImg?_bCurrentImg.src:'null',
+        bCurrentImgComplete:_bCurrentImg&&_bCurrentImg.complete,
+        bCurrentImgNW:_bCurrentImg&&_bCurrentImg.naturalWidth,
+        canvasW:boxer.width,canvasH:boxer.height
+      }); }();
+      ensureBossVisible();
       if(window._csState && window._csState.cs_eddga) _csStartEddga();
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
       else _showActiveCard(activeCard); // แสดงการ์ดที่เลือก (non-LOD)
@@ -7706,6 +7749,7 @@ function pressureSuccess() {
   PRESSURE.lastAfkAt = Date.now();
   if(typeof csOnBreakSuccess === 'function') csOnBreakSuccess();
   if(typeof csOnBreakEnd === 'function') csOnBreakEnd();
+  ensureBossVisible();
 }
 
 
@@ -7764,6 +7808,7 @@ function pressureFail() {
   pressurePlayFailBacklash(PRESSURE.resolvePoint);
   PRESSURE.cooldown = pressureNextCooldown();
   PRESSURE.lastAfkAt = Date.now();
+  ensureBossVisible();
   if(typeof csOnBreakEnd === 'function') csOnBreakEnd();
 }
 
@@ -8627,6 +8672,7 @@ function bossKO() {
   showBigSplash('BOSS KO','+'+bossCoins+' COIN','#ffcc00');
   showKOFlash(true);
   csOnKO();
+  ensureBossVisible();
 }
 
 // ══════════════════════════════════════════
