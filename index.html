@@ -4800,11 +4800,6 @@ function triggerBombExplosion() {
 // Called ONLY when all 5 weak points have been collected (wp1–wp5 sounds play).
 // ONE OCA roll per completion. No partial-progress rolls.
 function onAk47Complete(x, y) {
-  rollOcaFromAk47Complete(x, y);
-}
-
-// ── Roll OCA for AK47 complete ──
-function rollOcaFromAk47Complete(x, y) {
   tryOcaBombDrop(x, y);
 }
 
@@ -9472,6 +9467,9 @@ const OCA_DROP_RATES = [
   { tier: 'premium',  chance: 0.001  },
   { tier: 'standard', chance: 0.05   },
 ];
+const BASE_OCA_RATE_BREAK = 1.0;
+const BASE_OCA_RATE_AK47_COMPLETE = 0.7; // 70% of legacy AK47-complete OCA chance
+const DEBUG_OCA_DROP = false;
 
 // ── OCA KO Multiplier ──
 // After 250 lifetime KO, OCA drop rates from skill-based actions scale up every 100 KO.
@@ -9514,17 +9512,34 @@ function getZenyKoMultiplier(koCount) {
   return 0.46;
 }
 
-// rollOcaDrop(mult) — roll against each tier's base chance scaled by mult (default 1.0).
+// rollOCA({ source, multiplier, allowBreakBoosts }) — source-scoped OCA roll.
 // Returns tier string or null. One roll, no duplicate checks.
-function rollOcaDrop(mult) {
-  const _m = mult || 1;
-  const r = Math.random();
-  if (r < Math.min(0.0001 * _m, 1)) return 'elite';
-  if (r < Math.min(0.001  * _m, 1)) return 'premium';
-  if (r < Math.min(0.05   * _m, 1)) return 'standard';
-  return null;
-}
+function rollOCA(opts) {
+  const o = opts || {};
+  const source = o.source || 'break';
+  const allowBreakBoosts = !!o.allowBreakBoosts;
+  const manualMultiplier = o.multiplier == null ? 1 : o.multiplier;
+  const sourceBase = source === 'ak47_complete' ? BASE_OCA_RATE_AK47_COMPLETE : BASE_OCA_RATE_BREAK;
+  const breakBoost = allowBreakBoosts ? getOcaKoMultiplier() : 1;
+  const totalMult = Math.max(0, sourceBase * manualMultiplier * breakBoost);
 
+  const r = Math.random();
+  const eliteChance = Math.min(0.0001 * totalMult, 1);
+  const premiumChance = Math.min(0.001 * totalMult, 1);
+  const standardChance = Math.min(0.05 * totalMult, 1);
+  const darkStakeApplied = allowBreakBoosts && manualMultiplier > 1;
+  const result =
+    r < eliteChance ? 'elite' :
+    r < premiumChance ? 'premium' :
+    r < standardChance ? 'standard' : null;
+
+  if (DEBUG_OCA_DROP) {
+    const chosenBase = source === 'ak47_complete' ? 0.05 * BASE_OCA_RATE_AK47_COMPLETE : 0.05 * BASE_OCA_RATE_BREAK;
+    console.log(`[OCA] source=${source} base=${chosenBase.toFixed(4)} mult=${totalMult.toFixed(4)} final=${standardChance.toFixed(4)} result=${result ? 'drop:'+result : 'miss'} breakBoost=${breakBoost.toFixed(2)} darkStake=${darkStakeApplied ? 'yes' : 'no'}`);
+  }
+
+  return result;
+}
 
 function consumeDarkStakeOcaMultiplier() {
   const cs = window._csState;
@@ -9533,10 +9548,18 @@ function consumeDarkStakeOcaMultiplier() {
   return 10;
 }
 
-function tryOcaBombDrop(x, y) {
-  if (_ocaDropCount >= 10) return;
-  const tier = rollOcaDrop(getOcaKoMultiplier());
+function rollOcaFromBreakSuccess() {
+  const darkStakeMult = consumeDarkStakeOcaMultiplier();
+  return rollOCA({ source: 'break', multiplier: darkStakeMult, allowBreakBoosts: true });
+}
+
+function rollOcaFromAk47Complete() {
+  return rollOCA({ source: 'ak47_complete', multiplier: 1, allowBreakBoosts: false });
+}
+
+function awardOcaTierDrop(tier, x, y) {
   if (!tier) return;
+  if (_ocaDropCount >= 10) return;
   _ocaDropCount++;
   if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
   save.ocaTickets[tier] = (save.ocaTickets[tier] || 0) + 1;
@@ -9545,20 +9568,15 @@ function tryOcaBombDrop(x, y) {
   showOcaDropToast(tier);
 }
 
+function tryOcaBombDrop(x, y) {
+  awardOcaTierDrop(rollOcaFromAk47Complete(), x, y);
+}
+
 // tryOcaSkillDrop(x, y) — used by BREAK success ONLY.
 // NOT called from individual weak point pickup (that was Bug 2).
 // Single WP collect = no OCA roll. AK47 complete uses rollOcaFromAk47Complete() instead.
 function tryOcaSkillDrop(x, y) {
-  if (_ocaDropCount >= 10) return;
-  const darkStakeMult = consumeDarkStakeOcaMultiplier();
-  const tier = rollOcaDrop(getOcaKoMultiplier() * darkStakeMult);
-  if (!tier) return;
-  _ocaDropCount++;
-  if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
-  save.ocaTickets[tier] = (save.ocaTickets[tier] || 0) + 1;
-  doSave();
-  showOcaDropFX(x, y, tier);
-  showOcaDropToast(tier);
+  awardOcaTierDrop(rollOcaFromBreakSuccess(), x, y);
 }
 
 function showOcaDropFX(x, y, tier) {
