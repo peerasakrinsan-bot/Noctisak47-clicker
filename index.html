@@ -4944,8 +4944,9 @@ const CARD_POOL = [
     apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
   { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
-    effect:'Boss DMG <strong>+35%</strong> & Boss KO Zeny <strong>+12%</strong><br>BREAK: Boss DMG <strong>+30%</strong> 6 วิ (1 ครั้ง)', tradeoff:null,
-    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.35; s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.12; s.cs_aknightBreak=true; }
+    shortDesc:'บอสละลายไวขึ้น และพุ่งแรงหลัง BREAK',
+    effect:'Boss DMG <strong>+50%</strong> & Boss KO Zeny <strong>+20%</strong><br>BREAK สำเร็จ: Boss DMG <strong>+50%</strong> 8 วิ', tradeoff:null,
+    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.50; s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.20; s.cs_aknightBreak=true; }
   },
 
   // ── VOID (MVP) ──
@@ -4968,17 +4969,17 @@ const CARD_POOL = [
   },
   { id:'mt',   name:'MISSSTRESS CARD',      img:'cards/missstress.png',    rarity:'mythic',
     shortDesc:'OD คลิกเพิ่ม Zeny และยืดเวลา Overdrive',
-    effect:'OD:<br>คลิก = Zeny <strong>+8</strong> & OD timer <strong>+0.3 วิ</strong>', tradeoff:null,
+    effect:'OD:<br>คลิก = Zeny <strong>+12</strong> & OD timer <strong>+0.5 วิ</strong> & Crit <strong>+10%</strong>', tradeoff:null,
     apply(s){ s.cs_mistress = true; }
   },
   { id:'gb',  name:'GOLDEN BRUH CARD',    img:'cards/golden_bruh.png',  rarity:'mythic',
     shortDesc:'คอมโบเร่ง Zeny และปลด GOLD RUSH เมื่อ Max Combo',
-    effect:'คลิก = Combo <strong>+1</strong><br>Zeny <strong>×2.5</strong><br>Max Combo (47): <strong>GOLD RUSH</strong> 10 วิ<br>Zeny ×7 & คลิก = +5<br>Cooldown 12 วิ', tradeoff:'OD ชาร์จไม่ได้',
+    effect:'คลิก = Combo <strong>+1</strong><br>Zeny <strong>×3</strong><br>Max Combo (47): <strong>GOLD RUSH</strong> 12 วิ<br>Zeny ×9 & คลิก = +8<br>Cooldown 10 วิ', tradeoff:'OD ชาร์จไม่ได้',
     apply(s){ s.cs_goldenbug = true; }
   },
   { id:'oh',    name:'COKE ZERO CARD',      img:'cards/coke_zero.png',    rarity:'mythic',
     shortDesc:'เร่ง OD charge สูง แต่ต้องแลกเวลากับ Stack DMG',
-    effect:'OD charge <strong>×3.5</strong><br>OD หมด: DMG <strong>+10%</strong> Stack<br>(สูงสุด +50%)', tradeoff:'เวลา <strong>-5 วิ</strong>',
+    effect:'OD charge <strong>×4</strong><br>OD หมด: DMG <strong>+15%</strong> Stack<br>(สูงสุด +90%)', tradeoff:null,
     apply(s){ s.cs_orchero = true; }
   },
   { id:'ld',name:'LORD OF DEBT CARD', img:'cards/lord_of_debt.png',rarity:'mythic',
@@ -5072,19 +5073,22 @@ const CARD_POOL = [
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.35; s.cs_taoFunka=true; }
   },
   { id:'dc',    name:'DRUNKULA CARD',        img:'cards/drunkula.png',     rarity:'elite',
-    effect:'Crit: Zeny <strong>+4</strong> & OD charge <strong>+3%</strong>', tradeoff:null,
-    apply(s){ s.cs_draculaCoin = true; }
+    shortDesc:'Crit เร่งเศรษฐกิจและปั๊ม OD แบบดุดัน',
+    effect:'Crit: Zeny <strong>+10</strong> & OD charge <strong>+6%</strong><br>Crit DMG <strong>+30%</strong>', tradeoff:null,
+    apply(s){ s.cs_draculaCoin = true; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.30; }
   },
   { id:'ic',name:'INCANTATION SCAMURAI CARD',img:'cards/incantation_scamurai.png',rarity:'elite',
     effect:'Combo ≥ 35: DMG <strong>×2.5</strong> & AK47 spawn เร็ว <strong>+20%</strong> & BREAK <strong>+10%</strong>', tradeoff:null,
     apply(s){ s.cs_incantation = true; }
   },
   { id:'sk',name:'STORMYNITE CARD', img:'cards/stormynite.png',rarity:'elite',
-    effect:'OD:<br>คลิก = timer <strong>+0.3 วิ</strong><br>(สูงสุด +12 วิ)', tradeoff:null,
+    shortDesc:'OD ยาวขึ้นมาก และได้ burst DMG ระหว่าง OD',
+    effect:'OD:<br>คลิก = timer <strong>+0.5 วิ</strong><br>(สูงสุด +20 วิ)<br><br>OD: DMG <strong>+35%</strong>', tradeoff:null,
     apply(s){ s.cs_stormyKnight = true; }
   },
   { id:'dl',   name:'DORK LORD CARD',      img:'cards/dork_lord.png',   rarity:'elite',
-    effect:'KO: เวลา <strong>+0.08 วิ</strong> & score <strong>+80</strong>', tradeoff:'Zeny จาก KO <strong>-15%</strong>',
+    shortDesc:'KO เปลี่ยนเป็นโมเมนตัมเวลาและรางวัลทันที',
+    effect:'KO: เวลา <strong>+0.15 วิ</strong> & score <strong>+150</strong> & Zeny <strong>+15</strong>', tradeoff:null,
     apply(s){ s.cs_darkLord = true; }
   },
   { id:'mf', name:'MOONLIGHT FEVER CARD', img:'cards/moonlight_fever.png', rarity:'elite',
@@ -5174,8 +5178,9 @@ const CARD_POOL = [
     apply(s){ s.cs_amonRa = true; }
   },
   { id:'mp',name:'MAYA PROBLEM CARD',    img:'cards/maya_problem.png', rarity:'elite',
-    effect:'Boss DMG <strong>+18%</strong> & Crit <strong>+6%</strong> | BREAK: Boss DMG <strong>+20%</strong> 5 วิ (1 ครั้ง)', tradeoff:null,
-    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.18; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.06; s.cs_mayaProblem=true; }
+    shortDesc:'ล่าบอสไวขึ้นและระเบิดดาเมจหลัง BREAK',
+    effect:'Boss DMG <strong>+30%</strong> & Crit <strong>+10%</strong><br>BREAK สำเร็จ: Boss DMG <strong>+40%</strong> 6 วิ', tradeoff:null,
+    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.30; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_mayaProblem=true; }
   },
   { id:'ed',name:'WEEBVIL DUDE CARD',     img:'cards/weebvil_dude.png',  rarity:'elite',
     effect:'DMG <strong>+20%</strong> & Crit DMG <strong>+12%</strong> | BREAK: DMG <strong>+25%</strong> 5 วิ', tradeoff:'เวลา <strong>-6 วิ</strong>',
@@ -5229,17 +5234,17 @@ const CARD_POOL = [
   // ── ELITE NEW (v2) ──
   { id:'ghp', name:'GHOSTPING CARD',       img:'cards/ghostping_card.png',      rarity:'elite',
     shortDesc:'พลาด AK47 ช่วยเร่ง BREAK และบูสต์ DMG ตอน BREAK',
-    effect:'พลาด AK47:<br>BREAK เร็วขึ้น <strong>0.8 วิ</strong><br>(สูงสุด 5 ครั้ง/รอบ)<br><br>BREAK: DMG <strong>+30%</strong>', tradeoff:null,
+    effect:'พลาด AK47:<br>BREAK เร็วขึ้น <strong>1.5 วิ</strong><br>(สูงสุด 6 ครั้ง/รอบ)<br><br>BREAK: DMG <strong>+55%</strong> & BREAK progress <strong>+15%</strong>', tradeoff:null,
     apply(s){ s.cs_ghostping=true; }
   },
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
     shortDesc:'DMG สูง และบอสต้นเกมให้ Zeny เพิ่ม',
-    effect:'DMG <strong>+45%</strong><br>10 วิแรก: Boss KO Zeny <strong>+10%</strong>', tradeoff:null,
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_devilingo=true; }
+    effect:'DMG <strong>+60%</strong><br>15 วิแรก: Boss DMG <strong>+25%</strong> & Boss KO Zeny <strong>+30%</strong>', tradeoff:null,
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.60; s.cs_devilingo=true; }
   },
   { id:'ltn', name:'LADY TRAINEE CARD',    img:'cards/lady_trainee_card.png',   rarity:'elite',
     shortDesc:'OD Lv.Up สะสม DMG และปลด Spotlight',
-    effect:'OD Lv. เพิ่ม:<br>DMG <strong>+2%</strong> Stack<br>(สูงสุด +30%)<br><br>15 Stacks:<br><strong>Spotlight Mode</strong><br>OD charge <strong>+6%/คลิก</strong>', tradeoff:'OD จบ < Lv.3: เสีย <strong>1 Stack</strong>',
+    effect:'OD Lv. เพิ่ม:<br>DMG <strong>+4%</strong> Stack<br>(สูงสุด +60%)<br><br>10 Stacks:<br><strong>Spotlight Mode</strong><br>OD charge <strong>+10%/คลิก</strong>', tradeoff:null,
     apply(s){ s.cs_ladyTrainee=true; }
   },
 
@@ -5726,6 +5731,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   let d = baseDmg;
   if(cs.cs_dmgBonus)   d *= (1 + cs.cs_dmgBonus);
   if(cs.cs_bossDmgBonus && isBoss) d *= (1 + cs.cs_bossDmgBonus);
+  if(cs.cs_devilingo && isBoss && performance.now() - (_csCombatStartAt||0) <= 15000) d *= 1.25;
   // MISSSTRESS no longer has a non-OD damage penalty.
   if(cs.cs_mummy_active) d *= (1 + (cs.cs_combo20Dmg||0));
   if(cs.cs_skelworker_bonus) d *= (1 + cs.cs_skelworker_bonus);
@@ -5737,6 +5743,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_raydric && cs._raydricActive) d *= 1.20;
   if(cs.cs_zenorc_active) d *= (1 + cs.cs_zenorc_active);
   if(cs.cs_moonlightflower) d *= 2;
+  if(cs.cs_stormyKnight && godLevel > 0) d *= 1.35;
   // Minorous: +35% when HP > 60%
   if(cs.cs_minorous) { const ratio = isBoss ? 1 : (hp/maxHP); if(ratio > 0.60) d *= 1.35; }
   // Executioner: +50% when HP < 25%
@@ -5765,7 +5772,7 @@ function csApplyDmgMod(baseDmg, isGod) {
     if(_odFill >= 70 || godLevel > 0) d *= 1.18;
   }
   // GHOSTPING: during BREAK → dmg +30%
-  if(cs.cs_ghostping && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.30;
+  if(cs.cs_ghostping && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.55;
   // LADY TRAINEE: run-only accumulated dmg bonus (max +30%)
   if(cs.cs_ladyTrainee && cs._ladyTraineeDmg) d *= (1 + cs._ladyTraineeDmg);
   // FALLEN WECHAT: Overloaded BREAK → dmg +75%
@@ -5781,9 +5788,9 @@ function csApplyDmgMod(baseDmg, isGod) {
   // GENERAL GRIEVOUS: during BREAK → dmg +22% additional
   if(cs.cs_ggBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.22;
   // ABYSMELL KNIGHT: 6s post-BREAK boss dmg +30%
-  if(cs.cs_aknightBreak && isBoss && cs._aknightBreakEndTime && performance.now() < cs._aknightBreakEndTime) d *= 1.30;
+  if(cs.cs_aknightBreak && isBoss && cs._aknightBreakEndTime && performance.now() < cs._aknightBreakEndTime) d *= 1.50;
   // MAYA PROBLEM: 5s post-BREAK boss dmg +20%
-  if(cs.cs_mayaProblem && isBoss && cs._mayaBreakEndTime && performance.now() < cs._mayaBreakEndTime) d *= 1.20;
+  if(cs.cs_mayaProblem && isBoss && cs._mayaBreakEndTime && performance.now() < cs._mayaBreakEndTime) d *= 1.40;
   // WEEBVIL DUDE: 5s post-BREAK dmg +25%
   if(cs.cs_weebvilBreak && cs._weebvilBreakEndTime && performance.now() < cs._weebvilBreakEndTime) d *= 1.25;
   // ATROSUS: Resonance post-BREAK (x1.6 base, x2.0 after Resonant Mastery)
@@ -5816,8 +5823,8 @@ function csApplyCoinMod(coins) {
   if(cs._alligatorPct) c *= (1 + cs._alligatorPct);
   // GOLDEN BRUH: Gold Rush x7 when active, x2.5 baseline (no OD)
   if(cs.cs_goldenbug) {
-    if(cs._goldRushEndTime && performance.now() < cs._goldRushEndTime) c *= 7;
-    else c *= 2.5;
+    if(cs._goldRushEndTime && performance.now() < cs._goldRushEndTime) c *= 9;
+    else c *= 3;
   }
   // NOSIRIS: Judgment x2 coin
   if(cs.cs_osiris) {
@@ -5826,6 +5833,7 @@ function csApplyCoinMod(coins) {
   // BEELZEBRUH: max-corruption discharge coin x1.5
   if(cs.cs_beelzebub && cs._beelzebubCoinEndTime && performance.now() < cs._beelzebubCoinEndTime) c *= 1.5;
   if(cs.cs_moonlightflower) c *= 2;
+  if(cs.cs_devilingo && isBoss && performance.now() - (_csCombatStartAt||0) <= 15000) c *= 1.30;
   if(cs.cs_amonRa_active) c *= 1.5;
   if(typeof pressureCoinMultiplier === 'function') c *= pressureCoinMultiplier();
   // A-LIST: Sponsor Rush +25% coin
@@ -5843,8 +5851,8 @@ function csOnClick(isGod) {
   const cs = window._csState;
   // MISSSTRESS: Zeny +8 and OD timer +0.3s during OD
   if(cs.cs_mistress && isGod) {
-    roundCoins += 8;
-    godSecondsLeft += 0.3;
+    roundCoins += 12;
+    godSecondsLeft += 0.5;
     updateUI();
   }
   if(cs.cs_odTimerOnClick && isGod) {
@@ -5883,7 +5891,7 @@ function csOnClick(isGod) {
   }
   // GOLDEN BRUH: +3 coin per click during Gold Rush
   if(cs.cs_goldenbug && cs._goldRushEndTime && performance.now() < cs._goldRushEndTime) {
-    roundCoins += 5;
+    roundCoins += 8;
   }
   // Mastering: combo milestone time bonus
   if(cs.cs_comboTimeBonus && combo > 0 && combo % 10 === 0) {
@@ -5903,8 +5911,8 @@ function csOnClick(isGod) {
   // STORMYNITE: extend OD timer +0.3s per click during OD (max +12s per round)
   if(cs.cs_stormyKnight && isGod) {
     if(!cs._stormyKnightAcc) cs._stormyKnightAcc = 0;
-    if(cs._stormyKnightAcc < 12) {
-      const gain = Math.min(0.3, 12 - cs._stormyKnightAcc);
+    if(cs._stormyKnightAcc < 20) {
+      const gain = Math.min(0.5, 20 - cs._stormyKnightAcc);
       cs._stormyKnightAcc += gain;
       godSecondsLeft += gain;
     }
@@ -5931,8 +5939,9 @@ function csOnKO() {
   }
   // DORK LORD: +0.08s per KO + score +80
   if(cs.cs_darkLord) {
-    timeLeft += 0.08;
-    score += 80;
+    timeLeft += 0.15;
+    score += 150;
+    roundCoins += csApplyCoinMod(15);
   }
   // Turtle General: score +300 per KO when combo >= 30
   if(cs.cs_combo30_active) {
@@ -5981,7 +5990,7 @@ function csOnOdEnd() {
   // COKE ZERO: accumulate dmg bonus +10% per OD end (max +50%)
   if(cs.cs_orchero) {
     if(!cs._orcheroDmgStack) cs._orcheroDmgStack = 0;
-    if(cs._orcheroDmgStack < 0.50) cs._orcheroDmgStack = Math.min(0.50, cs._orcheroDmgStack + 0.10);
+    if(cs._orcheroDmgStack < 0.90) cs._orcheroDmgStack = Math.min(0.90, cs._orcheroDmgStack + 0.15);
   }
   // KILL-D01: reset per-OD click counter when OD expires
   if(cs.cs_killD01) cs._killD01OdClickCount = 0;
@@ -5989,7 +5998,7 @@ function csOnOdEnd() {
   if((cs._currentOdPeakLevel || 0) < 3) {
     // LADY TRAINEE: lose 2 stacks if OD ended below Lv3
     if(cs.cs_ladyTrainee && cs._ladyTraineeDmg) {
-      cs._ladyTraineeDmg = Math.max(0, cs._ladyTraineeDmg - 0.01);
+      cs._ladyTraineeDmg = Math.max(0, cs._ladyTraineeDmg - 0.00);
     }
   }
   cs._currentOdPeakLevel = 0;
@@ -6081,14 +6090,12 @@ function csOnBreakSuccess() {
     }
   }
   // ABYSMELL KNIGHT: 6s boss dmg window, once per boss
-  if(cs.cs_aknightBreak && isBoss && !cs._aknightBossBreakUsed) {
-    cs._aknightBreakEndTime = performance.now() + 6000;
-    cs._aknightBossBreakUsed = true;
+  if(cs.cs_aknightBreak && isBoss) {
+    cs._aknightBreakEndTime = performance.now() + 8000;
   }
   // MAYA PROBLEM: 5s boss dmg window, once per boss
-  if(cs.cs_mayaProblem && isBoss && !cs._mayaBossBreakUsed) {
-    cs._mayaBreakEndTime = performance.now() + 5000;
-    cs._mayaBossBreakUsed = true;
+  if(cs.cs_mayaProblem && isBoss) {
+    cs._mayaBreakEndTime = performance.now() + 6000;
   }
   // WEEBVIL DUDE: 5s dmg window (refreshes every BREAK)
   if(cs.cs_weebvilBreak) cs._weebvilBreakEndTime = performance.now() + 5000;
@@ -6164,9 +6171,9 @@ function csOnWpMiss() {
   // GHOSTPING: reduce BREAK cooldown (up to 5 misses per BREAK cycle)
   if(cs.cs_ghostping && PRESSURE.phase === 'idle') {
     if(!cs._ghostpingMissCount) cs._ghostpingMissCount = 0;
-    if(cs._ghostpingMissCount < 5) {
+    if(cs._ghostpingMissCount < 6) {
       cs._ghostpingMissCount++;
-      PRESSURE.cooldown = Math.max(0, PRESSURE.cooldown - 800);
+      PRESSURE.cooldown = Math.max(0, PRESSURE.cooldown - 1500);
     }
   }
   // DETAILED: lose 2 Analysis stacks on WP miss + small combo penalty
@@ -6208,8 +6215,8 @@ function csOnOdStart() {
     if(cs._zenorcCount < 3) cs._zenorcCount++;
   }
   // LADY TRAINEE: +2% dmg stack per OD Level Up (max +30%)
-  if(cs.cs_ladyTrainee && (cs._ladyTraineeDmg || 0) < 0.30) {
-    cs._ladyTraineeDmg = Math.min(0.30, (cs._ladyTraineeDmg || 0) + 0.02);
+  if(cs.cs_ladyTrainee && (cs._ladyTraineeDmg || 0) < 0.60) {
+    cs._ladyTraineeDmg = Math.min(0.60, (cs._ladyTraineeDmg || 0) + 0.04);
   }
 }
 
@@ -8154,11 +8161,11 @@ function processHit(e, now) {
     const cur = parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width = Math.max(0, cur - penalty) + '%';
   }
-  // LADY TRAINEE: Spotlight Mode at 25 stacks → +5% OD charge per click
-  if(window._csState && window._csState.cs_ladyTrainee && (window._csState._ladyTraineeDmg || 0) >= 0.15
+  // LADY TRAINEE: Spotlight Mode at 10 stacks → +10% OD charge per click
+  if(window._csState && window._csState.cs_ladyTrainee && (window._csState._ladyTraineeDmg || 0) >= 0.40
      && godLevel === 0 && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     const cur = parseFloat(_el.godFill.style.width)||0;
-    _el.godFill.style.width = Math.min(100, cur + 6) + '%';
+    _el.godFill.style.width = Math.min(100, cur + 10) + '%';
     if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod) activateGodLevel(1);
   }
   // BAPHOMET / GOLDEN BUG / RSX-0806: no OD charge
@@ -8173,9 +8180,9 @@ function processHit(e, now) {
   if(window._csState && window._csState.cs_goldenbug && combo === 47) {
     const _grNow = performance.now();
     if(!window._csState._goldRushCooldownUntil || _grNow >= window._csState._goldRushCooldownUntil) {
-      window._csState._goldRushEndTime = _grNow + 10000;
-      window._csState._goldRushCooldownUntil = _grNow + 22000;
-      showBigSplash('GOLD RUSH', 'ZENY x7 — 10s', '#ffcc00', false);
+      window._csState._goldRushEndTime = _grNow + 12000;
+      window._csState._goldRushCooldownUntil = _grNow + 10000;
+      showBigSplash('GOLD RUSH', 'ZENY x9 — 12s', '#ffcc00', false);
     }
   }
   // MOONLIGHT FLOWER / VITATA / ELDER WILLOW / METALLER / THIEF BUG: ถ้า bar เต็ม 100% ก่อน combo 47 → trigger OD ทันที
@@ -8557,13 +8564,11 @@ function bossKO() {
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
   // Turtle Shogun: KO Zeny -15%
   if(window._csState && window._csState.cs_combo30) bossCoins = Math.round(bossCoins * 0.85);
-  // Dork Lord: KO Zeny -15%
-  if(window._csState && window._csState.cs_darkLord) bossCoins = Math.round(bossCoins * 0.85);
-  if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
-  // DEVILINGO: boss defeated within 10s → Boss KO Zeny +10%
+    if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
+  // DEVILINGO: boss defeated within 15s → Boss KO Zeny +30%
   if(window._csState && window._csState.cs_devilingo && window._csState._devilingoCombatStart) {
-    if(Date.now() - window._csState._devilingoCombatStart <= 10000) {
-      bossCoins = Math.round(bossCoins * 1.10);
+    if(Date.now() - window._csState._devilingoCombatStart <= 15000) {
+      bossCoins = Math.round(bossCoins * 1.30);
     }
   }
   bossCoins = csApplyCoinMod(bossCoins);
