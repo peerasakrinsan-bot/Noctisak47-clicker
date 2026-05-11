@@ -47,8 +47,17 @@
 <link rel="preload" href="break_core.png"   as="image">
 <link rel="preload" href="break_barrier.png" as="image">
 <link rel="preload" href="47title.mp3"      as="audio" type="audio/mpeg">
-<link rel="preload" href="suang_icon.webp"  as="image">
-<link rel="preload" href="morgan_icon.webp" as="image">
+<link rel="preload" href="one_bg.png"        as="image">
+<link rel="preload" href="colosseum_bg.webp" as="image" type="image/webp">
+<link rel="preload" href="boxer_icon.webp"   as="image" type="image/webp">
+<link rel="preload" href="suang_icon.webp"   as="image" type="image/webp">
+<link rel="preload" href="morgan_icon.webp"  as="image" type="image/webp">
+<link rel="preload" href="apologize_icon.webp" as="image" type="image/webp">
+<link rel="preload" href="rukawa_icon.webp"  as="image" type="image/webp">
+<link rel="preload" href="sornsit_icon.webp" as="image" type="image/webp">
+<link rel="preload" href="xuang_icon.webp"   as="image" type="image/webp">
+<link rel="preload" href="toei_boxer_icon.webp" as="image" type="image/webp">
+<link rel="preload" href="toei_icon.webp"    as="image" type="image/webp">
 <link rel="preload" href="old-cringe-album.webp" as="image">
 <link rel="preload" href="rngesus.webp"     as="image">
 <link rel="preload" href="de-so-later.webp" as="image">
@@ -4299,6 +4308,8 @@ function getActiveSkin() {
 
 function openBossShop() {
   _hideAllScreens();
+  // Preload boss skin icons so grid renders without blank images
+  BOSS_SKINS.forEach(s => _preloadImg(s.icon || s.files.idle));
   renderBossShop();
   $('bossScreen').style.display = 'flex';
 }
@@ -4335,7 +4346,7 @@ function renderBossShop() {
     }
 
     card.innerHTML = `
-      <img class="boss-skin-icon" src="${skin.icon}" alt="${skin.name}" onerror="this.style.background='#1a1a1a';this.src=''" decoding="async" onclick="openBossSkinPreview('${skin.id}', event)">
+      <img class="boss-skin-icon" src="${skin.icon || skin.files.idle}" alt="${skin.name}" onerror="this.onerror=null;this.style.background='#1a1a1a';console.warn('[Boss] icon missing:',this.src)" decoding="async" onclick="openBossSkinPreview('${skin.id}', event)">
       <div class="boss-skin-name">${skin.name}</div>
       <div class="boss-skin-sub">${isOwned ? (isActive ? '<span class="css-check" style="color:#00ff88;display:inline-block;margin-right:4px;"></span>ใช้งานอยู่' : 'ซื้อแล้ว') : skin.sub}</div>
       ${actionHtml}
@@ -4349,7 +4360,8 @@ function openBossSkinPreview(id, event) {
   const skin = BOSS_SKINS.find(s => s.id === id);
   if (!skin) return;
   const img = $('bossSkinModalImg');
-  img.src = skin.icon || '';
+  img.onerror = function() { this.onerror = null; this.src = skin.files.idle || ''; };
+  img.src = skin.icon || skin.files.idle || '';
   img.alt = skin.name;
   $('bossSkinModalName').textContent = skin.name;
   $('bossSkinModal').style.display = 'flex';
@@ -4446,6 +4458,8 @@ function _applyArenaBg() {
 
 function openArenaShop() {
   _hideAllScreens();
+  // Preload arena preview images so <img> elements render immediately
+  ARENA_SKINS.forEach(a => _preloadImg(a.preview || a.bg));
   renderArenaShop();
   $('arenaScreen').style.display = 'flex';
 }
@@ -4502,14 +4516,17 @@ function renderArenaShop() {
     const card = document.createElement('div');
     card.className = 'arena-skin-card' + (isActive ? ' active-arena' : '');
 
-    // ใช้ canvas วาด preview จาก _imgObjCache ที่ preload ไว้แล้ว — ไม่มีปัญหา path/base64
-    const canvas = document.createElement('canvas');
-    canvas.className = 'arena-skin-preview';
-    canvas.width  = 300;
-    canvas.height = 120;
-    canvas.style.cssText = 'width:100%;height:70px;border-radius:6px;border:1px solid #333;background:#1a1a1a;display:block;image-rendering:auto;';
-
-    _drawArenaPreview(canvas, arena.preview);
+    // ใช้ <img> แทน canvas — ง่ายกว่า เชื่อถือได้กว่า ไม่มีปัญหา async draw
+    const preview = document.createElement('img');
+    preview.className = 'arena-skin-preview';
+    preview.alt = arena.name.replace(/\n/g, ' ');
+    preview.decoding = 'async';
+    // fallback ไป bg ถ้า preview ไม่มี
+    preview.src = arena.preview || arena.bg;
+    preview.onerror = function() {
+      this.onerror = null;
+      console.warn('[Arena] preview missing:', this.src);
+    };
 
     const nameDiv = document.createElement('div');
     nameDiv.className = 'arena-skin-name';
@@ -4519,7 +4536,7 @@ function renderArenaShop() {
     subDiv.className = 'arena-skin-sub';
     subDiv.innerHTML = isOwned ? (isActive ? '<span class="css-check" style="color:#00ff88;display:inline-block;margin-right:4px;"></span>ใช้งานอยู่' : 'ซื้อแล้ว') : arena.sub;
 
-    card.appendChild(canvas);
+    card.appendChild(preview);
     card.appendChild(nameDiv);
     card.appendChild(subDiv);
     card.insertAdjacentHTML('beforeend', actionHtml);
