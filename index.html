@@ -1279,12 +1279,12 @@
     50%     { text-shadow:0 0 22px #4488ff, 0 0 44px rgba(68,136,255,0.8), 0 0 64px rgba(68,136,255,0.3); }
   }
 
-  /* ── OD LV3 — smooth crimson pulse (no strobe/glitch) ── */
+  /* ── OD LV3 — smooth cyan pulse (no strobe/glitch) ── */
   #godLevelWrap.od-lv3 #godLevelLabel,
-  #godLevelWrap.od-lv3 #godLevelNum { color:#ff334d; animation:odCrimsonPulse 1.8s ease-in-out infinite; }
-  @keyframes odCrimsonPulse {
-    0%,100% { text-shadow:0 0 8px rgba(255,34,70,.55), 0 0 18px rgba(110,0,140,.32); opacity:.92; transform:translateX(0) scale(1); }
-    50%     { text-shadow:0 0 16px rgba(255,34,70,.78), 0 0 34px rgba(120,0,160,.46); opacity:1; transform:translateX(0) scale(1.025); }
+  #godLevelWrap.od-lv3 #godLevelNum { color:#67f7ff; animation:odCyanPulse 1.8s ease-in-out infinite; }
+  @keyframes odCyanPulse {
+    0%,100% { text-shadow:0 0 8px rgba(35,210,255,.55), 0 0 18px rgba(0,78,180,.34); opacity:.92; transform:translateX(0) scale(1); }
+    50%     { text-shadow:0 0 16px rgba(85,245,255,.84), 0 0 34px rgba(0,150,255,.52); opacity:1; transform:translateX(0) scale(1.025); }
   }
 
   /* ── Level-up impact flash ── */
@@ -1561,7 +1561,7 @@
   }
   @keyframes bossHitGodAnim {
     0%  { filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)) brightness(1) saturate(1); }
-    35% { filter:drop-shadow(0 0 24px rgba(180,20,90,.62)) drop-shadow(0 0 34px rgba(85,0,150,.35)) brightness(1.45) saturate(.75); }
+    35% { filter:drop-shadow(0 0 24px rgba(0,165,255,.62)) drop-shadow(0 0 34px rgba(0,70,180,.35)) brightness(1.45) saturate(.9); }
     100%{ filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)) brightness(1) saturate(1); }
   }
 
@@ -1625,41 +1625,48 @@
 
   /* ══ OVERDRIVE EDGE AURA ══ */
   #odEdgeAura {
+    --od-electric: .22;
+    --od-cyan: .08;
+    --od-sat: 1.15;
+    --od-bright: 1;
     position:absolute; inset:-2%; z-index:12; pointer-events:none; opacity:0;
-    transition:opacity .65s ease; overflow:hidden; transform:translateZ(0);
+    transition:opacity .65s ease, filter .9s ease; overflow:hidden; transform:translateZ(0);
     mix-blend-mode:screen;
+    filter:saturate(var(--od-sat)) brightness(var(--od-bright));
     background:
-      radial-gradient(ellipse at center, transparent 0 68%, rgba(22,0,28,.015) 78%, rgba(92,0,82,.14) 90%, rgba(180,0,54,.24) 100%),
-      linear-gradient(90deg, rgba(120,0,74,.34), transparent 10%, transparent 90%, rgba(150,0,58,.38)),
-      linear-gradient(180deg, rgba(72,0,96,.30), transparent 10%, transparent 90%, rgba(140,0,54,.35));
+      radial-gradient(ellipse at center, transparent 0 76%, rgba(0,12,44,.018) 84%, rgba(0,38,104,.18) 92%, rgba(0,54,142,.30) 100%),
+      linear-gradient(90deg, rgba(0,30,120,.44), transparent 8%, transparent 92%, rgba(0,48,145,.46)),
+      linear-gradient(180deg, rgba(0,18,86,.36), transparent 8%, transparent 92%, rgba(0,58,128,.40));
   }
   #odEdgeAura::before,
   #odEdgeAura::after {
     content:''; position:absolute; inset:0; pointer-events:none;
-    -webkit-mask:radial-gradient(ellipse at center, transparent 0 66%, #000 82%);
-    mask:radial-gradient(ellipse at center, transparent 0 66%, #000 82%);
+    -webkit-mask:radial-gradient(ellipse at center, transparent 0 76%, #000 88%);
+    mask:radial-gradient(ellipse at center, transparent 0 76%, #000 88%);
   }
   #odEdgeAura::before {
     background:
-      radial-gradient(circle at 0% 18%, rgba(255,40,82,.52), transparent 30%),
-      radial-gradient(circle at 100% 76%, rgba(126,42,255,.42), transparent 32%),
-      radial-gradient(circle at 48% 100%, rgba(255,68,28,.34), transparent 28%),
-      radial-gradient(circle at 52% 0%, rgba(112,0,160,.35), transparent 30%);
-    filter:blur(12px); opacity:.72; animation:odAuraBreath 1.8s ease-in-out infinite;
+      radial-gradient(circle at 0% 18%, rgba(0,120,255,.58), transparent 30%),
+      radial-gradient(circle at 100% 76%, rgba(0,180,255,.52), transparent 32%),
+      radial-gradient(circle at 48% 100%, rgba(0,96,255,.42), transparent 28%),
+      radial-gradient(circle at 52% 0%, rgba(0,68,170,.42), transparent 30%);
+    filter:blur(12px); opacity:var(--od-electric); animation:odAuraBreath 1.8s ease-in-out infinite;
   }
   #odEdgeAura::after {
     background:
-      conic-gradient(from 20deg, transparent 0 12%, rgba(255,40,80,.16) 18%, transparent 28%, rgba(130,42,255,.14) 42%, transparent 56%, rgba(255,92,36,.13) 70%, transparent 84%);
-    filter:blur(18px); opacity:.42; animation:odAuraFlow 7s linear infinite;
+      radial-gradient(circle at 0% 50%, rgba(90,245,255,.38), transparent 26%),
+      radial-gradient(circle at 100% 48%, rgba(76,235,255,.38), transparent 28%),
+      conic-gradient(from 20deg, transparent 0 12%, rgba(0,185,255,.20) 18%, transparent 28%, rgba(95,245,255,.24) 42%, transparent 56%, rgba(0,145,255,.18) 70%, transparent 84%);
+    filter:blur(18px); opacity:var(--od-cyan); animation:odAuraFlow 7s linear infinite;
   }
-  #odEdgeAura.od-active { opacity:.72; }
-  #odEdgeAura.od-active.od-lv2 { opacity:.82; }
-  #odEdgeAura.od-active.od-lv3 { opacity:.92; }
-  body.reduce-flash #odEdgeAura.od-active { opacity:.34; mix-blend-mode:normal; }
-  body.reduce-flash #odEdgeAura.od-active.od-lv2 { opacity:.40; }
-  body.reduce-flash #odEdgeAura.od-active.od-lv3 { opacity:.46; }
-  body.reduce-flash #odEdgeAura::before { opacity:.48; filter:blur(16px); }
-  body.reduce-flash #odEdgeAura::after { opacity:.22; }
+  #odEdgeAura.od-active { opacity:.66; }
+  #odEdgeAura.od-active.od-lv2 { opacity:.78; }
+  #odEdgeAura.od-active.od-lv3 { opacity:.90; }
+  body.reduce-flash #odEdgeAura.od-active { opacity:.30; mix-blend-mode:normal; }
+  body.reduce-flash #odEdgeAura.od-active.od-lv2 { opacity:.36; }
+  body.reduce-flash #odEdgeAura.od-active.od-lv3 { opacity:.42; }
+  body.reduce-flash #odEdgeAura::before { filter:blur(16px); }
+  body.reduce-flash #odEdgeAura::after { opacity:calc(var(--od-cyan) * .72); }
   @keyframes odAuraBreath {
     0%,100% { transform:scale(1); opacity:.58; }
     50%     { transform:scale(1.035); opacity:.86; }
@@ -3697,10 +3704,37 @@ function rebuildStatCache() {
   };
 }
 const boxer = $('boxer'), gun = $('gun'), fx = $('fxLayer'), flash = $('screenFlash'), odEdgeAura = $('odEdgeAura');
+const OD_AURA_CYAN_SHIFT_MS = 9000;
+let _odAuraStartAt = 0;
+let _odAuraRaf = 0;
+function _updateOdAuraTone(lv) {
+  if(!odEdgeAura || lv <= 0) return;
+  const elapsed = _odAuraStartAt ? performance.now() - _odAuraStartAt : 0;
+  const age = Math.max(0, Math.min(1, elapsed / OD_AURA_CYAN_SHIFT_MS));
+  const level = Math.max(0, Math.min(1, (lv - 1) / 2));
+  const cyan = Math.max(0.08, Math.min(0.86, 0.08 + age * 0.52 + level * 0.28));
+  const electric = Math.max(0.20, Math.min(0.78, 0.22 + age * 0.24 + level * 0.34));
+  odEdgeAura.style.setProperty('--od-cyan', cyan.toFixed(3));
+  odEdgeAura.style.setProperty('--od-electric', electric.toFixed(3));
+  odEdgeAura.style.setProperty('--od-sat', (1.12 + age * 0.55 + level * 0.38).toFixed(3));
+  odEdgeAura.style.setProperty('--od-bright', (1.0 + age * 0.16 + level * 0.12).toFixed(3));
+  _odAuraRaf = requestAnimationFrame(()=>_updateOdAuraTone(godLevel || lv));
+}
 function setOdEdgeAura(lv) {
   if(!odEdgeAura) return;
+  if(_odAuraRaf) { cancelAnimationFrame(_odAuraRaf); _odAuraRaf = 0; }
   odEdgeAura.classList.remove('od-active','od-lv1','od-lv2','od-lv3');
-  if(lv > 0) odEdgeAura.classList.add('od-active','od-lv' + Math.min(lv, 3));
+  if(lv > 0) {
+    if(!_odAuraStartAt) _odAuraStartAt = performance.now();
+    odEdgeAura.classList.add('od-active','od-lv' + Math.min(lv, 3));
+    _updateOdAuraTone(lv);
+  } else {
+    _odAuraStartAt = 0;
+    odEdgeAura.style.removeProperty('--od-cyan');
+    odEdgeAura.style.removeProperty('--od-electric');
+    odEdgeAura.style.removeProperty('--od-sat');
+    odEdgeAura.style.removeProperty('--od-bright');
+  }
 }
 
 // ── DOM cache สำหรับ hot path (ไม่ getElementById ซ้ำทุก hit) ──
