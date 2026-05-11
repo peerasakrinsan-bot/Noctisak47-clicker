@@ -3969,6 +3969,28 @@ window.addEventListener('resize', () => { _bSetSize(); _bScheduleDraw(); });
 // onerror is handled on the HTMLImageElement (_bCurrentImg) inside boxerSetImg().
 function _setBossImg(src) { boxerSetImg(src || DEFAULT_BOSS_IMAGE); }
 
+// Defensive recovery: called 300ms after game start.
+// If _bCurrentImg not loaded (naturalWidth=0), retry once with idle then fallback boxer.png.
+// Force-repaint fighter layer regardless.
+function _bossImgRecovery(caller) {
+  const imgOk = _bCurrentImg && _bCurrentImg.complete && _bCurrentImg.naturalWidth > 0;
+  const cvOk  = boxer.width > 1 && boxer.height > 1;
+  if(!imgOk) {
+    const retrySrc = getIdleImg() || DEFAULT_BOSS_IMAGE;
+    console.warn('[BossRecovery] ' + caller + ': image not ready after 300ms (' +
+      (_bCurrentImg ? _bCurrentImg.src : 'null') + ') — retry with', retrySrc);
+    _setBossImg(retrySrc);
+  } else if(!cvOk) {
+    console.warn('[BossRecovery] ' + caller + ': canvas zero-size — forcing repaint');
+    _bSetSize(); _bScheduleDraw();
+  }
+  // Always force fighter visible + repaint canvas
+  const _f = $('fighter');
+  if(_f) { _f.style.display='block'; _f.style.opacity='1'; _f.style.visibility='visible'; }
+  if(boxer) { boxer.style.display='block'; boxer.style.opacity='1'; boxer.style.visibility='visible'; }
+  if(imgOk && cvOk) _bScheduleDraw();
+}
+
 // ── Failsafe: ensure #fighter is visible and canvas has content ──
 // Call after any state transition that could leave the fighter invisible.
 function ensureBossVisible() {
@@ -6948,6 +6970,8 @@ function startGame() {
         if(_bx){const cs=getComputedStyle(_bx);console.log('[BossDebug] 3:BOXER',{display:cs.display,opacity:cs.opacity,visibility:cs.visibility});}
       }();
       ensureBossVisible();
+      // Defensive 300ms recovery: retry if canvas image failed to load
+      setTimeout(() => { _bossImgRecovery('startGame'); }, 300);
       if(window._csState && window._csState.cs_eddga) _csStartEddga();
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
       else _showActiveCard(activeCard);
@@ -7004,6 +7028,7 @@ function retryGame() {
         if(_bx){const cs=getComputedStyle(_bx);console.log('[BossDebug] 3:BOXER',{display:cs.display,opacity:cs.opacity,visibility:cs.visibility});}
       }();
       ensureBossVisible();
+      setTimeout(() => { _bossImgRecovery('retryGame'); }, 300);
       if(window._csState && window._csState.cs_eddga) _csStartEddga();
       if(window._csState && window._csState.cs_lordofdeath) _csStartLodTimer();
       else _showActiveCard(activeCard); // แสดงการ์ดที่เลือก (non-LOD)
