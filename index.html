@@ -1641,6 +1641,49 @@
 
   /* ══ SCREEN FLASH ══ */
   #screenFlash { position:absolute; top:0; left:0; right:0; bottom:0; z-index:30; pointer-events:none; opacity:0; }
+
+  /* ══ OD SCREEN-EDGE AURA ══
+     CSS-only cyan edge glow: visible only during OD and kept below menus/flash layers. */
+  #odScreenAura {
+    position:fixed;
+    inset:0;
+    z-index:29;
+    pointer-events:none;
+    opacity:0;
+    background:none;
+    mix-blend-mode:screen;
+    transition:opacity .18s ease, box-shadow .18s ease, filter .18s ease;
+    will-change:opacity, box-shadow;
+    contain:paint;
+  }
+  #odScreenAura.od-aura-active { opacity:1; }
+  #gameRoot.pressure-break #odScreenAura { opacity:0; }
+  #odScreenAura.od-aura-active::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    pointer-events:none;
+    background:
+      radial-gradient(ellipse at top, rgba(0,255,238,var(--od-aura-top,.10)) 0%, rgba(0,255,238,0) 46%),
+      radial-gradient(ellipse at bottom, rgba(0,136,255,var(--od-aura-bottom,.12)) 0%, rgba(0,136,255,0) 48%),
+      linear-gradient(90deg, rgba(0,210,255,var(--od-aura-side,.12)) 0%, rgba(0,210,255,0) 14%, rgba(0,210,255,0) 86%, rgba(0,210,255,var(--od-aura-side,.12)) 100%);
+  }
+  #odScreenAura.od-aura-lv1 {
+    --od-aura-top:.08; --od-aura-bottom:.10; --od-aura-side:.10;
+    box-shadow:inset 0 0 34px rgba(0,255,238,.22), inset 0 0 72px rgba(0,116,255,.10);
+    filter:saturate(1.05);
+  }
+  #odScreenAura.od-aura-lv2 {
+    --od-aura-top:.13; --od-aura-bottom:.16; --od-aura-side:.16;
+    box-shadow:inset 0 0 48px rgba(0,255,238,.34), inset 0 0 96px rgba(0,116,255,.16);
+    filter:saturate(1.18);
+  }
+  #odScreenAura.od-aura-lv3 {
+    --od-aura-top:.18; --od-aura-bottom:.22; --od-aura-side:.21;
+    box-shadow:inset 0 0 64px rgba(0,255,238,.48), inset 0 0 128px rgba(0,116,255,.24);
+    filter:saturate(1.32);
+  }
   .flash-punch { animation:sfPunch 0.12s forwards; }
   .flash-god   { animation:sfGod   0.18s forwards; }
   .flash-god2  { animation:sfGod2  0.2s  forwards; }
@@ -2434,12 +2477,13 @@
   }
 </style>
 </head>
-<body>
+<body class="reduce-flash">
 <div id="gameRoot">
 
 <div id="bg"></div>
 <div id="fxLayer"></div>
 <div id="screenFlash"></div>
+<div id="odScreenAura" aria-hidden="true"></div>
 <div id="annihilationFlash"></div>
 <div id="bombFlash"></div>
 
@@ -2917,10 +2961,6 @@
         <div class="setting-value" id="sfxVolumeValue">100%</div>
       </div>
     </div>
-    <div class="setting-row">
-      <div class="setting-label"><strong>REDUCE FLASH EFFECTS</strong><span>Softer flashes and glow pulses</span></div>
-      <button class="setting-toggle" id="reduceFlashToggleBtn" onclick="toggleSetting('reduceFlash')">OFF</button>
-    </div>
   </div>
   <div class="pause-btn-group">
     <button class="pause-btn pause-btn-resume" onclick="resumeGame()"><span class="pause-icon-play"></span>RESUME</button>
@@ -3099,7 +3139,7 @@ const CARD_HIDDEN_IMG = 'card_hidden.png';
 // ══════════════════════════════════════════
 // SOUND SYSTEM
 // ══════════════════════════════════════════
-const DEFAULT_SETTINGS = { musicOn:true, musicVolume:1, sfxOn:true, sfxVolume:1, reduceFlash:false };
+const DEFAULT_SETTINGS = { musicOn:true, musicVolume:1, sfxOn:true, sfxVolume:1, reduceFlash:true };
 function _clamp01(v) { v = Number(v); return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1; }
 function normalizeSettings(src) {
   src = (src && typeof src === 'object') ? src : {};
@@ -3108,7 +3148,10 @@ function normalizeSettings(src) {
     musicVolume: _clamp01(src.musicVolume === undefined ? 1 : src.musicVolume),
     sfxOn: src.sfxOn !== false,
     sfxVolume: _clamp01(src.sfxVolume === undefined ? 1 : src.sfxVolume),
-    reduceFlash: src.reduceFlash === true,
+    // Soft visual effects are now the default style for every player.
+    // Keep the flag internal/always true so old saves with reduceFlash:false
+    // cannot re-enable harsher flashes or heavier shake.
+    reduceFlash: true,
   };
 }
 function _loadLocalSettings() {
@@ -3249,7 +3292,7 @@ function syncSettingsUI() {
   const sfxBtn = $('sfxToggleBtn');
   if(sfxBtn) { sfxBtn.textContent = gameSettings.sfxOn ? 'ON' : 'OFF'; sfxBtn.classList.toggle('off', !gameSettings.sfxOn); }
   const flashBtn = $('reduceFlashToggleBtn');
-  if(flashBtn) { flashBtn.textContent = gameSettings.reduceFlash ? 'ON' : 'OFF'; flashBtn.classList.toggle('off', !gameSettings.reduceFlash); }
+  if(flashBtn) { flashBtn.textContent = 'ON'; flashBtn.classList.remove('off'); }
   const mv = $('musicVolumeSlider');
   if(mv) mv.value = Math.round(gameSettings.musicVolume * 100);
   const mvv = $('musicVolumeValue');
@@ -3263,7 +3306,7 @@ function syncSettingsUI() {
 function toggleSetting(type) {
   if(type === 'music') gameSettings.musicOn = !gameSettings.musicOn;
   if(type === 'sfx') gameSettings.sfxOn = !gameSettings.sfxOn;
-  if(type === 'reduceFlash') gameSettings.reduceFlash = !gameSettings.reduceFlash;
+  if(type === 'reduceFlash') gameSettings.reduceFlash = true;
   applyAudioSettings();
   persistSettings();
 }
@@ -3784,6 +3827,7 @@ function showMainMenu() {
   $('tapZone').style.display = 'none';
   $('streakLabel').style.display = 'none';
   _el.godLevelWrap.style.display = 'none';
+  updateOdScreenAura(0);
   _el.bossBar.style.display = 'none';
   $('wpCounter').style.display = 'none';
   pressureHide();
@@ -4406,6 +4450,7 @@ function initState() {
   _applyBossSkinAura(_sk.id);
   _el.bossBar.style.display = 'none';
   _el.godLevelWrap.style.display = 'none';
+  updateOdScreenAura(0);
   _el.bossPhaseTag.textContent = '';
   updateUI();
   rebuildStatCache();
@@ -5409,6 +5454,7 @@ function _csResetOdFromExpiredEddga() {
   if(typeof gun !== 'undefined' && gun) gun.style.display = 'none';
   if(_el && _el.godFill) _el.godFill.style.width = '0%';
   if(_el && _el.godLevelWrap) _el.godLevelWrap.style.display = 'none';
+  if(typeof updateOdScreenAura === 'function') updateOdScreenAura(0);
   if(typeof updateComboUI === 'function') updateComboUI();
 }
 
@@ -5474,6 +5520,7 @@ function _csStartEddga() {
     if(godLevel === 0 && canEnterGod) {
       _csEddgaForcedOd = true;
       godLevel = 1; canEnterGod = false;
+      updateOdScreenAura(godLevel);
       _el.godLevelWrap.style.display = 'block';
       updateGodLevelUI();
       _el.godLevelNum.classList.remove('od-levelup');
@@ -7764,6 +7811,7 @@ function endGame(opts = {}) {
   $('tapZone').style.display='none';
   $('streakLabel').style.display='none';
   _el.godLevelWrap.style.display='none';
+  updateOdScreenAura(0);
   _el.bossBar.style.display='none';
   $('wpCounter').style.display='none';
   $('lodCardDisplay').style.display='none';
@@ -8511,6 +8559,13 @@ function bossKO() {
 // ══════════════════════════════════════════
 // OVERDRIVE
 // ══════════════════════════════════════════
+function updateOdScreenAura(level) {
+  const aura = $('odScreenAura');
+  if(!aura) return;
+  const lv = Math.max(0, Math.min(3, Number(level) || 0));
+  aura.classList.remove('od-aura-active','od-aura-lv1','od-aura-lv2','od-aura-lv3');
+  if(lv > 0) aura.classList.add('od-aura-active', 'od-aura-lv' + lv);
+}
 function activateGodLevel(lv) {
   // FALLEN WECHAT: intercept Lv1 OD → trigger Overloaded BREAK instead
   if(lv === 1 && window._csState && window._csState.cs_fallenWechat) {
@@ -8532,6 +8587,7 @@ function activateGodLevel(lv) {
     if(lv === 3 || !window._csState._eddgaBurstActive) return;
   }
   godLevel=lv; canEnterGod=(lv<3);
+  updateOdScreenAura(godLevel);
   clearTimeout(godTimeout); clearInterval(godInterval);
   gun.style.display=lv>0?'block':'none';
   csOnOdStart();
@@ -8586,6 +8642,7 @@ function exitGodMode() {
   _el.godFill.style.width='0%';
   _el.godLevelWrap.style.display='none';
   _el.godLevelWrap.classList.remove('od-lv1','od-lv2','od-lv3');
+  updateOdScreenAura(0);
   updateComboUI();
   setTimeout(()=>{canEnterGod=true;},1500);
 }
@@ -8619,6 +8676,7 @@ function updateGodLevelUI() {
   _el.godTimer2.textContent = godSecondsLeft>0 ? godSecondsLeft+'s' : '';
   _el.godLevelWrap.classList.remove('od-lv1','od-lv2','od-lv3');
   if(godLevel>0) _el.godLevelWrap.classList.add('od-lv'+Math.min(godLevel,3));
+  updateOdScreenAura(godLevel);
 }
 
 // ══════════════════════════════════════════
