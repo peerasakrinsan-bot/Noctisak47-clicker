@@ -4478,8 +4478,8 @@ function scheduleWeakPoint() {
   }
   // WHISPER: spawn ช้าลง 2 เท่า
   if(window._csState && window._csState.cs_whisper) delay *= 2;
-  // HYDRA: spawn ช้าลง 1.5 เท่า
-  if(window._csState && window._csState.cs_hydraSpawnSlow) delay *= 1.5;
+  // HYDRA: spawn ช้าลง 1.25 เท่า
+  if(window._csState && window._csState.cs_hydraSpawnSlow) delay *= 1.25;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -4917,28 +4917,28 @@ const CARD_POOL = [
 
   // ── RARE ──
   { id:'dg',name:'DOPPELGANGER CARD', img:'cards/doppelganger.png',rarity:'elite',
-    effect:'คลิก = double hit | hit 2: Crit <strong>20%</strong>', tradeoff:'hit 2: DMG <strong>80%</strong> & ไม่ชาร์จ OD',
+    effect:'คลิก = double hit<br>hit 2: DMG <strong>100%</strong> & Crit <strong>25%</strong>', tradeoff:null,
     apply(s){ s.cs_doubleClick = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
-    effect:'AK47: DMG <strong>×3</strong> | ครบชุด/BREAK: เวลา <strong>+1.5 วิ</strong> & BREAK <strong>+15%</strong>', tradeoff:'AK47 spawn ช้า <strong>×1.5</strong>',
-    apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.15; }
+    effect:'AK47: DMG <strong>×3</strong><br>ครบชุด/BREAK: เวลา <strong>+1.5 วิ</strong> & BREAK <strong>+18%</strong>', tradeoff:'AK47 spawn ช้า <strong>×1.25</strong>',
+    apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.18; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
-    effect:'AK47: OD charge <strong>+20%</strong> | OD: timer <strong>+1 วิ</strong> | BREAK: rage ลด <strong>+3</strong>', tradeoff:null,
-    apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.20; s.cs_overloadReduce = (s.cs_overloadReduce||0) + 3; }
+    effect:'AK47: OD charge <strong>+25%</strong><br>OD: timer <strong>+1.5 วิ</strong><br>BREAK: rage ลด <strong>+5</strong>', tradeoff:null,
+    apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.25; s.cs_overloadReduce = (s.cs_overloadReduce||0) + 5; }
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
-    effect:'Combo ≥ 30: DMG <strong>+25%</strong> & KO: score <strong>+300</strong>', tradeoff:'Zeny จาก KO <strong>-30%</strong>',
+    effect:'Combo ≥ 25: DMG <strong>+35%</strong><br>KO: score <strong>+400</strong>', tradeoff:'Zeny จาก KO <strong>-15%</strong>',
     apply(s){ s.cs_combo30 = true; }
   },
   { id:'dk',      name:'DRAKE CARD',         img:'cards/drake.png',       rarity:'elite',
-    effect:'HP ผ่าน 75/50/25%: OD charge <strong>+15%</strong>', tradeoff:null,
+    effect:'HP ผ่าน 75/50/25%:<br>OD charge <strong>+20%</strong>', tradeoff:null,
     apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
   { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
-    effect:'Boss DMG <strong>+25%</strong> & Boss KO Zeny <strong>+8%</strong> | BREAK: Boss DMG <strong>+20%</strong> 5 วิ (1 ครั้ง)', tradeoff:null,
-    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.25; s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.08; s.cs_aknightBreak=true; }
+    effect:'Boss DMG <strong>+35%</strong> & Boss KO Zeny <strong>+12%</strong><br>BREAK: Boss DMG <strong>+30%</strong> 6 วิ (1 ครั้ง)', tradeoff:null,
+    apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.35; s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.12; s.cs_aknightBreak=true; }
   },
 
   // ── VOID (MVP) ──
@@ -4955,19 +4955,19 @@ const CARD_POOL = [
     apply(s){ s.cs_eddga = true; }
   },
   { id:'os',     name:'NOSIRIS CARD',        img:'cards/nosiris.png',      rarity:'mythic',
-    effect:'BREAK: <strong>Soul Stack</strong> +1 (สูงสุด 5) & Zeny bonus | 5 Stacks: <strong>JUDGMENT</strong> 8 วิ (DMG ×2, Zeny ×2) | เวลาหมด & ≥3 Stacks: <strong>+15 วิ</strong> (1 ครั้ง)', tradeoff:null,
+    effect:'BREAK:<br>Soul Stack +1<br>(สูงสุด 5)<br><br>ครบ 5 Stack:<br><strong>JUDGMENT</strong> 8 วิ<br>DMG ×2 & Zeny ×2<br><br>เวลาหมด:<br>หากมี 3+ Stack<br>เหลือเวลา +15 วิ 1 ครั้ง', tradeoff:null,
     apply(s){ s.cs_osiris = true; }
   },
   { id:'mt',   name:'MISSSTRESS CARD',      img:'cards/missstress.png',    rarity:'mythic',
-    effect:'OD: คลิก = Zeny <strong>+5</strong> & OD timer <strong>+0.2 วิ</strong>', tradeoff:'DMG <strong>-10%</strong>',
+    effect:'OD:<br>คลิก = Zeny <strong>+8</strong> & OD timer <strong>+0.3 วิ</strong>', tradeoff:null,
     apply(s){ s.cs_mistress = true; }
   },
   { id:'gb',  name:'GOLDEN BRUH CARD',    img:'cards/golden_bruh.png',  rarity:'mythic',
-    effect:'คลิก = Combo <strong>+1</strong> | Zeny <strong>×2</strong> | Max Combo (47): <strong>GOLD RUSH</strong> 8 วิ (Zeny ×6 & คลิก = +3) | Cooldown 15 วิ', tradeoff:'OD ชาร์จไม่ได้',
+    effect:'คลิก = Combo <strong>+1</strong><br>Zeny <strong>×2.5</strong><br>Max Combo (47): <strong>GOLD RUSH</strong> 10 วิ<br>Zeny ×7 & คลิก = +5<br>Cooldown 12 วิ', tradeoff:'OD ชาร์จไม่ได้',
     apply(s){ s.cs_goldenbug = true; }
   },
   { id:'oh',    name:'COKE ZERO CARD',      img:'cards/coke_zero.png',    rarity:'mythic',
-    effect:'OD charge <strong>×3</strong> | OD หมด: DMG <strong>+8%</strong> Stack (สูงสุด +40%)', tradeoff:'เวลา <strong>-8 วิ</strong>',
+    effect:'OD charge <strong>×3.5</strong><br>OD หมด: DMG <strong>+10%</strong> Stack<br>(สูงสุด +50%)', tradeoff:'เวลา <strong>-5 วิ</strong>',
     apply(s){ s.cs_orchero = true; }
   },
   { id:'ld',name:'LORD OF DEBT CARD', img:'cards/lord_of_debt.png',rarity:'mythic',
@@ -5057,11 +5057,11 @@ const CARD_POOL = [
 
   // ── ELITE (RARE) ใหม่ ──
   { id:'tk',   name:'TAO FUNKA CARD',      img:'cards/tao_funka.png',   rarity:'elite',
-    effect:'DMG <strong>+30%</strong> | BREAK: DMG <strong>+4%</strong> Stack (สูงสุด +15%)', tradeoff:'OD charge <strong>-20%</strong>',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.30; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; s.cs_taoFunka=true; }
+    effect:'DMG <strong>+35%</strong><br>BREAK: DMG <strong>+5%</strong> Stack (สูงสุด +25%)', tradeoff:null,
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.35; s.cs_taoFunka=true; }
   },
   { id:'dc',    name:'DRUNKULA CARD',        img:'cards/drunkula.png',     rarity:'elite',
-    effect:'Crit: Zeny <strong>+2</strong> & OD charge <strong>+2%</strong>', tradeoff:null,
+    effect:'Crit: Zeny <strong>+4</strong> & OD charge <strong>+3%</strong>', tradeoff:null,
     apply(s){ s.cs_draculaCoin = true; }
   },
   { id:'ic',name:'INCANTATION SCAMURAI CARD',img:'cards/incantation_scamurai.png',rarity:'elite',
@@ -5069,11 +5069,11 @@ const CARD_POOL = [
     apply(s){ s.cs_incantation = true; }
   },
   { id:'sk',name:'STORMYNITE CARD', img:'cards/stormynite.png',rarity:'elite',
-    effect:'OD: คลิก = timer <strong>+0.2 วิ</strong> (สูงสุด +8 วิ)', tradeoff:null,
+    effect:'OD:<br>คลิก = timer <strong>+0.3 วิ</strong><br>(สูงสุด +12 วิ)', tradeoff:null,
     apply(s){ s.cs_stormyKnight = true; }
   },
   { id:'dl',   name:'DORK LORD CARD',      img:'cards/dork_lord.png',   rarity:'elite',
-    effect:'KO: เวลา <strong>+0.05 วิ</strong> & score <strong>+30</strong>', tradeoff:'Zeny จาก KO <strong>-40%</strong>',
+    effect:'KO: เวลา <strong>+0.08 วิ</strong> & score <strong>+80</strong>', tradeoff:'Zeny จาก KO <strong>-15%</strong>',
     apply(s){ s.cs_darkLord = true; }
   },
   { id:'mf', name:'MOONLIGHT FEVER CARD', img:'cards/moonlight_fever.png', rarity:'elite',
@@ -5217,33 +5217,33 @@ const CARD_POOL = [
 
   // ── ELITE NEW (v2) ──
   { id:'ghp', name:'GHOSTPING CARD',       img:'cards/ghostping_card.png',      rarity:'elite',
-    effect:'พลาด AK47: BREAK <strong>+6%</strong> (สูงสุด 5×/รอบ) | BREAK: DMG <strong>+30%</strong>', tradeoff:null,
+    effect:'พลาด AK47:<br>BREAK เร็วขึ้น <strong>0.8 วิ</strong><br>(สูงสุด 5 ครั้ง/รอบ)<br><br>BREAK: DMG <strong>+30%</strong>', tradeoff:null,
     apply(s){ s.cs_ghostping=true; }
   },
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
-    effect:'DMG <strong>+40%</strong>', tradeoff:'> 10 วิ: Boss KO Zeny <strong>-15%</strong>',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.40; s.cs_devilingo=true; }
+    effect:'DMG <strong>+45%</strong><br>10 วิแรก: Boss KO Zeny <strong>+10%</strong>', tradeoff:null,
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_devilingo=true; }
   },
   { id:'ltn', name:'LADY TRAINEE CARD',    img:'cards/lady_trainee_card.png',   rarity:'elite',
-    effect:'OD Lv. เพิ่ม: DMG <strong>+1%</strong> Stack (สูงสุด +25%) | 25 Stacks: <strong>Spotlight Mode</strong> (OD charge <strong>+5%/คลิก</strong>)', tradeoff:'OD จบ < Lv.3: เสีย <strong>2 Stack</strong>',
+    effect:'OD Lv. เพิ่ม:<br>DMG <strong>+2%</strong> Stack<br>(สูงสุด +30%)<br><br>15 Stacks:<br><strong>Spotlight Mode</strong><br>OD charge <strong>+6%/คลิก</strong>', tradeoff:'OD จบ < Lv.3: เสีย <strong>1 Stack</strong>',
     apply(s){ s.cs_ladyTrainee=true; }
   },
 
   // ── MYTHIC NEW (v2) ──
   { id:'fwc', name:'FALLEN WECHAT CARD',   img:'cards/fallen_wechat_card.png',  rarity:'mythic',
-    effect:'OD เต็ม: <strong>Overloaded BREAK</strong> (DMG <strong>+50%</strong> & AK47 spawn เร็ว) | จบ: OD reset', tradeoff:'Cooldown <strong>30 วิ</strong>',
+    effect:'OD เต็ม:<br><strong>Overloaded BREAK</strong><br>DMG <strong>+75%</strong><br>BREAK progress +25%<br>BREAK window +0.75 วิ<br><br>จบ: OD reset', tradeoff:'Cooldown <strong>20 วิ</strong>',
     apply(s){ s.cs_fallenWechat=true; }
   },
   { id:'dtl', name:'DETAILED CARD',        img:'cards/detailed_card.png',       rarity:'mythic',
-    effect:'AK47 ต่อเนื่อง: <strong>Analysis Stack</strong> +1 (สูงสุด 10) | 10 Stacks: <strong>Analyzed BREAK</strong> (window ×2 & ×2/tap) | สำเร็จ: <strong>Critical Analysis</strong> 8 วิ (Crit <strong>+20%</strong> & Crit DMG <strong>+25%</strong>)', tradeoff:'พลาด AK47: Stack <strong>-3</strong> & Combo <strong>-5</strong>',
+    effect:'เก็บ AK47:<br>Analysis Stack +1<br>(สูงสุด 8)<br><br>ครบ 8 Stack:<br><strong>Analyzed BREAK</strong><br>window ×2 & progress ×2<br><br>สำเร็จ:<br><strong>Critical Analysis</strong> 10 วิ<br>Crit +25% & Crit DMG +35%', tradeoff:'พลาด AK47: Stack <strong>-2</strong> & Combo <strong>-3</strong>',
     apply(s){ s.cs_detailed=true; }
   },
   { id:'gus', name:'GLOOM UNDER SIDE CARD',img:'cards/gloom_under_side_card.png',rarity:'mythic',
-    effect:'+3% DMG / Zeny / BREAK ทุก 3 วิ (สูงสุด +60%)', tradeoff:null,
+    effect:'ทุก 2 วิ:<br>DMG +4% & Zeny +4% & BREAK +4%<br>(สูงสุด +80%)', tradeoff:null,
     apply(s){ s.cs_gloomUnderSide=true; }
   },
   { id:'dsk', name:'DARK STAKE LORD CARD', img:'cards/dark_stake_lord_card.png', rarity:'mythic',
-    effect:'BREAK: สุ่ม Jackpot (<strong>25%</strong>) → Zeny <strong>×2.5</strong> & item | พลาด: chance <strong>+10%</strong> (สูงสุด 75%) | ได้: reset 15%', tradeoff:null,
+    effect:'BREAK:<br>Jackpot <strong>15%</strong><br><br>พลาด:<br>Jackpot +10%<br>(สูงสุด 75%)<br><br>Jackpot:<br>Zeny ×2.5<br>OCA chance ×10<br><br>ได้รับแล้ว reset กลับ 15%', tradeoff:'Zeny <strong>-10%</strong>',
     apply(s){ s.cs_darkStakeLord=true; }
   },
 ];
@@ -5495,14 +5495,14 @@ function _csRefreshVolatileCardEffects(nextState) {
 
   // DEVILINGO: record combat start time
   if(nextState && nextState.cs_devilingo) nextState._devilingoCombatStart = Date.now();
-  // GLOOM UNDER SIDE: start 3s momentum stack timer (+3%/stack, max 20 stacks = +60%)
+  // GLOOM UNDER SIDE: start 2s momentum stack timer (+4%/stack, max 20 stacks = +80%)
   // Stacks persist through KO, Boss KO, and all combat. Reset only on run end.
   if(nextState && nextState.cs_gloomUnderSide) {
     _csGloomTimer = setInterval(() => {
       if(!gameRunning || gamePaused) return;
       if(!window._csState || !window._csState.cs_gloomUnderSide) return;
       window._csState._gloomStacks = Math.min(20, (window._csState._gloomStacks || 0) + 1);
-    }, 3000);
+    }, 2000);
   }
   // FALLEN WECHAT: init break flags
   if(nextState && nextState.cs_fallenWechat) {
@@ -5700,10 +5700,10 @@ function csApplyDmgMod(baseDmg, isGod) {
   let d = baseDmg;
   if(cs.cs_dmgBonus)   d *= (1 + cs.cs_dmgBonus);
   if(cs.cs_bossDmgBonus && isBoss) d *= (1 + cs.cs_bossDmgBonus);
-  if(cs.cs_mistress && !isGod) d *= 0.90;
+  // MISSSTRESS no longer has a non-OD damage penalty.
   if(cs.cs_mummy_active) d *= (1 + (cs.cs_combo20Dmg||0));
   if(cs.cs_skelworker_bonus) d *= (1 + cs.cs_skelworker_bonus);
-  if(cs.cs_combo30_active) d *= 1.25;
+  if(cs.cs_combo30_active) d *= 1.35;
   if(cs.cs_incantation_active) d *= 2.5;
   if(cs.cs_horong_active) d *= 1.35;
   // MARVELC: dmg +8% when time < 15s
@@ -5726,8 +5726,8 @@ function csApplyDmgMod(baseDmg, isGod) {
   }
   // Amon Ra: combo >= 40 dmg +40%
   if(cs.cs_amonRa_active) d *= 1.40;
-  // Goblin Leader: combo >= 30 dmg +15%
-  if(cs.cs_goblinLeader && combo >= 30) d *= 1.15;
+  // Goblin Leader: combo >= 30 dmg +20%
+  if(cs.cs_goblinLeader && combo >= 30) d *= 1.20;
   // Baphomet: accumulated dmg bonus from AK47 completions
   if(cs.cs_baphomet && cs._baphometDmgStack) d *= (1 + cs._baphometDmgStack);
   // Orc Hero: accumulated dmg bonus from OD completions
@@ -5740,22 +5740,22 @@ function csApplyDmgMod(baseDmg, isGod) {
   }
   // GHOSTPING: during BREAK → dmg +30%
   if(cs.cs_ghostping && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.30;
-  // LADY TRAINEE: run-only accumulated dmg bonus (max +25%)
+  // LADY TRAINEE: run-only accumulated dmg bonus (max +30%)
   if(cs.cs_ladyTrainee && cs._ladyTraineeDmg) d *= (1 + cs._ladyTraineeDmg);
-  // FALLEN WECHAT: Overloaded BREAK → dmg +50%
-  if(cs.cs_fallenWechat && cs._fallenWechatBreakActive && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.50;
-  // DETAILED: Analysis stacks during BREAK → +3% per stack
-  if(cs.cs_detailed && typeof pressureIsBreak === 'function' && pressureIsBreak() && cs._analysisStacks) d *= (1 + (cs._analysisStacks * 0.03));
-  // GLOOM UNDER SIDE: run-scaling dmg bonus (+3% per stack, max +60%)
-  if(cs.cs_gloomUnderSide && cs._gloomStacks) d *= (1 + cs._gloomStacks * 0.03);
+  // FALLEN WECHAT: Overloaded BREAK → dmg +75%
+  if(cs.cs_fallenWechat && cs._fallenWechatBreakActive && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.75;
+  // DETAILED: Analysis stacks during BREAK → +4% per stack
+  if(cs.cs_detailed && typeof pressureIsBreak === 'function' && pressureIsBreak() && cs._analysisStacks) d *= (1 + (cs._analysisStacks * 0.04));
+  // GLOOM UNDER SIDE: run-scaling dmg bonus (+4% per stack, max +80%)
+  if(cs.cs_gloomUnderSide && cs._gloomStacks) d *= (1 + cs._gloomStacks * 0.04);
   // SALVAGE: during BREAK → dmg +15% additional
   if(cs.cs_salvageBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.15;
   // STONK: during BREAK → dmg +20% additional
   if(cs.cs_stonkBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.20;
   // GENERAL GRIEVOUS: during BREAK → dmg +22% additional
   if(cs.cs_ggBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.22;
-  // ABYSMELL KNIGHT: 5s post-BREAK boss dmg +20%
-  if(cs.cs_aknightBreak && isBoss && cs._aknightBreakEndTime && performance.now() < cs._aknightBreakEndTime) d *= 1.20;
+  // ABYSMELL KNIGHT: 6s post-BREAK boss dmg +30%
+  if(cs.cs_aknightBreak && isBoss && cs._aknightBreakEndTime && performance.now() < cs._aknightBreakEndTime) d *= 1.30;
   // MAYA PROBLEM: 5s post-BREAK boss dmg +20%
   if(cs.cs_mayaProblem && isBoss && cs._mayaBreakEndTime && performance.now() < cs._mayaBreakEndTime) d *= 1.20;
   // WEEBVIL DUDE: 5s post-BREAK dmg +25%
@@ -5788,10 +5788,10 @@ function csApplyCoinMod(coins) {
   if(cs.cs_coinPct)   c *= (1 + cs.cs_coinPct);
   // ALLEYGATOR: accumulated percentage bonus from KO stacks
   if(cs._alligatorPct) c *= (1 + cs._alligatorPct);
-  // GOLDEN BRUH: Gold Rush x6 when active, x2 baseline (no OD)
+  // GOLDEN BRUH: Gold Rush x7 when active, x2.5 baseline (no OD)
   if(cs.cs_goldenbug) {
-    if(cs._goldRushEndTime && performance.now() < cs._goldRushEndTime) c *= 6;
-    else c *= 2;
+    if(cs._goldRushEndTime && performance.now() < cs._goldRushEndTime) c *= 7;
+    else c *= 2.5;
   }
   // NOSIRIS: Judgment x2 coin
   if(cs.cs_osiris) {
@@ -5804,8 +5804,10 @@ function csApplyCoinMod(coins) {
   if(typeof pressureCoinMultiplier === 'function') c *= pressureCoinMultiplier();
   // A-LIST: Sponsor Rush +25% coin
   if(cs.cs_aListCard && cs._sponsorRushEndTime && performance.now() < cs._sponsorRushEndTime) c *= 1.25;
-  // GLOOM UNDER SIDE: run-scaling coin bonus (+3% per stack, max +60%)
-  if(cs.cs_gloomUnderSide && cs._gloomStacks) c *= (1 + cs._gloomStacks * 0.03);
+  // GLOOM UNDER SIDE: run-scaling Zeny bonus (+4% per stack, max +80%)
+  if(cs.cs_gloomUnderSide && cs._gloomStacks) c *= (1 + cs._gloomStacks * 0.04);
+  // DARK STAKE LORD: permanent card trade-off, not an OCA-rate change.
+  if(cs.cs_darkStakeLord) c *= 0.90;
   return Math.round(c);
 }
 
@@ -5813,10 +5815,10 @@ function csApplyCoinMod(coins) {
 function csOnClick(isGod) {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
-  // Mistress: coin +5 and OD timer +0.2s during OD
+  // MISSSTRESS: Zeny +8 and OD timer +0.3s during OD
   if(cs.cs_mistress && isGod) {
-    roundCoins += 5;
-    godSecondsLeft += 0.2;
+    roundCoins += 8;
+    godSecondsLeft += 0.3;
     updateUI();
   }
   if(cs.cs_odTimerOnClick && isGod) {
@@ -5831,7 +5833,7 @@ function csOnClick(isGod) {
   }
   // update combo-based states
   if(cs.cs_combo20Dmg)  cs.cs_mummy_active  = combo >= 20;
-  if(cs.cs_combo30)     cs.cs_combo30_active = combo >= 30;
+  if(cs.cs_combo30)     cs.cs_combo30_active = combo >= 25;
   if(cs.cs_incantation) cs.cs_incantation_active = combo >= 35;
   if(cs.cs_elderWillow) cs.cs_elderWillow_active = combo >= 25;
   if(cs.cs_horong)      cs.cs_horong_active = timeLeft < 20;
@@ -5855,7 +5857,7 @@ function csOnClick(isGod) {
   }
   // GOLDEN BRUH: +3 coin per click during Gold Rush
   if(cs.cs_goldenbug && cs._goldRushEndTime && performance.now() < cs._goldRushEndTime) {
-    roundCoins += 3;
+    roundCoins += 5;
   }
   // Mastering: combo milestone time bonus
   if(cs.cs_comboTimeBonus && combo > 0 && combo % 10 === 0) {
@@ -5872,12 +5874,13 @@ function csOnClick(isGod) {
     const tiers = Math.min(Math.floor(combo/10),3);
     cs.cs_skelworker_bonus = tiers * 0.08;
   }
-  // Stormy Knight: extend OD timer +0.2s per click during OD (max +8s per round)
+  // STORMYNITE: extend OD timer +0.3s per click during OD (max +12s per round)
   if(cs.cs_stormyKnight && isGod) {
     if(!cs._stormyKnightAcc) cs._stormyKnightAcc = 0;
-    if(cs._stormyKnightAcc < 8) {
-      cs._stormyKnightAcc += 0.2;
-      godSecondsLeft += 0.2;
+    if(cs._stormyKnightAcc < 12) {
+      const gain = Math.min(0.3, 12 - cs._stormyKnightAcc);
+      cs._stormyKnightAcc += gain;
+      godSecondsLeft += gain;
     }
   }
   // Zenorc: OD usage stacks handled in csOnOdStart; BREAK adds flat +8%
@@ -5900,10 +5903,10 @@ function csOnKO() {
     _csKoTimeAcc += 0.05;
     if(_csKoTimeAcc <= 5) timeLeft += 0.05;
   }
-  // Dark Lord: +0.05s per KO + score +30
+  // DORK LORD: +0.08s per KO + score +80
   if(cs.cs_darkLord) {
-    timeLeft += 0.05;
-    score += 30;
+    timeLeft += 0.08;
+    score += 80;
   }
   // Turtle General: score +300 per KO when combo >= 30
   if(cs.cs_combo30_active) {
@@ -5949,10 +5952,10 @@ function csOnKO() {
 function csOnOdEnd() {
   if(!window._csState) return;
   const cs = window._csState;
-  // Orc Hero: accumulate dmg bonus +8% per OD end (max +24%)
+  // COKE ZERO: accumulate dmg bonus +10% per OD end (max +50%)
   if(cs.cs_orchero) {
     if(!cs._orcheroDmgStack) cs._orcheroDmgStack = 0;
-    if(cs._orcheroDmgStack < 0.40) cs._orcheroDmgStack = Math.min(0.40, cs._orcheroDmgStack + 0.08);
+    if(cs._orcheroDmgStack < 0.50) cs._orcheroDmgStack = Math.min(0.50, cs._orcheroDmgStack + 0.10);
   }
   // KILL-D01: reset per-OD click counter when OD expires
   if(cs.cs_killD01) cs._killD01OdClickCount = 0;
@@ -5960,7 +5963,7 @@ function csOnOdEnd() {
   if((cs._currentOdPeakLevel || 0) < 3) {
     // LADY TRAINEE: lose 2 stacks if OD ended below Lv3
     if(cs.cs_ladyTrainee && cs._ladyTraineeDmg) {
-      cs._ladyTraineeDmg = Math.max(0, cs._ladyTraineeDmg - 0.02);
+      cs._ladyTraineeDmg = Math.max(0, cs._ladyTraineeDmg - 0.01);
     }
   }
   cs._currentOdPeakLevel = 0;
@@ -5981,10 +5984,10 @@ function csOnBreakStart() {
   }
   // GHOSTPING: reset miss count for this BREAK cycle
   if(cs.cs_ghostping) cs._ghostpingMissCount = 0;
-  // FALLEN WECHAT Overloaded BREAK: extend window by 0.5s
+  // FALLEN WECHAT Overloaded BREAK: extend window by 0.75s
   if(cs.cs_fallenWechat && cs._fallenWechatBreakActive) {
-    PRESSURE.breakDuration += 500;
-    PRESSURE.breakEndsAt += 500;
+    PRESSURE.breakDuration += 750;
+    PRESSURE.breakEndsAt += 750;
   }
   // KILL-D01: convert Drive Tokens into temporary breakPower boost
   if(cs.cs_killD01 && cs._driveTokens > 0) {
@@ -6030,33 +6033,30 @@ function csOnBreakSuccess() {
   const cs = window._csState;
   // GLOOM UNDER SIDE: bonus coins on BREAK success proportional to stacks (+1.5% of roundCoins per stack)
   if(cs.cs_gloomUnderSide && cs._gloomStacks) {
-    const bonus = Math.max(1, Math.round(roundCoins * cs._gloomStacks * 0.015));
+    const bonus = Math.max(1, Math.round(roundCoins * cs._gloomStacks * 0.02));
     roundCoins += bonus;
     spawnCoinPopup(bonus);
   }
   // DARK STAKE LORD: escalating jackpot system
   if(cs.cs_darkStakeLord) {
-    if(!cs._jackpotChance) cs._jackpotChance = 0.25;
+    if(!cs._jackpotChance) cs._jackpotChance = 0.15;
     if(Math.random() < cs._jackpotChance) {
-      // Jackpot!
-      const bonus = Math.max(30, Math.round(roundCoins * cs._jackpotChance * 1.5));
+      // Jackpot: Zeny x2.5 now, and the existing BREAK OCA roll gets x10 chance.
+      const before = Math.max(0, roundCoins);
+      const bonus = Math.max(30, Math.round(before * 1.5));
       roundCoins += bonus;
       spawnCoinPopup(bonus);
-      showBigSplash('JACKPOT!', '+' + bonus + ' COIN (' + Math.round(cs._jackpotChance * 100) + '% odds)', '#ffcc00', false);
-      if(!cs._jackpotItemUsedThisRun) {
-        cs._jackpotItemUsedThisRun = true;
-        const pt = PRESSURE.resolvePoint || { x: vvW() / 2, y: vvH() * 0.42 };
-        pressureTryOcaTicketDrop(pt.x, pt.y);
-      }
+      cs._darkStakeOcaBoostNextBreak = true;
+      showBigSplash('JACKPOT!', '+ ' + bonus + ' ZENY — OCA x10 (' + Math.round(cs._jackpotChance * 100) + '%)', '#ffcc00', false);
       cs._jackpotChance = 0.15; // reset odds
     } else {
       // No jackpot: increase odds for next time (max 75%)
       cs._jackpotChance = Math.min(0.75, cs._jackpotChance + 0.10);
     }
   }
-  // ABYSMELL KNIGHT: 5s boss dmg window, once per boss
+  // ABYSMELL KNIGHT: 6s boss dmg window, once per boss
   if(cs.cs_aknightBreak && isBoss && !cs._aknightBossBreakUsed) {
-    cs._aknightBreakEndTime = performance.now() + 5000;
+    cs._aknightBreakEndTime = performance.now() + 6000;
     cs._aknightBossBreakUsed = true;
   }
   // MAYA PROBLEM: 5s boss dmg window, once per boss
@@ -6075,8 +6075,8 @@ function csOnBreakSuccess() {
     if(cs._atrosusResonanceCount >= 3) cs._atrosusResonanceMastery = true;
     showBigSplash('RESONANCE', cs._atrosusResonanceMastery ? 'MASTERY x2 — ' + resDur/1000 + 's' : 'DMG x1.6 — 6s', '#cc88ff', false);
   }
-  // TAO FUNKA: accumulate +4% dmg per BREAK success (max +15%)
-  if(cs.cs_taoFunka) cs._taoFunkaBonus = Math.min(0.15, (cs._taoFunkaBonus || 0) + 0.04);
+  // TAO FUNKA: accumulate +5% dmg per BREAK success (max +25%)
+  if(cs.cs_taoFunka) cs._taoFunkaBonus = Math.min(0.25, (cs._taoFunkaBonus || 0) + 0.05);
   // THANABROS: OD fills instantly + start Thanatos Phase 5s
   if(cs.cs_thanatos) {
     if(_el && _el.godFill) _el.godFill.style.width = '100%';
@@ -6092,7 +6092,7 @@ function csOnBreakSuccess() {
     if(cs._osirisStacks >= 5) {
       cs._osirisJudgmentEndTime = performance.now() + 8000;
       cs._osirisStacks = 0;
-      showBigSplash('JUDGMENT', 'DMG x2 + COIN x2 — 8s', '#cc88ff', true);
+      showBigSplash('JUDGMENT', 'DMG x2 + ZENY x2 — 8s', '#cc88ff', true);
     }
   }
   // IFRIED: Inferno Burst at 10+ stacks
@@ -6120,15 +6120,15 @@ function csOnBreakSuccess() {
   }
   // DETAILED: Critical Analysis reward for Analyzed BREAK success
   if(cs.cs_detailed && cs._analysisBreakActive) {
-    cs._analysisCritEndTime = performance.now() + 8000;
+    cs._analysisCritEndTime = performance.now() + 10000;
     cs._analysisBreakActive = false;
     cs._analysisComplete = false;
-    showBigSplash('CRITICAL ANALYSIS', 'CRIT +20% — 8s', '#00ffee', false);
+    showBigSplash('CRITICAL ANALYSIS', 'CRIT +25% — 10s', '#00ffee', false);
   }
   // BEELZEBRUH: Corruption Discharge at max corruption
   if(cs.cs_beelzebub && (cs._beelzebubBonus || 0) >= 0.50) {
     cs._beelzebubCoinEndTime = performance.now() + 5000;
-    showBigSplash('CORRUPTION DISCHARGED', 'COIN x1.5 — 5s', '#cc00ff', false);
+    showBigSplash('CORRUPTION DISCHARGED', 'ZENY x1.5 — 5s', '#cc00ff', false);
   }
 }
 
@@ -6143,11 +6143,11 @@ function csOnWpMiss() {
       PRESSURE.cooldown = Math.max(0, PRESSURE.cooldown - 800);
     }
   }
-  // DETAILED: lose 3 Analysis stacks on WP miss (no longer full reset) + combo penalty
+  // DETAILED: lose 2 Analysis stacks on WP miss + small combo penalty
   if(cs.cs_detailed && cs._analysisStacks) {
-    cs._analysisStacks = Math.max(0, cs._analysisStacks - 3);
-    if(cs._analysisStacks < 10) cs._analysisComplete = false;
-    combo = Math.max(1, combo - 5);
+    cs._analysisStacks = Math.max(0, cs._analysisStacks - 2);
+    if(cs._analysisStacks < 8) cs._analysisComplete = false;
+    combo = Math.max(1, combo - 3);
     if(typeof updateComboUI === 'function') updateComboUI();
   }
 }
@@ -6181,9 +6181,9 @@ function csOnOdStart() {
     if(!cs._zenorcCount) cs._zenorcCount = 0;
     if(cs._zenorcCount < 3) cs._zenorcCount++;
   }
-  // LADY TRAINEE: +1% dmg stack per OD Level Up (max +25%)
-  if(cs.cs_ladyTrainee && (cs._ladyTraineeDmg || 0) < 0.25) {
-    cs._ladyTraineeDmg = Math.min(0.25, (cs._ladyTraineeDmg || 0) + 0.01);
+  // LADY TRAINEE: +2% dmg stack per OD Level Up (max +30%)
+  if(cs.cs_ladyTrainee && (cs._ladyTraineeDmg || 0) < 0.30) {
+    cs._ladyTraineeDmg = Math.min(0.30, (cs._ladyTraineeDmg || 0) + 0.02);
   }
 }
 
@@ -6230,10 +6230,10 @@ function csOnWpHit(x, y) {
       if(parseFloat(_bar.style.width) >= 100 && canEnterGod) activateGodLevel(1);
     }
   }
-  // DETAILED: increment Analysis stacks on WP collect (max 10); at 10 mark Analysis Complete
+  // DETAILED: increment Analysis stacks on WP collect (max 8); at 8 mark Analysis Complete
   if(cs.cs_detailed) {
-    cs._analysisStacks = Math.min(10, (cs._analysisStacks || 0) + 1);
-    if(cs._analysisStacks >= 10 && !cs._analysisComplete) {
+    cs._analysisStacks = Math.min(8, (cs._analysisStacks || 0) + 1);
+    if(cs._analysisStacks >= 8 && !cs._analysisComplete) {
       cs._analysisComplete = true;
       showBigSplash('ANALYSIS COMPLETE', 'Next BREAK: WINDOW x2', '#00ffee', false);
     }
@@ -6702,7 +6702,7 @@ function startGame() {
     stopBGM();
     if(window._csState){
       if(window._csState.cs_extraTime)  timeLeft += window._csState.cs_extraTime;
-      if(window._csState.cs_orchero)    timeLeft = Math.max(5, timeLeft - 8);
+      if(window._csState.cs_orchero)    timeLeft = Math.max(5, timeLeft - 5);
       if(window._csState.cs_moonlightflower) timeLeft = Math.round(timeLeft * 0.5);
       if(window._csState.cs_timePenalty) timeLeft = Math.max(5, timeLeft - window._csState.cs_timePenalty);
       if(window._csState.cs_enemyHpReduce) {
@@ -6743,7 +6743,7 @@ function retryGame() {
     stopBGM();
     if(window._csState){
       if(window._csState.cs_extraTime)  timeLeft += window._csState.cs_extraTime;
-      if(window._csState.cs_orchero)    timeLeft = Math.max(5, timeLeft - 8);
+      if(window._csState.cs_orchero)    timeLeft = Math.max(5, timeLeft - 5);
       if(window._csState.cs_moonlightflower) timeLeft = Math.round(timeLeft * 0.5);
       if(window._csState.cs_timePenalty) timeLeft = Math.max(5, timeLeft - window._csState.cs_timePenalty);
       if(window._csState.cs_enemyHpReduce) {
@@ -7441,6 +7441,12 @@ function pressureHitTarget(x, y) {
   if(PRESSURE.phase !== 'break') return;
   PRESSURE.lastAfkAt = Date.now();
   PRESSURE.targetHits++;
+  // DETAILED: Analyzed BREAK doubles tap progress.
+  if(window._csState && window._csState.cs_detailed && window._csState._analysisBreakActive) PRESSURE.targetHits++;
+  // FALLEN WECHAT: Overloaded BREAK adds +25% progress per tap.
+  if(window._csState && window._csState.cs_fallenWechat && window._csState._fallenWechatBreakActive) PRESSURE.targetHits += 0.25;
+  // GLOOM UNDER SIDE: stack-based BREAK progress (+4% per stack).
+  if(window._csState && window._csState.cs_gloomUnderSide && window._csState._gloomStacks) PRESSURE.targetHits += window._csState._gloomStacks * 0.04;
   // cs_breakPower: extra BREAK progress per tap (HYDRA +0.15, CATULLANUX +0.20, stacks)
   const _bpBonus = (window._csState && window._csState.cs_breakPower) || 0;
   if(_bpBonus > 0) PRESSURE.targetHits += _bpBonus;
@@ -8090,7 +8096,7 @@ function processHit(e, now) {
   // ORC HERO: charge x3 — boost fill
   if(window._csState && window._csState.cs_orchero) {
     const cur = parseFloat(_el.godFill.style.width)||0;
-    _el.godFill.style.width = Math.min(100, cur + (combo/47*100)*2) + '%';
+    _el.godFill.style.width = Math.min(100, cur + (combo/47*100)*2.5) + '%';
   }
   // MOONLIGHT FLOWER: OD charge x2
   if(window._csState && window._csState.cs_moonlightflower) {
@@ -8123,10 +8129,10 @@ function processHit(e, now) {
     _el.godFill.style.width = Math.max(0, cur - penalty) + '%';
   }
   // LADY TRAINEE: Spotlight Mode at 25 stacks → +5% OD charge per click
-  if(window._csState && window._csState.cs_ladyTrainee && (window._csState._ladyTraineeDmg || 0) >= 0.25
+  if(window._csState && window._csState.cs_ladyTrainee && (window._csState._ladyTraineeDmg || 0) >= 0.15
      && godLevel === 0 && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     const cur = parseFloat(_el.godFill.style.width)||0;
-    _el.godFill.style.width = Math.min(100, cur + 5) + '%';
+    _el.godFill.style.width = Math.min(100, cur + 6) + '%';
     if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod) activateGodLevel(1);
   }
   // BAPHOMET / GOLDEN BUG / RSX-0806: no OD charge
@@ -8141,9 +8147,9 @@ function processHit(e, now) {
   if(window._csState && window._csState.cs_goldenbug && combo === 47) {
     const _grNow = performance.now();
     if(!window._csState._goldRushCooldownUntil || _grNow >= window._csState._goldRushCooldownUntil) {
-      window._csState._goldRushEndTime = _grNow + 8000;
-      window._csState._goldRushCooldownUntil = _grNow + 23000;
-      showBigSplash('GOLD RUSH', 'COIN x6 — 8s', '#ffcc00', false);
+      window._csState._goldRushEndTime = _grNow + 10000;
+      window._csState._goldRushCooldownUntil = _grNow + 22000;
+      showBigSplash('GOLD RUSH', 'ZENY x7 — 10s', '#ffcc00', false);
     }
   }
   // MOONLIGHT FLOWER / VITATA / ELDER WILLOW / METALLER / THIEF BUG: ถ้า bar เต็ม 100% ก่อน combo 47 → trigger OD ทันที
@@ -8197,7 +8203,7 @@ function processHit(e, now) {
     // IFRIED: Inferno Burst — +25% crit chance during burst window
     if(window._csState.cs_ifriedBreak && window._csState._ifriedBurstEndTime && performance.now() < window._csState._ifriedBurstEndTime) _critChance += 0.25;
     // DETAILED: Critical Analysis — +20% crit chance for 8s
-    if(window._csState.cs_detailed && window._csState._analysisCritEndTime && performance.now() < window._csState._analysisCritEndTime) _critChance += 0.20;
+    if(window._csState.cs_detailed && window._csState._analysisCritEndTime && performance.now() < window._csState._analysisCritEndTime) _critChance += 0.25;
   }
   if(_critChance&&Math.random()<_critChance){dmg=Math.round(dmg*(_sc.critMult||2));isCrit=true;}
   // LUNATIC: crit dmg +15%
@@ -8205,7 +8211,7 @@ function processHit(e, now) {
   // JACKED: +15% crit dmg during OD
   if(isCrit && window._csState && window._csState.cs_jakkCrit && godLevel>0) dmg = Math.round(dmg*1.15);
   // DETAILED: Critical Analysis — +25% crit dmg for 8s
-  if(isCrit && window._csState && window._csState.cs_detailed && window._csState._analysisCritEndTime && performance.now() < window._csState._analysisCritEndTime) dmg = Math.round(dmg * 1.25);
+  if(isCrit && window._csState && window._csState.cs_detailed && window._csState._analysisCritEndTime && performance.now() < window._csState._analysisCritEndTime) dmg = Math.round(dmg * 1.35);
   // IFRIED: build Inferno Stack on crit (max 15)
   if(isCrit && window._csState && window._csState.cs_ifriedBreak) {
     window._csState._ifriedStacks = Math.min(15, (window._csState._ifriedStacks || 0) + 1);
@@ -8226,13 +8232,13 @@ function processHit(e, now) {
     _el.godFill.style.width=Math.min(100,cur+window._csState.cs_critOdCharge*100)+'%';
     if(parseFloat(_el.godFill.style.width)>=100&&canEnterGod&&godLevel===0) activateGodLevel(1);
   }
-  // DRACULA: crit = +2 coin + OD charge +2% (ไม่จำกัด)
+  // DRACULA: crit = +4 Zeny + OD charge +3% (ไม่จำกัด)
   if(isCrit && window._csState && window._csState.cs_draculaCoin) {
-    roundCoins += 2;
-    spawnCoinPopup(2);
+    roundCoins += 4;
+    spawnCoinPopup(4);
     if(!window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
       const cur = parseFloat(_el.godFill.style.width)||0;
-      _el.godFill.style.width = Math.min(100, cur + 2) + '%';
+      _el.godFill.style.width = Math.min(100, cur + 3) + '%';
       if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
     }
   }
@@ -8292,8 +8298,8 @@ function processHit(e, now) {
     // ── Doppelganger: compute its extra hit silently (80% dmg, own crit roll) ──
     let _dgBonus = 0;
     if(window._csState && window._csState.cs_doubleClick) {
-      const _dgCrit = Math.random() < 0.20;
-      _dgBonus = _dgCrit ? Math.round(dmg * 0.8 * (_sc.critMult||2)) : Math.round(dmg * 0.8);
+      const _dgCrit = Math.random() < 0.25;
+      _dgBonus = _dgCrit ? Math.round(dmg * (_sc.critMult||2)) : Math.round(dmg);
       if(_dgCrit && !isCrit) isCrit = false; // don't promote main hit to crit for visual
     }
 
@@ -8329,7 +8335,7 @@ function processHit(e, now) {
           if(_br2 < _th && !window._csState._drakeTriggered.has(_k)){
             window._csState._drakeTriggered.add(_k);
             const cur = parseFloat(_el.godFill.style.width)||0;
-            _el.godFill.style.width = Math.min(100, cur+15)+'%';
+            _el.godFill.style.width = Math.min(100, cur+20)+'%';
             if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
           }
         }
@@ -8343,7 +8349,7 @@ function processHit(e, now) {
           if(_hr2 < _th && !window._csState._drakeTriggered.has(_th)){
             window._csState._drakeTriggered.add(_th);
             const cur = parseFloat(_el.godFill.style.width)||0;
-            _el.godFill.style.width = Math.min(100, cur+15)+'%';
+            _el.godFill.style.width = Math.min(100, cur+20)+'%';
             if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
           }
         }
@@ -8419,7 +8425,7 @@ function applyDamage(dmg,e,isCrit) {
       _el.bossName.style.color='#ff4400';
       showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
     }
-    // DRAKE: OD charge +15% each time boss HP crosses 75%, 50%, 25%
+    // DRAKE: OD charge +20% each time boss HP crosses 75%, 50%, 25%
     if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
       if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
       const bossRatio = bossHP / bossMaxHP;
@@ -8428,14 +8434,14 @@ function applyDamage(dmg,e,isCrit) {
         if(bossRatio < thresh && !window._csState._drakeTriggered.has(key)) {
           window._csState._drakeTriggered.add(key);
           const cur = parseFloat(_el.godFill.style.width)||0;
-          _el.godFill.style.width = Math.min(100, cur + 15) + '%';
+          _el.godFill.style.width = Math.min(100, cur + 20) + '%';
           if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
         }
       }
     }
     if(bossHP<=0) bossKO();
   } else {
-    // DRAKE: OD charge +15% each time HP crosses 75%, 50%, 25%
+    // DRAKE: OD charge +20% each time HP crosses 75%, 50%, 25%
     if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
       if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
       const hpRatio = hp / maxHP;
@@ -8443,7 +8449,7 @@ function applyDamage(dmg,e,isCrit) {
         if(hpRatio < thresh && !window._csState._drakeTriggered.has(thresh)) {
           window._csState._drakeTriggered.add(thresh);
           const cur = parseFloat(_el.godFill.style.width)||0;
-          _el.godFill.style.width = Math.min(100, cur + 15) + '%';
+          _el.godFill.style.width = Math.min(100, cur + 20) + '%';
           if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
         }
       }
@@ -8462,10 +8468,10 @@ function applyDamage(dmg,e,isCrit) {
 function normalKO() {
   ko++; waveKO++;
   let baseCoins = Math.round((1 + Math.floor(combo * 0.05)) * (1.25 + (_sc.coinMult||0)));
-  // Turtle General: KO coin -30%
-  if(window._csState && window._csState.cs_combo30) baseCoins = Math.round(baseCoins * 0.70);
-  // Dark Lord: KO coin -40%
-  if(window._csState && window._csState.cs_darkLord) baseCoins = Math.round(baseCoins * 0.60);
+  // Turtle Shogun: KO Zeny -15%
+  if(window._csState && window._csState.cs_combo30) baseCoins = Math.round(baseCoins * 0.85);
+  // Dork Lord: KO Zeny -15%
+  if(window._csState && window._csState.cs_darkLord) baseCoins = Math.round(baseCoins * 0.85);
   baseCoins = csApplyCoinMod(baseCoins);
   // ── Zeny KO reduction (late-game economy rebalance) ──
   // Applied per-KO at earn time so totalRunZeny is never reduced retroactively.
@@ -8523,15 +8529,15 @@ function bossKO() {
   bossTapCount = 0; lastTapTime = 0; // reset tap ramp on boss KO
   window._bossesDefeated = (window._bossesDefeated||0) + 1;
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
-  // Turtle General: KO coin -30%
-  if(window._csState && window._csState.cs_combo30) bossCoins = Math.round(bossCoins * 0.70);
-  // Dark Lord: KO coin -40%
-  if(window._csState && window._csState.cs_darkLord) bossCoins = Math.round(bossCoins * 0.60);
+  // Turtle Shogun: KO Zeny -15%
+  if(window._csState && window._csState.cs_combo30) bossCoins = Math.round(bossCoins * 0.85);
+  // Dork Lord: KO Zeny -15%
+  if(window._csState && window._csState.cs_darkLord) bossCoins = Math.round(bossCoins * 0.85);
   if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
-  // DEVILINGO: boss alive > 10s → boss KO coin -15%
+  // DEVILINGO: boss defeated within 10s → Boss KO Zeny +10%
   if(window._csState && window._csState.cs_devilingo && window._csState._devilingoCombatStart) {
-    if(Date.now() - window._csState._devilingoCombatStart > 10000) {
-      bossCoins = Math.round(bossCoins * 0.85);
+    if(Date.now() - window._csState._devilingoCombatStart <= 10000) {
+      bossCoins = Math.round(bossCoins * 1.10);
     }
   }
   bossCoins = csApplyCoinMod(bossCoins);
@@ -8573,7 +8579,7 @@ function activateGodLevel(lv) {
     const _now = Date.now();
     if(!pressureIsBreak() && (!_fwcs._fallenWechatCooldownUntil || _now >= _fwcs._fallenWechatCooldownUntil)) {
       _fwcs._fallenWechatBreakActive = true;
-      _fwcs._fallenWechatCooldownUntil = _now + 30000;
+      _fwcs._fallenWechatCooldownUntil = _now + 20000;
       if(_el && _el.godFill) _el.godFill.style.width = '0%';
       showBigSplash('OVERLOADED BREAK', 'OD → BREAK', '#ff2233', false);
       setTimeout(() => {
@@ -9432,6 +9438,14 @@ function rollOcaDrop(mult) {
   return null;
 }
 
+
+function consumeDarkStakeOcaMultiplier() {
+  const cs = window._csState;
+  if (!cs || !cs.cs_darkStakeLord || !cs._darkStakeOcaBoostNextBreak) return 1;
+  cs._darkStakeOcaBoostNextBreak = false;
+  return 10;
+}
+
 function tryOcaBombDrop(x, y) {
   if (_ocaDropCount >= 10) return;
   const tier = rollOcaDrop(getOcaKoMultiplier());
@@ -9449,7 +9463,8 @@ function tryOcaBombDrop(x, y) {
 // Single WP collect = no OCA roll. AK47 complete uses rollOcaFromAk47Complete() instead.
 function tryOcaSkillDrop(x, y) {
   if (_ocaDropCount >= 10) return;
-  const tier = rollOcaDrop(getOcaKoMultiplier());
+  const darkStakeMult = consumeDarkStakeOcaMultiplier();
+  const tier = rollOcaDrop(getOcaKoMultiplier() * darkStakeMult);
   if (!tier) return;
   _ocaDropCount++;
   if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
