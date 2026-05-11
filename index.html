@@ -1053,9 +1053,9 @@
     border-radius:4px;
   }
 
-  /* HP hit flash — driven by js class toggle */
+  /* HP hit flash — driven by js class toggle; intensity scales with tap ramp via --ramp-flash */
   @keyframes hpHitFlash {
-    0%   { filter:brightness(2.2) saturate(0.3); }
+    0%   { filter:brightness(var(--ramp-flash, 2.2)) saturate(0.3); }
     100% { filter:none; }
   }
   #hpFill.hp-hit { animation:hpHitFlash 0.13s ease-out forwards; }
@@ -4354,6 +4354,12 @@ let combo, lastHitTime, lastIndex;
 // Overdrive
 let godLevel, canEnterGod, godTimeout, godInterval, godHitCount;
 
+// ── Infinite Tap Ramp ──
+// Normal taps (including OD taps) accumulate bossTapCount.
+// Damage bonus = bossTapCount * 0.005 (+0.5% per tap, no cap).
+// Resets on boss KO, idle >1500ms, or new run.
+let bossTapCount = 0, lastTapTime = 0;
+
 // HP & boss
 let hp, maxHP, bossHP, bossMaxHP, isBoss, bossPhase;
 
@@ -4379,6 +4385,7 @@ function initState() {
   isBoss = false; bossPhase = 1;
   combo = 1; lastHitTime = 0; lastIndex = -1;
   godLevel = 0; canEnterGod = true; godHitCount = 0;
+  bossTapCount = 0; lastTapTime = 0;
   ko = 0; score = 0; maxCombo = 0; annihilationCount = 0; roundCoins = 0;
   waveKO = 0; timeLeft = 60;
   window._bossesDefeated = 0;
@@ -8164,6 +8171,13 @@ function processHit(e, now) {
   // card damage mods
   dmg = csApplyDmgMod(dmg, godLevel>0);
 
+  // ── INFINITE TAP RAMP ──
+  // Only applied to normal taps (including OD taps). WP hits branch separately below
+  // so they never touch this block.
+  const _now = performance.now();
+  if (_now - lastTapTime > 1500) bossTapCount = 0; // idle reset
+  lastTapTime = _now;
+
   // moon shard
   const doubleHit=_sc.dblChance&&Math.random()<_sc.dblChance;
   // BAPHOMET: triple hit always
@@ -8189,6 +8203,10 @@ function processHit(e, now) {
     score += 20;
     csOnWpHit(pos.x, pos.y);
   } else {
+    // Apply ramp bonus — WP path above is excluded entirely
+    bossTapCount++;
+    const _rampBonus = bossTapCount * 0.005;
+    dmg = Math.round(dmg * (1 + _rampBonus));
     applyDamage(dmg,e,isCrit);
     // DOPPELGANGER: second hit at 80% dmg with 20% crit chance
     if(window._csState && window._csState.cs_doubleClick) {
@@ -8360,6 +8378,7 @@ function csOnBossKO() {
 function bossKO() {
   csOnBossKO();
   isBoss=false; ko++;
+  bossTapCount = 0; lastTapTime = 0; // reset tap ramp on boss KO
   window._bossesDefeated = (window._bossesDefeated||0) + 1;
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
   // Turtle General: KO coin -30%
@@ -8524,7 +8543,9 @@ function updateUI() {
     if (isNaN(chipNow) || pct < chipNow) chip.style.width = pct + '%';
   }
 
-  // HP hit flash — brief brightness burst on every damage call
+  // HP hit flash — intensity scales with tap ramp (base 2.2, +0.015 per tap, cap 4.5)
+  const _flashBright = Math.min(4.5, 2.2 + bossTapCount * 0.015);
+  _el.hpFill.style.setProperty('--ramp-flash', _flashBright);
   _el.hpFill.classList.remove('hp-hit');
   void _el.hpFill.offsetWidth; // force reflow so re-adding fires
   _el.hpFill.classList.add('hp-hit');
