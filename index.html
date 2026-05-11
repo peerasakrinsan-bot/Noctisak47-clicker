@@ -5306,6 +5306,11 @@ const CARD_POOL = [
 const CS_WEIGHTS = { standard:50, premium:25, elite:15, mythic:10 };
 const CS_LOD_EXCLUDED_IDS = new Set(['ld','mf','vr']);
 const CS_VALKYRIE_EXCLUDED_IDS = new Set(['mf','vr']);
+const DEBUG_CARD_EFFECTS = false;
+
+function _csDebugLog(...args){
+  if(DEBUG_CARD_EFFECTS) console.log('[CardEffects]', ...args);
+}
 
 // สุ่ม tier ก่อน แล้วค่อยสุ่มการ์ดใน tier นั้น — rate คงที่ไม่ขึ้นกับจำนวนใบ
 function _pickTier(excludeTiers=[]) {
@@ -5557,7 +5562,7 @@ function _csRefreshVolatileCardEffects(nextState) {
   }
 
   // DEVILINGO: record combat start time
-  if(nextState && nextState.cs_devilingo) nextState._devilingoCombatStart = Date.now();
+  if(nextState && nextState.cs_devilingo) { nextState._devilingoCombatStart = Date.now(); _csDebugLog('DEVILINGO started', nextState._devilingoCombatStart); }
   // GLOOM UNDER SIDE: start 2s momentum stack timer (+4%/stack, max 20 stacks = +80%)
   // Stacks persist through KO, Boss KO, and all combat. Reset only on run end.
   if(nextState && nextState.cs_gloomUnderSide) {
@@ -5631,6 +5636,7 @@ function _csStartLodTimer() {
     newCard.apply(cs);
     window._csState = { cs_lordofdeath:true, ...cs };
     _csRefreshVolatileCardEffects(window._csState);
+    _csDebugLog('LOD rolled', newCard.id, 'state', window._csState);
     _csSyncWeakPointAvailability(prevHadRsx, true);
     // แสดงภาพการ์ด
     _lodShowCard(newCard, isFirst);
@@ -5756,6 +5762,22 @@ function _csStopAllTimers() {
   _lodHideCard();
 }
 
+function _sanitizeDamage(value, source='unknown') {
+  if(Number.isFinite(value) && value > 0) return value;
+  const debugState = {
+    source,
+    value,
+    cardState: window._csState ? Object.keys(window._csState).filter(k => k.startsWith('cs_') && window._csState[k]) : [],
+    isBoss,
+    hp,
+    maxHP,
+    godLevel
+  };
+  console.warn('[DamageGuard] invalid damage, applying fallback', debugState);
+  _csDebugLog('DamageGuard fallback', debugState);
+  return 1;
+}
+
 // ── helper: apply card modifiers to damage ──
 function csApplyDmgMod(baseDmg, isGod) {
   if(!window._csState) return baseDmg;
@@ -5763,7 +5785,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   let d = baseDmg;
   if(cs.cs_dmgBonus)   d *= (1 + cs.cs_dmgBonus);
   if(cs.cs_bossDmgBonus && isBoss) d *= (1 + cs.cs_bossDmgBonus);
-  if(cs.cs_devilingo && isBoss && performance.now() - (_csCombatStartAt||0) <= 15000) d *= 1.25;
+  if(cs.cs_devilingo && isBoss && cs._devilingoCombatStart && Date.now() - cs._devilingoCombatStart <= 15000) d *= 1.25;
   // MISSSTRESS no longer has a non-OD damage penalty.
   if(cs.cs_mummy_active) d *= (1 + (cs.cs_combo20Dmg||0));
   if(cs.cs_skelworker_bonus) d *= (1 + cs.cs_skelworker_bonus);
@@ -5839,7 +5861,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_osiris && cs._osirisJudgmentEndTime && performance.now() < cs._osirisJudgmentEndTime) d *= 2.0;
   // TAO FUNKA: accumulated BREAK bonus (max +15%)
   if(cs.cs_taoFunka && cs._taoFunkaBonus) d *= (1 + cs._taoFunkaBonus);
-  return Math.round(d);
+  return _sanitizeDamage(Math.round(d), 'csApplyDmgMod');
 }
 
 // ── helper: apply card modifiers to coin gain ──
@@ -5865,7 +5887,7 @@ function csApplyCoinMod(coins) {
   // BEELZEBRUH: max-corruption discharge coin x1.5
   if(cs.cs_beelzebub && cs._beelzebubCoinEndTime && performance.now() < cs._beelzebubCoinEndTime) c *= 1.5;
   if(cs.cs_moonlightflower) c *= 2;
-  if(cs.cs_devilingo && isBoss && performance.now() - (_csCombatStartAt||0) <= 15000) c *= 1.30;
+  if(cs.cs_devilingo && isBoss && cs._devilingoCombatStart && Date.now() - cs._devilingoCombatStart <= 15000) c *= 1.30;
   if(cs.cs_amonRa_active) c *= 1.5;
   if(typeof pressureCoinMultiplier === 'function') c *= pressureCoinMultiplier();
   // A-LIST: Sponsor Rush +25% coin
@@ -6230,6 +6252,8 @@ function _csValkyrieRandgrisSwap() {
   const cs = { cs_valkyrieRandgris:true };
   newCard.apply(cs);
   window._csState = cs;
+  _csRefreshVolatileCardEffects(window._csState);
+  _csDebugLog('VALKYRIZZ swap applied', newCard.id);
   _csSyncWeakPointAvailability(prevHadRsx, true);
   _showActiveCard(newCard);
   showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD',''), '#cc88ff');
@@ -8309,7 +8333,7 @@ function processHit(e, now) {
   }
 
   // card damage mods
-  dmg = csApplyDmgMod(dmg, godLevel>0);
+  dmg = _sanitizeDamage(csApplyDmgMod(dmg, godLevel>0), 'postCardMod');
 
   // ── INFINITE TAP RAMP ──
   // Only applied to normal taps (including OD taps). WP hits branch separately below
@@ -8338,7 +8362,7 @@ function processHit(e, now) {
     if(window._csState && window._csState.cs_thanatos && window._csState._thanatosPhaseEndTime && performance.now() < window._csState._thanatosPhaseEndTime && godLevel > 0) {
       godSecondsLeft += 1;
     }
-    const wpDmg = onWeakPointHit(pos.x, pos.y, baseDmg*multi, wpMult * thanatosMult);
+    const wpDmg = _sanitizeDamage(onWeakPointHit(pos.x, pos.y, baseDmg*multi, wpMult * thanatosMult), 'weakPoint');
     applyDamage(wpDmg, e, false);
     score += 20;
     csOnWpHit(pos.x, pos.y);
@@ -8370,7 +8394,7 @@ function processHit(e, now) {
 
     // ── Total damage: base × (OD hits × Meth hits) + Doppelganger bonus ──
     const _totalHits = _odHits * _methHits;
-    const _totalDmg = Math.round(dmg * _totalHits) + _dgBonus;
+    const _totalDmg = _sanitizeDamage(Math.round(dmg * _totalHits) + _dgBonus, 'normalTapTotal');
 
     // ── One damage application, one number, one flash ──
     const pos2 = pos; // pos already computed above
