@@ -4959,15 +4959,15 @@ const CARD_POOL = [
     apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.18; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
-    effect:'AK47: OD charge <strong>+25%</strong><br>OD: timer <strong>+1.5 วิ</strong><br>BREAK: rage ลด <strong>+5</strong>', tradeoff:null,
-    apply(s){ s.cs_wpOdCharge = (s.cs_wpOdCharge||0) + 0.25; s.cs_overloadReduce = (s.cs_overloadReduce||0) + 5; }
+    effect:'AK47 Complete:<br>OD <strong>+35%</strong> + OD time <strong>+2s</strong> + Speed burst<br><br>OD: AK47 hit = DMG Stack <strong>+4%</strong> (max <strong>+40%</strong>)<br><br>BREAK: Rage <strong>-12</strong> + <strong>FREE MODE</strong> 5s<br>FREE MODE: Combo ไม่ลด + OD gain <strong>+50%</strong>', tradeoff:null,
+    apply(s){ s.cs_freeoni = true; s.cs_overloadReduce = (s.cs_overloadReduce||0) + 12; }
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
     effect:'Combo ≥ 25: DMG <strong>+35%</strong><br>KO: score <strong>+400</strong>', tradeoff:'Zeny จาก KO <strong>-15%</strong>',
     apply(s){ s.cs_combo30 = true; }
   },
   { id:'dk',      name:'DRAKE CARD',         img:'cards/drake.png',       rarity:'elite',
-    effect:'HP ผ่าน 75/50/25%:<br>OD charge <strong>+20%</strong>', tradeoff:null,
+    effect:'HP Phase 75/50/25%:<br><strong>Phase Burst</strong> แรงขึ้นทุกเฟส<br><br>75%: OD <strong>+20%</strong> + DMG <strong>+15%</strong> 4s<br>50%: OD <strong>+30%</strong> + DMG <strong>+25%</strong> + Combo lock 4s<br>25%: OD <strong>+50%</strong> + Rage Stack <strong>+2</strong> + BREAK DMG boost<br><br>ครบทั้ง 3 เฟส: <strong>DRAKE TAKE</strong> 6s (OD x2, BREAK x2, AK47 spawn เร็วขึ้น)', tradeoff:null,
     apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
   { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
@@ -5185,7 +5185,7 @@ const CARD_POOL = [
 
   // ── ELITE ใหม่ ──
   { id:'mi',   name:'MINORAGE CARD',      img:'cards/minorage.png',    rarity:'elite',
-    effect:'HP ศัตรู > 60%: DMG <strong>+35%</strong> & Combo decay หยุด', tradeoff:null,
+    effect:'>70% HP: DMG <strong>+40%</strong> + Combo ไม่ลด<br>>50% HP: คลิกมีโอกาส <strong>20%</strong> ได้ Rage Stack<br>>30% HP: Crit DMG <strong>+50%</strong><br><br>ผ่าน 70/50/30 เร็วพอ: <strong>RAGE RUSH</strong> 4s<br>Combo <strong>+2/คลิก</strong> + Crit <strong>+25%</strong>', tradeoff:null,
     apply(s){ s.cs_minorous = true; }
   },
   { id:'ex',name:'EXECUSIONER CARD',   img:'cards/execusioner.png', rarity:'elite',
@@ -5197,8 +5197,8 @@ const CARD_POOL = [
     apply(s){ s.cs_whisper = true; s.cs_breakDuration = (s.cs_breakDuration||0) + 0.3; }
   },
   { id:'gl',name:'GOBLIN WEEBER CARD',img:'cards/goblin_weeber.png',rarity:'elite',
-    effect:'คลิก = Combo <strong>+2</strong> | Combo ≥ 30: DMG <strong>+15%</strong>', tradeoff:'OD charge <strong>-20%</strong>',
-    apply(s){ s.cs_goblinLeader = true; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
+    effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥50: คลิกซ้ำฟรี <strong>20%</strong><br>Combo ≥75: <strong>WEEB FOCUS</strong> 5s<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
+    apply(s){ s.cs_goblinLeader = true; }
   },
   { id:'ar',     name:'AMOG RA CARD',       img:'cards/amog_ra.png',     rarity:'elite',
     effect:'Combo ≥ 40: DMG <strong>+40%</strong> & Zeny <strong>×1.5</strong>', tradeoff:null,
@@ -5794,7 +5794,10 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_moonlightflower) d *= 2;
   if(cs.cs_stormyKnight && godLevel > 0) d *= 1.35;
   // Minorous: +35% when HP > 60%
-  if(cs.cs_minorous) { const ratio = isBoss ? 1 : (hp/maxHP); if(ratio > 0.60) d *= 1.35; }
+  if(cs.cs_minorous) {
+    const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
+    if(ratio > 0.70) d *= 1.40;
+  }
   // Executioner: +50% when HP < 25%
   if(cs.cs_executioner) { const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP); if(ratio < 0.25) d *= 1.50; }
   // Beelzebub: accumulated corruption dmg bonus
@@ -5809,7 +5812,10 @@ function csApplyDmgMod(baseDmg, isGod) {
   // Amon Ra: combo >= 40 dmg +40%
   if(cs.cs_amonRa_active) d *= 1.40;
   // Goblin Leader: combo >= 30 dmg +20%
-  if(cs.cs_goblinLeader && combo >= 30) d *= 1.20;
+  if(cs.cs_goblinLeader && combo >= 25) d *= 1.20;
+  if(cs.cs_freeoni && cs._freeoniOdDmgStack) d *= (1 + cs._freeoniOdDmgStack);
+  if(cs.cs_drakeIgnoreThreshold && cs._drakeDmgEndTime && performance.now() < cs._drakeDmgEndTime) d *= (1 + (cs._drakeDmgBonus || 0));
+  if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 1.30;
   // Baphomet: accumulated dmg bonus from AK47 completions
   if(cs.cs_baphomet && cs._baphometDmgStack) d *= (1 + cs._baphometDmgStack);
   // Orc Hero: accumulated dmg bonus from OD completions
@@ -5920,6 +5926,21 @@ function csOnClick(isGod) {
   if(cs.cs_incantation) cs.cs_incantation_active = combo >= 35;
   if(cs.cs_elderWillow) cs.cs_elderWillow_active = combo >= 25;
   if(cs.cs_horong)      cs.cs_horong_active = timeLeft < 20;
+  if(cs.cs_goblinLeader && combo >= 47) cs._weebFocusEndTime = performance.now() + 5000;
+  if(cs.cs_minorous) {
+    const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
+    const prev = cs._minorageLastRatio ?? 1;
+    if(prev > 0.70 && ratio <= 0.70) cs._minorageCross70 = performance.now();
+    if(prev > 0.50 && ratio <= 0.50) cs._minorageCross50 = performance.now();
+    if(prev > 0.30 && ratio <= 0.30) {
+      const t0 = cs._minorageCross70 || 0, t1 = cs._minorageCross50 || 0, now = performance.now();
+      if(t0 && t1 && now - t0 <= 8000 && now - t1 <= 5000) {
+        cs._rageRushEndTime = now + 4000;
+        showBigSplash('RAGE RUSH', 'CRIT +25% • COMBO SURGE 4s', '#ff2233', false);
+      }
+    }
+    cs._minorageLastRatio = ratio;
+  }
   // MARVELC: low-time dmg bonus (<15s)
   if(cs.cs_marvelcLowTime) cs._marvelcLowTimeActive = timeLeft < 15;
   // Amon Ra: combo >= 40 → dmg+40% + coin x1.5
@@ -6148,6 +6169,7 @@ function csOnBreakSuccess() {
   }
   // WEEBVIL DUDE: 5s dmg window (refreshes every BREAK)
   if(cs.cs_weebvilBreak) cs._weebvilBreakEndTime = performance.now() + 5000;
+  if(cs.cs_freeoni) cs._freeModeEndTime = performance.now() + 5000;
   // ATROSUS: Resonance window (6s base, 10s with Mastery); track count toward Mastery
   if(cs.cs_atrosusBreak) {
     const resDur = cs._atrosusResonanceMastery ? 10000 : 6000;
@@ -6279,7 +6301,16 @@ function csOnWpHit(x, y) {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
   // Phreeoni: if OD active → OD timer +1s; else charge +20%
-  if(cs.cs_wpOdCharge) {
+  if(cs.cs_freeoni) {
+    if(godLevel > 0) {
+      cs._freeoniOdDmgStack = Math.min(0.40, (cs._freeoniOdDmgStack || 0) + 0.04);
+      godSecondsLeft += 0.20;
+    } else {
+      const bar = _el.godFill;
+      const cur = parseFloat(bar.style.width)||0;
+      bar.style.width = Math.min(100, cur + 35) + '%';
+    }
+  } else if(cs.cs_wpOdCharge) {
     if(godLevel > 0) {
       godSecondsLeft += 1;
     } else {
@@ -6326,6 +6357,29 @@ function csOnWpHit(x, y) {
   if(cs.cs_skellytonWp) cs._skellytonCritEndTime = performance.now() + 5000;
   // NOTE: No OCA roll here — single weak point pickup must NOT trigger OCA.
   // OCA rolls only on: AK47 complete (all 5 WPs → onAk47Complete) and BREAK success.
+}
+
+function _csHandleDrakeThreshold(ratio, key){
+  const cs = window._csState;
+  if(!cs || !cs.cs_drakeIgnoreThreshold || cs.cs_baphomet || cs.cs_goldenbug) return;
+  if(!cs._drakeTriggered) cs._drakeTriggered = new Set();
+  if(cs._drakeTriggered.has(key)) return;
+  const phaseMap = { '75': {od:20,dmg:0.15,combo:false}, '50': {od:30,dmg:0.25,combo:true}, '25': {od:50,dmg:0.00,combo:false} };
+  const th = parseInt(key,10) / 100;
+  if(ratio >= th) return;
+  cs._drakeTriggered.add(key);
+  const p = phaseMap[key];
+  const cur = parseFloat(_el.godFill.style.width)||0;
+  _el.godFill.style.width = Math.min(100, cur + p.od) + '%';
+  if(p.dmg > 0){ cs._drakeDmgBonus = p.dmg; cs._drakeDmgEndTime = performance.now()+4000; }
+  if(p.combo) cs._drakeComboLockEndTime = performance.now()+4000;
+  if(key === '25') cs.cs_breakPower = (cs.cs_breakPower||0) + 0.35;
+  if(cs._drakeTriggered.has('75') && cs._drakeTriggered.has('50') && cs._drakeTriggered.has('25')) {
+    cs._drakeTakeEndTime = performance.now()+6000;
+    showBigSplash('DRAKE TAKE', 'OD x2 • BREAK x2 • AK47 FAST', '#66ccff', false);
+  } else {
+    triggerFlash('flash-boss');
+  }
 }
 
 // ── helper: on time up — osiris ──
@@ -8155,7 +8209,8 @@ function processHit(e, now) {
   const isWpHit = checkWeakPointHit(rawX, rawY);
 
   // คอมโบ: WP hit ไม่รีเซ็ตคอมโบ (นับเป็น "ตีทัน" เสมอ)
-  const _comboInc = (window._csState && window._csState.cs_goblinLeader) ? 2 : 1;
+  let _comboInc = (window._csState && window._csState.cs_goblinLeader) ? 2 : 1;
+  if(window._csState && window._csState._rageRushEndTime && performance.now() < window._csState._rageRushEndTime) _comboInc += 2;
   // FABRE/STAINER: extend combo window; STING tradeoff: shorten combo window
   const _comboWindow = 220
     * (1 + (window._csState && window._csState.cs_comboDecaySlow || 0))
@@ -8163,7 +8218,10 @@ function processHit(e, now) {
   const _suppressReset = window._csState && (
     window._csState._whisperComboProtect ||
     window._csState._ktullanuxComboProtect ||
-    (window._csState.cs_minorous && !isBoss && (hp/maxHP) > 0.60) ||
+    (window._csState.cs_minorous && ((isBoss ? (bossHP/bossMaxHP) : (hp/maxHP)) > 0.70)) ||
+    (window._csState._freeModeEndTime && performance.now() < window._csState._freeModeEndTime) ||
+    (window._csState._weebFocusEndTime && performance.now() < window._csState._weebFocusEndTime) ||
+    (window._csState._drakeComboLockEndTime && performance.now() < window._csState._drakeComboLockEndTime) ||
     (window._csState.cs_comboNoReset && Math.random() < window._csState.cs_comboNoReset)
   );
   if(isWpHit || gap < _comboWindow) combo = Math.min(combo + _comboInc, 47);
@@ -8203,6 +8261,14 @@ function processHit(e, now) {
      && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     const cur = parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width = Math.min(100, cur + window._csState.cs_odChargeBonus * 100) + '%';
+  }
+  if(window._csState && window._csState._freeModeEndTime && performance.now() < window._csState._freeModeEndTime && godLevel === 0) {
+    const cur = parseFloat(_el.godFill.style.width)||0;
+    _el.godFill.style.width = Math.min(100, cur + 50) + '%';
+  }
+  if(window._csState && window._csState._weebFocusEndTime && performance.now() < window._csState._weebFocusEndTime && godLevel === 0) {
+    const cur = parseFloat(_el.godFill.style.width)||0;
+    _el.godFill.style.width = Math.min(100, cur + 35) + '%';
   }
   // SAVAGE / TAO GUNKA / GOBLIN LEADER: OD charge penalty (reduce charge rate)
   if(window._csState && window._csState.cs_odChargePenalty && godLevel === 0
@@ -8277,6 +8343,9 @@ function processHit(e, now) {
   let _critChance = (_sc.critChance||0);
   if(window._csState) {
     if(window._csState.cs_critChanceBonus) _critChance += window._csState.cs_critChanceBonus;
+    if(window._csState.cs_minorous && ((isBoss ? (bossHP/bossMaxHP) : (hp/maxHP)) <= 0.30)) dmg = Math.round(dmg * 1.5);
+    if(window._csState._rageRushEndTime && performance.now() < window._csState._rageRushEndTime) _critChance += 0.25;
+    if(window._csState._weebFocusEndTime && performance.now() < window._csState._weebFocusEndTime) _critChance += 0.20;
     if(window._csState.cs_jakkCrit && godLevel>0) _critChance += 0.20;
     // JACKED: +8% crit during BREAK (even outside OD)
     if(window._csState.cs_jakkCrit && godLevel===0 && typeof pressureIsBreak === 'function' && pressureIsBreak()) _critChance += 0.08;
@@ -8411,33 +8480,14 @@ function processHit(e, now) {
         _el.bossName.style.color = '#ff4400';
         showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
       }
-      if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug){
-        if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
-        const _br2 = bossHP / bossMaxHP;
-        for(const _th of [0.75,0.50,0.25]){
-          const _k = 'boss_'+_th;
-          if(_br2 < _th && !window._csState._drakeTriggered.has(_k)){
-            window._csState._drakeTriggered.add(_k);
-            const cur = parseFloat(_el.godFill.style.width)||0;
-            _el.godFill.style.width = Math.min(100, cur+20)+'%';
-            if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
-          }
-        }
-      }
+      _csHandleDrakeThreshold(bossHP / bossMaxHP, '75');
+      _csHandleDrakeThreshold(bossHP / bossMaxHP, '50');
+      _csHandleDrakeThreshold(bossHP / bossMaxHP, '25');
       if(bossHP <= 0) bossKO();
     } else {
-      if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug){
-        if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
-        const _hr2 = hp / maxHP;
-        for(const _th of [0.75,0.50,0.25]){
-          if(_hr2 < _th && !window._csState._drakeTriggered.has(_th)){
-            window._csState._drakeTriggered.add(_th);
-            const cur = parseFloat(_el.godFill.style.width)||0;
-            _el.godFill.style.width = Math.min(100, cur+20)+'%';
-            if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
-          }
-        }
-      }
+      _csHandleDrakeThreshold(hp / maxHP, '75');
+      _csHandleDrakeThreshold(hp / maxHP, '50');
+      _csHandleDrakeThreshold(hp / maxHP, '25');
       if(window._csState && window._csState.cs_raydric && !window._csState._raydricActive){
         if((hp/maxHP) <= 0.60) window._csState._raydricActive = true;
       }
@@ -8510,34 +8560,15 @@ function applyDamage(dmg,e,isCrit) {
       showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
     }
     // DRAKE: OD charge +20% each time boss HP crosses 75%, 50%, 25%
-    if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
-      if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
-      const bossRatio = bossHP / bossMaxHP;
-      for(const thresh of [0.75, 0.50, 0.25]) {
-        const key = 'boss_'+thresh;
-        if(bossRatio < thresh && !window._csState._drakeTriggered.has(key)) {
-          window._csState._drakeTriggered.add(key);
-          const cur = parseFloat(_el.godFill.style.width)||0;
-          _el.godFill.style.width = Math.min(100, cur + 20) + '%';
-          if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
-        }
-      }
-    }
+    _csHandleDrakeThreshold(bossHP / bossMaxHP, '75');
+    _csHandleDrakeThreshold(bossHP / bossMaxHP, '50');
+    _csHandleDrakeThreshold(bossHP / bossMaxHP, '25');
     if(bossHP<=0) bossKO();
   } else {
     // DRAKE: OD charge +20% each time HP crosses 75%, 50%, 25%
-    if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
-      if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
-      const hpRatio = hp / maxHP;
-      for(const thresh of [0.75, 0.50, 0.25]) {
-        if(hpRatio < thresh && !window._csState._drakeTriggered.has(thresh)) {
-          window._csState._drakeTriggered.add(thresh);
-          const cur = parseFloat(_el.godFill.style.width)||0;
-          _el.godFill.style.width = Math.min(100, cur + 20) + '%';
-          if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
-        }
-      }
-    }
+    _csHandleDrakeThreshold(hp / maxHP, '75');
+    _csHandleDrakeThreshold(hp / maxHP, '50');
+    _csHandleDrakeThreshold(hp / maxHP, '25');
     // RAYDRIC: activate permanently once enemy HP drops to <= 60%
     if(window._csState && window._csState.cs_raydric && !window._csState._raydricActive) {
       if((hp / maxHP) <= 0.60) window._csState._raydricActive = true;
