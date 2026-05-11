@@ -4896,407 +4896,660 @@ const CARD_POOL = [
   // ── COMMON ──
   { id:'po',     name:'BORING CARD',       img:'cards/boring.png',      rarity:'standard',
     effect:'Zeny <strong>+12%</strong>',  tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_coinPct = (s.cs_coinPct||0) + 0.12; }
   },
   { id:'lu',    name:'LOONEYTIC CARD',       img:'cards/looneytic.png',     rarity:'standard',
     effect:'Crit DMG <strong>+15%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_critDmgBonus = (s.cs_critDmgBonus||0) + 0.15; }
   },
   { id:'fa',      name:'FA-BRRR CARD',         img:'cards/fa-brrr.png',       rarity:'standard',
     effect:'Combo decay ช้าลง <strong>20%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_comboDecaySlow = (s.cs_comboDecaySlow||0) + 0.20; }
   },
   { id:'co',     name:'CONBRO CARD',        img:'cards/conbro.png',      rarity:'standard',
     effect:'<strong>10%</strong> โอกาส Combo ไม่ reset', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_comboNoReset = (s.cs_comboNoReset||0) + 0.10; }
   },
   { id:'pp',   name:'PEKO PEKO CARD',     img:'cards/peko_peko.png',    rarity:'standard',
     effect:'HP ศัตรู เริ่มต้น <strong>-15%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_enemyHpReduce = (s.cs_enemyHpReduce||0) + 0.15; }
   },
   { id:'sp',      name:'SNORE CARD',         img:'cards/snore.png',       rarity:'standard',
     effect:'เวลา <strong>+3 วิ</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_extraTime = (s.cs_extraTime||0) + 3; }
   },
   { id:'pr',   name:'POPORINGO CARD',      img:'cards/poporingo.png',   rarity:'standard',
     effect:'ทุก 10 Combo: Zeny <strong>+12</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_comboMilestoneCoin = (s.cs_comboMilestoneCoin||0) + 12; }
   },
 
   // ── UNCOMMON ──
   { id:'zo',     name:'ZOOMBIE CARD',        img:'cards/zoombie.png',      rarity:'premium',
     effect:'KO: เวลา <strong>+0.05 วิ</strong> (สูงสุด +5 วิ)', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_koTimeBonus = true; }
   },
   { id:'sa',     name:'SALVAGE CARD',        img:'cards/salvage.png',      rarity:'premium',
     effect:'DMG <strong>+12%</strong> | BREAK: DMG <strong>+15%</strong> เพิ่ม', tradeoff:'OD charge <strong>-15%</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.12; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.15; s.cs_salvageBreak=true; }
   },
   { id:'oc',        name:'ORC WORRIER CARD',   img:'cards/orc_worrier.png',         rarity:'premium',
     effect:'Crit: OD charge <strong>+3%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_critOdCharge = (s.cs_critOdCharge||0) + 0.03; }
   },
   { id:'mu',      name:'MOMMY CARD',         img:'cards/mommy.png',       rarity:'premium',
-    effect:'Combo ≥ 20: DMG <strong>+18%</strong>', tradeoff:null,
-    apply(s){ s.cs_combo20Dmg = (s.cs_combo20Dmg||0) + 0.18; }
+    effect:'Combo ≥ 20: DMG <strong>+15%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    apply(s){ s.cs_combo20Dmg = (s.cs_combo20Dmg||0) + 0.15; }
   },
   { id:'sw', name:'SKILL WORKER CARD',   img:'cards/skill_worker.png', rarity:'premium',
     effect:'<strong>+8%</strong> DMG ต่อ 10 Combo (สูงสุด +24%)', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_skelWorker = true; }
   },
   { id:'hf',  name:'HUNGER FLY CARD',    img:'cards/hunger_fly.png',  rarity:'premium',
     effect:'OD ที่ใช้: Zeny <strong>+60</strong>/รอบ', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_odCoinBonus = (s.cs_odCoinBonus||0) + 60; }
   },
 
   // ── RARE ──
   { id:'dg',name:'DOPPELGANGER CARD', img:'cards/doppelganger.png',rarity:'elite',
     effect:'คลิก = double hit<br>hit 2: DMG <strong>100%</strong> & Crit <strong>25%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_doubleClick = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
     effect:'AK47: DMG <strong>×3</strong><br>ครบชุด/BREAK: เวลา <strong>+1.5 วิ</strong> & BREAK <strong>+18%</strong>', tradeoff:'AK47 spawn ช้า <strong>×1.25</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_wpDmgMult = 3; s.cs_hydraSpawnSlow = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.18; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
     effect:'AK47 Complete:<br>OD <strong>+35%</strong> + OD time <strong>+2s</strong> + Speed burst<br><br>OD: AK47 hit = DMG Stack <strong>+4%</strong> (max <strong>+40%</strong>)<br><br>BREAK: Rage <strong>-12</strong> + <strong>FREE MODE</strong> 5s<br>FREE MODE: Combo ไม่ลด + OD gain <strong>+50%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_freeoni = true; s.cs_overloadReduce = (s.cs_overloadReduce||0) + 12; }
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
     effect:'Combo ≥ 25: DMG <strong>+35%</strong><br>KO: score <strong>+400</strong>', tradeoff:'Zeny จาก KO <strong>-15%</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_combo30 = true; }
   },
   { id:'dk',      name:'DRAKE CARD',         img:'cards/drake.png',       rarity:'elite',
     effect:'HP Phase 75/50/25%:<br><strong>Phase Burst</strong> แรงขึ้นทุกเฟส<br><br>75%: OD <strong>+20%</strong> + DMG <strong>+15%</strong> 4s<br>50%: OD <strong>+30%</strong> + DMG <strong>+25%</strong> + Combo lock 4s<br>25%: OD <strong>+50%</strong> + Rage Stack <strong>+2</strong> + BREAK DMG boost<br><br>ครบทั้ง 3 เฟส: <strong>DRAKE TAKE</strong> 6s (OD x2, BREAK x2, AK47 spawn เร็วขึ้น)', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
   { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
-    shortDesc:'บอสละลายไวขึ้น และพุ่งแรงหลัง BREAK',
+    shortDescription:'บอสละลายไวขึ้น และพุ่งแรงหลัง BREAK',
     effect:'Boss DMG <strong>+50%</strong> & Boss KO Zeny <strong>+20%</strong><br>BREAK สำเร็จ: Boss DMG <strong>+50%</strong> 8 วิ', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.50; s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.20; s.cs_aknightBreak=true; }
   },
 
   // ── VOID (MVP) ──
   { id:'th',   name:'THANABROS CARD',      img:'cards/thanabros.png',    rarity:'mythic',
     effect:'AK47 DMG <strong>×2.5</strong> | BREAK: OD เต็ม & <strong>Thanatos Phase</strong> 5 วิ (DMG <strong>×2</strong> & AK47: OD <strong>+1 วิ</strong>)', tradeoff:'Combo reset ทุก 10 วิ',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_thanatos = true; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
     effect:'คลิก = triple hit | AK47 spawn ทันที | BREAK: DMG <strong>+5%</strong> Stack (สูงสุด +25%)', tradeoff:'OD ชาร์จไม่ได้',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
     effect:'OD Lv.1 active ตลอด | ทุก 15 วิ: Lv.2 burst <strong>5 วิ</strong>', tradeoff:'ล็อค OD Lv.1 (นอกจาก burst)',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_eddga = true; }
   },
   { id:'os',     name:'NOSIRIS CARD',        img:'cards/nosiris.png',      rarity:'mythic',
-    shortDesc:'BREAK สะสม Soul Stack เพื่อเปิด JUDGMENT',
+    shortDescription:'BREAK สะสม Soul Stack เพื่อเปิด JUDGMENT',
     effect:'BREAK:<br>Soul Stack +1 และรับ Zeny <strong>+25/Stack</strong><br>(สูงสุด 5)<br><br>ครบ 5 Stack:<br><strong>JUDGMENT</strong> 8 วิ<br>DMG ×2 & Zeny ×2<br><br>เวลาหมด:<br>หากมี 3+ Stack<br>เหลือเวลา +15 วิ 1 ครั้ง', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_osiris = true; }
   },
   { id:'mt',   name:'MISSSTRESS CARD',      img:'cards/missstress.png',    rarity:'mythic',
-    shortDesc:'OD คลิกเพิ่ม Zeny และยืดเวลา Overdrive',
-    effect:'OD:<br>คลิก = Zeny <strong>+12</strong> & OD timer <strong>+0.5 วิ</strong> & Crit <strong>+10%</strong>', tradeoff:null,
+    shortDescription:'OD คลิกเพิ่ม Zeny และยืดเวลา Overdrive',
+    effect:'OD:<br>คลิก = Zeny <strong>+12</strong> & OD timer <strong>+0.35 วิ</strong><br>(สูงสุด <strong>+6 วิ/OD</strong>) & Crit <strong>+10%</strong>', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_mistress = true; }
   },
   { id:'gb',  name:'GOLDEN BRUH CARD',    img:'cards/golden_bruh.png',  rarity:'mythic',
-    shortDesc:'คอมโบเร่ง Zeny และปลด GOLD RUSH เมื่อ Max Combo',
+    shortDescription:'คอมโบเร่ง Zeny และปลด GOLD RUSH เมื่อ Max Combo',
     effect:'คลิก = Combo <strong>+1</strong><br>Zeny <strong>×3</strong><br>Max Combo (47): <strong>GOLD RUSH</strong> 12 วิ<br>Zeny ×9 & คลิก = +8<br>Cooldown 10 วิ', tradeoff:'OD ชาร์จไม่ได้',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_goldenbug = true; }
   },
   { id:'oh',    name:'COKE ZERO CARD',      img:'cards/coke_zero.png',    rarity:'mythic',
-    shortDesc:'เร่ง OD charge สูง แต่ต้องแลกเวลากับ Stack DMG',
+    shortDescription:'เร่ง OD charge สูง แต่ต้องแลกเวลากับ Stack DMG',
     effect:'OD charge <strong>×4</strong><br>OD หมด: DMG <strong>+15%</strong> Stack<br>(สูงสุด +90%)', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_orchero = true; }
   },
   { id:'ld',name:'LORD OF DEBT CARD', img:'cards/lord_of_debt.png',rarity:'mythic',
     effect:'สุ่ม effect จาก <strong>ELITE/MYTHIC</strong> ทุก 10 วิ', tradeoff:'ผลลัพธ์ไม่แน่นอน',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_lordofdeath = true; }
   },
 
   // ── COMMON ใหม่ ──
   { id:'dr',      name:'DRIPZ CARD',         img:'cards/dripz.png',       rarity:'standard',
     effect:'Zeny <strong>+8%</strong> & Crit <strong>+5%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_coinPct=(s.cs_coinPct||0)+0.08; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.05; }
   },
   { id:'st',    name:'STAYNOR CARD',        img:'cards/staynor.png',     rarity:'standard',
     effect:'Combo decay ช้าลง <strong>20%</strong> & ทุก 10 Combo: Zeny <strong>+6</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.20; s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+6; }
   },
   { id:'ro',     name:'BROCKER CARD',         img:'cards/brocker.png',      rarity:'standard',
     effect:'ทุก 10 Combo: Zeny <strong>+10</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_comboMilestoneCoin = (s.cs_comboMilestoneCoin||0) + 10; }
   },
   { id:'ca',    name:'CARAMEME CARD',        img:'cards/carameme.png',     rarity:'standard',
     effect:'HP ศัตรู เริ่มต้น <strong>-10%</strong> & เวลา <strong>+1 วิ</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)+0.10; s.cs_extraTime=(s.cs_extraTime||0)+1; }
   },
   { id:'rf',   name:'BRODA FROG CARD',      img:'cards/broda_frog.png',   rarity:'standard',
     effect:'DMG <strong>+7%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_dmgBonus = (s.cs_dmgBonus||0) + 0.07; }
   },
   { id:'me',   name:'METALOL CARD',       img:'cards/metalol.png',    rarity:'standard',
     effect:'OD charge <strong>+8%</strong>/คลิก', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_odChargeBonus = (s.cs_odChargeBonus||0) + 0.08; }
   },
   { id:'ma', name:'MANGAGORA CARD',     img:'cards/mangagora.png',  rarity:'standard',
-    effect:'เวลา <strong>+4 วิ</strong>', tradeoff:null,
-    apply(s){ s.cs_extraTime = (s.cs_extraTime||0) + 4; }
+    effect:'เวลา <strong>+3 วิ</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    apply(s){ s.cs_extraTime = (s.cs_extraTime||0) + 3; }
   },
   { id:'wi',     name:'WEEBLOW CARD',         img:'cards/weeblow.png',      rarity:'standard',
     effect:'Crit DMG <strong>+10%</strong> & Zeny <strong>+3%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.10; s.cs_coinPct=(s.cs_coinPct||0)+0.03; }
   },
   { id:'an',     name:'ANDRUH CARD',         img:'cards/andruh.png',       rarity:'standard',
     effect:'DMG <strong>+6%</strong> & Zeny <strong>+5%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.06; s.cs_coinPct=(s.cs_coinPct||0)+0.05; }
   },
   { id:'ku',     name:'COOKRE CARD',         img:'cards/cookre.png',       rarity:'standard',
     effect:'Crit <strong>+4%</strong> & Crit DMG <strong>+8%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.04; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.08; }
   },
   { id:'fm',     name:'FAMILIARUTO CARD',      img:'cards/familiaruto.png',    rarity:'standard',
     effect:'Zeny <strong>+6%</strong> | ทุก 10 Combo: Zeny <strong>+8</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_coinPct=(s.cs_coinPct||0)+0.06; s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+8; }
   },
   { id:'pi',     name:'PICK-CHU CARD',         img:'cards/pick-chu.png',       rarity:'standard',
     effect:'เวลา <strong>+2 วิ</strong> & HP ศัตรู เริ่มต้น <strong>-8%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+2; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)+0.08; }
   },
   { id:'yy',     name:'JOJOYO CARD',          img:'cards/jojoyo.png',        rarity:'standard',
     effect:'<strong>5%</strong> โอกาส Combo ไม่ reset | decay ช้าลง <strong>10%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_comboNoReset=(s.cs_comboNoReset||0)+0.05; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.10; }
   },
 
   // ── UNCOMMON ใหม่ ──
   { id:'ew', name:'ELDER WEEBLOW CARD',  img:'cards/elder_weeblow.png',rarity:'premium',
     effect:'Combo ≥ 25: OD charge <strong>×1.5</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_elderWillow = true; }
   },
   { id:'si',      name:'STONK CARD',          img:'cards/stonk.png',       rarity:'premium',
     effect:'DMG <strong>+8%</strong> | BREAK: DMG <strong>+20%</strong> เพิ่ม', tradeoff:'Combo decay เร็วขึ้น <strong>20%</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.08; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.20; s.cs_stonkBreak=true; }
   },
   { id:'nm',  name:'NIGHTMAYOR CARD',      img:'cards/nightmayor.png',   rarity:'premium',
     effect:'KO: OD charge <strong>+3%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_koOdCharge = (s.cs_koOdCharge||0) + 0.03; }
   },
   { id:'ze',     name:'XENORC CARD',         img:'cards/xenorc.png',      rarity:'premium',
     effect:'OD ที่ใช้: DMG <strong>+8%</strong> Stack (สูงสุด +24%) | BREAK: DMG <strong>+8%</strong> เพิ่ม', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_zenorc = true; }
   },
   { id:'hg',     name:'WRONG CARD',         img:'cards/wrong.png',      rarity:'premium',
     effect:'เวลา < 20 วิ: DMG <strong>+35%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_horong = true; }
   },
   { id:'ry',    name:'RAYTRICK CARD',        img:'cards/raytrick.png',     rarity:'premium',
     effect:'HP ≤ 60%: DMG <strong>+25%</strong> ถาวร', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_raydric = true; }
   },
 
   // ── ELITE (RARE) ใหม่ ──
   { id:'tk',   name:'TAO FUNKA CARD',      img:'cards/tao_funka.png',   rarity:'elite',
     effect:'DMG <strong>+35%</strong><br>BREAK: DMG <strong>+5%</strong> Stack (สูงสุด +25%)', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.35; s.cs_taoFunka=true; }
   },
   { id:'dc',    name:'DRUNKULA CARD',        img:'cards/drunkula.png',     rarity:'elite',
-    shortDesc:'Crit เร่งเศรษฐกิจและปั๊ม OD แบบดุดัน',
+    shortDescription:'Crit เร่งเศรษฐกิจและปั๊ม OD แบบดุดัน',
     effect:'Crit: Zeny <strong>+10</strong> & OD charge <strong>+6%</strong><br>Crit DMG <strong>+30%</strong>', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_draculaCoin = true; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.30; }
   },
   { id:'ic',name:'INCANTATION SCAMURAI CARD',img:'cards/incantation_scamurai.png',rarity:'elite',
     effect:'Combo ≥ 35: DMG <strong>×2.5</strong> & AK47 spawn เร็ว <strong>+20%</strong> & BREAK <strong>+10%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_incantation = true; }
   },
   { id:'sk',name:'STORMYNITE CARD', img:'cards/stormynite.png',rarity:'elite',
-    shortDesc:'OD ยาวขึ้นมาก และได้ burst DMG ระหว่าง OD',
-    effect:'OD:<br>คลิก = timer <strong>+0.5 วิ</strong><br>(สูงสุด +20 วิ)<br><br>OD: DMG <strong>+35%</strong>', tradeoff:null,
+    shortDescription:'OD ยาวขึ้นมาก และได้ burst DMG ระหว่าง OD',
+    effect:'OD:<br>คลิก = timer <strong>+0.45 วิ</strong><br>(สูงสุด <strong>+8 วิ/OD</strong>)<br><br>OD: DMG <strong>+35%</strong>', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_stormyKnight = true; }
   },
   { id:'dl',   name:'DORK LORD CARD',      img:'cards/dork_lord.png',   rarity:'elite',
-    shortDesc:'ยิ่งเล่นนาน ยิ่งแรง',
+    shortDescription:'ยิ่งเล่นนาน ยิ่งแรง',
     effect:'เวลาเกิน 90 วิ: DMG <strong>+5%</strong> ทุก 10 วิ (สูงสุด +50%)', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_darkLord = true; }
   },
   { id:'mf', name:'MOONLIGHT FEVER CARD', img:'cards/moonlight_fever.png', rarity:'elite',
     effect:'DMG ×2 | Zeny ×2 | OD ×2 | AK47 3 ลูก & spawn ×2 | BREAK window <strong>+0.5 วิ</strong> | KO: score <strong>+500</strong>', tradeoff:'เวลาเหลือ <strong>ครึ่งเดียว</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_moonlightflower = true; s.cs_breakDuration = (s.cs_breakDuration||0) + 0.5; }
   },
 
   // ── STANDARD ใหม่ ──
   { id:'ho',     name:'HORNYET CARD',        img:'cards/hornyet.png',      rarity:'standard',
     effect:'Crit <strong>+6%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_critChanceBonus = (s.cs_critChanceBonus||0) + 0.06; }
   },
   { id:'tb',   name:'THUG BUG CARD',     img:'cards/thug_bug.png',   rarity:'standard',
     effect:'OD charge <strong>+7%</strong>/คลิก', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_odChargeBonus = (s.cs_odChargeBonus||0) + 0.07; }
   },
   { id:'ms',  name:'MASTER BLING CARD',     img:'cards/master_bling.png',   rarity:'standard',
     effect:'ทุก 10 Combo: Zeny <strong>+15</strong> & เวลา <strong>+0.3 วิ</strong> (สูงสุด +3 วิ)', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+15; s.cs_comboTimeBonus=true; }
   },
 
   // ── PREMIUM ใหม่ ──
   { id:'gg', name:'GENERAL GRIEVOUS CARD', img:'cards/general_grievous.png', rarity:'premium',
     effect:'DMG <strong>+8%</strong> | BREAK: DMG <strong>+22%</strong> เพิ่ม', tradeoff:'เวลา <strong>-5 วิ</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.08; s.cs_timePenalty=(s.cs_timePenalty||0)+5; s.cs_ggBreak=true; }
   },
   { id:'jk',       name:'JACKED CARD',          img:'cards/jacked.png',        rarity:'premium',
     effect:'OD: Crit <strong>+20%</strong> & Crit DMG <strong>+15%</strong> | BREAK: Crit <strong>+8%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_jakkCrit = true; }
   },
   { id:'mn',     name:'MARINAH CARD',        img:'cards/marinah.png',      rarity:'premium',
     effect:'AK47 spawn เร็ว <strong>+15%</strong> & BREAK window <strong>+0.35 วิ</strong> & BREAK <strong>+8%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_marinaSpawn=true; s.cs_breakDuration=(s.cs_breakDuration||0)+0.35; s.cs_breakPower=(s.cs_breakPower||0)+0.08; }
   },
   { id:'dp',name:'DEMON FUNGUS CARD',  img:'cards/demon_fungus.png',rarity:'premium',
     effect:'ทุก 5 KO: OD charge <strong>+8%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_demonPungus = true; }
   },
   { id:'vi',     name:'VITAMOE CARD',        img:'cards/vitamoe.png',      rarity:'premium',
-    effect:'Combo ≥ 15: OD charge <strong>×1.3</strong>', tradeoff:'DMG <strong>-5%</strong>',
+    effect:'Combo ≥ 15: OD charge <strong>×1.25</strong>', tradeoff:'DMG <strong>-5%</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_vitata = true; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.05; }
   },
   { id:'al',  name:'ALLEYGATOR CARD',     img:'cards/alleygator.png',   rarity:'premium',
     effect:'ทุก 6 KO: Zeny <strong>+1.5%</strong> Stack (สูงสุด +15%) & BREAK: KO นับเร็ว <strong>×2</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_alligator = true; }
   },
   { id:'ss',name:'SOLDIER SKELLYTON CARD', img:'cards/soldier_skellyton.png', rarity:'premium',
     effect:'Crit DMG <strong>+25%</strong> & Crit <strong>+4%</strong> & AK47: Crit <strong>+10%</strong> 5 วิ', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.25; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.04; s.cs_skellytonWp=true; }
   },
   { id:'mc',     name:'MARVELC CARD',          img:'cards/marvelc.png',        rarity:'premium',
     effect:'เวลา <strong>+4 วิ</strong> | Combo decay ช้าลง <strong>15%</strong> | เวลา < 15 วิ: DMG <strong>+8%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_extraTime=(s.cs_extraTime||0)+4; s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.15; s.cs_marvelcLowTime=true; }
   },
   { id:'sd', name:'SIDEWHINER CARD',    img:'cards/sidewhiner.png',  rarity:'premium',
     effect:'DMG <strong>+16%</strong>', tradeoff:'OD charge <strong>-20%</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.16; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
   { id:'zr',     name:'ZERO SENPAI CARD',         img:'cards/zero_senpai.png',       rarity:'premium',
     effect:'Crit <strong>+10%</strong> & Zeny <strong>+8%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_coinPct=(s.cs_coinPct||0)+0.08; }
   },
   { id:'my',     name:'MADTYR CARD',         img:'cards/madtyr.png',       rarity:'premium',
     effect:'OD charge <strong>+10%</strong>/คลิก', tradeoff:'Combo decay เร็วขึ้น <strong>15%</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_odChargeBonus=(s.cs_odChargeBonus||0)+0.10; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.15; }
   },
 
   // ── ELITE ใหม่ ──
   { id:'mi',   name:'MINORAGE CARD',      img:'cards/minorage.png',    rarity:'elite',
     effect:'>70% HP: DMG <strong>+40%</strong> + Combo ไม่ลด<br>>50% HP: คลิกมีโอกาส <strong>20%</strong> ได้ Rage Stack<br>>30% HP: Crit DMG <strong>+50%</strong><br><br>ผ่าน 70/50/30 เร็วพอ: <strong>RAGE RUSH</strong> 4s<br>Combo <strong>+2/คลิก</strong> + Crit <strong>+25%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_minorous = true; }
   },
   { id:'ex',name:'EXECUSIONER CARD',   img:'cards/execusioner.png', rarity:'elite',
     effect:'HP < 25%: DMG <strong>+50%</strong> & AK47 spawn <strong>×2</strong> & BREAK <strong>+15%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_executioner = true; }
   },
   { id:'wh',    name:'WHIZPER CARD',       img:'cards/whizper.png',     rarity:'elite',
     effect:'AK47ครบ/BREAK: เวลา <strong>+1.5 วิ</strong> & OD <strong>+10%</strong> & Combo lock 2 วิ | BREAK window <strong>+0.3 วิ</strong> | OD: timer <strong>+0.5 วิ</strong>', tradeoff:'AK47 spawn ช้า <strong>×2</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_whisper = true; s.cs_breakDuration = (s.cs_breakDuration||0) + 0.3; }
   },
   { id:'gl',name:'GOBLIN WEEBER CARD',img:'cards/goblin_weeber.png',rarity:'elite',
     effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥50: คลิกซ้ำฟรี <strong>20%</strong><br>Combo ≥75: <strong>WEEB FOCUS</strong> 5s<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_goblinLeader = true; }
   },
   { id:'ar',     name:'AMOG RA CARD',       img:'cards/amog_ra.png',     rarity:'elite',
     effect:'Combo ≥ 40: DMG <strong>+40%</strong> & Zeny <strong>×1.5</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_amonRa = true; }
   },
   { id:'mp',name:'MAYA PROBLEM CARD',    img:'cards/maya_problem.png', rarity:'elite',
-    shortDesc:'BREAK แล้ว burst หนัก',
+    shortDescription:'BREAK แล้ว burst หนัก',
     effect:'Boss DMG <strong>+30%</strong> & Crit <strong>+10%</strong><br>BREAK สำเร็จ: Boss DMG <strong>+40%</strong> 6 วิ & Crit <strong>+25%</strong> 6 วิ', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.30; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_mayaProblem=true; }
   },
   { id:'ed',name:'WEEBVIL DUDE CARD',     img:'cards/weebvil_dude.png',  rarity:'elite',
     effect:'DMG <strong>+20%</strong> & Crit DMG <strong>+12%</strong> | BREAK: DMG <strong>+25%</strong> 5 วิ', tradeoff:'เวลา <strong>-6 วิ</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.20; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.12; s.cs_timePenalty=(s.cs_timePenalty||0)+6; s.cs_weebvilBreak=true; }
   },
 
   // ── MYTHIC ใหม่ ──
   { id:'kn',  name:'CATULLANUX CARD',     img:'cards/catullanux.png',   rarity:'mythic',
     effect:'AK47 DMG <strong>×4</strong> | AK47/BREAK: Combo lock <strong>5 วิ</strong> & BREAK <strong>+20%</strong>', tradeoff:'HP ศัตรู <strong>+50%</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_ktullanux = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.20; }
   },
   { id:'bz',  name:'BEELZEBRUH CARD',     img:'cards/beelzebruh.png',   rarity:'mythic',
     effect:'คลิก: Corruption <strong>+0.5%</strong> (สูงสุด 50%) | >20%: BREAK <strong>+bonus</strong>/tap | Max & BREAK: Zeny <strong>×1.5</strong> 5 วิ', tradeoff:'HP ศัตรู เริ่มต้น <strong>×2</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_beelzebub = true; }
   },
   { id:'vr', name:'VALKYRIZZ CARD', img:'cards/valkyrizz.png', rarity:'mythic',
     effect:'AK47ครบ/BREAK: สุ่ม effect ใหม่จาก <strong>ELITE pool</strong>', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_valkyrieRandgris = true; }
   },
   { id:'at',     name:'ATROSUS CARD',        img:'cards/atrosus.png',      rarity:'mythic',
     effect:'BREAK: <strong>Resonance</strong> 6 วิ (DMG <strong>×1.6</strong>) | Crit ใน Resonance: <strong>+0.4 วิ</strong> (สูงสุด +4 วิ) | 3 Resonance: <strong>Resonant Mastery</strong> (10 วิ & ×2)', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_atrosusBreak=true; }
   },
   { id:'kl', name:'KILL-D01 CARD',     img:'cards/kill-d01.png',   rarity:'mythic',
-    effect:'OD charge <strong>+15%</strong> | คลิก = OD timer <strong>+0.05 วิ</strong> | OD: ทุก 3 คลิก = <strong>Drive Token</strong> (สูงสุด 8) | BREAK: Token = BREAK <strong>+8%</strong> & Zeny <strong>+30</strong> | 8 Tokens: Execution 4 วิ (DMG <strong>×1.5</strong>)', tradeoff:null,
-    apply(s){ s.cs_killD01=true; s.cs_odChargeBonus=(s.cs_odChargeBonus||0)+0.15; s.cs_odTimerOnClick=(s.cs_odTimerOnClick||0)+0.05; }
+    effect:'OD charge <strong>+12%</strong> | คลิก = OD timer <strong>+0.05 วิ</strong> (สูงสุด <strong>+5 วิ/OD</strong>) | OD: ทุก 3 คลิก = <strong>Drive Token</strong> (สูงสุด 8) | BREAK: Token = BREAK <strong>+8%</strong> & Zeny <strong>+30</strong> | 8 Tokens: Execution 4 วิ (DMG <strong>×1.5</strong>)', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    apply(s){ s.cs_killD01=true; s.cs_odChargeBonus=(s.cs_odChargeBonus||0)+0.12; s.cs_odTimerOnClick=(s.cs_odTimerOnClick||0)+0.05; }
   },
   { id:'if',     name:'IFRIED CARD',         img:'cards/ifried.png',       rarity:'mythic',
     effect:'Crit: <strong>Inferno Stack</strong> +1 (สูงสุด 15) | Crit DMG <strong>+20%</strong> | BREAK & >5 Stacks: <strong>+2%/Stack</strong> extra | ≥10 Stacks & BREAK: <strong>Inferno Burst</strong> 5 วิ (DMG ×2.5 & Crit <strong>+25%</strong>)', tradeoff:'HP ศัตรู เริ่มต้น <strong>+20%</strong>',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.20; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)-0.20; s.cs_ifriedBreak=true; }
   },
   { id:'rx',    name:'RSICK-0806 CARD',      img:'cards/rsick-0806.png',    rarity:'mythic',
     effect:'DMG <strong>×2.5</strong> | BREAK <strong>+30%</strong>/tap | KO: score <strong>+500</strong> | BREAK: DMG <strong>+12%</strong> Stack (สูงสุด +60%) & <strong>Execution Phase</strong> 8 วิ (DMG ×1.5)', tradeoff:'ไม่มี OD & ไม่มี AK47',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_rsx0806 = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.30; }
   },
 
   // ── PREMIUM NEW (v2) ──
   { id:'als', name:'A-LIST CARD',          img:'cards/alist_card.png',          rarity:'premium',
     effect:'Boss KO: Zeny <strong>+12%</strong> | BREAK: <strong>Sponsor Rush</strong> 5 วิ (Zeny +25%)', tradeoff:'Cooldown 20 วิ',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.12; s.cs_aListCard=true; }
   },
   { id:'rzw', name:'RIZZWORD CARD',        img:'cards/rizzword_card.png',       rarity:'premium',
     effect:'AK47 active <strong>+0.5 วิ</strong> | เก็บ AK47: OD charge <strong>+3%</strong> (สูงสุด 10×/8 วิ)', tradeoff:null,
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_rizzword=true; s.cs_wpDuration=(s.cs_wpDuration||0)+0.5; }
   },
   { id:'orb', name:'ORC BADDY CARD',       img:'cards/orc_baddy_card.png',      rarity:'premium',
     effect:'OD ≥ 70%: DMG <strong>+18%</strong>', tradeoff:'> 25 วิ: OD หมดเร็วขึ้น',
+    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_orcBaddy=true; }
   },
 
   // ── ELITE NEW (v2) ──
   { id:'ghp', name:'GHOSTPING CARD',       img:'cards/ghostping_card.png',      rarity:'elite',
-    shortDesc:'พลาด AK47 ช่วยเร่ง BREAK และบูสต์ DMG ตอน BREAK',
+    shortDescription:'พลาด AK47 ช่วยเร่ง BREAK และบูสต์ DMG ตอน BREAK',
     effect:'เมื่อพลาด AK47:<br>BREAK จะมาถึงเร็วขึ้น <strong>1.5 วิ</strong><br>(สูงสุด 6 ครั้ง/รอบ)<br><br>BREAK:<br>DMG <strong>+55%</strong><br>BREAK progress <strong>+15%</strong>', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_ghostping=true; }
   },
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
-    shortDesc:'DMG สูง และบอสต้นเกมให้ Zeny เพิ่ม',
-    effect:'DMG <strong>+60%</strong><br>15 วิแรก: Boss DMG <strong>+25%</strong> & Boss KO Zeny <strong>+30%</strong>', tradeoff:null,
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.60; s.cs_devilingo=true; }
+    shortDescription:'DMG สูง และบอสต้นเกมให้ Zeny เพิ่ม',
+    effect:'DMG <strong>+45%</strong><br>15 วิแรก: Boss DMG <strong>+20%</strong> & Boss KO Zeny <strong>+25%</strong>', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_devilingo=true; }
   },
   { id:'ltn', name:'LADY TRAINEE CARD',    img:'cards/lady_trainee_card.png',   rarity:'elite',
-    shortDesc:'OD Lv.Up สะสม DMG และปลด Spotlight',
+    shortDescription:'OD Lv.Up สะสม DMG และปลด Spotlight',
     effect:'OD Lv. เพิ่ม:<br>DMG <strong>+4%</strong> Stack<br>(สูงสุด +60%)<br><br>10 Stacks:<br><strong>Spotlight Mode</strong><br>OD charge <strong>+10%/คลิก</strong>', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_ladyTrainee=true; }
   },
 
   // ── MYTHIC NEW (v2) ──
   { id:'fwc', name:'FALLEN WECHAT CARD',   img:'cards/fallen_wechat_card.png',  rarity:'mythic',
-    shortDesc:'OD เต็มแล้วเปิด Overloaded BREAK แบบระเบิดพลัง',
-    effect:'OD เต็ม:<br><strong>Overloaded BREAK</strong><br>DMG <strong>+75%</strong><br>BREAK progress +25%<br>BREAK window +0.75 วิ<br><br>จบ: OD reset', tradeoff:'Cooldown <strong>20 วิ</strong>',
+    shortDescription:'OD เต็มแล้วเปิด Overloaded BREAK แบบระเบิดพลัง',
+    effect:'OD เต็ม:<br><strong>Overloaded BREAK</strong><br>DMG <strong>+60%</strong><br>BREAK progress +20%<br>BREAK window +0.6 วิ<br><br>จบ: OD reset', tradeoff:'Cooldown <strong>24 วิ</strong>',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_fallenWechat=true; }
   },
   { id:'dtl', name:'DETAILED CARD',        img:'cards/detailed_card.png',       rarity:'mythic',
-    shortDesc:'เก็บ AK47 สะสม Analysis เพื่อปลด Analyzed BREAK',
+    shortDescription:'เก็บ AK47 สะสม Analysis เพื่อปลด Analyzed BREAK',
     effect:'เก็บ AK47:<br>Analysis Stack +1<br>(สูงสุด 8)<br><br>ระหว่าง BREAK:<br>DMG <strong>+4%/Stack</strong><br><br>ครบ 8 Stack:<br><strong>Analyzed BREAK</strong><br>window ×2 & progress ×2<br><br>สำเร็จ:<br><strong>Critical Analysis</strong> 10 วิ<br>Crit +25% & Crit DMG +35%', tradeoff:'พลาด AK47: Stack <strong>-2</strong> & Combo <strong>-3</strong>',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_detailed=true; }
   },
   { id:'gus', name:'GLOOM UNDER SIDE CARD',img:'cards/gloom_under_side_card.png',rarity:'mythic',
-    shortDesc:'บัฟ DMG/Zeny/BREAK อัตโนมัติทุก 2 วิจนเต็ม Stack',
-    effect:'ทุก 2 วิ:<br>DMG +4% & Zeny +4% & BREAK +4%<br>(สูงสุด +80%)', tradeoff:null,
+    shortDescription:'บัฟ DMG/Zeny/BREAK อัตโนมัติทุก 2 วิจนเต็ม Stack',
+    effect:'ทุก 2 วิ:<br>DMG +3% & Zeny +3% & BREAK +3%<br>(สูงสุด +60%)', tradeoff:null,
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_gloomUnderSide=true; }
   },
   { id:'dsk', name:'DARK STAKE LORD CARD', img:'cards/dark_stake_lord_card.png', rarity:'mythic',
-    shortDesc:'BREAK ลุ้น Jackpot เพิ่ม Zeny และ OCA chance',
+    shortDescription:'BREAK ลุ้น Jackpot เพิ่ม Zeny และ OCA chance',
     effect:'BREAK:<br>Jackpot <strong>15%</strong><br><br>พลาด:<br>Jackpot +10%<br>(สูงสุด 75%)<br><br>Jackpot:<br>Zeny ×2.5<br>OCA chance ×10<br><br>ได้รับแล้ว reset กลับ 15%', tradeoff:'Zeny <strong>-10%</strong>',
+    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_darkStakeLord=true; }
-  },
-];
+  },];
 
 const CS_WEIGHTS = { standard:50, premium:25, elite:15, mythic:10 };
 const CS_LOD_EXCLUDED_IDS = new Set(['ld','mf','vr']);
@@ -5305,11 +5558,25 @@ const DEBUG_CARD_EFFECTS = false;
 
 // Ensure UI-safe description fields across Premium/Elite without changing save/card IDs.
 for (const _card of CARD_POOL) {
-  if (_card.rarity === 'premium' || _card.rarity === 'elite') {
-    if (!_card.fullDescription) _card.fullDescription = _card.effect || '';
-    if (!_card.shortDescription) _card.shortDescription = _card.shortDesc || '';
-    if (!_card.shortDesc) _card.shortDesc = _card.shortDescription || '';
+  const _plainEffect = String(_card.effect || '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (
+    !_card.shortDescription ||
+    _card.shortDescription === 'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)'
+  ) {
+    _card.shortDescription = _plainEffect || _card.shortDesc || 'เอฟเฟกต์การ์ด';
   }
+  if (
+    !_card.fullDescription ||
+    _card.fullDescription === 'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์'
+  ) {
+    _card.fullDescription = _card.effect || _card.shortDescription || '';
+  }
+  if (!_card.balanceNote) _card.balanceNote = 'KEEP - รักษาสมดุลเดิมโดยไม่เพิ่มความเสี่ยงระบบ';
+  if (!_card.shortDesc) _card.shortDesc = _card.shortDescription;
 }
 
 function _csDebugLog(...args){
@@ -5453,6 +5720,7 @@ function openCardSlot(onChosen) {
 }
 
 function getCardSlotDescription(card) {
+  if(card.shortDescription) return card.shortDescription;
   if(card.shortDesc) return card.shortDesc;
   const raw = (card.effect || '')
     .replace(/<br\s*\/?>/gi, ' ')
@@ -5840,12 +6108,12 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_ghostping && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.55;
   // LADY TRAINEE: run-only accumulated dmg bonus (max +30%)
   if(cs.cs_ladyTrainee && cs._ladyTraineeDmg) d *= (1 + cs._ladyTraineeDmg);
-  // FALLEN WECHAT: Overloaded BREAK → dmg +75%
-  if(cs.cs_fallenWechat && cs._fallenWechatBreakActive && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.75;
+  // FALLEN WECHAT: Overloaded BREAK → dmg +60%
+  if(cs.cs_fallenWechat && cs._fallenWechatBreakActive && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.60;
   // DETAILED: Analysis stacks during BREAK → +4% per stack
   if(cs.cs_detailed && typeof pressureIsBreak === 'function' && pressureIsBreak() && cs._analysisStacks) d *= (1 + (cs._analysisStacks * 0.04));
-  // GLOOM UNDER SIDE: run-scaling dmg bonus (+4% per stack, max +80%)
-  if(cs.cs_gloomUnderSide && cs._gloomStacks) d *= (1 + cs._gloomStacks * 0.04);
+  // GLOOM UNDER SIDE: run-scaling dmg bonus (+3% per stack, max +60%)
+  if(cs.cs_gloomUnderSide && cs._gloomStacks) d *= (1 + cs._gloomStacks * 0.03);
   // SALVAGE: during BREAK → dmg +15% additional
   if(cs.cs_salvageBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.15;
   // STONK: during BREAK → dmg +20% additional
@@ -5903,8 +6171,8 @@ function csApplyCoinMod(coins) {
   if(typeof pressureCoinMultiplier === 'function') c *= pressureCoinMultiplier();
   // A-LIST: Sponsor Rush +25% coin
   if(cs.cs_aListCard && cs._sponsorRushEndTime && performance.now() < cs._sponsorRushEndTime) c *= 1.25;
-  // GLOOM UNDER SIDE: run-scaling Zeny bonus (+4% per stack, max +80%)
-  if(cs.cs_gloomUnderSide && cs._gloomStacks) c *= (1 + cs._gloomStacks * 0.04);
+  // GLOOM UNDER SIDE: run-scaling Zeny bonus (+3% per stack, max +60%)
+  if(cs.cs_gloomUnderSide && cs._gloomStacks) c *= (1 + cs._gloomStacks * 0.03);
   // DARK STAKE LORD: permanent card trade-off, not an OCA-rate change.
   if(cs.cs_darkStakeLord) c *= 0.90;
   return Math.round(c);
@@ -5914,14 +6182,24 @@ function csApplyCoinMod(coins) {
 function csOnClick(isGod) {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
-  // MISSSTRESS: Zeny +8 and OD timer +0.3s during OD
+  // MISSSTRESS: Zeny +12 and OD timer +0.35s during OD (cap per OD = +6s)
   if(cs.cs_mistress && isGod) {
     roundCoins += 12;
-    godSecondsLeft += 0.5;
+    if(!cs._mistressOdTimeGain) cs._mistressOdTimeGain = 0;
+    if(cs._mistressOdTimeGain < 6) {
+      const gain = Math.min(0.35, 6 - cs._mistressOdTimeGain);
+      cs._mistressOdTimeGain += gain;
+      godSecondsLeft += gain;
+    }
     updateUI();
   }
   if(cs.cs_odTimerOnClick && isGod) {
-    godSecondsLeft += cs.cs_odTimerOnClick;
+    if(!cs._odTimerClickGain) cs._odTimerClickGain = 0;
+    if(cs._odTimerClickGain < 5) {
+      const gain = Math.min(cs.cs_odTimerOnClick, 5 - cs._odTimerClickGain);
+      cs._odTimerClickGain += gain;
+      godSecondsLeft += gain;
+    }
     updateUI();
   }
   // combo milestone coin (poporing)
@@ -5988,12 +6266,17 @@ function csOnClick(isGod) {
     const tiers = Math.min(Math.floor(combo/10),3);
     cs.cs_skelworker_bonus = tiers * 0.08;
   }
-  // STORMYNITE: extend OD timer +0.3s per click during OD (max +12s per round)
+  // STORMYNITE: extend OD timer with per-OD hard cap (+8s)
   if(cs.cs_stormyKnight && isGod) {
     const now = performance.now();
     if(!cs._stormyNextAt || now >= cs._stormyNextAt) {
       cs._stormyNextAt = now + 200;
-      godSecondsLeft += 0.7;
+      if(!cs._stormyOdTimeGain) cs._stormyOdTimeGain = 0;
+      if(cs._stormyOdTimeGain < 8) {
+        const gain = Math.min(0.45, 8 - cs._stormyOdTimeGain);
+        cs._stormyOdTimeGain += gain;
+        godSecondsLeft += gain;
+      }
     }
   }
   // Zenorc: OD usage stacks handled in csOnOdStart; BREAK adds flat +8%
@@ -6066,6 +6349,9 @@ function csOnKO() {
 function csOnOdEnd() {
   if(!window._csState) return;
   const cs = window._csState;
+  cs._mistressOdTimeGain = 0;
+  cs._odTimerClickGain = 0;
+  cs._stormyOdTimeGain = 0;
   // COKE ZERO: accumulate dmg bonus +10% per OD end (max +50%)
   if(cs.cs_orchero) {
     if(!cs._orcheroDmgStack) cs._orcheroDmgStack = 0;
@@ -6292,6 +6578,9 @@ function csOnOdStart() {
   _csOdUseCount++;
   // track peak OD level reached this OD session (godLevel is set before csOnOdStart is called)
   cs._currentOdPeakLevel = Math.max(cs._currentOdPeakLevel || 0, godLevel);
+  cs._mistressOdTimeGain = 0;
+  cs._odTimerClickGain = 0;
+  cs._stormyOdTimeGain = 0;
   // ZENORC: count OD uses for damage stack (max 3 → +24%)
   if(cs.cs_zenorc) {
     if(!cs._zenorcCount) cs._zenorcCount = 0;
@@ -6816,7 +7105,7 @@ function openCardModal(card) {
   const tierEl = $('cardModalTier');
   tierEl.textContent = card.rarity.toUpperCase();
   tierEl.className = 'tier-'+card.rarity;
-  $('cardModalEffect').innerHTML = card.effect||'';
+  $('cardModalEffect').innerHTML = card.fullDescription || card.effect || '';
   $('cardModalTradeoff').innerHTML = card.tradeoff ? 'TRADE-OFF: '+card.tradeoff : '';
   $('cardModal').style.display = 'flex';
 }
