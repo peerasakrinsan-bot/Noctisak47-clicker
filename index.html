@@ -4755,12 +4755,6 @@ function triggerBombExplosion() {
     _el.godFill.style.width = '100%';
     if(canEnterGod && godLevel === 0) activateGodLevel(1);
   }
-  // BAPHOMET: สะสม dmg +5% ต่อ AK47 ครบ (max +25%)
-  if(window._csState && window._csState.cs_baphomet) {
-    if(!window._csState._baphometDmgStack) window._csState._baphometDmgStack = 0;
-    if(window._csState._baphometDmgStack < 0.25)
-      window._csState._baphometDmgStack = Math.min(0.25, window._csState._baphometDmgStack + 0.05);
-  }
   // KTULLANUX: combo protect 5s
   if(window._csState && window._csState.cs_ktullanux) {
     const ktullanuxState = window._csState;
@@ -5029,10 +5023,10 @@ const CARD_POOL = [
     apply(s){ s.cs_thanatos = true; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
-    effect:'คลิก = triple hit | AK47 spawn ทันที | BREAK: DMG <strong>+5%</strong> Stack (สูงสุด +25%)', tradeoff:'OD ชาร์จไม่ได้',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    effect:'ทุกคลิก: <strong>TRIPLE STRIKE</strong> (ฮิตหลัก 100% + เงา 40%x2, คริตเงาต่ำลง) <br>BREAK สำเร็จ: เรียก AK47 ทันที 3 จุด + <strong>DEVIL BET</strong>', tradeoff:'<strong>OD ถูกสาป:</strong> ไม่รับ OD gain ทุกแหล่ง',
+    shortDescription:'ไพ่ปีศาจสายออลอิน: Triple Strike + Devil Bet หลัง BREAK',
+    fullDescription:'[TRIPLE STRIKE] คลิก 1 ครั้ง = ฮิตหลัก 1 + ฮิตรอง 2 (40%/ฮิต, คริตต่ำลง)\n• ฮิตรองไม่สร้าง Combo/OD/BREAK และไม่ทริกเกอร์มัลติฮิตซ้ำ\n[AK47 CURSE] BREAK สำเร็จจะเรียก AK47 ทันที 3 จุด (คูลดาวน์ 1.5 วิ, เคารพ cap)\n[DEVIL BET] หลัง BREAK: 70% ได้ SIN STACK (+DMG 8%, สูงสุด 5) | 30% เสียเวลา 1 วิ + เรียก AK47 เพิ่ม 1 จุด\n[Trade-off] OD ถูกปิดทั้งระบบจนกว่าจะถอดการ์ด',
+    balanceNote:'MYTHIC REWORK - ยังโหดและโลภ แต่ล็อกลูป recursion/overflow เพื่อกันพังระบบ',
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
@@ -6093,7 +6087,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_drakeIgnoreThreshold && cs._drakeDmgEndTime && performance.now() < cs._drakeDmgEndTime) d *= (1 + (cs._drakeDmgBonus || 0));
   if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 1.30;
   // Baphomet: accumulated dmg bonus from AK47 completions
-  if(cs.cs_baphomet && cs._baphometDmgStack) d *= (1 + cs._baphometDmgStack);
+  if(cs.cs_baphomet && cs._baphometSinStack) d *= (1 + cs._baphometSinStack);
   // Orc Hero: accumulated dmg bonus from OD completions
   if(cs.cs_orchero && cs._orcheroDmgStack) d *= (1 + cs._orcheroDmgStack);
   // Ktullanux handled in WP bomb section
@@ -6518,6 +6512,36 @@ function csOnBreakSuccess() {
       cs._taoFunkCdUntil = now + 10000;
     }
   }
+  // BAPHOBET: BREAK -> instant AK47 burst + DEVIL BET (anti-loop guarded)
+  if(cs.cs_baphomet) {
+    const _nowB = performance.now();
+    const _spawnOne = () => {
+      if(!gameRunning || gamePaused) return;
+      cs._baphometSpawnChainLock = true;
+      try {
+        clearTimeout(wpTimeout);
+        clearTimeout(wpSchedule);
+        wpActive = false;
+        $('weakPoint').style.display='none';
+        showWeakPoint();
+      } finally {
+        cs._baphometSpawnChainLock = false;
+      }
+    };
+    if(!cs._baphometAk47CdUntil || _nowB >= cs._baphometAk47CdUntil) {
+      cs._baphometAk47CdUntil = _nowB + 1500;
+      _spawnOne(); setTimeout(_spawnOne, 90); setTimeout(_spawnOne, 180);
+    }
+    if(Math.random() < 0.70) {
+      cs._baphometSinStacks = Math.min(5, (cs._baphometSinStacks || 0) + 1);
+      cs._baphometSinStack = (cs._baphometSinStacks || 0) * 0.08;
+      showBigSplash('DEVIL BET', 'SIN +' + (cs._baphometSinStacks||0) + '/5', '#cc0000', false);
+    } else {
+      timer = Math.max(1, timer - 1);
+      _spawnOne();
+      showBigSplash('DEVIL BET', 'TIME -1s • AK47 CURSE', '#ff3300', false);
+    }
+  }
   // THANABROS: OD fills instantly + start Thanatos Phase 5s
   if(cs.cs_thanatos) {
     if(_el && _el.godFill) _el.godFill.style.width = '100%';
@@ -6665,7 +6689,7 @@ function csOnWpHit(x, y) {
     }
   }
   // baphomet: spawn new WP immediately
-  if(cs.cs_baphomet) {
+  if(cs.cs_baphomet && !cs._baphometSpawnChainLock) {
     clearTimeout(wpTimeout);
     clearTimeout(wpSchedule);
     wpActive = false;
@@ -8825,11 +8849,20 @@ function processHit(e, now) {
 
     // ── Hit count: Meth Shard + Baphomet (normal tap only) ──
     // doubleHit/baphTriple were computed above. These multiply on top of OD hits.
-    const _methHits = baphTriple ? 3 : (doubleHit && _sc.isTriple) ? 3 : doubleHit ? 2 : 1;
+    const _methHits = baphTriple ? 1 : (doubleHit && _sc.isTriple) ? 3 : doubleHit ? 2 : 1;
 
     // ── Total damage: base × (OD hits × Meth hits) ──
-    const _totalHits = _odHits * _methHits;
-    const _totalDmg = _sanitizeDamage(Math.round(dmg * _totalHits), 'normalTapTotal');
+    let _totalDmg = _sanitizeDamage(Math.round(dmg * _odHits * _methHits), 'normalTapTotal');
+    if(baphTriple){
+      const _baseMain = Math.round(dmg * _odHits);
+      const _secCritChance = Math.max(0, Math.min(1, (critChance || 0) * 0.45));
+      const _sec1Crit = Math.random() < _secCritChance;
+      const _sec2Crit = Math.random() < _secCritChance;
+      const _secBase = Math.max(1, Math.round(_baseMain * 0.40));
+      const _sec1 = Math.round(_secBase * (_sec1Crit ? (critMult || 2) : 1));
+      const _sec2 = Math.round(_secBase * (_sec2Crit ? (critMult || 2) : 1));
+      _totalDmg = _sanitizeDamage(_baseMain + _sec1 + _sec2, 'baphTripleTotal');
+    }
 
     // ── One damage application, one number, one flash ──
     const pos2 = pos; // pos already computed above
