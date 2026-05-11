@@ -9355,16 +9355,16 @@ function getOcaKoMultiplier() {
 function getZenyKoMultiplier(koCount) {
   const _ko = koCount || 0;
   if (_ko <= 250)  return 1.00;
-  if (_ko <= 350)  return 0.90;
-  if (_ko <= 450)  return 0.82;
-  if (_ko <= 550)  return 0.74;
-  if (_ko <= 650)  return 0.66;
-  if (_ko <= 750)  return 0.58;
-  if (_ko <= 850)  return 0.50;
-  if (_ko <= 950)  return 0.43;
-  if (_ko <= 1050) return 0.36;
-  if (_ko <= 1150) return 0.30;
-  return 0.25;
+  if (_ko <= 350)  return 0.94;
+  if (_ko <= 450)  return 0.89;
+  if (_ko <= 550)  return 0.84;
+  if (_ko <= 650)  return 0.79;
+  if (_ko <= 750)  return 0.74;
+  if (_ko <= 850)  return 0.69;
+  if (_ko <= 950)  return 0.64;
+  if (_ko <= 1050) return 0.58;
+  if (_ko <= 1150) return 0.52;
+  return 0.46;
 }
 
 // rollOcaDrop(mult) — roll against each tier's base chance scaled by mult (default 1.0).
