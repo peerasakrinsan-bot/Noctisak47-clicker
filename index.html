@@ -4516,9 +4516,9 @@ function scheduleWeakPoint() {
     if(ratio < 0.25) delay *= 0.50;
   }
   // WHISPER: spawn ช้าลง 2 เท่า
-  if(window._csState && window._csState.cs_whisper) delay *= 2;
+  if(window._csState && window._csState.cs_whisper) delay *= 1.20;
   // HYDRA: spawn ช้าลง 1.25 เท่า
-  if(window._csState && window._csState.cs_hydraSpawnSlow) delay *= 1.25;
+  if(window._csState && window._csState.cs_hydraSpawnSlow) delay *= 1.15;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -5114,8 +5114,8 @@ const CARD_POOL = [
     apply(s){ s.cs_stormyKnight = true; }
   },
   { id:'dl',   name:'DORK LORD CARD',      img:'cards/dork_lord.png',   rarity:'elite',
-    shortDesc:'KO เปลี่ยนเป็นโมเมนตัมเวลาและรางวัลทันที',
-    effect:'KO: เวลา <strong>+0.15 วิ</strong> & score <strong>+150</strong> & Zeny <strong>+15</strong>', tradeoff:null,
+    shortDesc:'ยิ่งเล่นนาน ยิ่งแรง',
+    effect:'เวลาเกิน 90 วิ: DMG <strong>+5%</strong> ทุก 10 วิ (สูงสุด +50%)', tradeoff:null,
     apply(s){ s.cs_darkLord = true; }
   },
   { id:'mf', name:'MOONLIGHT FEVER CARD', img:'cards/moonlight_fever.png', rarity:'elite',
@@ -5205,8 +5205,8 @@ const CARD_POOL = [
     apply(s){ s.cs_amonRa = true; }
   },
   { id:'mp',name:'MAYA PROBLEM CARD',    img:'cards/maya_problem.png', rarity:'elite',
-    shortDesc:'ล่าบอสไวขึ้นและระเบิดดาเมจหลัง BREAK',
-    effect:'Boss DMG <strong>+30%</strong> & Crit <strong>+10%</strong><br>BREAK สำเร็จ: Boss DMG <strong>+40%</strong> 6 วิ', tradeoff:null,
+    shortDesc:'BREAK แล้ว burst หนัก',
+    effect:'Boss DMG <strong>+30%</strong> & Crit <strong>+10%</strong><br>BREAK สำเร็จ: Boss DMG <strong>+40%</strong> 6 วิ & Crit <strong>+25%</strong> 6 วิ', tradeoff:null,
     apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.30; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_mayaProblem=true; }
   },
   { id:'ed',name:'WEEBVIL DUDE CARD',     img:'cards/weebvil_dude.png',  rarity:'elite',
@@ -5302,6 +5302,15 @@ const CS_WEIGHTS = { standard:50, premium:25, elite:15, mythic:10 };
 const CS_LOD_EXCLUDED_IDS = new Set(['ld','mf','vr']);
 const CS_VALKYRIE_EXCLUDED_IDS = new Set(['mf','vr']);
 const DEBUG_CARD_EFFECTS = false;
+
+// Ensure UI-safe description fields across Premium/Elite without changing save/card IDs.
+for (const _card of CARD_POOL) {
+  if (_card.rarity === 'premium' || _card.rarity === 'elite') {
+    if (!_card.fullDescription) _card.fullDescription = _card.effect || '';
+    if (!_card.shortDescription) _card.shortDescription = _card.shortDesc || '';
+    if (!_card.shortDesc) _card.shortDesc = _card.shortDescription || '';
+  }
+}
 
 function _csDebugLog(...args){
   if(DEBUG_CARD_EFFECTS) console.log('[CardEffects]', ...args);
@@ -5784,8 +5793,9 @@ function csApplyDmgMod(baseDmg, isGod) {
   // MISSSTRESS no longer has a non-OD damage penalty.
   if(cs.cs_mummy_active) d *= (1 + (cs.cs_combo20Dmg||0));
   if(cs.cs_skelworker_bonus) d *= (1 + cs.cs_skelworker_bonus);
-  if(cs.cs_combo30_active) d *= 1.35;
-  if(cs.cs_incantation_active) d *= 2.5;
+  if(cs.cs_combo30_active) d *= 1.45;
+  if(cs.cs_incantation_active) d *= 2.2;
+  if(cs.cs_incantation_penalty) d *= 0.80;
   if(cs.cs_horong_active) d *= 1.35;
   // MARVELC: dmg +8% when time < 15s
   if(cs.cs_marvelcLowTime && cs._marvelcLowTimeActive) d *= 1.08;
@@ -5812,7 +5822,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   // Amon Ra: combo >= 40 dmg +40%
   if(cs.cs_amonRa_active) d *= 1.40;
   // Goblin Leader: combo >= 30 dmg +20%
-  if(cs.cs_goblinLeader && combo >= 25) d *= 1.20;
+  if(cs.cs_goblinLeader && combo >= 30) d *= 1.20;
   if(cs.cs_freeoni && cs._freeoniOdDmgStack) d *= (1 + cs._freeoniOdDmgStack);
   if(cs.cs_drakeIgnoreThreshold && cs._drakeDmgEndTime && performance.now() < cs._drakeDmgEndTime) d *= (1 + (cs._drakeDmgBonus || 0));
   if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 1.30;
@@ -5923,7 +5933,7 @@ function csOnClick(isGod) {
   // update combo-based states
   if(cs.cs_combo20Dmg)  cs.cs_mummy_active  = combo >= 20;
   if(cs.cs_combo30)     cs.cs_combo30_active = combo >= 25;
-  if(cs.cs_incantation) cs.cs_incantation_active = combo >= 35;
+  if(cs.cs_incantation) { cs.cs_incantation_active = combo >= 35; cs.cs_incantation_penalty = combo < 20; }
   if(cs.cs_elderWillow) cs.cs_elderWillow_active = combo >= 25;
   if(cs.cs_horong)      cs.cs_horong_active = timeLeft < 20;
   if(cs.cs_goblinLeader && combo >= 47) cs._weebFocusEndTime = performance.now() + 5000;
@@ -5980,11 +5990,10 @@ function csOnClick(isGod) {
   }
   // STORMYNITE: extend OD timer +0.3s per click during OD (max +12s per round)
   if(cs.cs_stormyKnight && isGod) {
-    if(!cs._stormyKnightAcc) cs._stormyKnightAcc = 0;
-    if(cs._stormyKnightAcc < 20) {
-      const gain = Math.min(0.5, 20 - cs._stormyKnightAcc);
-      cs._stormyKnightAcc += gain;
-      godSecondsLeft += gain;
+    const now = performance.now();
+    if(!cs._stormyNextAt || now >= cs._stormyNextAt) {
+      cs._stormyNextAt = now + 200;
+      godSecondsLeft += 0.7;
     }
   }
   // Zenorc: OD usage stacks handled in csOnOdStart; BREAK adds flat +8%
@@ -6166,6 +6175,7 @@ function csOnBreakSuccess() {
   // MAYA PROBLEM: 5s boss dmg window, once per boss
   if(cs.cs_mayaProblem && isBoss) {
     cs._mayaBreakEndTime = performance.now() + 6000;
+    cs._mayaCritEndTime = performance.now() + 6000;
   }
   // WEEBVIL DUDE: 5s dmg window (refreshes every BREAK)
   if(cs.cs_weebvilBreak) cs._weebvilBreakEndTime = performance.now() + 5000;
