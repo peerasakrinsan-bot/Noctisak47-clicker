@@ -609,8 +609,15 @@
   .cs-card-effect {
     font-family:'Sarabun',sans-serif;
     font-size:clamp(8px,2vw,10px);
-    color:#777; text-align:center; line-height:1.3;
+    color:#aaa; text-align:center; line-height:1.25;
     margin-top:clamp(3px,1vw,5px);
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    min-height:2.5em;
+    max-height:2.5em;
     flex-shrink:0;
   }
   .cs-card-effect strong { color:#bbb; }
@@ -4955,18 +4962,22 @@ const CARD_POOL = [
     apply(s){ s.cs_eddga = true; }
   },
   { id:'os',     name:'NOSIRIS CARD',        img:'cards/nosiris.png',      rarity:'mythic',
+    shortDesc:'BREAK สะสม Soul Stack เพื่อเปิด JUDGMENT',
     effect:'BREAK:<br>Soul Stack +1<br>(สูงสุด 5)<br><br>ครบ 5 Stack:<br><strong>JUDGMENT</strong> 8 วิ<br>DMG ×2 & Zeny ×2<br><br>เวลาหมด:<br>หากมี 3+ Stack<br>เหลือเวลา +15 วิ 1 ครั้ง', tradeoff:null,
     apply(s){ s.cs_osiris = true; }
   },
   { id:'mt',   name:'MISSSTRESS CARD',      img:'cards/missstress.png',    rarity:'mythic',
+    shortDesc:'OD คลิกเพิ่ม Zeny และยืดเวลา Overdrive',
     effect:'OD:<br>คลิก = Zeny <strong>+8</strong> & OD timer <strong>+0.3 วิ</strong>', tradeoff:null,
     apply(s){ s.cs_mistress = true; }
   },
   { id:'gb',  name:'GOLDEN BRUH CARD',    img:'cards/golden_bruh.png',  rarity:'mythic',
+    shortDesc:'คอมโบเร่ง Zeny และปลด GOLD RUSH เมื่อ Max Combo',
     effect:'คลิก = Combo <strong>+1</strong><br>Zeny <strong>×2.5</strong><br>Max Combo (47): <strong>GOLD RUSH</strong> 10 วิ<br>Zeny ×7 & คลิก = +5<br>Cooldown 12 วิ', tradeoff:'OD ชาร์จไม่ได้',
     apply(s){ s.cs_goldenbug = true; }
   },
   { id:'oh',    name:'COKE ZERO CARD',      img:'cards/coke_zero.png',    rarity:'mythic',
+    shortDesc:'เร่ง OD charge สูง แต่ต้องแลกเวลากับ Stack DMG',
     effect:'OD charge <strong>×3.5</strong><br>OD หมด: DMG <strong>+10%</strong> Stack<br>(สูงสุด +50%)', tradeoff:'เวลา <strong>-5 วิ</strong>',
     apply(s){ s.cs_orchero = true; }
   },
@@ -5217,32 +5228,39 @@ const CARD_POOL = [
 
   // ── ELITE NEW (v2) ──
   { id:'ghp', name:'GHOSTPING CARD',       img:'cards/ghostping_card.png',      rarity:'elite',
+    shortDesc:'พลาด AK47 ช่วยเร่ง BREAK และบูสต์ DMG ตอน BREAK',
     effect:'พลาด AK47:<br>BREAK เร็วขึ้น <strong>0.8 วิ</strong><br>(สูงสุด 5 ครั้ง/รอบ)<br><br>BREAK: DMG <strong>+30%</strong>', tradeoff:null,
     apply(s){ s.cs_ghostping=true; }
   },
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
+    shortDesc:'DMG สูง และบอสต้นเกมให้ Zeny เพิ่ม',
     effect:'DMG <strong>+45%</strong><br>10 วิแรก: Boss KO Zeny <strong>+10%</strong>', tradeoff:null,
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_devilingo=true; }
   },
   { id:'ltn', name:'LADY TRAINEE CARD',    img:'cards/lady_trainee_card.png',   rarity:'elite',
+    shortDesc:'OD Lv.Up สะสม DMG และปลด Spotlight',
     effect:'OD Lv. เพิ่ม:<br>DMG <strong>+2%</strong> Stack<br>(สูงสุด +30%)<br><br>15 Stacks:<br><strong>Spotlight Mode</strong><br>OD charge <strong>+6%/คลิก</strong>', tradeoff:'OD จบ < Lv.3: เสีย <strong>1 Stack</strong>',
     apply(s){ s.cs_ladyTrainee=true; }
   },
 
   // ── MYTHIC NEW (v2) ──
   { id:'fwc', name:'FALLEN WECHAT CARD',   img:'cards/fallen_wechat_card.png',  rarity:'mythic',
+    shortDesc:'OD เต็มแล้วเปิด Overloaded BREAK แบบระเบิดพลัง',
     effect:'OD เต็ม:<br><strong>Overloaded BREAK</strong><br>DMG <strong>+75%</strong><br>BREAK progress +25%<br>BREAK window +0.75 วิ<br><br>จบ: OD reset', tradeoff:'Cooldown <strong>20 วิ</strong>',
     apply(s){ s.cs_fallenWechat=true; }
   },
   { id:'dtl', name:'DETAILED CARD',        img:'cards/detailed_card.png',       rarity:'mythic',
+    shortDesc:'เก็บ AK47 สะสม Analysis เพื่อปลด Analyzed BREAK',
     effect:'เก็บ AK47:<br>Analysis Stack +1<br>(สูงสุด 8)<br><br>ครบ 8 Stack:<br><strong>Analyzed BREAK</strong><br>window ×2 & progress ×2<br><br>สำเร็จ:<br><strong>Critical Analysis</strong> 10 วิ<br>Crit +25% & Crit DMG +35%', tradeoff:'พลาด AK47: Stack <strong>-2</strong> & Combo <strong>-3</strong>',
     apply(s){ s.cs_detailed=true; }
   },
   { id:'gus', name:'GLOOM UNDER SIDE CARD',img:'cards/gloom_under_side_card.png',rarity:'mythic',
+    shortDesc:'บัฟ DMG/Zeny/BREAK อัตโนมัติทุก 2 วิจนเต็ม Stack',
     effect:'ทุก 2 วิ:<br>DMG +4% & Zeny +4% & BREAK +4%<br>(สูงสุด +80%)', tradeoff:null,
     apply(s){ s.cs_gloomUnderSide=true; }
   },
   { id:'dsk', name:'DARK STAKE LORD CARD', img:'cards/dark_stake_lord_card.png', rarity:'mythic',
+    shortDesc:'BREAK ลุ้น Jackpot เพิ่ม Zeny และ OCA chance',
     effect:'BREAK:<br>Jackpot <strong>15%</strong><br><br>พลาด:<br>Jackpot +10%<br>(สูงสุด 75%)<br><br>Jackpot:<br>Zeny ×2.5<br>OCA chance ×10<br><br>ได้รับแล้ว reset กลับ 15%', tradeoff:'Zeny <strong>-10%</strong>',
     apply(s){ s.cs_darkStakeLord=true; }
   },
@@ -5372,16 +5390,13 @@ function openCardSlot(onChosen) {
       imgHtml = `<div class="cs-card-img" style="display:flex;align-items:center;justify-content:center;font-size:36px;background:#111;border-radius:4px;">#</div>`;
     }
 
-    const tradeoffHtml = card.tradeoff
-      ? `<div class="cs-card-tradeoff">${card.tradeoff}</div>`
-      : '';
+    const slotDesc = getCardSlotDescription(card);
 
     div.innerHTML = `
       <div class="cs-rarity-tag">${RARITY_LABEL[card.rarity]}</div>
       ${imgHtml}
       <div class="cs-card-name">${card.name}</div>
-      <div class="cs-card-effect">${card.effect}</div>
-      ${tradeoffHtml}
+      <div class="cs-card-effect">${slotDesc}</div>
       <div class="cs-card-check"><span class="css-check" style="color:#00ff88;display:inline-block;"></span></div>
     `;
 
@@ -5389,6 +5404,17 @@ function openCardSlot(onChosen) {
     div.addEventListener('touchstart', e => { e.preventDefault(); _csSelectCard(div, card); }, { passive:false });
     wrap.appendChild(div);
   });
+}
+
+function getCardSlotDescription(card) {
+  if(card.shortDesc) return card.shortDesc;
+  const raw = (card.effect || '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if(raw.length <= 70) return raw;
+  return raw.slice(0, 67).trimEnd() + '...';
 }
 
 function _csSelectCard(el, card) {
