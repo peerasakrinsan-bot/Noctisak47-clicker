@@ -4512,7 +4512,7 @@ function scheduleWeakPoint() {
   if(window._csState && window._csState._executionModeEndTime && performance.now() < window._csState._executionModeEndTime) delay *= 0.65;
   if(window._csState && window._csState._amogAkBoostEndTime && performance.now() < window._csState._amogAkBoostEndTime) delay *= 0.70;
   // WHISPER: spawn ช้าลง 2 เท่า
-  if(window._csState && window._csState.cs_whisper) delay *= 1.20;
+  if(window._csState && window._csState.cs_whisper) delay *= (1 - Math.min(0.40, (window._csState.cs_ak47DuplicateChance||0) * 0.5));
   // HYDRA: burst window speeds AK47 spawn
   if(window._csState && window._csState.cs_hydra && window._csState._hydraBurstEndTime && performance.now() < window._csState._hydraBurstEndTime) delay *= 0.80;
   if(window._csState && window._csState.cs_incantation && window._csState._incantationContractEndTime && performance.now() < window._csState._incantationContractEndTime) delay *= 0.75;
@@ -4746,20 +4746,6 @@ function triggerBombExplosion() {
 
   updateUI();
 
-  // WHISPER: เก็บ AK47 ครบ = เวลา +1.5วิ + OD charge +10% (หรือ OD timer +0.5s) + combo protect 2s
-  if(window._csState && window._csState.cs_whisper) {
-    timeLeft += 1.5;
-    if(godLevel > 0) {
-      godSecondsLeft += 0.5;
-    } else if(canEnterGod && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
-      const cur = parseFloat(_el.godFill.style.width)||0;
-      _el.godFill.style.width = Math.min(100, cur + 10) + '%';
-      if(parseFloat(_el.godFill.style.width) >= 100) activateGodLevel(1);
-    }
-    const whisperState = window._csState;
-    whisperState._whisperComboProtect = true;
-    setTimeout(()=>{ if(window._csState === whisperState) whisperState._whisperComboProtect = false; }, 2000);
-  }
   // HYDRA: gain head on every AK47 complete (max 3)
   if(window._csState && window._csState.cs_hydra) {
     window._csState._hydraHeads = Math.min(3, (window._csState._hydraHeads || 0) + 1);
@@ -4768,12 +4754,6 @@ function triggerBombExplosion() {
   if(window._csState && window._csState.cs_thanatos) {
     _el.godFill.style.width = '100%';
     if(canEnterGod && godLevel === 0) activateGodLevel(1);
-  }
-  // BAPHOMET: สะสม dmg +5% ต่อ AK47 ครบ (max +25%)
-  if(window._csState && window._csState.cs_baphomet) {
-    if(!window._csState._baphometDmgStack) window._csState._baphometDmgStack = 0;
-    if(window._csState._baphometDmgStack < 0.25)
-      window._csState._baphometDmgStack = Math.min(0.25, window._csState._baphometDmgStack + 0.05);
   }
   // KTULLANUX: combo protect 5s
   if(window._csState && window._csState.cs_ktullanux) {
@@ -4987,11 +4967,16 @@ const CARD_POOL = [
 
   // ── RARE ──
   { id:'dg',name:'DOPPELGANGER CARD', img:'cards/doppelganger.png',rarity:'elite',
-    effect:'คลิก = double hit<br>hit 2: DMG <strong>100%</strong> & Crit <strong>25%</strong>', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_doubleClick = true; }
+    effect:'ทุก Hit ที่สำเร็จ: เรียก <strong>SHADOW STRIKE</strong> หลัง 0.08 วิ (DMG 45%, Crit +20%)', tradeoff:'เงาโจมตีไม่สร้าง Combo/OD/BREAK/AK47 และไม่ทริกเกอร์ซ้ำตัวเอง',
+    shortDescription:'ทุก Hit เรียก SHADOW STRIKE หลัง 0.08 วิ
+แรง 45% + โอกาสคริ +20%',
+    fullDescription:'[SHADOW STRIKE] ทุกการโจมตีที่โดน จะมีเงาตาม 0.08 วิ
+• ดาเมจ 45% ของฮิตต้นทาง
+• โอกาสคริติคอลเพิ่ม +20%
+• ถ้าฮิตต้นทางเป็นคริ ดาเมจเงาเพิ่มอีก +15%
+[Safety] เงาไม่สร้าง Combo, ไม่นับคลิกเพิ่ม, ไม่นับเป็น AK47/BREAK, ไม่เพิ่ม OD และไม่ทริกเกอร์เงาซ้ำ',
+    balanceNote:'REWORK - นักลอบสังหารเงาตามจังหวะ เน้น burst เสริมแบบคุมเพดาน ปลอดภัยจาก recursive hit',
+    apply(s){ s.cs_doppelShadow = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
     effect:'AK47 ครบชุด: ได้ 1 Hydra Head (สูงสุด 3)<br>ต่อ Head: BREAK DMG <strong>+10%</strong> และ AK47 DMG <strong>+20%</strong><br>ที่ 3 Head: BREAK ถัดไปจะระเบิด <strong>Hydra Burst</strong>', tradeoff:'Hydra Burst: หัวถูกใช้ทั้งหมด, AK47 spawn +20% 4 วิ แต่มีโอกาสเกิดจุดซ้ำ +20%',
@@ -5038,10 +5023,11 @@ const CARD_POOL = [
     apply(s){ s.cs_thanatos = true; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
-    effect:'คลิก = triple hit | AK47 spawn ทันที | BREAK: DMG <strong>+5%</strong> Stack (สูงสุด +25%)', tradeoff:'OD ชาร์จไม่ได้',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    effect:'ทุกคลิก: <strong>TRIPLE STRIKE</strong><br>• Main Hit แรงเต็ม<br>• Shadow Hit x2 แรง <strong>40%</strong> (คริลดลง)<br>BREAK สำเร็จ: สร้าง AK47 ทันที 1 จุด (CD 1.5 วิ)',
+    tradeoff:'OD ชาร์จไม่ได้ทั้งหมด<br>หลัง BREAK: <strong>DEVIL BET</strong> 70% ได้ SIN STACK (DMG +8%, สูงสุด 5) / 30% เสียเวลา 1 วิ + สร้าง AK47 เพิ่ม',
+    shortDescription:'TRIPLE STRIKE ทุกคลิก + DEVIL BET หลัง BREAK\nแรงจัดแต่เสี่ยงเสียเวลา • OD ใช้ไม่ได้',
+    fullDescription:'[TRIPLE STRIKE] ทุกคลิกจะแตก 3 ฮิต\n• Main Hit: ดาเมจเต็ม\n• Shadow Hit 2 ครั้ง: ดาเมจ 40% ต่อครั้ง และคริติคอลต่ำกว่า\n[BREAK Spawn] เมื่อ BREAK สำเร็จ สร้าง AK47 ทันที 1 จุด (คูลดาวน์ 1.5 วิ)\n[DEVIL BET] หลัง BREAK\n• 70%: ได้ SIN STACK (DMG +8%, สูงสุด 5)\n• 30%: เสียเวลา 1 วินาที และสร้าง AK47 เพิ่มทันที 1 จุด\n[Trade-off] OD ทุกแหล่งถูกปิดใช้งานทั้งหมด',
+    balanceNote:'REWORK - Mythic สายปีศาจแบบ all-in: พลังระเบิดสูงมาก แต่แกว่งแรงและเสี่ยงคุมเวลาไม่อยู่',
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
@@ -5226,10 +5212,10 @@ const CARD_POOL = [
 
   // ── ELITE (RARE) ใหม่ ──
   { id:'tk',   name:'TAO FUNKA CARD',      img:'cards/tao_funka.png',   rarity:'elite',
-    effect:'BREAK สำเร็จ: เข้า <strong>FUNK FEVER</strong> 5 วิ (CD 10 วิ)<br>DMG <strong>+45%</strong> | Crit <strong>+20%</strong> | Combo gain +1', tradeoff:'ระหว่าง FUNK FEVER: Combo decay เร็วขึ้น <strong>25%</strong>',
-    shortDescription:'BREAK แล้วติด FUNK FEVER 5 วิ\nแรงขึ้นแต่คอมโบร่วงไว',
-    fullDescription:'[FUNK FEVER] หลัง BREAK สำเร็จ จะได้บัฟ 5 วินาที (คูลดาวน์ 10 วินาที)\n• DMG +45%\n• Crit +20%\n• Combo gain +1 ต่อคลิก\n[Trade-off] ขณะบัฟทำงาน Combo decay เร็วขึ้น 25%',
-    balanceNote:'REWORK - สายดิสโก้ burst หน้าต่างสั้น ต้องบริหารคอมโบแลกดาเมจ',
+    effect:'[FUNK FEVER] หลัง BREAK สำเร็จ:<br>5 วิ • DMG <strong>+45%</strong> • Crit <strong>+20%</strong><br>• Combo gain +1 ต่อคลิก (CD 10 วิ)', tradeoff:'ระหว่าง FUNK FEVER: Combo decay เร็วขึ้น <strong>25%</strong>',
+    shortDescription:'BREAK สำเร็จ: FUNK FEVER 5วิ\nDMG+45% • Crit+20% • Combo+1',
+    fullDescription:'[FUNK FEVER] หลัง BREAK สำเร็จ\n• ระยะเวลา 5 วินาที\n• DMG +45%\n• Crit +20%\n• Combo gain +1 ต่อคลิก\n• คูลดาวน์ 10 วินาที\n[Trade-off] ระหว่าง FUNK FEVER คอมโบ decay เร็วขึ้น 25%',
+    balanceNote:'CLEANUP - แยกบัฟ/ความเสี่ยงชัดเจนและอ่านเร็วขึ้นบนมือถือ',
     apply(s){ s.cs_taoFunka=true; }
   },
   { id:'dc',    name:'DRUNKULA CARD',        img:'cards/drunkula.png',     rarity:'elite',
@@ -5379,18 +5365,23 @@ const CARD_POOL = [
     apply(s){ s.cs_minorous = true; }
   },
   { id:'ex',name:'EXECUSIONER CARD',   img:'cards/execusioner.png', rarity:'elite',
-    effect:'HP <30% เข้า EXECUTION MODE 5วิ: DMG +60% | BREAK DMG +35% | AK47 spawn +35%', tradeoff:'ระหว่างโหมด HP ลดต่อเนื่อง และฮีลมีผลเพียง 20% (CD 18วิ)',
-    shortDescription:'HP ต่ำกว่า 30% เปิด EXECUTION MODE\nแรงมาก แต่เสี่ยงตายจากเลือดไหล',
-    fullDescription:'[EXECUTION MODE] เมื่อ HP ต่ำกว่า 30% เปิดโหมด 5 วิ (CD 18 วิ)\n• DMG +60%\n• BREAK DMG +35%\n• AK47 spawn +35%\n[Trade-off] HP drain ต่อเนื่อง + Healing effectiveness -80%',
-    balanceNote:'REWORK - นักประหารสายเสี่ยงตาย ปิดงานแรงแลกความอยู่รอด',
+    effect:'[EXECUTION MODE] HP <30%:<br>5 วิ • DMG <strong>+60%</strong><br>• BREAK DMG <strong>+35%</strong><br>• AK47 spawn <strong>+35%</strong> (CD 18 วิ)', tradeoff:'ระหว่าง EXECUTION MODE:<br>HP drain ต่อเนื่อง<br>Healing effectiveness เหลือ 20%',
+    shortDescription:'HP <30%: EXECUTION MODE 5วิ\nDMG+60% • BREAK+35% • AK47+35%',
+    fullDescription:'[EXECUTION MODE] เมื่อ HP ต่ำกว่า 30%\n• ระยะเวลา 5 วินาที\n• DMG +60%\n• BREAK DMG +35%\n• AK47 spawn +35%\n• คูลดาวน์ 18 วินาที\n[Trade-off] ระหว่างโหมด HP จะลดต่อเนื่อง และการฟื้นฟูเหลือ 20%',
+    balanceNote:'CLEANUP - ตัดข้อความซ้ำและแยกข้อดี/ข้อเสียให้อ่านง่าย',
     apply(s){ s.cs_executioner = true; }
   },
   { id:'wh',    name:'WHIZPER CARD',       img:'cards/whizper.png',     rarity:'elite',
-    effect:'AK47ครบ/BREAK: เวลา <strong>+1.5 วิ</strong> & OD <strong>+10%</strong> & Combo lock 2 วิ | BREAK window <strong>+0.3 วิ</strong> | OD: timer <strong>+0.5 วิ</strong>', tradeoff:'AK47 spawn ช้า <strong>×2</strong>',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_whisper = true; s.cs_breakDuration = (s.cs_breakDuration||0) + 0.3; }
+    effect:'BREAK สำเร็จ: เปิด <strong>GHOST PROTOCOL</strong> 4 วิ (CD 10 วิ)', tradeoff:'โอกาสเกิด AK47 จุดซ้ำ +35%',
+    shortDescription:'BREAK สำเร็จเปิด GHOST PROTOCOL 4วิ (CD 10วิ)
+พักคอมโบ 1.2วิ + BREAK window +0.15วิ + OD +6%',
+    fullDescription:'[GHOST PROTOCOL] หลัง BREAK สำเร็จ จะทำงาน 4 วินาที (คูลดาวน์ 10 วินาที)
+• หยุดการหล่นคอมโบ 1.2 วิ
+• เพิ่ม BREAK window +0.15 วิ
+• รับ OD +6% 1 ครั้ง
+[Trade-off] โอกาสเกิด AK47 จุดซ้ำเพิ่ม +35% ระหว่างเล่นการ์ดนี้',
+    balanceNote:'REWORK - สายคุมจังหวะหลัง BREAK แบบชั่วคราว ไม่ยืดเวลา ไม่ลูป BREAK/OD และยังมีความเสี่ยงจากจุดซ้ำ',
+    apply(s){ s.cs_whisper = true; s.cs_whizperGhostProtocol = true; s.cs_ak47DuplicateChance = (s.cs_ak47DuplicateChance||0) + 0.35; }
   },
   { id:'gl',name:'GOBLIN WEEBER CARD',img:'cards/goblin_weeber.png',rarity:'elite',
     effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥50: คลิกซ้ำฟรี <strong>20%</strong><br>Combo ≥75: <strong>WEEB FOCUS</strong> 5s<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
@@ -5504,11 +5495,18 @@ const CARD_POOL = [
     apply(s){ s.cs_ghostping=true; }
   },
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
-    shortDescription:'DMG สูง และบอสต้นเกมให้ Zeny เพิ่ม',
-    effect:'DMG <strong>+45%</strong><br>15 วิแรก: Boss DMG <strong>+20%</strong> & Boss KO Zeny <strong>+25%</strong>', tradeoff:null,
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.45; s.cs_devilingo=true; }
+    shortDescription:'15วิแรกบุกสุด: Boss DMG +70%, Zeny +30%, AK47 เร็วขึ้น
+หลังจากนั้นติด CURSED PANIC ทั้งรอบ',
+    effect:'เปิดรอบ 15 วิแรก: Boss DMG <strong>+70%</strong> | Zeny <strong>+30%</strong> | AK47 spawn <strong>+20%</strong>', tradeoff:'หลัง 15 วิ: <strong>CURSED PANIC</strong> (เวลาไหลเร็ว +15%, คอมโบร่วงเร็ว +20%)',
+    fullDescription:'[Speedrun Opener] 15 วินาทีแรกของรอบ
+• Boss DMG +70%
+• Zeny +30%
+• AK47 spawn rate +20%
+[CURSED PANIC] หลังพ้น 15 วินาที จะติดสถานะจนจบรอบ
+• เวลาไหลเร็วขึ้น +15%
+• คอมโบร่วงเร็วขึ้น +20%',
+    balanceNote:'REWORK - เร่งต้นเกมแรงมากแล้วกดดันปลายเกมชัดเจน เป็นการ์ดสปีดรันที่มีความเสี่ยงจริง',
+    apply(s){ s.cs_devilingo=true; }
   },
   { id:'ltn', name:'LADY TRAINEE CARD',    img:'cards/lady_trainee_card.png',   rarity:'elite',
     shortDescription:'OD Lv.Up สะสม DMG และปลด Spotlight',
@@ -6054,7 +6052,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   let d = baseDmg;
   if(cs.cs_dmgBonus)   d *= (1 + cs.cs_dmgBonus);
   if(cs.cs_bossDmgBonus && isBoss) d *= (1 + cs.cs_bossDmgBonus);
-  if(cs.cs_devilingo && isBoss && cs._devilingoCombatStart && Date.now() - cs._devilingoCombatStart <= 15000) d *= 1.25;
+  if(cs.cs_devilingo && isBoss && cs._devilingoCombatStart && Date.now() - cs._devilingoCombatStart <= 15000) d *= 1.70;
   // MISSSTRESS no longer has a non-OD damage penalty.
   if(cs.cs_mummy_active) d *= (1 + (cs.cs_combo20Dmg||0));
   if(cs.cs_skelworker_bonus) d *= (1 + cs.cs_skelworker_bonus);
@@ -6089,8 +6087,8 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_freeoni && cs._freeoniOdDmgStack) d *= (1 + cs._freeoniOdDmgStack);
   if(cs.cs_drakeIgnoreThreshold && cs._drakeDmgEndTime && performance.now() < cs._drakeDmgEndTime) d *= (1 + (cs._drakeDmgBonus || 0));
   if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 1.30;
-  // Baphomet: accumulated dmg bonus from AK47 completions
-  if(cs.cs_baphomet && cs._baphometDmgStack) d *= (1 + cs._baphometDmgStack);
+  // BAPHOBET: DEVIL BET SIN STACK bonus (+8% per stack, max 5)
+  if(cs.cs_baphomet && cs._baphometSinStacks) d *= (1 + Math.min(5, cs._baphometSinStacks) * 0.08);
   // Orc Hero: accumulated dmg bonus from OD completions
   if(cs.cs_orchero && cs._orcheroDmgStack) d *= (1 + cs._orcheroDmgStack);
   // Ktullanux handled in WP bomb section
@@ -6161,7 +6159,7 @@ function csApplyCoinMod(coins) {
   // BEELZEBRUH: max-corruption discharge coin x1.5
   if(cs.cs_beelzebub && cs._beelzebubCoinEndTime && performance.now() < cs._beelzebubCoinEndTime) c *= 1.5;
   if(cs.cs_moonlightflower) c *= 2;
-  if(cs.cs_devilingo && isBoss && cs._devilingoCombatStart && Date.now() - cs._devilingoCombatStart <= 15000) c *= 1.30;
+  if(cs.cs_devilingo && cs._devilingoCombatStart && Date.now() - cs._devilingoCombatStart <= 15000) c *= 1.30;
   
   if(typeof pressureCoinMultiplier === 'function') c *= pressureCoinMultiplier();
   // A-LIST: Sponsor Rush +25% coin
@@ -6478,6 +6476,35 @@ function csOnBreakSuccess() {
     cs._mayaBreakEndTime = performance.now() + 6000;
     cs._mayaCritEndTime = performance.now() + 6000;
   }
+  if(cs.cs_baphomet) {
+    const _nowBaph = performance.now();
+    if(_nowBaph >= (cs._baphometAk47CdUntil || 0)) {
+      cs._baphometAk47CdUntil = _nowBaph + 1500;
+      _spawnBaphometInstantWp();
+    }
+    if(Math.random() < 0.70) {
+      cs._baphometSinStacks = Math.min(5, (cs._baphometSinStacks || 0) + 1);
+    } else {
+      timeLeft = Math.max(1, timeLeft - 1);
+      if(_nowBaph >= (cs._baphometAk47CdUntil || 0)) {
+        cs._baphometAk47CdUntil = _nowBaph + 1500;
+        _spawnBaphometInstantWp();
+      }
+    }
+  }
+  if(cs.cs_whizperGhostProtocol) {
+    const _nowGhost = performance.now();
+    if(_nowGhost >= (cs._whizperGhostCdUntil || 0)) {
+      cs._whizperGhostCdUntil = _nowGhost + 10000;
+      cs._whizperGhostEndTime = _nowGhost + 4000;
+      cs._whizperComboPauseUntil = _nowGhost + 1200;
+      if(!cs.cs_baphomet && !cs.cs_goldenbug && !cs.cs_rsx0806) {
+        const cur = parseFloat(_el.godFill.style.width) || 0;
+        _el.godFill.style.width = Math.min(100, cur + 6) + '%';
+        if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
+      }
+    }
+  }
   // WEEBVIL DUDE: unlock awakening on first BREAK, grant post-BREAK windows
   if(cs.cs_weebvilDude) {
     if(!cs._weebvilAwakened) { cs._weebvilAwakened = true; cs.cs_critDmgBonus = (cs.cs_critDmgBonus||0) + 0.25; }
@@ -6622,6 +6649,17 @@ function csOnOdStart() {
 
 // csOnOdEnd defined after csOnKO above
 
+function _spawnBaphometInstantWp() {
+  if(!gameRunning || wpActive) return false;
+  if(typeof pressureIsBreak === 'function' && pressureIsBreak()) return false;
+  clearTimeout(wpSchedule);
+  clearTimeout(wpTimeout);
+  wpSchedule = null;
+  wpTimeout = null;
+  showWeakPoint();
+  return true;
+}
+
 // ── helper: on WP hit ──
 function csOnWpHit(x, y) {
   if(!window._csState || !gameRunning) return;
@@ -6647,14 +6685,6 @@ function csOnWpHit(x, y) {
         activateGodLevel(1);
       }
     }
-  }
-  // baphomet: spawn new WP immediately
-  if(cs.cs_baphomet) {
-    clearTimeout(wpTimeout);
-    clearTimeout(wpSchedule);
-    wpActive = false;
-    $('weakPoint').style.display='none';
-    setTimeout(showWeakPoint, 300);
   }
   // RIZZWORD: +3% OD charge per WP collect (max 10 triggers per 8s)
   if(cs.cs_rizzword && godLevel === 0 && !cs.cs_baphomet && !cs.cs_goldenbug && !cs.cs_rsx0806) {
@@ -7559,7 +7589,8 @@ function pressureStartBreak() {
   const d = pressureDifficulty();
   PRESSURE.currentBreak = d.breakNo;
   PRESSURE.targetNeed = d.need;
-  const _extraBreakMs = Math.round(((window._csState && window._csState.cs_breakDuration) || 0) * 1000);
+  let _extraBreakMs = Math.round(((window._csState && window._csState.cs_breakDuration) || 0) * 1000);
+  if(window._csState && window._csState.cs_whizperGhostProtocol && window._csState._whizperGhostEndTime && performance.now() < window._csState._whizperGhostEndTime) _extraBreakMs += 150;
   PRESSURE.breakDuration = d.duration + _extraBreakMs;
   PRESSURE.breakEndsAt = performance.now() + PRESSURE.breakDuration;
   PRESSURE.auraStage = 'normal';
@@ -8223,7 +8254,7 @@ function startTimer() {
   timerInterval=setInterval(()=>{
     pressureUpdate(50);
     const baseRate = performance.now() < (PRESSURE.successFreezeUntil || 0) ? 0.18 : (PRESSURE.phase === 'break' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0));
-    const rate = baseRate * (1 + ((window._csState && window._csState._dorkTimerRateBonus) || 0));
+    const rate = baseRate * (1 + ((window._csState && window._csState._dorkTimerRateBonus) || 0) + ((window._csState && window._csState._devilingoCursedPanicActive) ? 0.15 : 0));
     timeLeft -= 0.05 * Math.min(1.15, rate);
     if(window._csState && window._csState._executionModeEndTime && performance.now() < window._csState._executionModeEndTime){
       if(isBoss) bossHP = Math.max(1, bossHP - Math.max(1, bossMaxHP*0.0015));
@@ -8549,9 +8580,10 @@ function processHit(e, now) {
     * (1 + (window._csState && window._csState.cs_comboDecaySlow || 0))
     * (1 - (window._csState && window._csState.cs_comboDecayFast || 0))
     * (1 - (window._csState && window._csState._turtleComboDecayFast || 0))
-    * (1 - (window._csState && window._csState._taoComboDecayFast || 0));
+    * (1 - (window._csState && window._csState._taoComboDecayFast || 0))
+    * (1 - ((window._csState && window._csState._devilingoCursedPanicActive) ? 0.20 : 0));
   const _suppressReset = window._csState && (
-    window._csState._whisperComboProtect ||
+    (window._csState._whizperComboPauseUntil && performance.now() < window._csState._whizperComboPauseUntil) ||
     window._csState._ktullanuxComboProtect ||
     (window._csState.cs_minorous && ((isBoss ? (bossHP/bossMaxHP) : (hp/maxHP)) > 0.70)) ||
     (window._csState._freeModeEndTime && performance.now() < window._csState._freeModeEndTime) ||
@@ -8807,19 +8839,20 @@ function processHit(e, now) {
 
     // ── Hit count: Meth Shard + Baphomet (normal tap only) ──
     // doubleHit/baphTriple were computed above. These multiply on top of OD hits.
-    const _methHits = baphTriple ? 3 : (doubleHit && _sc.isTriple) ? 3 : doubleHit ? 2 : 1;
+    const _methHits = baphTriple ? 1 : (doubleHit && _sc.isTriple) ? 3 : doubleHit ? 2 : 1;
 
-    // ── Doppelganger: compute its extra hit silently (80% dmg, own crit roll) ──
-    let _dgBonus = 0;
-    if(window._csState && window._csState.cs_doubleClick) {
-      const _dgCrit = Math.random() < 0.25;
-      _dgBonus = _dgCrit ? Math.round(dmg * (_sc.critMult||2)) : Math.round(dmg);
-      if(_dgCrit && !isCrit) isCrit = false; // don't promote main hit to crit for visual
-    }
-
-    // ── Total damage: base × (OD hits × Meth hits) + Doppelganger bonus ──
+    // ── Total damage: base × (OD hits × Meth hits) ──
     const _totalHits = _odHits * _methHits;
-    const _totalDmg = _sanitizeDamage(Math.round(dmg * _totalHits) + _dgBonus, 'normalTapTotal');
+    let _totalDmg = _sanitizeDamage(Math.round(dmg * _totalHits), 'normalTapTotal');
+    if(baphTriple) {
+      const _secCritChance = Math.max(0, ((_sc.critChance||0) * 0.45));
+      const _secCrit1 = Math.random() < _secCritChance;
+      const _secCrit2 = Math.random() < _secCritChance;
+      const _secBase = Math.max(1, Math.round(dmg * 0.40));
+      const _sec1 = Math.round(_secBase * (_secCrit1 ? (_sc.critMult||2) : 1));
+      const _sec2 = Math.round(_secBase * (_secCrit2 ? (_sc.critMult||2) : 1));
+      _totalDmg = _sanitizeDamage(Math.round(dmg + _sec1 + _sec2), 'baphometTripleStrike');
+    }
 
     // ── One damage application, one number, one flash ──
     const pos2 = pos; // pos already computed above
@@ -8833,6 +8866,17 @@ function processHit(e, now) {
       setTimeout(()=>_ce.remove(), 700);
     }
     applyBossDamage(_totalDmg, 'tap');
+    if(window._csState && window._csState.cs_doppelShadow) {
+      const _shadowBase = Math.round(_totalDmg * (isCrit ? 0.60 : 0.45));
+      const _shadowWillCrit = Math.random() < Math.min(1, ((_sc.critChance||0) + 0.20));
+      const _shadowDmg = _sanitizeDamage(Math.round(_shadowBase * (_shadowWillCrit ? (_sc.critMult||2) : 1)), 'doppelShadow');
+      setTimeout(()=>{
+        if(!gameRunning || gamePaused) return;
+        const _p = pos2;
+        showHitNum(_p.x + 24, _p.y - 24, _shadowDmg, godLevel > 0, _shadowWillCrit);
+        applyBossDamage(_shadowDmg, 'doppel-shadow');
+      }, 80);
+    }
     // boss phase / KO checks (mirrors applyDamage logic)
     if(isBoss){
       if(bossHP <= bossMaxHP*0.5 && bossPhase === 1){
