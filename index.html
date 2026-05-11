@@ -3964,6 +3964,11 @@ function boxerSetImg(img) {
 // ปรับ canvas size เมื่อ window resize
 window.addEventListener('resize', () => { _bSetSize(); _bScheduleDraw(); });
 
+// Safe canvas-image setter — canvas equivalent of "boxer.src = src || DEFAULT_BOSS_IMAGE"
+// #boxer is a <canvas>, not <img>: boxer.src/onerror do not exist.
+// onerror is handled on the HTMLImageElement (_bCurrentImg) inside boxerSetImg().
+function _setBossImg(src) { boxerSetImg(src || DEFAULT_BOSS_IMAGE); }
+
 // ── Failsafe: ensure #fighter is visible and canvas has content ──
 // Call after any state transition that could leave the fighter invisible.
 function ensureBossVisible() {
@@ -3981,7 +3986,7 @@ function ensureBossVisible() {
   const idleSrc = getIdleImg() || DEFAULT_BOSS_IMAGE;
   if(!_bCurrentImg || !_bCurrentImg.complete || !_bCurrentImg.naturalWidth) {
     console.warn('[ensureBossVisible] image not ready (' + (_bCurrentImg ? _bCurrentImg.src : 'null') + ') — re-applying', idleSrc);
-    boxerSetImg(idleSrc);
+    _setBossImg(idleSrc);
   } else {
     _bScheduleDraw();
   }
@@ -4664,8 +4669,12 @@ function initState() {
   _cachedSkin = null;
   const _sk = getActiveSkin();
   const _idleFile = _sk.files.idle || DEFAULT_BOSS_IMAGE;
-  _preloadImg(_idleFile); _sk.files.hits.forEach(_preloadImg);
-  boxerSetImg(_idleFile);
+  // Preload idle + all 4 hit images so combat image swap never has undefined in cache
+  _preloadImg(_idleFile);
+  (_sk.files.hits || []).forEach(_preloadImg);
+  // Always preload DEFAULT_BOSS_IMAGE as ultimate fallback
+  _preloadImg(DEFAULT_BOSS_IMAGE);
+  _setBossImg(_idleFile);
   _applyBossSkinAura(_sk.id);
   _el.bossBar.style.display = 'none';
   _resetBossBar();
