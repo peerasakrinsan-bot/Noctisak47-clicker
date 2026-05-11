@@ -3931,7 +3931,9 @@ function boxerSetImg(img) {
   const _src = (typeof img === 'string') ? img : null;
   if(typeof img === 'string') img = _imgObjCache[img];
   if(!img) {
-    if(_src) console.warn('[Boxer] image not in cache:', _src);
+    if(_src) console.warn('[Boxer] image not in cache:', _src, '— falling back to', DEFAULT_BOSS_IMAGE);
+    const fb = _imgObjCache[DEFAULT_BOSS_IMAGE];
+    if(fb) { boxerSetImg(fb); return; }
     return;
   }
   // Attach onerror fallback once — prevents canvas staying blank on broken image
@@ -3939,7 +3941,7 @@ function boxerSetImg(img) {
     img._boxerErrSet = true;
     img.onerror = function() {
       console.warn('[Boxer] image failed to load:', this.src);
-      const fb = _imgObjCache['boxer.png'];
+      const fb = _imgObjCache[DEFAULT_BOSS_IMAGE];
       if(fb && fb !== this && _bCurrentImg === this) boxerSetImg(fb);
     };
   }
@@ -3950,7 +3952,7 @@ function boxerSetImg(img) {
   } else if(img.complete && !img.naturalWidth) {
     // Image finished but failed (404/CORS etc.) — fall back to default boxer
     console.warn('[Boxer] image broken (naturalWidth=0):', img.src);
-    const fb = _imgObjCache['boxer.png'];
+    const fb = _imgObjCache[DEFAULT_BOSS_IMAGE];
     if(fb && fb !== img) { boxerSetImg(fb); return; }
   } else {
     img.onload = () => { if(_bCurrentImg === img) { _bSetSize(); _bScheduleDraw(); } };
@@ -3965,13 +3967,19 @@ window.addEventListener('resize', () => { _bSetSize(); _bScheduleDraw(); });
 function ensureBossVisible() {
   const _f = $('fighter');
   if(!_f) return;
-  if(_f.style.display !== 'block') {
-    console.warn('[ensureBossVisible] #fighter.style.display=' + JSON.stringify(_f.style.display) + ' — forcing block');
-    _f.style.display = 'block';
+  _f.style.display = 'block';
+  _f.style.opacity = '1';
+  _f.style.visibility = 'visible';
+  const _bx = $('boxer');
+  if(_bx) {
+    _bx.style.display = 'block';
+    _bx.style.opacity = '1';
+    _bx.style.visibility = 'visible';
   }
+  const idleSrc = getIdleImg() || DEFAULT_BOSS_IMAGE;
   if(!_bCurrentImg || !_bCurrentImg.complete || !_bCurrentImg.naturalWidth) {
-    console.warn('[ensureBossVisible] image not ready (' + (_bCurrentImg ? _bCurrentImg.src : 'null') + ') — re-applying idle');
-    boxerSetImg(getIdleImg());
+    console.warn('[ensureBossVisible] image not ready (' + (_bCurrentImg ? _bCurrentImg.src : 'null') + ') — re-applying', idleSrc);
+    boxerSetImg(idleSrc);
   } else {
     _bScheduleDraw();
   }
@@ -4334,6 +4342,8 @@ const BOSS_SKINS = [
   },
 ];
 
+const DEFAULT_BOSS_IMAGE = 'boxer.png';
+
 function getActiveSkinId() { return (save.activeSkin) || 'default'; }
 // Cache active skin — อัปเดตเฉพาะตอน applySkin() หรือ initState()
 let _cachedSkin = null;
@@ -4651,8 +4661,9 @@ function initState() {
   // invalidate skin cache + preload skin ที่ active อยู่
   _cachedSkin = null;
   const _sk = getActiveSkin();
-  _preloadImg(_sk.files.idle); _sk.files.hits.forEach(_preloadImg);
-  boxerSetImg(_sk.files.idle);
+  const _idleFile = _sk.files.idle || DEFAULT_BOSS_IMAGE;
+  _preloadImg(_idleFile); _sk.files.hits.forEach(_preloadImg);
+  boxerSetImg(_idleFile);
   _applyBossSkinAura(_sk.id);
   _el.bossBar.style.display = 'none';
   _resetBossBar();
