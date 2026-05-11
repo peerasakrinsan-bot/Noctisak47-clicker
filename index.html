@@ -4964,7 +4964,7 @@ const CARD_POOL = [
   },
   { id:'os',     name:'NOSIRIS CARD',        img:'cards/nosiris.png',      rarity:'mythic',
     shortDesc:'BREAK สะสม Soul Stack เพื่อเปิด JUDGMENT',
-    effect:'BREAK:<br>Soul Stack +1<br>(สูงสุด 5)<br><br>ครบ 5 Stack:<br><strong>JUDGMENT</strong> 8 วิ<br>DMG ×2 & Zeny ×2<br><br>เวลาหมด:<br>หากมี 3+ Stack<br>เหลือเวลา +15 วิ 1 ครั้ง', tradeoff:null,
+    effect:'BREAK:<br>Soul Stack +1 และรับ Zeny <strong>+25/Stack</strong><br>(สูงสุด 5)<br><br>ครบ 5 Stack:<br><strong>JUDGMENT</strong> 8 วิ<br>DMG ×2 & Zeny ×2<br><br>เวลาหมด:<br>หากมี 3+ Stack<br>เหลือเวลา +15 วิ 1 ครั้ง', tradeoff:null,
     apply(s){ s.cs_osiris = true; }
   },
   { id:'mt',   name:'MISSSTRESS CARD',      img:'cards/missstress.png',    rarity:'mythic',
@@ -5106,7 +5106,7 @@ const CARD_POOL = [
     apply(s){ s.cs_odChargeBonus = (s.cs_odChargeBonus||0) + 0.07; }
   },
   { id:'ms',  name:'MASTER BLING CARD',     img:'cards/master_bling.png',   rarity:'standard',
-    effect:'ทุก 10 Combo: Zeny <strong>+15</strong> & เวลา <strong>+0.4 วิ</strong> (สูงสุด +4 วิ)', tradeoff:null,
+    effect:'ทุก 10 Combo: Zeny <strong>+15</strong> & เวลา <strong>+0.3 วิ</strong> (สูงสุด +3 วิ)', tradeoff:null,
     apply(s){ s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+15; s.cs_comboTimeBonus=true; }
   },
 
@@ -5256,7 +5256,7 @@ const CARD_POOL = [
   },
   { id:'dtl', name:'DETAILED CARD',        img:'cards/detailed_card.png',       rarity:'mythic',
     shortDesc:'เก็บ AK47 สะสม Analysis เพื่อปลด Analyzed BREAK',
-    effect:'เก็บ AK47:<br>Analysis Stack +1<br>(สูงสุด 8)<br><br>ครบ 8 Stack:<br><strong>Analyzed BREAK</strong><br>window ×2 & progress ×2<br><br>สำเร็จ:<br><strong>Critical Analysis</strong> 10 วิ<br>Crit +25% & Crit DMG +35%', tradeoff:'พลาด AK47: Stack <strong>-2</strong> & Combo <strong>-3</strong>',
+    effect:'เก็บ AK47:<br>Analysis Stack +1<br>(สูงสุด 8)<br><br>ระหว่าง BREAK:<br>DMG <strong>+4%/Stack</strong><br><br>ครบ 8 Stack:<br><strong>Analyzed BREAK</strong><br>window ×2 & progress ×2<br><br>สำเร็จ:<br><strong>Critical Analysis</strong> 10 วิ<br>Crit +25% & Crit DMG +35%', tradeoff:'พลาด AK47: Stack <strong>-2</strong> & Combo <strong>-3</strong>',
     apply(s){ s.cs_detailed=true; }
   },
   { id:'gus', name:'GLOOM UNDER SIDE CARD',img:'cards/gloom_under_side_card.png',rarity:'mythic',
