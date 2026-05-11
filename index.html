@@ -992,78 +992,90 @@
   #scoreDisplay { font-size:10px; color:#555; letter-spacing:1px; text-align:right; }
   #scoreDisplay span { color:var(--gold); font-size:18px; display:block; line-height:1; margin-top:2px; }
 
-  .bars-wrap { display:flex; flex-direction:column; gap:5px; }
-  .bar-row { display:flex; align-items:center; gap:8px; }
-  .bar-label { font-size:8px; letter-spacing:2px; color:#3a3a3a; width:16px; flex-shrink:0; text-align:right; }
+  /* ── BAR LAYOUT ── */
+  .bars-wrap { display:flex; flex-direction:column; gap:6px; }
+  .bar-row   { display:flex; align-items:center; gap:8px; }
+  .bar-label { font-size:8px; letter-spacing:2px; color:#444; width:16px; flex-shrink:0; text-align:right; }
 
-  /* ── HP BAR ── */
-  .bar-wrap {
-    position:relative; flex:1; border-radius:3px; overflow:hidden;
+  /* HP track — slightly thicker */
+  .bar-row:first-child .bar-wrap {
+    height:9px;
+    background:#0a0a0a;
+    border-radius:4px;
+    overflow:hidden;
+    flex:1;
     border:1px solid #1e1e1e;
+    position:relative;
   }
-  /* HP bar is taller */
-  .bar-row:first-child .bar-wrap { height:9px; background:#0a0a0a; }
-  /* OD bar is thinner */
-  .bar-row:last-child  .bar-wrap { height:5px; background:#040e10; }
+  /* OD track — thinner than HP */
+  .bar-row:last-child .bar-wrap {
+    height:5px;
+    background:#040e12;
+    border-radius:3px;
+    overflow:hidden;
+    flex:1;
+    border:1px solid #0a1e22;
+    position:relative;
+  }
 
-  /* chip (delayed trail) — behind main fill */
-  .bar-chip {
+  /* chip bar — sits behind hpFill, transitions slower */
+  #hpChip {
     position:absolute; top:0; left:0; height:100%;
     width:100%;
-    background:rgba(255,60,60,0.38);
-    border-radius:3px;
-    transition:width 0.45s ease;
+    background:rgba(200,30,30,0.32);
+    border-radius:4px;
     pointer-events:none;
+    transition:width 0.42s ease;
   }
 
+  /* HP fill — brighter red, glow, fast transition */
   #hpFill {
     position:relative; z-index:1;
     height:100%; width:100%;
-    background:linear-gradient(90deg,#cc0018,#ff1a2e,#ff3344);
-    border-radius:3px;
-    transition:width 0.10s linear;
-    box-shadow:0 0 6px rgba(255,20,40,0.55), inset 0 1px 0 rgba(255,120,120,0.22);
-  }
-  /* flash class added on hit */
-  #hpFill.hp-flash {
-    animation:hpFlashAnim 0.14s ease-out;
-  }
-  @keyframes hpFlashAnim {
-    0%  { filter:brightness(2.5) saturate(0.2); }
-    100%{ filter:none; }
+    background:linear-gradient(90deg,#cc0018,#ff1e30,#ff3040);
+    border-radius:4px;
+    transition:width 0.09s linear;
+    box-shadow:0 0 5px rgba(255,24,48,0.55), inset 0 1px 0 rgba(255,140,140,0.18);
   }
 
-  /* tick marks overlay — drawn with repeating-linear-gradient */
-  .hp-ticks {
-    position:absolute; top:0; left:0; right:0; bottom:0; z-index:2;
+  /* tick marks — CSS-only, no extra DOM nodes */
+  .bar-row:first-child .bar-wrap::after {
+    content:'';
+    position:absolute; inset:0; z-index:2;
     pointer-events:none;
     background:repeating-linear-gradient(
       90deg,
-      transparent 0%,
+      transparent 0,
       transparent calc(10% - 1px),
-      rgba(0,0,0,0.35) calc(10% - 1px),
-      rgba(0,0,0,0.35) 10%
+      rgba(0,0,0,0.30) calc(10% - 1px),
+      rgba(0,0,0,0.30) 10%
     );
-    border-radius:3px;
+    border-radius:4px;
   }
 
-  /* OD fill */
+  /* HP hit flash — driven by js class toggle */
+  @keyframes hpHitFlash {
+    0%   { filter:brightness(2.2) saturate(0.3); }
+    100% { filter:none; }
+  }
+  #hpFill.hp-hit { animation:hpHitFlash 0.13s ease-out forwards; }
+
+  /* OD fill — cyan/light-blue, thinner glow */
   #godFill {
     position:relative; z-index:1;
     height:100%; width:0%;
-    background:linear-gradient(90deg,#003a44,#00c8e0,#00ffee);
+    background:linear-gradient(90deg,#003844,#00b8d4,#00eeff);
     border-radius:3px;
     transition:width 0.05s linear;
-    box-shadow:0 0 5px rgba(0,255,238,0.45);
+    box-shadow:0 0 4px rgba(0,220,255,0.40);
   }
-  /* OD glow pulse while charging (class toggled by JS) */
-  #godFill.od-charging {
-    animation:odChargePulse 1.4s ease-in-out infinite;
-  }
+
+  /* OD glow pulse while charging — toggled by js */
   @keyframes odChargePulse {
-    0%,100%{ box-shadow:0 0 4px rgba(0,255,238,0.35); }
-    50%    { box-shadow:0 0 10px rgba(0,255,238,0.75), 0 0 18px rgba(0,200,220,0.35); }
+    0%,100% { box-shadow:0 0 3px rgba(0,220,255,0.30); }
+    50%     { box-shadow:0 0 9px rgba(0,220,255,0.70), 0 0 16px rgba(0,180,220,0.28); }
   }
+  #godFill.od-charging { animation:odChargePulse 1.5s ease-in-out infinite; }
 
   /* coin inline ใน topUI */
   #inlineCoin { font-size:11px; color:var(--gold); letter-spacing:1px; white-space:nowrap; }
@@ -2775,9 +2787,8 @@
     <div class="bar-row">
       <div class="bar-label">HP</div>
       <div class="bar-wrap">
-        <div class="bar-chip" id="hpChip"></div>
+        <div id="hpChip"></div>
         <div id="hpFill"></div>
-        <div class="hp-ticks"></div>
       </div>
     </div>
     <div class="bar-row">
@@ -4376,9 +4387,6 @@ function initState() {
   wpCompletions = 0;
   wp5FirstDone = false;
   _ocaDropCount = 0; // OCA Drop System — reset per-round cap
-  _hpChipEl = null; // reset chip cache
-  const _chip = document.getElementById('hpChip');
-  if(_chip) _chip.style.width = '100%';
   pressureReset();
   updateWpCounter();
   gun.style.display = 'none';
@@ -8054,9 +8062,6 @@ function processHit(e, now) {
     if(!window._csState || (!window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806))
       activateGodLevel(1);
   }
-  // OD charging glow pulse — show while bar has value and OD is not active
-  const _odPct = parseFloat(_el.godFill.style.width)||0;
-  _el.godFill.classList.toggle('od-charging', godLevel===0 && _odPct > 2);
   // GOLDEN BRUH: Gold Rush at max combo (replaces OD)
   if(window._csState && window._csState.cs_goldenbug && combo === 47) {
     const _grNow = performance.now();
@@ -8302,8 +8307,9 @@ function normalKO() {
   // RSX-0806: +500 score per KO (Pure Execution)
   if(window._csState && window._csState.cs_rsx0806) score += 500;
   hp=maxHP;
-  const _chip1 = document.getElementById('hpChip');
-  if(_chip1) _chip1.style.width = '100%';
+  // chip resets instantly on HP restore — no trail on refill
+  const _chip = _getHpChip();
+  if (_chip) { _chip.style.transition = 'none'; _chip.style.width = '100%'; requestAnimationFrame(()=>{ if(_chip) _chip.style.transition = ''; }); }
   showKOFlash(false);
   spawnCoinPopup(baseCoins);
   csOnKO();
@@ -8312,16 +8318,8 @@ function normalKO() {
 
 function spawnBoss() {
   isBoss=true; bossPhase=1;
-  // ── STAGED BOSS HP SCALING (based on lifetime total KO) ──
-  // Uses save.stats.totalKO (cumulative across all runs) to set difficulty tier,
-  // then compounds per-boss within the run using _bossesDefeated.
-  const totalKO = (save && save.stats && save.stats.totalKO) || 0;
-  let tierMult;
-  if     (totalKO >= 751) tierMult = 1.063;
-  else if(totalKO >= 501) tierMult = 1.058;
-  else if(totalKO >= 251) tierMult = 1.052;
-  else                    tierMult = 1.045;
-  const scale = Math.pow(tierMult, window._bossesDefeated||0);
+  // HP ทวีคูณ 20% ต่อบอส (exponential): boss n ได้รับ 1.20^n เท่า
+  const scale = Math.pow(1.20, window._bossesDefeated||0);
   bossMaxHP=Math.round(maxHP*5*scale);
   bossHP=bossMaxHP;
   _el.bossBar.style.display='block';
@@ -8368,8 +8366,9 @@ function bossKO() {
   // RSX-0806: +500 score per KO (Pure Execution)
   if(window._csState && window._csState.cs_rsx0806) score += 500;
   hp=maxHP; bossHP=0;
-  const _chip2 = document.getElementById('hpChip');
-  if(_chip2) _chip2.style.width = '100%';
+  // chip resets instantly on HP restore
+  const _chip2 = _getHpChip();
+  if (_chip2) { _chip2.style.transition = 'none'; _chip2.style.width = '100%'; requestAnimationFrame(()=>{ if(_chip2) _chip2.style.transition = ''; }); }
   _el.bossBar.style.display='none';
   spawnCoinPopup(bossCoins);
   showBigSplash('BOSS KO','+'+bossCoins+' COIN','#ffcc00');
@@ -8403,7 +8402,6 @@ function activateGodLevel(lv) {
   godLevel=lv; canEnterGod=(lv<3);
   clearTimeout(godTimeout); clearInterval(godInterval);
   gun.style.display=lv>0?'block':'none';
-  if(_el && _el.godFill) _el.godFill.classList.remove('od-charging');
   csOnOdStart();
 
   const gd=GOD_LEVELS[lv];
@@ -8495,39 +8493,41 @@ function updateGodLevelUI() {
 // UI UPDATE
 // ══════════════════════════════════════════
 let _lastHpTier = -1; // track tier เพื่อไม่ set background ซ้ำทุก hit
-let _hpChipEl = null; // cached chip element
+let _hpChipEl   = null; // cached once after DOM ready
 function _getHpChip() { return _hpChipEl || (_hpChipEl = document.getElementById('hpChip')); }
 function _resetHpTier() { _lastHpTier = -1; }
 function updateUI() {
   const ratio = isBoss ? 1 : hp/maxHP;
-  const pct = (isBoss ? 100 : ratio*100);
+  const pct   = (isBoss ? 100 : ratio * 100);
   _el.hpFill.style.width = pct + '%';
 
-  // chip bar trails behind — only shrinks, never grows back
+  // chip bar — only ever shrinks; transition handles the delay visually
   const chip = _getHpChip();
-  if(chip) {
-    const chipPct = parseFloat(chip.style.width) || 100;
-    if(pct < chipPct) chip.style.width = pct + '%';
-    else if(pct >= 100) chip.style.width = '100%';
+  if (chip) {
+    const chipNow = parseFloat(chip.style.width);
+    if (isNaN(chipNow) || pct < chipNow) chip.style.width = pct + '%';
   }
 
-  // flash on HP change (shrink only = hit)
+  // HP hit flash — brief brightness burst on every damage call
+  _el.hpFill.classList.remove('hp-hit');
+  void _el.hpFill.offsetWidth; // force reflow so re-adding fires
+  _el.hpFill.classList.add('hp-hit');
+
+  // OD charging glow — on while bar has charge but OD not active
+  const odPct = parseFloat(_el.godFill.style.width) || 0;
+  _el.godFill.classList.toggle('od-charging', typeof godLevel !== 'undefined' && godLevel === 0 && odPct > 1);
+
   const tier = ratio > 0.5 ? 2 : ratio > 0.25 ? 1 : 0;
-  if(tier !== _lastHpTier) {
+  if (tier !== _lastHpTier) {
     _lastHpTier = tier;
-    _el.hpFill.style.background = tier===2
-      ? 'linear-gradient(90deg,#cc0018,#ff1a2e,#ff3344)'
-      : tier===1 ? 'linear-gradient(90deg,#882200,#cc4400,#ff6600)'
+    _el.hpFill.style.background = tier === 2
+      ? 'linear-gradient(90deg,#cc0018,#ff1e30,#ff3040)'
+      : tier === 1 ? 'linear-gradient(90deg,#882200,#cc4400,#ff6000)'
       : 'linear-gradient(90deg,#551100,#882200,#bb3300)';
   }
-  _el.hpFill.classList.remove('hp-flash');
-  void _el.hpFill.offsetWidth;
-  _el.hpFill.classList.add('hp-flash');
-  setTimeout(()=>_el.hpFill.classList.remove('hp-flash'), 160);
-
-  _el.koNum.textContent = ko;
+  _el.koNum.textContent   = ko;
   _el.scoreNum.textContent = score;
-  _el.coinNum.textContent = roundCoins;
+  _el.coinNum.textContent  = roundCoins;
 }
 function updateComboUI() {
   _el.bigCombo.textContent = combo;
