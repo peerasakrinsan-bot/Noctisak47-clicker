@@ -4868,8 +4868,8 @@ function stopFightBGM() {
 const CARD_POOL = [
   // ── COMMON ──
   { id:'po',     name:'BORING CARD',       img:'cards/boring.png',      rarity:'standard',
-    effect:'Zeny <strong>+8%</strong>',  tradeoff:null,
-    apply(s){ s.cs_coinPct = (s.cs_coinPct||0) + 0.08; }
+    effect:'Zeny <strong>+12%</strong>',  tradeoff:null,
+    apply(s){ s.cs_coinPct = (s.cs_coinPct||0) + 0.12; }
   },
   { id:'lu',    name:'LOONEYTIC CARD',       img:'cards/looneytic.png',     rarity:'standard',
     effect:'Crit DMG <strong>+15%</strong>', tradeoff:null,
@@ -4880,8 +4880,8 @@ const CARD_POOL = [
     apply(s){ s.cs_comboDecaySlow = (s.cs_comboDecaySlow||0) + 0.20; }
   },
   { id:'co',     name:'CONBRO CARD',        img:'cards/conbro.png',      rarity:'standard',
-    effect:'<strong>5%</strong> โอกาส Combo ไม่ reset', tradeoff:null,
-    apply(s){ s.cs_comboNoReset = (s.cs_comboNoReset||0) + 0.05; }
+    effect:'<strong>10%</strong> โอกาส Combo ไม่ reset', tradeoff:null,
+    apply(s){ s.cs_comboNoReset = (s.cs_comboNoReset||0) + 0.10; }
   },
   { id:'pp',   name:'PEKO PEKO CARD',     img:'cards/peko_peko.png',    rarity:'standard',
     effect:'HP ศัตรู เริ่มต้น <strong>-15%</strong>', tradeoff:null,
@@ -4989,12 +4989,12 @@ const CARD_POOL = [
 
   // ── COMMON ใหม่ ──
   { id:'dr',      name:'DRIPZ CARD',         img:'cards/dripz.png',       rarity:'standard',
-    effect:'Zeny <strong>+5%</strong> & Crit <strong>+3%</strong>', tradeoff:null,
-    apply(s){ s.cs_coinPct=(s.cs_coinPct||0)+0.05; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.03; }
+    effect:'Zeny <strong>+8%</strong> & Crit <strong>+5%</strong>', tradeoff:null,
+    apply(s){ s.cs_coinPct=(s.cs_coinPct||0)+0.08; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.05; }
   },
   { id:'st',    name:'STAYNOR CARD',        img:'cards/staynor.png',     rarity:'standard',
-    effect:'Combo decay ช้าลง <strong>15%</strong> | ทุก 10 Combo: Zeny <strong>+3</strong>', tradeoff:null,
-    apply(s){ s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.15; s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+3; }
+    effect:'Combo decay ช้าลง <strong>20%</strong> & ทุก 10 Combo: Zeny <strong>+6</strong>', tradeoff:null,
+    apply(s){ s.cs_comboDecaySlow=(s.cs_comboDecaySlow||0)+0.20; s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+6; }
   },
   { id:'ro',     name:'BROCKER CARD',         img:'cards/brocker.png',      rarity:'standard',
     effect:'ทุก 10 Combo: Zeny <strong>+10</strong>', tradeoff:null,
@@ -5063,7 +5063,7 @@ const CARD_POOL = [
     apply(s){ s.cs_horong = true; }
   },
   { id:'ry',    name:'RAYTRICK CARD',        img:'cards/raytrick.png',     rarity:'premium',
-    effect:'HP ≤ 50%: DMG <strong>+20%</strong> ถาวร', tradeoff:null,
+    effect:'HP ≤ 60%: DMG <strong>+25%</strong> ถาวร', tradeoff:null,
     apply(s){ s.cs_raydric = true; }
   },
 
@@ -5106,8 +5106,8 @@ const CARD_POOL = [
     apply(s){ s.cs_odChargeBonus = (s.cs_odChargeBonus||0) + 0.07; }
   },
   { id:'ms',  name:'MASTER BLING CARD',     img:'cards/master_bling.png',   rarity:'standard',
-    effect:'ทุก 10 Combo: Zeny <strong>+10</strong> & เวลา <strong>+0.3 วิ</strong> (สูงสุด +3 วิ)', tradeoff:null,
-    apply(s){ s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+10; s.cs_comboTimeBonus=true; }
+    effect:'ทุก 10 Combo: Zeny <strong>+15</strong> & เวลา <strong>+0.4 วิ</strong> (สูงสุด +4 วิ)', tradeoff:null,
+    apply(s){ s.cs_comboMilestoneCoin=(s.cs_comboMilestoneCoin||0)+15; s.cs_comboTimeBonus=true; }
   },
 
   // ── PREMIUM ใหม่ ──
@@ -5132,12 +5132,12 @@ const CARD_POOL = [
     apply(s){ s.cs_vitata = true; s.cs_dmgBonus=(s.cs_dmgBonus||0)-0.05; }
   },
   { id:'al',  name:'ALLEYGATOR CARD',     img:'cards/alleygator.png',   rarity:'premium',
-    effect:'ทุก 8 KO: Zeny <strong>+1%</strong> Stack (สูงสุด +10%) | BREAK: KO นับเร็ว <strong>×2</strong>', tradeoff:null,
+    effect:'ทุก 6 KO: Zeny <strong>+1.5%</strong> Stack (สูงสุด +15%) & BREAK: KO นับเร็ว <strong>×2</strong>', tradeoff:null,
     apply(s){ s.cs_alligator = true; }
   },
   { id:'ss',name:'SOLDIER SKELLYTON CARD', img:'cards/soldier_skellyton.png', rarity:'premium',
-    effect:'Crit DMG <strong>+18%</strong> & Crit <strong>+2%</strong> | AK47: Crit <strong>+6%</strong> 4 วิ', tradeoff:null,
-    apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.18; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.02; s.cs_skellytonWp=true; }
+    effect:'Crit DMG <strong>+25%</strong> & Crit <strong>+4%</strong> & AK47: Crit <strong>+10%</strong> 5 วิ', tradeoff:null,
+    apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.25; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.04; s.cs_skellytonWp=true; }
   },
   { id:'mc',     name:'MARVELC CARD',          img:'cards/marvelc.png',        rarity:'premium',
     effect:'เวลา <strong>+4 วิ</strong> | Combo decay ช้าลง <strong>15%</strong> | เวลา < 15 วิ: DMG <strong>+8%</strong>', tradeoff:null,
@@ -5148,8 +5148,8 @@ const CARD_POOL = [
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.16; s.cs_odChargePenalty=(s.cs_odChargePenalty||0)+0.20; }
   },
   { id:'zr',     name:'ZERO SENPAI CARD',         img:'cards/zero_senpai.png',       rarity:'premium',
-    effect:'Crit <strong>+7%</strong> & Zeny <strong>+4%</strong>', tradeoff:null,
-    apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.07; s.cs_coinPct=(s.cs_coinPct||0)+0.04; }
+    effect:'Crit <strong>+10%</strong> & Zeny <strong>+8%</strong>', tradeoff:null,
+    apply(s){ s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_coinPct=(s.cs_coinPct||0)+0.08; }
   },
   { id:'my',     name:'MADTYR CARD',         img:'cards/madtyr.png',       rarity:'premium',
     effect:'OD charge <strong>+10%</strong>/คลิก', tradeoff:'Combo decay เร็วขึ้น <strong>15%</strong>',
@@ -5740,7 +5740,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_horong_active) d *= 1.35;
   // MARVELC: dmg +8% when time < 15s
   if(cs.cs_marvelcLowTime && cs._marvelcLowTimeActive) d *= 1.08;
-  if(cs.cs_raydric && cs._raydricActive) d *= 1.20;
+  if(cs.cs_raydric && cs._raydricActive) d *= 1.25;
   if(cs.cs_zenorc_active) d *= (1 + cs.cs_zenorc_active);
   if(cs.cs_moonlightflower) d *= 2;
   if(cs.cs_stormyKnight && godLevel > 0) d *= 1.35;
@@ -5958,16 +5958,16 @@ function csOnKO() {
     if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
   }
   // Zenorc OD stack tracked in csOnOdStart
-  // Alligator: every 10 KOs = +1% coin bonus (max +8%); during BREAK counts 2x
+  // Alligator: every 6 KOs = +1.5% coin bonus (max +15%); during BREAK counts 2x
   if(cs.cs_alligator) {
     if(!cs._alligatorKoCount) cs._alligatorKoCount = 0;
     if(!cs._alligatorPct) cs._alligatorPct = 0;
-    if(cs._alligatorPct < 0.10) {
+    if(cs._alligatorPct < 0.15) {
       cs._alligatorKoCount++;
       const inBreak = (typeof pressureIsBreak === 'function' && pressureIsBreak());
-      const threshold = inBreak ? 4 : 8;
+      const threshold = inBreak ? 3 : 6;
       if(cs._alligatorKoCount % threshold === 0) {
-        cs._alligatorPct = Math.min(0.10, cs._alligatorPct + 0.01);
+        cs._alligatorPct = Math.min(0.15, cs._alligatorPct + 0.015);
       }
     }
   }
@@ -6271,8 +6271,8 @@ function csOnWpHit(x, y) {
       showBigSplash('ANALYSIS COMPLETE', 'Next BREAK: WINDOW x2', '#00ffee', false);
     }
   }
-  // SOLDIER SKELLYTON: WP hit → crit chance +6% for 4s
-  if(cs.cs_skellytonWp) cs._skellytonCritEndTime = performance.now() + 4000;
+  // SOLDIER SKELLYTON: WP hit → crit chance +10% for 5s
+  if(cs.cs_skellytonWp) cs._skellytonCritEndTime = performance.now() + 5000;
   // NOTE: No OCA roll here — single weak point pickup must NOT trigger OCA.
   // OCA rolls only on: AK47 complete (all 5 WPs → onAk47Complete) and BREAK success.
 }
@@ -8229,8 +8229,8 @@ function processHit(e, now) {
     if(window._csState.cs_jakkCrit && godLevel>0) _critChance += 0.20;
     // JACKED: +8% crit during BREAK (even outside OD)
     if(window._csState.cs_jakkCrit && godLevel===0 && typeof pressureIsBreak === 'function' && pressureIsBreak()) _critChance += 0.08;
-    // SOLDIER SKELLYTON: +6% crit for 4s after WP collect
-    if(window._csState.cs_skellytonWp && window._csState._skellytonCritEndTime && performance.now() < window._csState._skellytonCritEndTime) _critChance += 0.06;
+    // SOLDIER SKELLYTON: +10% crit for 5s after WP collect
+    if(window._csState.cs_skellytonWp && window._csState._skellytonCritEndTime && performance.now() < window._csState._skellytonCritEndTime) _critChance += 0.10;
     // IFRIED: +10% crit during BREAK (legacy bonus kept for feel)
     if(window._csState.cs_ifriedBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) _critChance += 0.10;
     // IFRIED: Inferno Burst — +25% crit chance during burst window
@@ -8388,7 +8388,7 @@ function processHit(e, now) {
         }
       }
       if(window._csState && window._csState.cs_raydric && !window._csState._raydricActive){
-        if((hp/maxHP) <= 0.50) window._csState._raydricActive = true;
+        if((hp/maxHP) <= 0.60) window._csState._raydricActive = true;
       }
       if(hp <= 0) normalKO();
     }
@@ -8487,9 +8487,9 @@ function applyDamage(dmg,e,isCrit) {
         }
       }
     }
-    // RAYDRIC: activate permanently once enemy HP drops to <= 50%
+    // RAYDRIC: activate permanently once enemy HP drops to <= 60%
     if(window._csState && window._csState.cs_raydric && !window._csState._raydricActive) {
-      if((hp / maxHP) <= 0.50) window._csState._raydricActive = true;
+      if((hp / maxHP) <= 0.60) window._csState._raydricActive = true;
     }
     if(hp<=0) normalKO();
   }
