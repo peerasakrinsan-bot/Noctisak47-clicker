@@ -4355,9 +4355,10 @@ let combo, lastHitTime, lastIndex;
 let godLevel, canEnterGod, godTimeout, godInterval, godHitCount;
 
 // ── Infinite Tap Ramp ──
-// Normal taps (including OD taps) accumulate bossTapCount.
-// Damage bonus = bossTapCount * 0.005 (+0.5% per tap, no cap).
-// Resets on boss KO, idle >1500ms, or new run.
+// Normal taps (including OD extra hits) accumulate bossTapCount.
+// Damage bonus = bossTapCount * 0.02 (+2% per tap — 50 taps = +100%, 100 = +200%, no cap).
+// WP, BREAK, AK47 and passive damage are excluded.
+// Resets on boss KO, idle >1500ms, defeat, restart, or new run.
 let bossTapCount = 0, lastTapTime = 0;
 
 // HP & boss
@@ -4704,10 +4705,23 @@ function triggerBombExplosion() {
     _csValkyrieRandgrisSwap();
   }
 
-  // OCA Drop System — roll for ticket drop on every bomb
+  // OCA Drop System — roll for ticket drop on AK47 complete (all 5 WPs collected).
+  // This is the ONLY place OCA rolls for AK47. One roll per completion.
   const _bx = window.innerWidth  / 2;
   const _by = window.innerHeight * 0.4;
-  tryOcaBombDrop(_bx, _by);
+  onAk47Complete(_bx, _by);
+}
+
+// ── AK47 complete OCA entry point ──
+// Called ONLY when all 5 weak points have been collected (wp1–wp5 sounds play).
+// ONE OCA roll per completion. No partial-progress rolls.
+function onAk47Complete(x, y) {
+  rollOcaFromAk47Complete(x, y);
+}
+
+// ── Roll OCA for AK47 complete ──
+function rollOcaFromAk47Complete(x, y) {
+  tryOcaBombDrop(x, y);
 }
 
 function showWpMissPenalty() {
@@ -6183,6 +6197,8 @@ function csOnWpHit(x, y) {
   }
   // SOLDIER SKELLYTON: WP hit → crit chance +6% for 4s
   if(cs.cs_skellytonWp) cs._skellytonCritEndTime = performance.now() + 4000;
+  // NOTE: No OCA roll here — single weak point pickup must NOT trigger OCA.
+  // OCA rolls only on: AK47 complete (all 5 WPs → onAk47Complete) and BREAK success.
 }
 
 // ── helper: on time up — osiris ──
@@ -7335,6 +7351,8 @@ function pressureSpawnTarget() {
     if(now - last < 70) return;
     pointerTapAt.set(id, now);
     pressureHitTarget(x, y);
+    // OD extra hits and Meth Shard extra hits do NOT apply during BREAK.
+    // BREAK hit count is exactly 1 per physical tap — no multipliers from any source.
   };
   const releasePointer = ev => {
     if(ev.pointerId) activePointers.delete(ev.pointerId);
@@ -7468,6 +7486,10 @@ function pressureSuccess() {
   PRESSURE.lastAfkAt = Date.now();
   if(typeof csOnBreakSuccess === 'function') csOnBreakSuccess();
   if(typeof csOnBreakEnd === 'function') csOnBreakEnd();
+  // ── OCA Drop: BREAK success ──
+  const _brx = (PRESSURE.resolvePoint && PRESSURE.resolvePoint.x) || vvW() / 2;
+  const _bry = (PRESSURE.resolvePoint && PRESSURE.resolvePoint.y) || vvH() * 0.42;
+  tryOcaSkillDrop(_brx, _bry);
 }
 
 
@@ -7730,6 +7752,9 @@ function endGame(opts = {}) {
   save.stats.totalKO=(save.stats.totalKO||0)+ko;
   save.stats.maxCombo=Math.max(save.stats.maxCombo||0,maxCombo);
   save.stats.highScore=Math.max(prevHS,score);
+  // ── End-run: roundCoins accumulated per-KO (already scaled at earn time). ──
+  // Do NOT apply getZenyKoMultiplier here — that would retroactively reduce Zeny
+  // the player already earned this run. Multiplier is applied per-KO only.
   save.coins=(save.coins||0)+roundCoins;
   save.quitPenalty = false;
   save.savedCards = null;
@@ -8203,20 +8228,87 @@ function processHit(e, now) {
     score += 20;
     csOnWpHit(pos.x, pos.y);
   } else {
-    // Apply ramp bonus — WP path above is excluded entirely
+    // ── Normal tap — Tap Ramp + batched multi-hit ──
+    // One bossTapCount++ per physical tap regardless of hit count.
+    // All extra hits (OD / Meth Shard / Baphomet / Doppelganger) are summed into
+    // one totalDmg value → one applyBossDamage call → one damage number → one flash.
+    // No setTimeout spam, no multiple DOM writes per tap.
     bossTapCount++;
-    const _rampBonus = bossTapCount * 0.005;
+    const _rampBonus = bossTapCount * 0.02; // +2% per tap (50 taps = +100%, 100 = +200%)
     dmg = Math.round(dmg * (1 + _rampBonus));
-    applyDamage(dmg,e,isCrit);
-    // DOPPELGANGER: second hit at 80% dmg with 20% crit chance
+
+    // ── Hit count: OD (normal tap only) ──
+    // Lv1 = 1 hit, Lv2 = 2 hits, Lv3 = 3 hits. Never applies to BREAK/WP/AK47.
+    const _odHits = godLevel >= 3 ? 3 : godLevel >= 2 ? 2 : 1;
+
+    // ── Hit count: Meth Shard + Baphomet (normal tap only) ──
+    // doubleHit/baphTriple were computed above. These multiply on top of OD hits.
+    const _methHits = baphTriple ? 3 : (doubleHit && _sc.isTriple) ? 3 : doubleHit ? 2 : 1;
+
+    // ── Doppelganger: compute its extra hit silently (80% dmg, own crit roll) ──
+    let _dgBonus = 0;
     if(window._csState && window._csState.cs_doubleClick) {
-      const _dgDmg = Math.round(dmg * 0.8);
       const _dgCrit = Math.random() < 0.20;
-      const _dgFinalDmg = _dgCrit ? Math.round(_dgDmg * (_sc.critMult||2)) : _dgDmg;
-      setTimeout(()=>applyDamage(_dgFinalDmg, e, _dgCrit), 40);
+      _dgBonus = _dgCrit ? Math.round(dmg * 0.8 * (_sc.critMult||2)) : Math.round(dmg * 0.8);
+      if(_dgCrit && !isCrit) isCrit = false; // don't promote main hit to crit for visual
     }
-    if(doubleHit) setTimeout(()=>applyDamage(dmg,e,false),55);
-    if((doubleHit&&_sc.isTriple)||baphTriple) setTimeout(()=>applyDamage(dmg,e,false),110);
+
+    // ── Total damage: base × (OD hits × Meth hits) + Doppelganger bonus ──
+    const _totalHits = _odHits * _methHits;
+    const _totalDmg = Math.round(dmg * _totalHits) + _dgBonus;
+
+    // ── One damage application, one number, one flash ──
+    const pos2 = pos; // pos already computed above
+    spawnFX(pos2.x, pos2.y, godLevel > 0);
+    showHitNum(pos2.x, pos2.y, _totalDmg, godLevel > 0, isCrit);
+    if(isCrit){
+      const _ce = document.createElement('div');
+      _ce.className = 'crit-text'; _ce.textContent = 'CRITICAL!';
+      _ce.style.left = (pos2.x-40)+'px'; _ce.style.top = (pos2.y-40)+'px';
+      document.getElementById('gameRoot').appendChild(_ce);
+      setTimeout(()=>_ce.remove(), 700);
+    }
+    applyBossDamage(_totalDmg, 'tap');
+    // boss phase / KO checks (mirrors applyDamage logic)
+    if(isBoss){
+      if(bossHP <= bossMaxHP*0.5 && bossPhase === 1){
+        bossPhase = 2;
+        _el.bossPhaseTag.textContent = 'BERSERK NOCTIS';
+        _el.bossName.style.color = '#ff4400';
+        showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
+      }
+      if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug){
+        if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
+        const _br2 = bossHP / bossMaxHP;
+        for(const _th of [0.75,0.50,0.25]){
+          const _k = 'boss_'+_th;
+          if(_br2 < _th && !window._csState._drakeTriggered.has(_k)){
+            window._csState._drakeTriggered.add(_k);
+            const cur = parseFloat(_el.godFill.style.width)||0;
+            _el.godFill.style.width = Math.min(100, cur+15)+'%';
+            if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
+          }
+        }
+      }
+      if(bossHP <= 0) bossKO();
+    } else {
+      if(window._csState && window._csState.cs_drakeIgnoreThreshold && !window._csState.cs_baphomet && !window._csState.cs_goldenbug){
+        if(!window._csState._drakeTriggered) window._csState._drakeTriggered = new Set();
+        const _hr2 = hp / maxHP;
+        for(const _th of [0.75,0.50,0.25]){
+          if(_hr2 < _th && !window._csState._drakeTriggered.has(_th)){
+            window._csState._drakeTriggered.add(_th);
+            const cur = parseFloat(_el.godFill.style.width)||0;
+            _el.godFill.style.width = Math.min(100, cur+15)+'%';
+            if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
+          }
+        }
+      }
+      if(window._csState && window._csState.cs_raydric && !window._csState._raydricActive){
+        if((hp/maxHP) <= 0.50) window._csState._raydricActive = true;
+      }
+      if(hp <= 0) normalKO();
+    }
   }
 
   score+=multi+(isCrit?5:0);
@@ -8331,6 +8423,9 @@ function normalKO() {
   // Dark Lord: KO coin -40%
   if(window._csState && window._csState.cs_darkLord) baseCoins = Math.round(baseCoins * 0.60);
   baseCoins = csApplyCoinMod(baseCoins);
+  // ── Zeny KO reduction (late-game economy rebalance) ──
+  // Applied per-KO at earn time so totalRunZeny is never reduced retroactively.
+  baseCoins = Math.round(baseCoins * getZenyKoMultiplier((save && save.stats && save.stats.totalKO) || 0));
   roundCoins+=baseCoins;
   score+=100+combo*8;
   // Moonlight Flower: +500 score per KO
@@ -8350,8 +8445,11 @@ function normalKO() {
 
 function spawnBoss() {
   isBoss=true; bossPhase=1;
-  // HP ทวีคูณ 20% ต่อบอส (exponential): boss n ได้รับ 1.20^n เท่า
-  const scale = Math.pow(1.20, window._bossesDefeated||0);
+  // ── Tiered HP scaling based on lifetime KO count ──
+  // 0–250 KO: ×1.040 | 251–500: ×1.047 | 501–750: ×1.052 | 751+: ×1.057
+  const _lifetimeKO = (save && save.stats && save.stats.totalKO) || 0;
+  const _hpMult = _lifetimeKO > 750 ? 1.057 : _lifetimeKO > 500 ? 1.052 : _lifetimeKO > 250 ? 1.047 : 1.040;
+  const scale = Math.pow(_hpMult, window._bossesDefeated||0);
   bossMaxHP=Math.round(maxHP*5*scale);
   bossHP=bossMaxHP;
   _el.bossBar.style.display='block';
@@ -8393,6 +8491,9 @@ function bossKO() {
     }
   }
   bossCoins = csApplyCoinMod(bossCoins);
+  // ── Zeny KO reduction (late-game economy rebalance) ──
+  // Applied after all card mods so card bonuses are also scaled down proportionally.
+  bossCoins = Math.round(bossCoins * getZenyKoMultiplier((save && save.stats && save.stats.totalKO) || 0));
   roundCoins+=bossCoins;
   score+=500+combo*15;
   // Moonlight Flower: +500 score per KO
@@ -9225,17 +9326,76 @@ const OCA_DROP_RATES = [
   { tier: 'standard', chance: 0.05   },
 ];
 
-function rollOcaDrop() {
+// ── OCA KO Multiplier ──
+// After 250 lifetime KO, OCA drop rates from skill-based actions scale up every 100 KO.
+// Multiplier applies to base chance only — no extra rolls, no flat additions.
+// Formula: finalChance = baseChance * getOcaKoMultiplier()
+function getOcaKoMultiplier() {
+  const _ko = (save && save.stats && save.stats.totalKO) || 0;
+  if (_ko <= 250)  return 1.00;
+  if (_ko <= 350)  return 1.10;
+  if (_ko <= 450)  return 1.20;
+  if (_ko <= 550)  return 1.30;
+  if (_ko <= 650)  return 1.40;
+  if (_ko <= 750)  return 1.50;
+  if (_ko <= 850)  return 1.60;
+  if (_ko <= 950)  return 1.70;
+  if (_ko <= 1050) return 1.80;
+  if (_ko <= 1150) return 1.90;
+  return 2.00;
+}
+
+// ── Zeny KO Multiplier ──
+// Reduces per-KO Zeny reward after 250 lifetime KO.
+// Applied at EARN TIME (normalKO, bossKO) — NOT at end-run.
+// This means totalRunZeny is NEVER reduced retroactively.
+// Applies ONLY to: per-KO reward at the moment it is earned.
+// Does NOT affect: AK47 bomb coins, card bonuses, OCA, items, totalRunZeny pot.
+// Formula: rewardThisKO = baseKoReward * getZenyKoMultiplier(totalKO)
+function getZenyKoMultiplier(koCount) {
+  const _ko = koCount || 0;
+  if (_ko <= 250)  return 1.00;
+  if (_ko <= 350)  return 0.90;
+  if (_ko <= 450)  return 0.82;
+  if (_ko <= 550)  return 0.74;
+  if (_ko <= 650)  return 0.66;
+  if (_ko <= 750)  return 0.58;
+  if (_ko <= 850)  return 0.50;
+  if (_ko <= 950)  return 0.43;
+  if (_ko <= 1050) return 0.36;
+  if (_ko <= 1150) return 0.30;
+  return 0.25;
+}
+
+// rollOcaDrop(mult) — roll against each tier's base chance scaled by mult (default 1.0).
+// Returns tier string or null. One roll, no duplicate checks.
+function rollOcaDrop(mult) {
+  const _m = mult || 1;
   const r = Math.random();
-  if (r < 0.0001) return 'elite';
-  if (r < 0.001) return 'premium';
-  if (r < 0.05) return 'standard';
+  if (r < Math.min(0.0001 * _m, 1)) return 'elite';
+  if (r < Math.min(0.001  * _m, 1)) return 'premium';
+  if (r < Math.min(0.05   * _m, 1)) return 'standard';
   return null;
 }
 
 function tryOcaBombDrop(x, y) {
   if (_ocaDropCount >= 10) return;
-  const tier = rollOcaDrop();
+  const tier = rollOcaDrop(getOcaKoMultiplier());
+  if (!tier) return;
+  _ocaDropCount++;
+  if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
+  save.ocaTickets[tier] = (save.ocaTickets[tier] || 0) + 1;
+  doSave();
+  showOcaDropFX(x, y, tier);
+  showOcaDropToast(tier);
+}
+
+// tryOcaSkillDrop(x, y) — used by BREAK success ONLY.
+// NOT called from individual weak point pickup (that was Bug 2).
+// Single WP collect = no OCA roll. AK47 complete uses rollOcaFromAk47Complete() instead.
+function tryOcaSkillDrop(x, y) {
+  if (_ocaDropCount >= 10) return;
+  const tier = rollOcaDrop(getOcaKoMultiplier());
   if (!tier) return;
   _ocaDropCount++;
   if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
