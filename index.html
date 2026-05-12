@@ -4928,6 +4928,10 @@ function triggerBombExplosion() {
 
   updateUI();
 
+  // FREEONI: AK47 complete → OD timer +2s (if OD active)
+  if(window._csState && window._csState.cs_freeoni && godLevel > 0) {
+    godSecondsLeft += 2;
+  }
   // HYDRA: gain head on every AK47 complete (max 3)
   if(window._csState && window._csState.cs_hydra) {
     window._csState._hydraHeads = Math.min(3, (window._csState._hydraHeads || 0) + 1);
@@ -5151,7 +5155,7 @@ const CARD_POOL = [
   { id:'dg',name:'DOPPELGANGER CARD', img:'cards/doppelganger.png',rarity:'elite',
     effect:'ทุก Hit ที่สำเร็จ: เรียก <strong>SHADOW STRIKE</strong> หลัง 0.08 วิ (DMG 45%, Crit +20%)', tradeoff:null,
     shortDescription:'ทุก Hit เรียก SHADOW STRIKE หลัง 0.08 วิ\nแรง 45% + โอกาสคริ +20%',
-    fullDescription:'[SHADOW STRIKE]\nทุกการโจมตีติดเงาตาม 0.08 วิ\n\n• ดาเมจ 45% ของต้นทาง\n• Crit rate +20%\n• ถ้าต้นทางเป็น Crit: เงา Crit +15%',
+    fullDescription:'[SHADOW STRIKE]\nทุกการโจมตีติดเงาตาม 0.08 วิ\n\n• ดาเมจ 45% ของต้นทาง\n• Crit rate +20%\n• ถ้าต้นทางเป็น Crit: เงา DMG เพิ่มเป็น 60%',
     balanceNote:'REWORK - นักลอบสังหารเงาตามจังหวะ เน้น burst เสริมแบบคุมเพดาน ปลอดภัยจาก recursive hit',
     apply(s){ s.cs_doppelShadow = true; }
   },
@@ -5416,8 +5420,8 @@ const CARD_POOL = [
   },
   { id:'mf', name:'MOONLIGHT FEVER CARD', img:'cards/moonlight_fever.png', rarity:'elite',
     effect:'DMG ×2 | Zeny ×2 | OD ×2 | AK47 3 ลูก & spawn ×2 | BREAK window <strong>+0.5 วิ</strong> | KO: score <strong>+500</strong>', tradeoff:'เวลาเหลือ <strong>ครึ่งเดียว</strong>',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'DMG ×2 • Zeny ×2 • OD ×2 • AK47 3ลูก • spawn ×2\nBREAK +0.5 วิ • KO score +500 | เวลาเหลือครึ่งเดียว',
+    fullDescription:'[PASSIVE]\n• DMG ×2\n• Zeny ×2\n• OD charge ×2\n• AK47 3 ลูก + spawn ×2\n• BREAK window +0.5 วิ\n• KO: Score +500\n\n[TRADEOFF]\nเวลาเริ่มต้นลดเหลือครึ่งเดียว',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_moonlightflower = true; s.cs_breakDuration = (s.cs_breakDuration||0) + 0.5; }
   },
@@ -5542,14 +5546,14 @@ const CARD_POOL = [
   { id:'wh',    name:'WHIZPER CARD',       img:'cards/whizper.png',     rarity:'elite',
     effect:'BREAK สำเร็จ: เปิด <strong>GHOST PROTOCOL</strong> 4 วิ (CD 10 วิ)', tradeoff:null,
     shortDescription:'BREAK สำเร็จเปิด GHOST PROTOCOL 4วิ (CD 10วิ)\nพักคอมโบ 1.2วิ + BREAK window +0.15วิ + OD +6%',
-    fullDescription:'[GHOST PROTOCOL]\nหลัง BREAK สำเร็จ (CD 10 วิ)\nเปิด 4 วิ\n\n• หยุด Combo decay 1.2 วิ\n• BREAK window +0.15 วิ\n• OD +6%',
+    fullDescription:'[GHOST PROTOCOL]\nหลัง BREAK สำเร็จ (CD 10 วิ)\nเปิด 4 วิ\n\n• หยุด Combo decay 1.2 วิ\n• BREAK window +0.15 วิ\n• OD +6%\n\n[PASSIVE]\n• AK47 spawn +35% เร็วขึ้น',
     balanceNote:'REWORK - สายคุมจังหวะหลัง BREAK แบบชั่วคราว ไม่ยืดเวลา ไม่ลูป BREAK/OD และยังมีความเสี่ยงจากจุดซ้ำ',
     apply(s){ s.cs_whisper = true; s.cs_whizperGhostProtocol = true; s.cs_ak47DuplicateChance = (s.cs_ak47DuplicateChance||0) + 0.35; }
   },
   { id:'gl',name:'GOBLIN WEEBER CARD',img:'cards/goblin_weeber.png',rarity:'elite',
-    effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥50: คลิกซ้ำฟรี <strong>20%</strong><br>Combo ≥75: <strong>WEEB FOCUS</strong> 5s<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
+    effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥35: คลิกซ้ำฟรี <strong>20%</strong><br>Combo ≥75: <strong>WEEB FOCUS</strong> 5s<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
     shortDescription:'ทุกคลิก Combo +2 ยิ่งคอมโบสูง ยิ่งแรง\nถึง 75 ปลด WEEB FOCUS',
-    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +2\n\nCombo ≥25: DMG +20%\nCombo ≥50: คลิกซ้ำฟรี 20%\n\n[WEEB FOCUS]\nCombo ≥75 เปิด 5 วิ\n• Combo ไม่ลด\n• OD gain +35%\n• Crit +20%',
+    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +2\n\nCombo ≥25: DMG +20%\nCombo ≥35: คลิกซ้ำฟรี 20%\n\n[WEEB FOCUS]\nCombo ≥75 เปิด 5 วิ\n• Combo ไม่ลด\n• OD gain +35%\n• Crit +20%',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_goblinLeader = true; }
   },
@@ -5581,7 +5585,7 @@ const CARD_POOL = [
     shortDescription:'AK47 DMG ×4 — เก็บ AK47/BREAK: Combo lock 5 วิ',
     fullDescription:'[PASSIVE]\nAK47 DMG ×4\n\n[AK47 ครบ หรือ BREAK สำเร็จ]\n• Combo lock 5 วิ (Combo ไม่ลด)\n• BREAK gauge +20%',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_ktullanux = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.20; }
+    apply(s){ s.cs_ktullanux = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.20; s.cs_enemyHpReduce = (s.cs_enemyHpReduce||0) - 0.50; }
   },
   { id:'bz',  name:'BEELZEBRUH CARD',     img:'cards/beelzebruh.png',   rarity:'mythic',
     effect:'คลิก: Corruption <strong>+0.5%</strong> (สูงสุด 50%) | >20%: BREAK <strong>+bonus</strong>/tap | Max & BREAK: Zeny <strong>×1.5</strong> 5 วิ', tradeoff:'HP ศัตรู เริ่มต้น <strong>×2</strong>',
@@ -6568,9 +6572,14 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_minorous) {
     const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
     if(ratio > 0.70) d *= 1.40;
+    // Rage Stack bonus: +4% per stack (gained at HP > 50%)
+    if(cs._minorageRageStacks) d *= (1 + cs._minorageRageStacks * 0.04);
   }
   // Executioner: +50% when HP < 25%
   if(cs._executionModeEndTime && performance.now() < cs._executionModeEndTime) d *= 1.60;
+  // EXECUSIONER: additional BREAK DMG +35% during Execution Mode
+  if(cs.cs_executioner && cs._executionModeEndTime && performance.now() < cs._executionModeEndTime
+     && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.35;
   // Beelzebub: accumulated corruption dmg bonus
   if(cs.cs_beelzebub && cs._beelzebubBonus) d *= (1 + cs._beelzebubBonus);
   // Beelzebub: coin-burst window (applied in coin mod)
@@ -6583,7 +6592,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   // Amon Ra: combo >= 40 dmg +40%
   if(cs._amogBuffEndTime && performance.now() < cs._amogBuffEndTime) d *= 1.35;
   // Goblin Leader: combo >= 30 dmg +20%
-  if(cs.cs_goblinLeader && combo >= 30) d *= 1.20;
+  if(cs.cs_goblinLeader && combo >= 25) d *= 1.20;
   if(cs.cs_freeoni && cs._freeoniOdDmgStack) d *= (1 + cs._freeoniOdDmgStack);
   if(cs.cs_drakeIgnoreThreshold && cs._drakeDmgEndTime && performance.now() < cs._drakeDmgEndTime) d *= (1 + (cs._drakeDmgBonus || 0));
   if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 1.30;
@@ -6609,6 +6618,8 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_gloomUnderSide && cs._gloomStacks) d *= (1 + cs._gloomStacks * 0.03);
   // SALVAGE: during BREAK → dmg +15% additional
   if(cs.cs_salvageBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.15;
+  // HYDRA: BREAK DMG +10% per Head (max 3 heads = +30%)
+  if(cs.cs_hydra && cs._hydraHeads && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= (1 + cs._hydraHeads * 0.10);
   // STONK: during BREAK → dmg +20% additional
   if(cs.cs_stonkBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.20;
   // GENERAL GRIEVOUS: during BREAK → dmg +22% additional
@@ -6735,6 +6746,10 @@ function csOnClick(isGod) {
       }
     }
     cs._minorageLastRatio = ratio;
+    // HP > 50%: 20% chance per click to gain Rage Stack (+4% DMG each, max 5)
+    if(ratio > 0.50 && Math.random() < 0.20) {
+      cs._minorageRageStacks = Math.min(5, (cs._minorageRageStacks || 0) + 1);
+    }
   }
   // MARVELC: low-time dmg bonus (<15s)
   if(cs.cs_marvelcLowTime) cs._marvelcLowTimeActive = timeLeft < 15;
@@ -6791,7 +6806,7 @@ function csOnClick(isGod) {
     if(cs._comboTimeBonusAcc < 3) {
       const gain = Math.min(0.3, 3 - cs._comboTimeBonusAcc);
       cs._comboTimeBonusAcc += gain;
-      timeLeft += gain;
+      if(!_lodDebtFinalHourLock) timeLeft += gain;
     }
   }
   // Jakk: crit bonus during OD — tracked via cs_jakkCrit flag, applied in processHit
@@ -6807,6 +6822,15 @@ function csOnClick(isGod) {
       cs._stormChargeClicks = 0;
       cs._stormyOdTimeGain = Math.min(3, (cs._stormyOdTimeGain || 0) + 1);
       godSecondsLeft += 1;
+      // Lightning Burst: instant damage burst (0.8x equivalent of a combo x2 hit)
+      const _lbDmg = isBoss
+        ? Math.round(bossMaxHP * 0.018 * (1 + (_sc.desoBns || 0)))
+        : Math.round(maxHP * 0.04);
+      setTimeout(() => {
+        if(!gameRunning || gamePaused) return;
+        applyBossDamage(_lbDmg, 'storm-lightning');
+        showBigSplash('LIGHTNING BURST', '+1s OD • STORM STRIKE', '#aaeeff', false);
+      }, 0);
     }
   }
   // Zenorc: OD usage stacks handled in csOnOdStart; BREAK adds flat +8%
@@ -6835,7 +6859,7 @@ function csOnKO() {
   const cs = window._csState;
   if(cs.cs_koTimeBonus) {
     _csKoTimeAcc += 0.05;
-    if(_csKoTimeAcc <= 5) timeLeft += 0.05;
+    if(_csKoTimeAcc <= 5 && !_lodDebtFinalHourLock) timeLeft += 0.05;
   }
   // DORK LORD: +0.08s per KO + score +80
     // Turtle General: score +300 per KO when combo >= 30
@@ -6915,10 +6939,10 @@ function csOnBreakStart() {
   }
   // GHOSTPING: reset miss count for this BREAK cycle
   if(cs.cs_ghostping) cs._ghostpingMissCount = 0;
-  // FALLEN WECHAT Overloaded BREAK: extend window by 0.75s
+  // FALLEN WECHAT Overloaded BREAK: extend window by 0.6s (matches description)
   if(cs.cs_fallenWechat && cs._fallenWechatBreakActive) {
-    PRESSURE.breakDuration += 750;
-    PRESSURE.breakEndsAt += 750;
+    PRESSURE.breakDuration += 600;
+    PRESSURE.breakEndsAt += 600;
   }
   // KILL-D01: convert Drive Tokens into temporary breakPower boost
   if(cs.cs_killD01 && cs._driveTokens > 0) {
@@ -6977,13 +7001,13 @@ function csOnBreakSuccess() {
   if(cs.cs_darkStakeLord) {
     if(!cs._jackpotChance) cs._jackpotChance = 0.15;
     if(Math.random() < cs._jackpotChance) {
-      // Jackpot: Zeny x2.5 now, and the existing BREAK OCA roll gets x10 chance.
+      // Jackpot: Zeny ×2.5 (roundCoins becomes 2.5× its current value)
       const before = Math.max(0, roundCoins);
-      const bonus = Math.max(30, Math.round(before * 1.5));
+      const bonus = Math.max(30, Math.round(before * 1.5)); // adds 1.5× so total = 2.5× original
       roundCoins += bonus;
       spawnCoinPopup(bonus);
       cs._darkStakeOcaBoostNextBreak = true;
-      showBigSplash('JACKPOT!', '+ ' + bonus + ' ZENY — OCA x10 (' + Math.round(cs._jackpotChance * 100) + '%)', '#ffcc00', false);
+      showBigSplash('JACKPOT!', '×2.5 ZENY — OCA ×10 (' + Math.round(cs._jackpotChance * 100) + '%)', '#ffcc00', false);
       cs._jackpotChance = 0.15; // reset odds
     } else {
       // No jackpot: increase odds for next time (max 75%)
@@ -7022,7 +7046,12 @@ function csOnBreakSuccess() {
     cs._weebvilBreakBurstEndTime = performance.now() + 5000;
     cs._weebvilOdGainEndTime = performance.now() + 4000;
   }
-  if(cs.cs_freeoni) cs._freeModeEndTime = performance.now() + 5000;
+  if(cs.cs_freeoni) {
+    cs._freeModeEndTime = performance.now() + 5000;
+    // FREEONI: BREAK → Rage (Combo) -12
+    combo = Math.max(1, combo - 12);
+    if(typeof updateComboUI === 'function') updateComboUI();
+  }
   // ATROSUS: Resonance window (6s base, 10s with Mastery); track count toward Mastery
   if(cs.cs_atrosusBreak) {
     const resDur = cs._atrosusResonanceMastery ? 10000 : 6000;
@@ -7129,6 +7158,8 @@ function csOnBreakSuccess() {
     _lodUpdateStackUI();
     showBigSplash('DEBT CLEARED', 'STACKS RESET', '#cc88ff', false);
   }
+  // VALKYRIZZ: BREAK success triggers Elite card swap (same as AK47 complete)
+  if(cs.cs_valkyrieRandgris) _csValkyrieRandgrisSwap();
 }
 
 function csOnWpMiss() {
@@ -7195,6 +7226,12 @@ function csOnOdStart() {
   // LADY TRAINEE: +2% dmg stack per OD Level Up (max +30%)
   if(cs.cs_ladyTrainee && (cs._ladyTraineeDmg || 0) < 0.60) {
     cs._ladyTraineeDmg = Math.min(0.60, (cs._ladyTraineeDmg || 0) + 0.04);
+    // Track discrete stacks (max 15 total, Spotlight at 10)
+    cs._ladyTraineeStacks = (cs._ladyTraineeStacks || 0) + 1;
+    if(cs._ladyTraineeStacks >= 10 && !cs._ladyTraineeSpotlight) {
+      cs._ladyTraineeSpotlight = true;
+      showBigSplash('SPOTLIGHT MODE', 'OD CHARGE +10%/CLICK', '#ff88ff', false);
+    }
   }
 }
 
@@ -7260,6 +7297,10 @@ function csOnWpHit(x, y) {
   }
   // SOLDIER SKELLYTON: WP hit → crit chance +10% for 5s
   if(cs.cs_skellytonWp) cs._skellytonCritEndTime = performance.now() + 5000;
+  // THANABROS: AK47 WP hit during Thanatos Phase → OD timer +1s
+  if(cs.cs_thanatos && cs._thanatosPhaseEndTime && performance.now() < cs._thanatosPhaseEndTime && godLevel > 0) {
+    godSecondsLeft += 1;
+  }
   // NOTE: No OCA roll here — single weak point pickup must NOT trigger OCA.
   // OCA rolls only on: AK47 complete (all 5 WPs → onAk47Complete) and BREAK success.
 }
@@ -7760,7 +7801,7 @@ function startGame() {
         maxHP = Math.round(maxHP * (1 - window._csState.cs_enemyHpReduce));
         hp = maxHP; updateUI();
       }
-      if(window._csState.cs_ktullanux) { maxHP = Math.round(maxHP * 1.5); hp = maxHP; updateUI(); }
+      // cs_ktullanux HP *1.5 handled via cs_enemyHpReduce = -0.50 in apply()
       if(window._csState.cs_beelzebub) { maxHP = Math.round(maxHP * 2); hp = maxHP; updateUI(); }
     }
     startCountdown(()=>{
@@ -7801,7 +7842,7 @@ function retryGame() {
         maxHP = Math.round(maxHP * (1 - window._csState.cs_enemyHpReduce));
         hp = maxHP; updateUI();
       }
-      if(window._csState.cs_ktullanux) { maxHP = Math.round(maxHP * 1.5); hp = maxHP; updateUI(); }
+      // cs_ktullanux HP *1.5 handled via cs_enemyHpReduce = -0.50 in apply()
       if(window._csState.cs_beelzebub) { maxHP = Math.round(maxHP * 2); hp = maxHP; updateUI(); }
     }
     startCountdown(()=>{
@@ -8498,7 +8539,9 @@ function pressureHitTarget(x, y) {
   // FALLEN WECHAT: Overloaded BREAK adds +25% progress per tap.
   if(window._csState && window._csState.cs_fallenWechat && window._csState._fallenWechatBreakActive) PRESSURE.targetHits += 0.25;
   // GLOOM UNDER SIDE: stack-based BREAK progress (+4% per stack).
-  if(window._csState && window._csState.cs_gloomUnderSide && window._csState._gloomStacks) PRESSURE.targetHits += window._csState._gloomStacks * 0.04;
+  if(window._csState && window._csState.cs_gloomUnderSide && window._csState._gloomStacks) PRESSURE.targetHits += window._csState._gloomStacks * 0.03;
+  // GHOSTPING: during BREAK → BREAK gauge +15% per tap
+  if(window._csState && window._csState.cs_ghostping) PRESSURE.targetHits += 0.15;
   // cs_breakPower: extra BREAK progress per tap (HYDRA +0.15, CATULLANUX +0.20, stacks)
   const _bpBonus = (window._csState && window._csState.cs_breakPower) || 0;
   if(_bpBonus > 0) PRESSURE.targetHits += _bpBonus;
@@ -8512,10 +8555,6 @@ function pressureHitTarget(x, y) {
   // IFRIED: Inferno Stacks above 5 add extra BREAK progress per tap (+2% per stack above 5)
   if(window._csState && window._csState.cs_ifriedBreak && (window._csState._ifriedStacks || 0) > 5) {
     PRESSURE.targetHits += (window._csState._ifriedStacks - 5) * 0.02;
-  }
-  // GLOOM UNDER SIDE: run-scaling BREAK progress bonus (+1.5% per stack, max +30%)
-  if(window._csState && window._csState.cs_gloomUnderSide && window._csState._gloomStacks) {
-    PRESSURE.targetHits += window._csState._gloomStacks * 0.015;
   }
   // BEELZEBRUH: corruption above 20% adds bonus BREAK progress per tap
   if(window._csState && window._csState.cs_beelzebub && (window._csState._beelzebubBonus || 0) > 0.20) {
@@ -9179,6 +9218,20 @@ function processHit(e, now) {
   );
   if(isWpHit || gap < _comboWindow) combo = Math.min(combo + _comboInc, 47);
   else if(!_suppressReset) combo = 1;
+  // GOBLIN WEEBER: Combo >= 35 → 20% chance free click (with re-entrancy guard)
+  if(window._csState && window._csState.cs_goblinLeader && combo >= 35
+     && !window._csState._goblinFreeClickPending && Math.random() < 0.20) {
+    window._csState._goblinFreeClickPending = true;
+    const _fakeEvt = { clientX: rawX, clientY: rawY };
+    setTimeout(() => {
+      if(gameRunning && !gamePaused && window._csState) {
+        window._csState._goblinFreeClickPending = false;
+        processHit(_fakeEvt, performance.now());
+      } else if(window._csState) {
+        window._csState._goblinFreeClickPending = false;
+      }
+    }, 16);
+  }
   // Golden Bug: extra +1 combo per click (on top of normal increment)
   if(window._csState && window._csState.cs_goldenbug && (isWpHit || gap < _comboWindow)) {
     combo = Math.min(combo + 1, 47);
@@ -9236,7 +9289,7 @@ function processHit(e, now) {
     _el.godFill.style.width = Math.max(0, cur - penalty) + '%';
   }
   // LADY TRAINEE: Spotlight Mode at 10 stacks → +10% OD charge per click
-  if(window._csState && window._csState.cs_ladyTrainee && (window._csState._ladyTraineeDmg || 0) >= 0.40
+  if(window._csState && window._csState.cs_ladyTrainee && window._csState._ladyTraineeSpotlight
      && godLevel === 0 && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     const cur = parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width = Math.min(100, cur + 10) + '%';
@@ -9315,6 +9368,8 @@ function processHit(e, now) {
     // DETAILED: Critical Analysis — +20% crit chance for 8s
     if(window._csState.cs_detailed && window._csState._analysisCritEndTime && performance.now() < window._csState._analysisCritEndTime) _critChance += 0.25;
     if(window._csState._amogCritEndTime && performance.now() < window._csState._amogCritEndTime) _critChance += 0.20;
+    // TAO FUNKA: FUNK FEVER — Crit +20%
+    if(window._csState.cs_taoFunka && window._csState._taoFunkFeverEndTime && performance.now() < window._csState._taoFunkFeverEndTime) _critChance += 0.20;
     // LORD OF DEBT: EXECUTION — crit +25% when boss HP <15%
     if(window._csState.cs_lordofdeath && window._csState._lod_execLowHp && isBoss && bossHP < bossMaxHP * 0.15) _critChance += 0.25;
     // LORD OF DEBT: FINAL HOUR — crit +30%
@@ -9406,11 +9461,8 @@ function processHit(e, now) {
     let wpMult = 2;
     if(window._csState && window._csState.cs_hydra) wpMult *= (1 + Math.min(3, window._csState._hydraHeads || 0) * 0.20);
     if(window._csState && window._csState.cs_ktullanux) wpMult = 4;
-    // THANATOS: WP dmg x2.5 + during Thanatos Phase AK47 hit = OD timer +1s
+    // THANATOS: WP dmg x2.5 (OD +1s during Thanatos Phase handled in csOnWpHit)
     const thanatosMult = (window._csState && window._csState.cs_thanatos) ? 2.5 : 1;
-    if(window._csState && window._csState.cs_thanatos && window._csState._thanatosPhaseEndTime && performance.now() < window._csState._thanatosPhaseEndTime && godLevel > 0) {
-      godSecondsLeft += 1;
-    }
     const wpDmg = _sanitizeDamage(onWeakPointHit(pos.x, pos.y, baseDmg*multi, wpMult * thanatosMult), 'weakPoint');
     applyDamage(wpDmg, e, false);
     score += 20;
