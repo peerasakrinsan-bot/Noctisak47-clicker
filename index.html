@@ -618,7 +618,7 @@
   .cs-card-effect {
     font-family:'Sarabun',sans-serif;
     font-size:clamp(8px,2vw,10px);
-    color:#aaa; text-align:center; line-height:1.25;
+    color:#d8d8d8; text-align:center; line-height:1.25;
     margin-top:clamp(3px,1vw,5px);
     display:-webkit-box;
     -webkit-line-clamp:2;
@@ -629,13 +629,13 @@
     max-height:2.5em;
     flex-shrink:0;
   }
-  .cs-card-effect strong { color:#bbb; }
+  .cs-card-effect strong { color:#fff; }
 
   /* trade-off line */
   .cs-card-tradeoff {
     font-family:'Sarabun',sans-serif;
     font-size:clamp(7px,1.8vw,9px);
-    color:#ff5555; text-align:center; line-height:1.3;
+    color:#ff6b6b; text-align:center; line-height:1.3;
     margin-top:clamp(3px,0.8vw,5px);
     border-top:1px solid #1e1e1e;
     padding-top:clamp(3px,0.8vw,5px); flex-shrink:0;
@@ -825,9 +825,9 @@
   #cardModalTier.tier-premium  { color:#0088ff; }
   #cardModalTier.tier-elite    { color:#ffcc00; }
   #cardModalTier.tier-mythic   { color:#ff2233; }
-  #cardModalEffect { font-family:'Sarabun',sans-serif; font-size:12px; color:#aaa; text-align:center; line-height:1.75; }
-  #cardModalTradeoff { font-family:'Sarabun',sans-serif; font-size:11px; color:#ff5555; text-align:center; margin-top:6px; }
-  .card-modal-section-header { color:#ffcc00; font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:2px; display:inline-block; margin-top:4px; }
+  #cardModalEffect { font-family:'Sarabun',sans-serif; font-size:12px; color:#d8d8d8; text-align:center; line-height:1.75; }
+  #cardModalTradeoff { font-family:'Sarabun',sans-serif; font-size:11px; color:#ff6b6b; text-align:center; margin-top:6px; }
+  .card-modal-section-header { color:#8FA8C7; font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:2px; display:inline-block; margin-top:4px; text-shadow:none; }
 
   @keyframes mythicModalAura {
     0%, 100% {
@@ -1394,6 +1394,68 @@
     opacity:0; transition:opacity 0.3s;
   }
   #lodCardChange.show { opacity:1; }
+
+  /* ══ LORD OF DEBT — DEBT STATE UI ══ */
+  #debtStatePopup {
+    position:absolute;
+    top: 18%;
+    left: 50%; transform: translateX(-50%);
+    z-index: 50;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  #debtStatePopup.show { opacity: 1; animation: debtPopupAnim 1.4s ease forwards; }
+  @keyframes debtPopupAnim {
+    0%   { opacity:0; transform:translateX(-50%) scale(0.85); }
+    15%  { opacity:1; transform:translateX(-50%) scale(1.05); }
+    30%  { transform:translateX(-50%) scale(1); }
+    70%  { opacity:1; }
+    100% { opacity:0; transform:translateX(-50%) scale(1); }
+  }
+  #debtStateLabel {
+    font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:3px;
+    color:#cc88ff; margin-bottom:2px;
+  }
+  #debtStateName {
+    font-family:'Oswald',sans-serif; font-size:20px; letter-spacing:4px;
+    color:#ff2233;
+    text-shadow: 0 0 16px rgba(255,34,51,0.9), 0 0 32px rgba(255,34,51,0.5);
+  }
+  /* debt stack counter — bottom-left near LOD card */
+  #debtStackCounter {
+    position:absolute;
+    left: clamp(18px,5vw,30px);
+    bottom: 148px;
+    z-index:11; pointer-events:none;
+    display:none;
+    font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:2px;
+    color:#cc88ff; text-align:center;
+  }
+  /* active debt badge on LOD card */
+  #debtActiveBadge {
+    font-family:'Oswald',sans-serif; font-size:7px; letter-spacing:1px;
+    color:#ff2233; margin-top:2px; text-align:center;
+    opacity:0; transition:opacity 0.3s;
+    max-width: clamp(52px,14vw,72px);
+    overflow:hidden; white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+  #debtActiveBadge.visible { opacity:1; }
+  /* screen aura flash when debt activates */
+  #debtAuraFlash {
+    position:absolute; inset:0; z-index:8;
+    pointer-events:none;
+    background: radial-gradient(ellipse at center, rgba(180,0,255,0.18) 0%, transparent 70%);
+    opacity:0; transition:opacity 0.15s;
+  }
+  #debtAuraFlash.flash { animation: debtAuraFlashAnim 0.6s ease forwards; }
+  @keyframes debtAuraFlashAnim {
+    0%   { opacity:0; }
+    20%  { opacity:1; }
+    100% { opacity:0; }
+  }
   #multiBadge {
     position:absolute; right:14px; bottom:90px;
     z-index:10; text-align:right; pointer-events:none;
@@ -2181,8 +2243,8 @@
   #pauseCardTier.tier-premium  { color:#0088ff; }
   #pauseCardTier.tier-elite    { color:#ffcc00; }
   #pauseCardTier.tier-mythic   { color:#ff2233; }
-  #pauseCardEffect { font-family:'Sarabun',sans-serif; font-size:10px; color:#888; line-height:1.4; }
-  #pauseCardTradeoff { font-family:'Sarabun',sans-serif; font-size:9px; color:#ff5555; }
+  #pauseCardEffect { font-family:'Sarabun',sans-serif; font-size:10px; color:#d8d8d8; line-height:1.4; }
+  #pauseCardTradeoff { font-family:'Sarabun',sans-serif; font-size:9px; color:#ff6b6b; }
   .pause-btn-group { display:flex; flex-direction:column; gap:12px; align-items:center; width:min(280px,84vw); }
   .pause-btn {
     width:100%; padding:15px 0;
@@ -2891,7 +2953,14 @@
 <div id="lodCardDisplay">
   <img id="lodCardImg" src="" alt="" decoding="async">
   <div id="lodCardChange">CHANGED!</div>
+  <div id="debtActiveBadge"></div>
 </div>
+<div id="debtStackCounter"></div>
+<div id="debtStatePopup">
+  <div id="debtStateLabel">DEBT ACQUIRED</div>
+  <div id="debtStateName"></div>
+</div>
+<div id="debtAuraFlash"></div>
 <div id="multiBadge">
   <div id="multiNum">x1</div>
   <div id="multiLabel">CHAOS MULTI</div>
@@ -4517,6 +4586,8 @@ function scheduleWeakPoint() {
   // HYDRA: burst window speeds AK47 spawn
   if(window._csState && window._csState.cs_hydra && window._csState._hydraBurstEndTime && performance.now() < window._csState._hydraBurstEndTime) delay *= 0.80;
   if(window._csState && window._csState.cs_incantation && window._csState._incantationContractEndTime && performance.now() < window._csState._incantationContractEndTime) delay *= 0.75;
+  // LORD OF DEBT: ANALYZED state — AK47 spawn +35%
+  if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_akSpawnFast) delay *= (1 - window._csState._lod_akSpawnFast);
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -4564,7 +4635,16 @@ function showWeakPoint() {
 
   // visible 1.0–1.4s (avg 1.2s) — กดทันถ้าตั้งใจ แต่ไม่มีเวลาลังเล
   const _wpDurationBonus = (window._csState && window._csState.cs_wpDuration) ? window._csState.cs_wpDuration * 1000 : 0;
-  const ttl = 1000 + Math.random()*400 + _wpDurationBonus;
+  // LORD OF DEBT: HUNTER state — AK47 visible time +40%
+  const _lodHunterDurBonus = (window._csState && window._csState.cs_lordofdeath && window._csState._lod_wpDurationBonus)
+    ? (1000 + Math.random()*400) * window._csState._lod_wpDurationBonus : 0;
+  const ttl = 1000 + Math.random()*400 + _wpDurationBonus + _lodHunterDurBonus;
+  // LORD OF DEBT: HUNTER state — AK47 size +20%
+  if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_wpSizeBonus) {
+    wp.style.transform = `scale(${1 + window._csState._lod_wpSizeBonus})`;
+  } else {
+    wp.style.transform = '';
+  }
   wpTimeout = setTimeout(hideWeakPoint, ttl);
 }
 
@@ -4718,6 +4798,12 @@ function triggerBombExplosion() {
   const totalBombCoins = bombCoins + Math.round(wpBonus * (1.25 + (_sc.coinMult||0)));
 
   roundCoins += totalBombCoins;
+  // LORD OF DEBT: HUNTER state — AK47 reward +25%
+  if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_wpRewardBonus) {
+    const _hunterBonus = Math.round(totalBombCoins * window._csState._lod_wpRewardBonus);
+    roundCoins += _hunterBonus;
+    spawnCoinPopup(_hunterBonus);
+  }
   score += 500 * currentRound;
   spawnCoinPopup(totalBombCoins);
 
@@ -4970,23 +5056,21 @@ const CARD_POOL = [
   { id:'dg',name:'DOPPELGANGER CARD', img:'cards/doppelganger.png',rarity:'elite',
     effect:'ทุก Hit ที่สำเร็จ: เรียก <strong>SHADOW STRIKE</strong> หลัง 0.08 วิ (DMG 45%, Crit +20%)', tradeoff:null,
     shortDescription:'ทุก Hit เรียก SHADOW STRIKE หลัง 0.08 วิ\nแรง 45% + โอกาสคริ +20%',
-    fullDescription:'[SHADOW STRIKE]\nทุกการโจมตีติดเงาตาม 0.08 วิ\n\n• ดาเมจ 45% ของต้นทาง\n• Crit rate +20%\n• ถ้าต้นทางเป็น Crit:\nเงา Crit เพิ่มอีก +15%\n\n[Safety]\nเงา:\n• ไม่สร้าง Combo\n• ไม่นับ AK47/BREAK\n• ไม่เพิ่ม OD\n• ไม่สร้างเงาซ้ำ',
+    fullDescription:'[SHADOW STRIKE]\nทุกการโจมตีติดเงาตาม 0.08 วิ\n\n• ดาเมจ 45% ของต้นทาง\n• Crit rate +20%\n• ถ้าต้นทางเป็น Crit: เงา Crit +15%',
     balanceNote:'REWORK - นักลอบสังหารเงาตามจังหวะ เน้น burst เสริมแบบคุมเพดาน ปลอดภัยจาก recursive hit',
     apply(s){ s.cs_doppelShadow = true; }
   },
   { id:'hy',      name:'HYDRA CARD',         img:'cards/hydra.png',       rarity:'elite',
     effect:'AK47 ครบชุด: ได้ 1 Hydra Head (สูงสุด 3)<br>ต่อ Head: BREAK DMG <strong>+10%</strong> และ AK47 DMG <strong>+20%</strong><br>ที่ 3 Head: BREAK ถัดไปจะระเบิด <strong>Hydra Burst</strong>', tradeoff:'Hydra Burst: หัวถูกใช้ทั้งหมด, AK47 spawn +20% 4 วิ แต่มีโอกาสเกิดจุดซ้ำ +20%',
     shortDescription:'สะสม Hydra Head จาก AK47\nเต็ม 3 หัวแล้วกด BREAK ระเบิดหนัก',
-    fullDescription:'[Hydra Head] ได้จากการเก็บ AK47 ครบชุดครั้งละ 1 หัว (สูงสุด 3)\n• ต่อ 1 หัว: BREAK DMG +10%, AK47 DMG +20%\n[Hydra Burst] เมื่อมี 3 หัว BREAK ครั้งถัดไปจะกินหัวทั้งหมด เพื่อระเบิดแรง + โบนัสคะแนน + AK47 spawn เร็วขึ้น 4 วิ\n[Trade-off] ระหว่าง Burst มีโอกาสเกิด AK47 จุดซ้ำ +20%',
+    fullDescription:'[HYDRA HEAD]\nเก็บ AK47 ครบชุด → +1 หัว (สูงสุด 3)\n\nต่อหัว:\n• BREAK DMG +10%\n• AK47 DMG +20%\n\n[HYDRA BURST]\nเมื่อมี 3 หัว\nBREAK ครั้งถัดไปจะกินหัวทั้งหมด\nระเบิดแรง + Score + AK47 spawn เร็วขึ้น 4 วิ\n\nTRADE-OFF:\nระหว่าง Burst โอกาสเกิด AK47 ซ้ำ +20%',
     balanceNote:'REWORK - สายสะสมหัวแล้วปล่อยจังหวะเดียวแรงมาก มีหน้าต่างเร่งสปีดและความเสี่ยงจุดซ้ำ',
     apply(s){ s.cs_hydra = true; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
     effect:'AK47 Complete:<br>OD <strong>+35%</strong> + OD time <strong>+2s</strong> + Speed burst<br><br>OD: AK47 hit = DMG Stack <strong>+4%</strong> (max <strong>+40%</strong>)<br><br>BREAK: Rage <strong>-12</strong> + <strong>FREE MODE</strong> 5s<br>FREE MODE: Combo ไม่ลด + OD gain <strong>+50%</strong>', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_freeoni = true; s.cs_overloadReduce = (s.cs_overloadReduce||0) + 12; }
+    shortDescription:'AK47 ครบ: OD +35% + ยืดเวลา\nระหว่าง OD ตี AK47 สะสม DMG Stack',
+    fullDescription:'[AK47 COMPLETE]\n• OD +35%\n• OD time +2 วิ\n• Speed burst ชั่วคราว\n\n[ระหว่าง OD]\nตี AK47: DMG Stack +4% (สูงสุด +40%)\n\n[BREAK สำเร็จ]\n• ล้าง Rage -12\n• FREE MODE 5 วิ\n\n[FREE MODE]\n• Combo ไม่ลด\n• OD gain +50%',
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
     effect:'Combo ≥25 เปิด SHOGUN STANCE 6วิ: DMG +45% | BREAK DMG +25% | KO +250', tradeoff:'ระหว่าง STANCE คอมโบร่วงเร็วขึ้น 35% (CD 12วิ)',
@@ -4997,15 +5081,13 @@ const CARD_POOL = [
   },
   { id:'dk',      name:'DRAKE CARD',         img:'cards/drake.png',       rarity:'elite',
     effect:'HP Phase 75/50/25%:<br><strong>Phase Burst</strong> แรงขึ้นทุกเฟส<br><br>75%: OD <strong>+20%</strong> + DMG <strong>+15%</strong> 4s<br>50%: OD <strong>+30%</strong> + DMG <strong>+25%</strong> + Combo lock 4s<br>25%: OD <strong>+50%</strong> + Rage Stack <strong>+2</strong> + BREAK DMG boost<br><br>ครบทั้ง 3 เฟส: <strong>DRAKE TAKE</strong> 6s (OD x2, BREAK x2, AK47 spawn เร็วขึ้น)', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_drakeIgnoreThreshold = true; }
+    shortDescription:'ผ่านแต่ละเฟส HP รับ Phase Burst\nครบ 3 เฟส ปลด DRAKE TAKE',
+    fullDescription:'[PHASE BURST]\nทุกครั้งที่ HP ลดผ่าน 75 / 50 / 25%\n\n75%: OD +20%, DMG +15% (4 วิ)\n50%: OD +30%, DMG +25%, Combo lock (4 วิ)\n25%: OD +50%, Rage Stack +2, BREAK DMG boost\n\n[DRAKE TAKE]\nครบ 3 เฟส\n• OD ×2\n• BREAK ×2\n• AK47 spawn เร็วขึ้น\n• นาน 6 วิ',
   },
   { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
     shortDescription:'คอมโบ 30+ เปิด EXECUTION READY 5 วิ\nต้องคุมคอมโบเพื่อจบงานบอส',
     effect:'Combo ≥30: ได้ <strong>EXECUTION READY</strong> 5 วิ<br>ระหว่าง READY ถ้าบอส HP ≤5% จะ <strong>EXECUTE</strong> ทันที', tradeoff:'EXECUTE: KO บอสทันที + Zeny +30% + Score burst (CD 12 วิ หลัง READY จบ)',
-    fullDescription:'[EXECUTION READY]\nเมื่อ Combo ถึง 30\nเข้าสถานะ READY 5 วิ\n\nREADY จะหายเมื่อ:\n• คอมโบหลุด\n• หมดเวลา\n\nระหว่าง READY:\nถ้าบอส HP ≤5%\nจะ EXECUTE ทันที\n\nEXECUTE:\n• KO boss ทันที\n• Zeny โบนัส +30%\n• Score burst\n\n[Safety]\nไม่ตรวจ EXECUTE ระหว่าง BREAK\n\nTRADE-OFF:\nหลัง READY จบ ติดคูลดาวน์ 12 วิ',
+    fullDescription:'[EXECUTION READY]\nเมื่อ Combo ถึง 30\nเข้าสถานะ READY 5 วิ\n\nREADY จะหายเมื่อ:\n• คอมโบหลุด  • หมดเวลา\n\nระหว่าง READY:\nถ้าบอส HP ≤5% → EXECUTE ทันที\n\n[EXECUTE]\n• KO boss ทันที\n• Zeny โบนัส +30%\n• Score burst\n\nTRADE-OFF:\nหลัง READY จบ ติดคูลดาวน์ 12 วิ',
     balanceNote:'REWORK - สายปิดงานจังหวะสูง ต้องรักษาคอมโบและกดดันช่วงท้ายบอส ไม่ใช่พาสซีฟถาวร',
     apply(s){ s.cs_aknightExecute=true; }
   },
@@ -5013,58 +5095,54 @@ const CARD_POOL = [
   // ── VOID (MVP) ──
   { id:'th',   name:'THANABROS CARD',      img:'cards/thanabros.png',    rarity:'mythic',
     effect:'AK47 DMG <strong>×2.5</strong> | BREAK: OD เต็ม & <strong>Thanatos Phase</strong> 5 วิ (DMG <strong>×2</strong> & AK47: OD <strong>+1 วิ</strong>)', tradeoff:'Combo reset ทุก 10 วิ',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_thanatos = true; }
+    shortDescription:'AK47 DMG ×2.5\nBREAK ปลด Thanatos Phase + OD เต็ม',
+    fullDescription:'[PASSIVE]\nAK47 DMG ×2.5\n\n[BREAK สำเร็จ]\n• OD ชาร์จเต็มทันที\n• เปิด THANATOS PHASE 5 วิ\n\n[THANATOS PHASE]\n• DMG ×2\n• ตี AK47: OD time +1 วิ\n\nTRADE-OFF:\nCombo reset ทุก 10 วิ',
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
     effect:'ทุกคลิก: <strong>TRIPLE STRIKE</strong> (ฮิตหลัก 100% + เงา 40%x2, คริตเงาต่ำลง) <br>BREAK สำเร็จ: เรียก AK47 ทันที 3 จุด + <strong>DEVIL BET</strong>', tradeoff:'<strong>OD ถูกสาป:</strong> ไม่รับ OD gain ทุกแหล่ง',
     shortDescription:'ไพ่ปีศาจสายออลอิน: Triple Strike + Devil Bet หลัง BREAK',
-    fullDescription:'[TRIPLE STRIKE] คลิก 1 ครั้ง = ฮิตหลัก 1 + ฮิตรอง 2 (40%/ฮิต, คริตต่ำลง)\n• ฮิตรองไม่สร้าง Combo/OD/BREAK และไม่ทริกเกอร์มัลติฮิตซ้ำ\n[AK47 CURSE] BREAK สำเร็จจะเรียก AK47 ทันที 3 จุด (คูลดาวน์ 1.5 วิ, เคารพ cap)\n[DEVIL BET] หลัง BREAK: 70% ได้ SIN STACK (+DMG 8%, สูงสุด 5) | 30% เสียเวลา 1 วิ + เรียก AK47 เพิ่ม 1 จุด',
+    fullDescription:'[TRIPLE STRIKE]\nทุกคลิก = ฮิตหลัก 1 + ฮิตเงา 2 (40%/ฮิต)\n\n[BREAK สำเร็จ]\nเรียก AK47 ทันที 3 จุด\nแล้วสุ่ม DEVIL BET:\n\n• 70% — SIN STACK\nDMG +8% ต่อ Stack (สูงสุด 5)\n\n• 30% — CURSED\nเสียเวลา 1 วิ + AK47 เพิ่ม 1 จุด\n\nTRADE-OFF:\nไม่รับ OD gain จากทุกแหล่ง',
     balanceNote:'MYTHIC REWORK - ยังโหดและโลภ แต่ล็อกลูป recursion/overflow เพื่อกันพังระบบ',
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
     effect:'OD Lv.1 active ตลอด | ทุก 15 วิ: Lv.2 burst <strong>5 วิ</strong>', tradeoff:'ล็อค OD Lv.1 (นอกจาก burst)',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_eddga = true; }
+    shortDescription:'OD Lv.1 ถาวร\nทุก 15 วิ ปะทุ Lv.2 ชั่วคราว',
+    fullDescription:'[PASSIVE]\nOD Lv.1 เปิดตลอดรอบ\n\n[ทุก 15 วิ]\nเปิด Lv.2 Burst 5 วิ\n\nTRADE-OFF:\nล็อคที่ OD Lv.1 ตลอด\n(Lv.2 ได้เฉพาะ burst)',
   },
   { id:'os',     name:'NOSIRIS CARD',        img:'cards/nosiris.png',      rarity:'mythic',
     shortDescription:'สะสม Soul Stack จาก BREAK\nปฏิเสธความตาย และเปิด JUDGMENT',
     effect:'BREAK:<br>Soul Stack +1 & Zeny <strong>+25/Stack</strong><br>(สูงสุด 5)<br><br>ครบ 5 Stack:<br><strong>JUDGMENT</strong> 8 วิ<br>• DMG ×2<br>• Zeny ×2<br>• Boss ถูกพิพากษา<br><br>เมื่อเวลาหมด:<br>หากมี Soul Stack 3+<br><strong>ปฏิเสธความตาย</strong> 1 ครั้ง<br>• เวลา +15 วิ<br>• ล้าง Soul Stack ทั้งหมด', tradeoff:null,
-    fullDescription:'[Soul Stack] สะสมจาก BREAK สำเร็จ สูงสุด 5 Stack; ได้ Zeny +25 ต่อ Stack\n[JUDGMENT] ครบ 5 Stack — Boss ถูกพิพากษา 8 วิ: DMG ×2, Zeny ×2\n[ปฏิเสธความตาย] เมื่อเวลาหมดถ้ามี 3+ Stack: เวลา +15 วิ, ล้าง Soul Stack — ใช้ได้ 1 ครั้งต่อรอบ',
+    fullDescription:'[SOUL STACK]\nBREAK สำเร็จ: Stack +1 (สูงสุด 5)\n• Zeny +25 ต่อ Stack\n\n[JUDGMENT]\nครบ 5 Stack: เปิด 8 วิ\n• DMG ×2\n• Zeny ×2\n\n[ปฏิเสธความตาย]\nเมื่อเวลาหมด ถ้ามี 3+ Stack\n• เวลา +15 วิ\n• ล้าง Soul Stack\n(ใช้ได้ 1 ครั้งต่อรอบ)',
     balanceNote:'POLISH - ปรับถ้อยคำให้ดูเป็น Mythic / supernatural มากขึ้น ไม่แก้ค่าเกมเพลย์',
     apply(s){ s.cs_osiris = true; }
   },
   { id:'mt',   name:'MISSSTRESS CARD',      img:'cards/missstress.png',    rarity:'mythic',
     shortDescription:'OD คลิกเพิ่ม Zeny และยืดเวลา Overdrive',
     effect:'OD:<br>คลิก = Zeny <strong>+12</strong> & OD timer <strong>+0.35 วิ</strong><br>(สูงสุด <strong>+6 วิ/OD</strong>) & Crit <strong>+10%</strong>', tradeoff:null,
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    fullDescription:'[ระหว่าง OD]\nทุกคลิก:\n• Zeny +12\n• OD time +0.35 วิ\n• Crit +10%\n\nยืดเวลา OD ได้สูงสุด +6 วิ ต่อรอบ OD',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_mistress = true; }
   },
   { id:'gb',  name:'GOLDEN BRUH CARD',    img:'cards/golden_bruh.png',  rarity:'mythic',
     shortDescription:'คอมโบเร่ง Zeny และปลด GOLD RUSH เมื่อ Max Combo',
     effect:'คลิก = Combo <strong>+1</strong><br>Zeny <strong>×3</strong><br>Max Combo (47): <strong>GOLD RUSH</strong> 12 วิ<br>Zeny ×9 & คลิก = +8<br>Cooldown 10 วิ', tradeoff:'OD ชาร์จไม่ได้',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +1\nZeny ×3\n\n[GOLD RUSH]\nเมื่อ Combo เต็ม (47)\nเปิด 12 วิ (CD 10 วิ)\n\n• Zeny ×9\n• คลิก = Zeny +8\n\nTRADE-OFF:\nชาร์จ OD ไม่ได้',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_goldenbug = true; }
   },
   { id:'oh',    name:'COKE ZERO CARD',      img:'cards/coke_zero.png',    rarity:'mythic',
     shortDescription:'เร่ง OD charge สูง แต่ต้องแลกเวลากับ Stack DMG',
     effect:'OD charge <strong>×4</strong><br>OD หมด: DMG <strong>+15%</strong> Stack<br>(สูงสุด +90%)', tradeoff:null,
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    fullDescription:'[PASSIVE]\nOD charge ×4\n\n[หลังออกจาก OD]\nDMG Stack +15%\n(สูงสุด +90%)\n\nยิ่งใช้ OD บ่อย ยิ่งแรงขึ้นเรื่อยๆ',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_orchero = true; }
   },
   { id:'ld',name:'LORD OF DEBT CARD', img:'cards/lord_of_debt.png',rarity:'mythic',
-    effect:'สุ่ม effect จาก <strong>ELITE/MYTHIC</strong> ทุก 10 วิ', tradeoff:'ผลลัพธ์ไม่แน่นอน',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    effect:'ทุก 10 วิ: <strong>DEBT CONTRACT</strong><br>สุ่มพลังต้องห้าม 8 วิ<br><br>ทุกสัญญา: DEBT STACK +1<br>• Combo decay เร็วขึ้น<br><br>BREAK สำเร็จ: ล้าง DEBT STACK', tradeoff:'ยิ่งหนี้สูง ยิ่งอันตราย',
+    shortDescription:'ทุก 10 วิ:\nสุ่มรับพลังต้องห้ามชั่วคราว',
+    fullDescription:'[DEBT CONTRACT]\nทุก 10 วิ ทำสัญญาหนี้ต้องสาป 8 วิ\n\nสุ่มรับพลังต้องห้าม 1 อย่าง\n\nทุกสัญญา:\nDEBT STACK +1\n\n• Combo decay เร็วขึ้น\n\n[BREAK สำเร็จ]\nล้าง DEBT STACK ทั้งหมด',
+    balanceNote:'REWORK - DEBT STATE system: 10 handcrafted isolated powers, safe cleanup, non-recursive, stack pressure',
     apply(s){ s.cs_lordofdeath = true; }
   },
 
@@ -5209,35 +5287,35 @@ const CARD_POOL = [
   { id:'tk',   name:'TAO FUNKA CARD',      img:'cards/tao_funka.png',   rarity:'elite',
     effect:'[FUNK FEVER] หลัง BREAK สำเร็จ:<br>5 วิ • DMG <strong>+45%</strong> • Crit <strong>+20%</strong><br>• Combo gain +1 ต่อคลิก (CD 10 วิ)', tradeoff:'ระหว่าง FUNK FEVER: Combo decay เร็วขึ้น <strong>25%</strong>',
     shortDescription:'BREAK สำเร็จ: FUNK FEVER 5วิ\nDMG+45% • Crit+20% • Combo+1',
-    fullDescription:'[FUNK FEVER] หลัง BREAK สำเร็จ\n• ระยะเวลา 5 วินาที\n• DMG +45%\n• Crit +20%\n• Combo gain +1 ต่อคลิก\n• คูลดาวน์ 10 วินาที\n[Trade-off] ระหว่าง FUNK FEVER คอมโบ decay เร็วขึ้น 25%',
+    fullDescription:'[FUNK FEVER]\nหลัง BREAK สำเร็จ\nเปิด 5 วิ (CD 10 วิ)\n\n• DMG +45%\n• Crit +20%\n• Combo gain +1 ต่อคลิก\n\nTRADE-OFF:\nระหว่าง FUNK FEVER\nCombo decay เร็วขึ้น 25%',
     balanceNote:'CLEANUP - แยกบัฟ/ความเสี่ยงชัดเจนและอ่านเร็วขึ้นบนมือถือ',
     apply(s){ s.cs_taoFunka=true; }
   },
   { id:'dc',    name:'DRUNKULA CARD',        img:'cards/drunkula.png',     rarity:'elite',
     shortDescription:'Crit มีลุ้น BLOOD DRINK\nติดแล้วได้ OD+Zeny แต่ติดคูลดาวน์',
     effect:'Crit มีโอกาส <strong>25%</strong> ติด <strong>BLOOD DRINK</strong><br>BLOOD DRINK: OD <strong>+3%</strong> และ Zeny <strong>+8</strong> (ICD 0.8 วิ)', tradeoff:'Crit DMG <strong>+35%</strong>',
-    fullDescription:'[Blood Drink] ทุก Crit มีโอกาส 25% ได้โบนัสทันที\n• OD +3%\n• Zeny +8\n• Internal Cooldown 0.8 วินาที (กันลูป)\n[Base Bonus] Crit DMG +35%',
+    fullDescription:'[BLOOD DRINK]\nทุก Crit: โอกาส 25%\n• OD +3%\n• Zeny +8\n(CD 0.8 วิ)\n\n[PASSIVE]\nCrit DMG +35%',
     balanceNote:'REWORK - สายคริตสุ่มจังหวะ เน้นเร่ง OD แบบมีเพดานผ่าน ICD',
     apply(s){ s.cs_drunkula=true; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.35; }
   },
   { id:'ic',name:'INCANTATION SCAMURAI CARD',img:'cards/incantation_scamurai.png',rarity:'elite',
     effect:'Combo ≥35: เปิด <strong>SCAMURAI CONTRACT</strong> 6 วิ (CD 18 วิ)<br>DMG <strong>+70%</strong> | AK47 spawn <strong>+25%</strong> | BREAK DMG <strong>+20%</strong>', tradeoff:'เมื่อหมดสัญญา Combo จะถูกรีเซ็ตเหลือ 15',
     shortDescription:'เร่งคอมโบถึง 35 เพื่อเปิดสัญญา 6 วิ\nจบสัญญาโดนตัดคอมโบเหลือ 15',
-    fullDescription:'[SCAMURAI CONTRACT] ทริกเกอร์เมื่อ Combo ถึง 35 นาน 6 วินาที (CD 18 วินาที)\n• DMG +70%\n• AK47 spawn rate +25%\n• BREAK DMG +20%\n[Trade-off] เมื่อหมดสัญญา Combo ถูกตัดทันทีเหลือ 15',
+    fullDescription:'[SCAMURAI CONTRACT]\nเมื่อ Combo ถึง 35\nเปิด 6 วิ (CD 18 วิ)\n\n• DMG +70%\n• AK47 spawn +25%\n• BREAK DMG +20%\n\nTRADE-OFF:\nหมดสัญญา: Combo ถูกตัดเหลือ 15',
     balanceNote:'REWORK - บูสต์แรงเป็นช่วงพร้อมค่าเสียโอกาสหลังจบ ป้องกัน uptime ถาวร',
     apply(s){ s.cs_incantation = true; }
   },
   { id:'sk',name:'STORMYNITE CARD', img:'cards/stormynite.png',rarity:'elite',
     shortDescription:'เข้า OD แล้วได้ STORM CHARGE 6 วิ\nทุก 12 คลิกจะปะทุสายฟ้า+เพิ่มเวลา',
     effect:'เข้า OD: เปิด <strong>STORM CHARGE</strong> 6 วิ<br>ระหว่างนี้ทุก 12 คลิก: timer <strong>+1 วิ</strong> + Lightning Burst DMG<br>เพิ่มเวลาได้สูงสุด <strong>+3 วิ/OD</strong>', tradeoff:'OD DMG เพิ่มคงที่ <strong>+30%</strong>',
-    fullDescription:'[STORM CHARGE] เริ่มทุกครั้งเมื่อเข้า OD และอยู่ 6 วินาที\n• สะสมคลิกครบ 12 ครั้ง: เพิ่มเวลา +1 วินาที และปล่อย Lightning Burst\n• เพดานเพิ่มเวลา: +3 วินาทีต่อ OD\n[Base Bonus] ระหว่าง OD ได้ DMG +30%',
+    fullDescription:'[STORM CHARGE]\nเมื่อเข้า OD: เปิด 6 วิ\n\nทุก 12 คลิก:\n• เวลา +1 วิ\n• Lightning Burst DMG\n(เพิ่มเวลาได้สูงสุด +3 วิ ต่อ OD)\n\n[PASSIVE]\nระหว่าง OD: DMG +30%',
     balanceNote:'REWORK - การ์ดจังหวะ OD มีเพดานเวลาแข็งแรง กันยืด OD วนลูป',
     apply(s){ s.cs_stormyKnight = true; }
   },
   { id:'dl',   name:'DORK LORD CARD',      img:'cards/dork_lord.png',   rarity:'elite',
     shortDescription:'ทุก 15วิได้ NIGHT STACK\nยิ่งแรง แต่เวลาเดินเร็วขึ้น',
     effect:'ทุก 15วิรับ NIGHT STACK (สูงสุด 5): ต่อ Stack DMG +6% / BREAK DMG +4%', tradeoff:'ต่อ Stack timer speed +3% (เร่งได้สูงสุด +15%)',
-    fullDescription:'[NIGHT STACK] ทุก 15 วินาทีได้ 1 Stack สูงสุด 5\n• DMG +6% ต่อ Stack\n• BREAK DMG +4% ต่อ Stack\n[Trade-off] เวลาเดินเร็วขึ้น +3% ต่อ Stack',
+    fullDescription:'[NIGHT STACK]\nทุก 15 วิ: +1 Stack (สูงสุด 5)\n\nต่อ Stack:\n• DMG +6%\n• BREAK DMG +4%\n\nTRADE-OFF:\nเวลาไหลเร็วขึ้น +3% ต่อ Stack',
     balanceNote:'REWORK - การ์ดคอร์รัปชันสะสมแบบมีเพดาน ป้องกันยืดเวลาเกินขอบเขต',
     apply(s){ s.cs_dorkLord = true; }
   },
@@ -5354,50 +5432,50 @@ const CARD_POOL = [
   // ── ELITE ใหม่ ──
   { id:'mi',   name:'MINORAGE CARD',      img:'cards/minorage.png',    rarity:'elite',
     effect:'>70% HP: DMG <strong>+40%</strong> + Combo ไม่ลด<br>>50% HP: คลิกมีโอกาส <strong>20%</strong> ได้ Rage Stack<br>>30% HP: Crit DMG <strong>+50%</strong><br><br>ผ่าน 70/50/30 เร็วพอ: <strong>RAGE RUSH</strong> 4s<br>Combo <strong>+2/คลิก</strong> + Crit <strong>+25%</strong>', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'HP สูง บุกหนัก — ผ่านแต่ละเฟสเร็วพอ ปลด RAGE RUSH',
+    fullDescription:'[HP > 70%]\nDMG +40% + Combo ไม่ลด\n\n[HP > 50%]\nคลิกมีโอกาส 20% ได้ Rage Stack\n\n[HP > 30%]\nCrit DMG +50%\n\n[RAGE RUSH]\nผ่าน 3 เฟสเร็วพอ — เปิด 4 วิ\n• Combo +2 ต่อคลิก\n• Crit +25%',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_minorous = true; }
   },
   { id:'ex',name:'EXECUSIONER CARD',   img:'cards/execusioner.png', rarity:'elite',
     effect:'[EXECUTION MODE] HP <30%:<br>5 วิ • DMG <strong>+60%</strong><br>• BREAK DMG <strong>+35%</strong><br>• AK47 spawn <strong>+35%</strong> (CD 18 วิ)', tradeoff:'ระหว่าง EXECUTION MODE:<br>HP drain ต่อเนื่อง<br>Healing effectiveness เหลือ 20%',
     shortDescription:'HP <30%: EXECUTION MODE 5วิ\nDMG+60% • BREAK+35% • AK47+35%',
-    fullDescription:'[EXECUTION MODE] เมื่อ HP ต่ำกว่า 30%\n• ระยะเวลา 5 วินาที\n• DMG +60%\n• BREAK DMG +35%\n• AK47 spawn +35%\n• คูลดาวน์ 18 วินาที\n[Trade-off] ระหว่างโหมด HP จะลดต่อเนื่อง และการฟื้นฟูเหลือ 20%',
+    fullDescription:'[EXECUTION MODE]\nเมื่อ HP ต่ำกว่า 30%\nเปิด 5 วิ (CD 18 วิ)\n\n• DMG +60%\n• BREAK DMG +35%\n• AK47 spawn +35%\n\nTRADE-OFF:\nระหว่างโหมด HP ลดต่อเนื่อง\nการรักษาเหลือ 20%',
     balanceNote:'CLEANUP - ตัดข้อความซ้ำและแยกข้อดี/ข้อเสียให้อ่านง่าย',
     apply(s){ s.cs_executioner = true; }
   },
   { id:'wh',    name:'WHIZPER CARD',       img:'cards/whizper.png',     rarity:'elite',
     effect:'BREAK สำเร็จ: เปิด <strong>GHOST PROTOCOL</strong> 4 วิ (CD 10 วิ)', tradeoff:'โอกาสเกิด AK47 จุดซ้ำ +35%',
     shortDescription:'BREAK สำเร็จเปิด GHOST PROTOCOL 4วิ (CD 10วิ)\nพักคอมโบ 1.2วิ + BREAK window +0.15วิ + OD +6%',
-    fullDescription:'[GHOST PROTOCOL] หลัง BREAK สำเร็จ จะทำงาน 4 วินาที (คูลดาวน์ 10 วินาที)\n• หยุดการหล่นคอมโบ 1.2 วิ\n• เพิ่ม BREAK window +0.15 วิ\n• รับ OD +6% 1 ครั้ง\n[Trade-off] โอกาสเกิด AK47 จุดซ้ำเพิ่ม +35% ระหว่างเล่นการ์ดนี้',
+    fullDescription:'[GHOST PROTOCOL]\nหลัง BREAK สำเร็จ (CD 10 วิ)\nเปิด 4 วิ\n\n• หยุด Combo decay 1.2 วิ\n• BREAK window +0.15 วิ\n• OD +6%\n\nTRADE-OFF:\nโอกาสเกิด AK47 จุดซ้ำ +35%',
     balanceNote:'REWORK - สายคุมจังหวะหลัง BREAK แบบชั่วคราว ไม่ยืดเวลา ไม่ลูป BREAK/OD และยังมีความเสี่ยงจากจุดซ้ำ',
     apply(s){ s.cs_whisper = true; s.cs_whizperGhostProtocol = true; s.cs_ak47DuplicateChance = (s.cs_ak47DuplicateChance||0) + 0.35; }
   },
   { id:'gl',name:'GOBLIN WEEBER CARD',img:'cards/goblin_weeber.png',rarity:'elite',
     effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥50: คลิกซ้ำฟรี <strong>20%</strong><br>Combo ≥75: <strong>WEEB FOCUS</strong> 5s<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'ทุกคลิก Combo +2 ยิ่งคอมโบสูง ยิ่งแรง\nถึง 75 ปลด WEEB FOCUS',
+    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +2\n\nCombo ≥25: DMG +20%\nCombo ≥50: คลิกซ้ำฟรี 20%\n\n[WEEB FOCUS]\nCombo ≥75 เปิด 5 วิ\n• Combo ไม่ลด\n• OD gain +35%\n• Crit +20%',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_goblinLeader = true; }
   },
   { id:'ar',     name:'AMOG RA CARD',       img:'cards/amog_ra.png',     rarity:'elite',
     effect:'ทุกครั้งที่ Combo แตะ 20 จะสุ่มผล 5วิ: 70% ได้ DMG +35% + Crit +20% | 30% SUS EVENT', tradeoff:'SUS EVENT: หักเวลา -2วิทันที + ได้ BREAK DMG +60% และ AK47 spawn +30% 4วิ (CD 8วิ)',
     shortDescription:'แตะคอมโบ 20 = สุ่มบัฟ 5วิ\n70% ดีจัด / 30% SUS แลกเวลา',
-    fullDescription:'[AMOG GAMBLE] เมื่อ Combo แตะ 20 จะสุ่มเอฟเฟกต์ 5 วิ (CD 8 วิ)\n• 70%: DMG +35%, Crit +20%\n• 30% SUS: ลดเวลา -2 วิ (ไม่ต่ำกว่า 1 วิ), BREAK DMG +60%\nหลัง SUS: AK47 spawn +30% อีก 4 วิ',
+    fullDescription:'[AMOG GAMBLE]\nทุกครั้งที่ Combo แตะ 20\nสุ่มเอฟเฟกต์ 5 วิ (CD 8 วิ)\n\n• 70% — BLESSED\nDMG +35%, Crit +20%\n\n• 30% — SUS EVENT\nเวลา -2 วิ\nBREAK DMG +60%\nAK47 spawn +30% (4 วิ)',
     balanceNote:'REWORK - สายพนันจังหวะ มี burst สูงและความเสี่ยงคุมได้',
     apply(s){ s.cs_amogRa = true; }
   },
   { id:'mp',name:'MAYA PROBLEM CARD',    img:'cards/maya_problem.png', rarity:'elite',
     shortDescription:'BREAK แล้ว burst หนัก',
     effect:'Boss DMG <strong>+30%</strong> & Crit <strong>+10%</strong><br>BREAK สำเร็จ: Boss DMG <strong>+40%</strong> 6 วิ & Crit <strong>+25%</strong> 6 วิ', tradeoff:null,
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    fullDescription:'[PASSIVE]\nBoss DMG +30%\nCrit +10%\n\n[BREAK สำเร็จ]\nBurst 6 วิ:\n• Boss DMG +40%\n• Crit +25%',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_bossDmgBonus=(s.cs_bossDmgBonus||0)+0.30; s.cs_critChanceBonus=(s.cs_critChanceBonus||0)+0.10; s.cs_mayaProblem=true; }
   },
   { id:'ed',name:'WEEBVIL DUDE CARD',     img:'cards/weebvil_dude.png',  rarity:'elite',
     effect:'เริ่มรอบ: เวลา <strong>-6 วิ</strong><br>หลัง BREAK แรกของรอบ: ปลด <strong>OTAKU AWAKENING</strong> ถาวรจนจบรอบ', tradeoff:'หลัง BREAK ทุกครั้ง: ได้ BREAK burst +35% 5 วิ และ OD gain +15% 4 วิ',
     shortDescription:'เสียเวลาเริ่มต้น 6 วิ\nแต่หลัง BREAK แรกจะปลดร่างทั้งรอบ',
-    fullDescription:'[Start Penalty] เริ่มรอบด้วยเวลา -6 วินาที\n[OTAKU AWAKENING] หลัง BREAK แรก จะปลดร่างถาวรจนจบรอบ:\n• Crit DMG +25%\n• ทุก BREAK จะได้ BREAK burst DMG +35% นาน 5 วิ\n• ทุก BREAK จะได้ OD gain +15% นาน 4 วิ',
+    fullDescription:'[เริ่มรอบ]\nเวลา -6 วิ\n\n[OTAKU AWAKENING]\nหลัง BREAK แรก: ปลดร่างถาวรจนจบรอบ\n\n• Crit DMG +25%\n\nทุก BREAK จากนั้น:\n• BREAK burst DMG +35% (5 วิ)\n• OD gain +15% (4 วิ)',
     balanceNote:'REWORK - สายเสี่ยงต้นเกมแลกพลังปลายเกม เน้นเร่ง BREAK ให้ไวที่สุด',
     apply(s){ s.cs_timePenalty=(s.cs_timePenalty||0)+6; s.cs_weebvilDude=true; }
   },
@@ -5405,50 +5483,50 @@ const CARD_POOL = [
   // ── MYTHIC ใหม่ ──
   { id:'kn',  name:'CATULLANUX CARD',     img:'cards/catullanux.png',   rarity:'mythic',
     effect:'AK47 DMG <strong>×4</strong> | AK47/BREAK: Combo lock <strong>5 วิ</strong> & BREAK <strong>+20%</strong>', tradeoff:'HP ศัตรู <strong>+50%</strong>',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'AK47 DMG ×4 — เก็บ AK47/BREAK: Combo lock 5 วิ',
+    fullDescription:'[PASSIVE]\nAK47 DMG ×4\n\n[AK47 ครบ หรือ BREAK สำเร็จ]\n• Combo lock 5 วิ (Combo ไม่ลด)\n• BREAK gauge +20%\n\nTRADE-OFF:\nHP ศัตรู เริ่มต้น +50%',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_ktullanux = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.20; }
   },
   { id:'bz',  name:'BEELZEBRUH CARD',     img:'cards/beelzebruh.png',   rarity:'mythic',
     effect:'คลิก: Corruption <strong>+0.5%</strong> (สูงสุด 50%) | >20%: BREAK <strong>+bonus</strong>/tap | Max & BREAK: Zeny <strong>×1.5</strong> 5 วิ', tradeoff:'HP ศัตรู เริ่มต้น <strong>×2</strong>',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'สะสม Corruption ด้วยการคลิก\nMAX + BREAK = Zeny ×1.5',
+    fullDescription:'[CORRUPTION]\nทุกคลิก: Corruption +0.5%\n(สูงสุด 50%)\n\n>20% Corruption:\nBREAK gauge เพิ่มต่อแตะ\n\n[BREAK สำเร็จ ที่ MAX Corruption]\nZeny ×1.5 (5 วิ)\n\nTRADE-OFF:\nHP ศัตรู เริ่มต้น ×2',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_beelzebub = true; }
   },
   { id:'vr', name:'VALKYRIZZ CARD', img:'cards/valkyrizz.png', rarity:'mythic',
     effect:'AK47ครบ/BREAK: สุ่ม effect ใหม่จาก <strong>ELITE pool</strong>', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'AK47 ครบ / BREAK สำเร็จ\nสุ่มรับพลัง ELITE ใหม่',
+    fullDescription:'[VALKYRIE SWAP]\nทุกครั้งที่ AK47 ครบ\nหรือ BREAK สำเร็จ\n\nสุ่มรับพลัง Elite card\nแบบชั่วคราว 1 อย่าง',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_valkyrieRandgris = true; }
   },
   { id:'at',     name:'ATROSUS CARD',        img:'cards/atrosus.png',      rarity:'mythic',
     effect:'BREAK: <strong>Resonance</strong> 6 วิ (DMG <strong>×1.6</strong>) | Crit ใน Resonance: <strong>+0.4 วิ</strong> (สูงสุด +4 วิ) | 3 Resonance: <strong>Resonant Mastery</strong> (10 วิ & ×2)', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'BREAK ปลด Resonance DMG ×1.6\nCrit ในขณะ Resonance ยืดเวลา',
+    fullDescription:'[RESONANCE]\nBREAK สำเร็จ: เปิด 6 วิ\n• DMG ×1.6\n\nระหว่าง Resonance:\nทุก Crit: +0.4 วิ (สูงสุด +4 วิ)\n\n[RESONANT MASTERY]\nครบ 3 Resonance:\n• Resonance เปิด 10 วิ\n• DMG ×2',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_atrosusBreak=true; }
   },
   { id:'kl', name:'KILL-D01 CARD',     img:'cards/kill-d01.png',   rarity:'mythic',
     effect:'OD charge <strong>+12%</strong> | คลิก = OD timer <strong>+0.05 วิ</strong> (สูงสุด <strong>+5 วิ/OD</strong>) | OD: ทุก 3 คลิก = <strong>Drive Token</strong> (สูงสุด 8) | BREAK: Token = BREAK <strong>+8%</strong> & Zeny <strong>+30</strong> | 8 Tokens: Execution 4 วิ (DMG <strong>×1.5</strong>)', tradeoff:null,
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'สะสม Drive Token ใน OD\nBREAK ใช้ Token ระเบิดพลัง',
+    fullDescription:'[PASSIVE]\nOD charge +12%\nทุกคลิก: OD time +0.05 วิ (สูงสุด +5 วิ/OD)\n\n[ระหว่าง OD]\nทุก 3 คลิก: Drive Token +1 (สูงสุด 8)\n\n[BREAK สำเร็จ]\nต่อ Token: BREAK +8%, Zeny +30\n\n[8 Tokens]\nDrive Discharge 4 วิ: DMG ×1.5',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_killD01=true; s.cs_odChargeBonus=(s.cs_odChargeBonus||0)+0.12; s.cs_odTimerOnClick=(s.cs_odTimerOnClick||0)+0.05; }
   },
   { id:'if',     name:'IFRIED CARD',         img:'cards/ifried.png',       rarity:'mythic',
     effect:'Crit: <strong>Inferno Stack</strong> +1 (สูงสุด 15) | Crit DMG <strong>+20%</strong> | BREAK & >5 Stacks: <strong>+2%/Stack</strong> extra | ≥10 Stacks & BREAK: <strong>Inferno Burst</strong> 5 วิ (DMG ×2.5 & Crit <strong>+25%</strong>)', tradeoff:'HP ศัตรู เริ่มต้น <strong>+20%</strong>',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'Crit สะสม Inferno Stack\nครบ 10 + BREAK ปลด Inferno Burst',
+    fullDescription:'[INFERNO STACK]\nทุก Crit: Stack +1 (สูงสุด 15)\n• Crit DMG +20%\n\nBREAK + >5 Stacks:\nBREAK gauge +2% ต่อ Stack\n\n[INFERNO BURST]\n≥10 Stacks + BREAK สำเร็จ\n• DMG ×2.5\n• Crit +25%\n• นาน 5 วิ\n\nTRADE-OFF:\nHP ศัตรู เริ่มต้น +20%',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.20; s.cs_enemyHpReduce=(s.cs_enemyHpReduce||0)-0.20; s.cs_ifriedBreak=true; }
   },
   { id:'rx',    name:'RSICK-0806 CARD',      img:'cards/rsick-0806.png',    rarity:'mythic',
     effect:'DMG <strong>×2.5</strong> | BREAK <strong>+30%</strong>/tap | KO: score <strong>+500</strong> | BREAK: DMG <strong>+12%</strong> Stack (สูงสุด +60%) & <strong>Execution Phase</strong> 8 วิ (DMG ×1.5)', tradeoff:'ไม่มี OD & ไม่มี AK47',
-    shortDescription:'เอฟเฟกต์ตามการ์ดนี้ (เวอร์ชันย่อ)',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    shortDescription:'DMG ×2.5 สายบุกล้วน\nBREAK สะสม Execution Stack',
+    fullDescription:'[PASSIVE]\nDMG ×2.5\nBREAK gauge +30% ต่อแตะ\nKO: Score +500\n\n[BREAK สำเร็จ]\nExecution Stack +12% (สูงสุด +60%)\nExecution Phase 8 วิ: DMG ×1.5\n\nTRADE-OFF:\nไม่มี OD  •  ไม่มี AK47',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_rsx0806 = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.30; }
   },
@@ -5480,21 +5558,21 @@ const CARD_POOL = [
   { id:'ghp', name:'GHOSTPING CARD',       img:'cards/ghostping_card.png',      rarity:'elite',
     shortDescription:'พลาด AK47 ช่วยเร่ง BREAK และบูสต์ DMG ตอน BREAK',
     effect:'เมื่อพลาด AK47:<br>BREAK จะมาถึงเร็วขึ้น <strong>1.5 วิ</strong><br>(สูงสุด 6 ครั้ง/รอบ)<br><br>BREAK:<br>DMG <strong>+55%</strong><br>BREAK progress <strong>+15%</strong>', tradeoff:null,
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    fullDescription:'[พลาด AK47]\nBREAK มาถึงเร็วขึ้น 1.5 วิ\n(สูงสุด 6 ครั้ง ต่อรอบ BREAK)\n\n[ระหว่าง BREAK]\n• DMG +55%\n• BREAK gauge +15% ต่อแตะ',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_ghostping=true; }
   },
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
     shortDescription:'15วิแรกบุกสุด: Boss DMG +70%, Zeny +30%, AK47 เร็วขึ้น\nหลังจากนั้นติด CURSED PANIC ทั้งรอบ',
     effect:'เปิดรอบ 15 วิแรก: Boss DMG <strong>+70%</strong> | Zeny <strong>+30%</strong> | AK47 spawn <strong>+20%</strong>', tradeoff:'หลัง 15 วิ: <strong>CURSED PANIC</strong> (เวลาไหลเร็ว +15%, คอมโบร่วงเร็ว +20%)',
-    fullDescription:'[Speedrun Opener] 15 วินาทีแรกของรอบ\n• Boss DMG +70%\n• Zeny +30%\n• AK47 spawn rate +20%',
+    fullDescription:'[15 วิแรก]\n• Boss DMG +70%\n• Zeny +30%\n• AK47 spawn +20%\n\nTRADE-OFF:\nหลัง 15 วิ: CURSED PANIC ถาวร\n• เวลาไหลเร็ว +15%\n• Combo decay เร็ว +20%',
     balanceNote:'REWORK - เร่งต้นเกมแรงมากแล้วกดดันปลายเกมชัดเจน เป็นการ์ดสปีดรันที่มีความเสี่ยงจริง',
     apply(s){ s.cs_devilingo=true; }
   },
   { id:'ltn', name:'LADY TRAINEE CARD',    img:'cards/lady_trainee_card.png',   rarity:'elite',
     shortDescription:'OD Lv.Up สะสม DMG และปลด Spotlight',
     effect:'OD Lv. เพิ่ม:<br>DMG <strong>+4%</strong> Stack<br>(สูงสุด +60%)<br><br>10 Stacks:<br><strong>Spotlight Mode</strong><br>OD charge <strong>+10%/คลิก</strong>', tradeoff:null,
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    fullDescription:'[OD LV. UP]\nDMG Stack +4% ต่อครั้ง\n(สูงสุด +60%)\n\n[SPOTLIGHT MODE]\nเมื่อครบ 10 Stacks\nOD charge +10% ต่อคลิก',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_ladyTrainee=true; }
   },
@@ -5503,7 +5581,7 @@ const CARD_POOL = [
   { id:'fwc', name:'FALLEN WECHAT CARD',   img:'cards/fallen_wechat_card.png',  rarity:'mythic',
     shortDescription:'OD เต็มแล้วเปิด Overloaded BREAK แบบระเบิดพลัง',
     effect:'OD เต็ม:<br><strong>Overloaded BREAK</strong><br>DMG <strong>+60%</strong><br>BREAK progress +20%<br>BREAK window +0.6 วิ<br><br>จบ: OD reset', tradeoff:'Cooldown <strong>24 วิ</strong>',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    fullDescription:'[OVERLOADED BREAK]\nเมื่อ OD เต็ม (CD 24 วิ)\n\n• DMG +60%\n• BREAK gauge +20% ต่อแตะ\n• BREAK window +0.6 วิ\n\nจบ BREAK: OD reset',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_fallenWechat=true; }
   },
@@ -5524,7 +5602,7 @@ const CARD_POOL = [
   { id:'dsk', name:'DARK STAKE LORD CARD', img:'cards/dark_stake_lord_card.png', rarity:'mythic',
     shortDescription:'BREAK ลุ้น Jackpot เพิ่ม Zeny และ OCA chance',
     effect:'BREAK:<br>Jackpot <strong>15%</strong><br><br>พลาด:<br>Jackpot +10%<br>(สูงสุด 75%)<br><br>Jackpot:<br>Zeny ×2.5<br>OCA chance ×10<br><br>ได้รับแล้ว reset กลับ 15%', tradeoff:'Zeny <strong>-10%</strong>',
-    fullDescription:'รายละเอียดเอฟเฟกต์ตามการ์ดนี้แบบเต็ม ใช้งานตามเงื่อนไขที่ระบุในเอฟเฟกต์',
+    fullDescription:'[BREAK สำเร็จ]\nสุ่ม JACKPOT (เริ่ม 15%)\n\nพลาด: โอกาส +10% สะสม (สูงสุด 75%)\n\n[JACKPOT]\n• Zeny ×2.5\n• OCA chance ×10\n• Reset กลับ 15%\n\nTRADE-OFF:\nZeny -10% ตลอดรอบ',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_darkStakeLord=true; }
   },];
@@ -5883,39 +5961,371 @@ function _csStartThanatosTimer() {
   }, 10000);
 }
 
-function _csStartLodTimer() {
-  clearInterval(_csLodTimer);
-  const lodPool = CARD_POOL.filter(c =>
-    (c.rarity === 'elite' || c.rarity === 'mythic') && !CS_LOD_EXCLUDED_IDS.has(c.id)
-  );
+// ══════════════════════════════════════════════════════════════════
+// LORD OF DEBT — DEBT STATE SYSTEM
+// Isolated handcrafted powers. Non-recursive. Cleanup-safe.
+// ══════════════════════════════════════════════════════════════════
 
-  function _lodPickAndApply(isFirst) {
-    const prevHadRsx = !!(window._csState && window._csState.cs_rsx0806);
-    const newCard = lodPool[Math.floor(Math.random()*lodPool.length)];
-    const cs = {};
-    newCard.apply(cs);
-    window._csState = { cs_lordofdeath:true, ...cs };
-    _csRefreshVolatileCardEffects(window._csState);
-    _csDebugLog('LOD rolled', newCard.id, 'state', window._csState);
-    _csSyncWeakPointAvailability(prevHadRsx, true);
-    // แสดงภาพการ์ด
-    _lodShowCard(newCard, isFirst);
-    if(!isFirst) showBigSplash('# '+newCard.name,'CARD CHANGED','#ff2233',false);
+// Module-level debt state tracking
+let _lodDebtStateTimer     = null;  // 8s active state expiry
+let _lodContractInterval   = null;  // 10s contract cycle (replaces _csLodTimer alias)
+let _lodDebtCorruptionTimer= null;  // CORRUPTION: -1s every 3s sub-timer
+let _lodDebtRequiemActive  = false; // REQUIEM: flag combo decay paused
+let _lodDebtFinalHourLock  = false; // FINAL HOUR: timer cannot increase flag
+let _lodDebtStacks         = 0;     // DEBT STACK counter (max 5)
+let _lodActiveStateName    = '';    // name of currently active debt state
+
+// ── DEBT STATE POOL ─────────────────────────────────────────────
+// Each entry: { name, color, activate(cs), deactivate(cs) }
+// activate/deactivate must be pure — no external card references,
+// no recursive calls, no timer creation inside (timers managed externally).
+const LOD_DEBT_STATES = [
+
+  // 1. EXECUTION
+  {
+    name: 'EXECUTION',
+    color: '#ff4422',
+    activate(cs) {
+      cs._lod_bossDmg      = 0.60;
+      cs._lod_breakDmg     = 0.80;
+      cs._lod_execLowHp    = true;   // crit +25% if boss <15%
+    },
+    deactivate(cs) {
+      cs._lod_bossDmg      = 0;
+      cs._lod_breakDmg     = 0;
+      cs._lod_execLowHp    = false;
+    }
+  },
+
+  // 2. ANALYZED
+  {
+    name: 'ANALYZED',
+    color: '#00ffee',
+    activate(cs) {
+      cs._lod_akSpawnFast  = 0.35;   // AK47 delay *= (1-0.35)
+      cs._lod_breakWinBonus= 800;    // ms added to break window at BREAK start
+      cs._lod_breakGaugeBonus = 0.50; // extra BREAK gauge per tap
+    },
+    deactivate(cs) {
+      cs._lod_akSpawnFast  = 0;
+      cs._lod_breakWinBonus= 0;
+      cs._lod_breakGaugeBonus = 0;
+    }
+  },
+
+  // 3. BERSERK
+  {
+    name: 'BERSERK',
+    color: '#ff6600',
+    activate(cs) {
+      cs._lod_berserkShadow = true;  // extra shadow 35% DMG, no combo/OD/break
+    },
+    deactivate(cs) {
+      cs._lod_berserkShadow = false;
+    }
+  },
+
+  // 4. REQUIEM
+  {
+    name: 'REQUIEM',
+    color: '#cc88ff',
+    activate(cs) {
+      cs._lod_comboFrozen  = true;   // combo window pause (no decay)
+      cs._lod_timerDrain   = 0.30;   // timer drains 30% faster
+    },
+    deactivate(cs) {
+      cs._lod_comboFrozen  = false;
+      cs._lod_timerDrain   = 0;
+    }
+  },
+
+  // 5. GREED
+  {
+    name: 'GREED',
+    color: '#ffcc00',
+    activate(cs) {
+      cs._lod_zenyBonus    = 0.80;
+      cs._lod_dmgPenalty   = 0.20;   // boss dmg -20%
+    },
+    deactivate(cs) {
+      cs._lod_zenyBonus    = 0;
+      cs._lod_dmgPenalty   = 0;
+    }
+  },
+
+  // 6. OVERLOAD
+  {
+    name: 'OVERLOAD',
+    color: '#4488ff',
+    activate(cs) {
+      cs._lod_odGainBonus  = 0.40;   // OD charge +40%
+      cs._lod_odDmgBonus   = 0.30;   // OD DMG +30%
+      cs._lod_odDrainFast  = true;   // godSecondsLeft drains 1.5x
+    },
+    deactivate(cs) {
+      cs._lod_odGainBonus  = 0;
+      cs._lod_odDmgBonus   = 0;
+      cs._lod_odDrainFast  = false;
+    }
+  },
+
+  // 7. MASSACRE
+  {
+    name: 'MASSACRE',
+    color: '#ff2233',
+    activate(cs) {
+      cs._lod_comboGainBonus = 1;    // +1 combo per click
+      cs._lod_critDmgBonus   = 0.45;
+      cs._lod_missCombo      = true; // miss WP → combo -5
+    },
+    deactivate(cs) {
+      cs._lod_comboGainBonus = 0;
+      cs._lod_critDmgBonus   = 0;
+      cs._lod_missCombo      = false;
+    }
+  },
+
+  // 8. CORRUPTION
+  {
+    name: 'CORRUPTION',
+    color: '#aa00ff',
+    activate(cs) {
+      cs._lod_dmgBonus     = 0.90;   // DMG +90%
+      cs._lod_corruption   = true;   // -1s every 3s (managed by external timer)
+    },
+    deactivate(cs) {
+      cs._lod_dmgBonus     = 0;
+      cs._lod_corruption   = false;
+    }
+  },
+
+  // 9. HUNTER
+  {
+    name: 'HUNTER',
+    color: '#00ff88',
+    activate(cs) {
+      cs._lod_wpDurationBonus = 0.40; // AK47 visible time +40%
+      cs._lod_wpSizeBonus  = 0.20;   // AK47 scale +20% (visual)
+      cs._lod_wpRewardBonus= 0.25;   // AK47 reward +25%
+      cs._lod_bossDmgCut   = 0.25;   // normal boss dmg -25%
+    },
+    deactivate(cs) {
+      cs._lod_wpDurationBonus = 0;
+      cs._lod_wpSizeBonus  = 0;
+      cs._lod_wpRewardBonus= 0;
+      cs._lod_bossDmgCut   = 0;
+    }
+  },
+
+  // 10. FINAL HOUR — only activates below 20s remaining
+  {
+    name: 'FINAL HOUR',
+    color: '#ff0000',
+    activate(cs) {
+      cs._lod_dmgX2        = true;   // DMG x2
+      cs._lod_breakPowerBonus = 0.50; // BREAK power +50%
+      cs._lod_critBonus    = 0.30;   // crit +30%
+      cs._lod_timerLock    = true;   // timer cannot increase
+    },
+    deactivate(cs) {
+      cs._lod_dmgX2        = false;
+      cs._lod_breakPowerBonus = 0;
+      cs._lod_critBonus    = 0;
+      cs._lod_timerLock    = false;
+    }
+  }
+];
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+function _lodCleanupActiveState() {
+  // Clear the corruption sub-timer safely
+  clearTimeout(_lodDebtCorruptionTimer);
+  _lodDebtCorruptionTimer = null;
+  _lodDebtRequiemActive = false;
+
+  const cs = window._csState;
+  if(!cs) return;
+
+  // Deactivate all states to ensure clean slate
+  for(const state of LOD_DEBT_STATES) {
+    try { state.deactivate(cs); } catch(e) {}
+  }
+  _lodActiveStateName = '';
+
+  // Update badge
+  const badge = document.getElementById('debtActiveBadge');
+  if(badge) { badge.textContent = ''; badge.classList.remove('visible'); }
+}
+
+function _lodCleanupAllDebt() {
+  clearTimeout(_lodDebtStateTimer);
+  clearInterval(_lodContractInterval);
+  clearTimeout(_lodDebtCorruptionTimer);
+  _lodDebtStateTimer = null;
+  _lodContractInterval = null;
+  _lodDebtCorruptionTimer = null;
+  _lodDebtRequiemActive = false;
+  _lodDebtFinalHourLock = false;
+  _lodDebtStacks = 0;
+  _lodActiveStateName = '';
+
+  const cs = window._csState;
+  if(cs) {
+    for(const state of LOD_DEBT_STATES) {
+      try { state.deactivate(cs); } catch(e) {}
+    }
   }
 
-  // เลือกการ์ดใบแรกทันทีเมื่อเกมเริ่ม
-  _lodPickAndApply(true);
+  const counter = document.getElementById('debtStackCounter');
+  if(counter) counter.style.display = 'none';
+  const badge = document.getElementById('debtActiveBadge');
+  if(badge) { badge.textContent = ''; badge.classList.remove('visible'); }
+}
 
-  // แจ้งเตือน 3 วิก่อนเปลี่ยน แล้วเปลี่ยนทุก 10 วินาที
-  _csLodTimer = setInterval(()=>{
+function _lodShowDebtPopup(name, color) {
+  const popup = document.getElementById('debtStatePopup');
+  const nameEl = document.getElementById('debtStateName');
+  if(!popup || !nameEl) return;
+  nameEl.textContent = name;
+  nameEl.style.color = color;
+  nameEl.style.textShadow = `0 0 16px ${color}88, 0 0 32px ${color}44`;
+  popup.className = '';
+  void popup.offsetWidth;
+  popup.className = 'show';
+
+  // Screen aura flash
+  const aura = document.getElementById('debtAuraFlash');
+  if(aura) {
+    aura.style.background = `radial-gradient(ellipse at center, ${color}28 0%, transparent 70%)`;
+    aura.className = '';
+    void aura.offsetWidth;
+    aura.className = 'flash';
+  }
+}
+
+function _lodUpdateStackUI() {
+  const counter = document.getElementById('debtStackCounter');
+  if(!counter) return;
+  if(!window._csState || !window._csState.cs_lordofdeath) {
+    counter.style.display = 'none';
+    return;
+  }
+  counter.style.display = 'block';
+  const stacks = _lodDebtStacks;
+  const maxStacks = 5;
+  const pips = Array.from({length: maxStacks}, (_,i) => i < stacks ? '◆' : '◇').join('');
+  counter.textContent = `DEBT ${pips}`;
+  counter.style.color = stacks >= 4 ? '#ff2233' : stacks >= 2 ? '#cc88ff' : '#884499';
+}
+
+function _lodActivateDebtState() {
+  if(!gameRunning || gamePaused) return;
+  const cs = window._csState;
+  if(!cs || !cs.cs_lordofdeath) return;
+
+  // Cleanup previous state first
+  _lodCleanupActiveState();
+  clearTimeout(_lodDebtStateTimer);
+  _lodDebtStateTimer = null;
+
+  // Build candidate pool — FINAL HOUR only if <20s
+  let pool = LOD_DEBT_STATES.slice(0, 9); // all except FINAL HOUR
+  if(typeof timeLeft !== 'undefined' && timeLeft < 20) {
+    pool = LOD_DEBT_STATES; // include FINAL HOUR
+  }
+
+  // Pick random state
+  const state = pool[Math.floor(Math.random() * pool.length)];
+
+  // Gain one DEBT STACK (max 5)
+  _lodDebtStacks = Math.min(5, _lodDebtStacks + 1);
+  _lodUpdateStackUI();
+
+  // Activate the state
+  try { state.activate(cs); } catch(e) { console.warn('[LOD] state.activate error', e); return; }
+  _lodActiveStateName = state.name;
+
+  // Update badge on LOD card
+  const badge = document.getElementById('debtActiveBadge');
+  if(badge) { badge.textContent = state.name; badge.classList.add('visible'); }
+
+  // Show popup
+  _lodShowDebtPopup(state.name, state.color);
+
+  // Start CORRUPTION drain timer if this state needs it
+  if(cs._lod_corruption) {
+    _lodStartCorruptionDrain();
+  }
+
+  // Store REQUIEM flag for combo freeze
+  _lodDebtRequiemActive = !!(cs._lod_comboFrozen);
+
+  // Store FINAL HOUR lock
+  _lodDebtFinalHourLock = !!(cs._lod_timerLock);
+
+  // Schedule deactivation after 8s
+  _lodDebtStateTimer = setTimeout(() => {
+    _lodDebtStateTimer = null;
+    if(!window._csState || !window._csState.cs_lordofdeath) return;
+    _lodCleanupActiveState();
+    _lodDebtFinalHourLock = false;
+  }, 8000);
+}
+
+function _lodStartCorruptionDrain() {
+  clearTimeout(_lodDebtCorruptionTimer);
+  _lodDebtCorruptionTimer = null;
+  function _drainTick() {
+    if(!gameRunning || gamePaused) { _lodDebtCorruptionTimer = setTimeout(_drainTick, 200); return; }
+    const cs = window._csState;
+    if(!cs || !cs.cs_lordofdeath || !cs._lod_corruption) return;
+    if(typeof timeLeft !== 'undefined') timeLeft = Math.max(0, timeLeft - 1);
+    // Schedule next tick in 3s
+    _lodDebtCorruptionTimer = setTimeout(_drainTick, 3000);
+  }
+  _lodDebtCorruptionTimer = setTimeout(_drainTick, 3000);
+}
+
+function _csStartLodTimer() {
+  // Clear any existing LOD timers (uses module globals now)
+  clearInterval(_csLodTimer);
+  clearInterval(_lodContractInterval);
+  clearTimeout(_lodDebtStateTimer);
+  clearTimeout(_lodDebtCorruptionTimer);
+  _csLodTimer = null; // keep null — we use _lodContractInterval
+  _lodDebtStacks = 0;
+  _lodDebtRequiemActive = false;
+  _lodDebtFinalHourLock = false;
+
+  // Show LOD card icon (no image — uses card_of_debt image from card definition)
+  const display = $('lodCardDisplay');
+  const img     = $('lodCardImg');
+  if(display && img) {
+    display.style.display = 'flex';
+    img.className = 'rarity-mythic';
+    const lodCard = CARD_POOL.find(c => c.id === 'ld');
+    if(lodCard && lodCard.img) { img.src = lodCard.img; img.style.opacity = '1'; }
+  }
+
+  // Reset all debt state fields on current cs
+  if(window._csState) {
+    for(const state of LOD_DEBT_STATES) {
+      try { state.deactivate(window._csState); } catch(e) {}
+    }
+  }
+
+  // Update stack UI (shows empty pips)
+  _lodUpdateStackUI();
+
+  // Trigger first contract immediately
+  _lodActivateDebtState();
+
+  // Contract cycle every 10s
+  _lodContractInterval = setInterval(() => {
     if(!gameRunning || gamePaused) return;
-    showBigSplash('LORD OF DEATH','CARD CHANGING IN 3s...','#cc88ff',false);
-    _csLodSwapTimeout = setTimeout(()=>{
-      _csLodSwapTimeout = null;
-      if(!gameRunning || gamePaused) return;
-      if(!window._csState || !window._csState.cs_lordofdeath) return;
-      _lodPickAndApply(false);
-    }, 3000);
+    if(!window._csState || !window._csState.cs_lordofdeath) return;
+    _lodActivateDebtState();
   }, 10000);
 }
 
@@ -6020,6 +6430,8 @@ function _csStopAllTimers() {
   _csGloomTimer = null;
   _csResetOdFromExpiredEddga();
   _lodHideCard();
+  // LORD OF DEBT: clean up all debt state timers and modifiers
+  _lodCleanupAllDebt();
 }
 
 function _sanitizeDamage(value, source='unknown') {
@@ -6126,6 +6538,19 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_taoFunka && cs._taoFunkFeverEndTime && performance.now() < cs._taoFunkFeverEndTime) d *= 1.45;
   // INCANTATION SCAMURAI: contract burst
   if(cs.cs_incantation && cs._incantationContractEndTime && performance.now() < cs._incantationContractEndTime) d *= 1.70;
+  // LORD OF DEBT: active debt state damage modifiers
+  if(cs.cs_lordofdeath) {
+    if(cs._lod_dmgBonus)     d *= (1 + cs._lod_dmgBonus);      // CORRUPTION: +90%
+    if(cs._lod_bossDmg && isBoss)  d *= (1 + cs._lod_bossDmg); // EXECUTION: +60% boss
+    if(cs._lod_bossDmgCut && isBoss) d *= (1 - cs._lod_bossDmgCut); // HUNTER: -25% boss
+    if(cs._lod_dmgPenalty && isBoss) d *= (1 - cs._lod_dmgPenalty); // GREED: -20% boss
+    if(cs._lod_dmgX2)        d *= 2;                            // FINAL HOUR: x2
+    if(cs._lod_execLowHp && isBoss && bossHP < bossMaxHP * 0.15) {
+      // EXECUTION: crit +25% already in crit section, dmg multiplier here
+    }
+    if(cs._lod_breakDmg && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= (1 + cs._lod_breakDmg); // EXECUTION: +80% break
+    if(cs._lod_odDmgBonus && godLevel > 0) d *= (1 + cs._lod_odDmgBonus); // OVERLOAD: OD DMG +30%
+  }
   return _sanitizeDamage(Math.round(d), 'csApplyDmgMod');
 }
 
@@ -6161,6 +6586,8 @@ function csApplyCoinMod(coins) {
   if(cs.cs_gloomUnderSide && cs._gloomStacks) c *= (1 + cs._gloomStacks * 0.03);
   // DARK STAKE LORD: permanent card trade-off, not an OCA-rate change.
   if(cs.cs_darkStakeLord) c *= 0.90;
+  // LORD OF DEBT: GREED state Zeny bonus
+  if(cs.cs_lordofdeath && cs._lod_zenyBonus) c *= (1 + cs._lod_zenyBonus);
   return Math.round(c);
 }
 
@@ -6297,6 +6724,13 @@ function csOnClick(isGod) {
     // applied in hit() via charge multiplier
   }
   cs._taoComboDecayFast = (cs.cs_taoFunka && cs._taoFunkFeverEndTime && performance.now() < cs._taoFunkFeverEndTime) ? 0.25 : 0;
+  // LORD OF DEBT: OVERLOAD state — extra OD charge per click
+  if(cs.cs_lordofdeath && cs._lod_odGainBonus && godLevel === 0
+     && !cs.cs_baphomet && !cs.cs_goldenbug && !cs.cs_rsx0806) {
+    const cur = parseFloat(_el.godFill.style.width) || 0;
+    _el.godFill.style.width = Math.min(100, cur + cs._lod_odGainBonus * 100) + '%';
+    if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod) activateGodLevel(1);
+  }
 }
 
 
@@ -6405,6 +6839,11 @@ function csOnBreakStart() {
     PRESSURE.breakEndsAt += extra;
     cs._analysisBreakActive = true;
     showBigSplash('ANALYZED BREAK', 'WINDOW x2 + PROGRESS x2', '#00ffee', false);
+  }
+  // LORD OF DEBT: ANALYZED state — extend break window
+  if(cs.cs_lordofdeath && cs._lod_breakWinBonus) {
+    PRESSURE.breakDuration += cs._lod_breakWinBonus;
+    PRESSURE.breakEndsAt += cs._lod_breakWinBonus;
   }
 }
 
@@ -6589,6 +7028,12 @@ function csOnBreakSuccess() {
     cs._beelzebubCoinEndTime = performance.now() + 5000;
     showBigSplash('CORRUPTION DISCHARGED', 'ZENY x1.5 — 5s', '#cc00ff', false);
   }
+  // LORD OF DEBT: BREAK success clears all DEBT STACKS
+  if(cs.cs_lordofdeath && _lodDebtStacks > 0) {
+    _lodDebtStacks = 0;
+    _lodUpdateStackUI();
+    showBigSplash('DEBT CLEARED', 'STACKS RESET', '#cc88ff', false);
+  }
 }
 
 function csOnWpMiss() {
@@ -6607,6 +7052,11 @@ function csOnWpMiss() {
     cs._analysisStacks = Math.max(0, cs._analysisStacks - 2);
     if(cs._analysisStacks < 8) cs._analysisComplete = false;
     combo = Math.max(1, combo - 3);
+    if(typeof updateComboUI === 'function') updateComboUI();
+  }
+  // LORD OF DEBT: MASSACRE state — miss WP: combo -5
+  if(cs.cs_lordofdeath && cs._lod_missCombo) {
+    combo = Math.max(1, combo - 5);
     if(typeof updateComboUI === 'function') updateComboUI();
   }
 }
@@ -6844,6 +7294,10 @@ let _csOrcBaddyTimer = null;
 let _csOrcBaddyDrainInterval = null;
 let _csGloomTimer = null;
 let _csLodSwapTimeout = null;
+// LORD OF DEBT — debt state module variables (declared here for hoisting safety)
+// (actual declarations are in the LOD block above; these are fallback guards)
+if(typeof _lodDebtStateTimer === 'undefined')   window._lodDebtStateTimer   = null;
+if(typeof _lodContractInterval === 'undefined') window._lodContractInterval = null;
 
 // weighted pick ใช้สำหรับ LOD pool (pool เล็ก ไม่ต้องแยก tier)
 function _csWeightedPick(pool) {
@@ -7976,6 +8430,14 @@ function pressureHitTarget(x, y) {
   if(window._csState && window._csState.cs_detailed && window._csState._analysisBreakActive) {
     PRESSURE.targetHits += 1;
   }
+  // LORD OF DEBT: ANALYZED state — extra BREAK gauge per tap
+  if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_breakGaugeBonus) {
+    PRESSURE.targetHits += window._csState._lod_breakGaugeBonus;
+  }
+  // LORD OF DEBT: FINAL HOUR — extra BREAK power +50%
+  if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_breakPowerBonus) {
+    PRESSURE.targetHits += window._csState._lod_breakPowerBonus;
+  }
   const target = PRESSURE.activeTarget;
   if(target) {
     // Alternate hit/hit2 classes to restart animation without forced reflow
@@ -8262,8 +8724,23 @@ function startTimer() {
   timerInterval=setInterval(()=>{
     pressureUpdate(50);
     const baseRate = performance.now() < (PRESSURE.successFreezeUntil || 0) ? 0.18 : (PRESSURE.phase === 'break' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0));
-    const rate = baseRate * (1 + ((window._csState && window._csState._dorkTimerRateBonus) || 0) + ((window._csState && window._csState._devilingoCursedPanicActive) ? 0.15 : 0));
-    timeLeft -= 0.05 * Math.min(1.15, rate);
+    const rate = baseRate * (1 + ((window._csState && window._csState._dorkTimerRateBonus) || 0) + ((window._csState && window._csState._devilingoCursedPanicActive) ? 0.15 : 0)
+      // LORD OF DEBT: REQUIEM state — timer drains 30% faster
+      + ((window._csState && window._csState.cs_lordofdeath && window._csState._lod_timerDrain) ? window._csState._lod_timerDrain : 0)
+    );
+    const _timeDelta = 0.05 * Math.min(1.15, rate);
+    timeLeft -= _timeDelta;
+    // LORD OF DEBT: FINAL HOUR — prevent timer from increasing (clamp any external additions)
+    if(_lodDebtFinalHourLock && window._csState && window._csState.cs_lordofdeath) {
+      // FINAL HOUR only blocks increases, not the natural drain (handled by not re-adding)
+      // We store last timeLeft so external adds get cancelled on next tick
+      if(window._csState._lodFinalHourLastTime !== undefined && timeLeft > window._csState._lodFinalHourLastTime + 0.01) {
+        timeLeft = window._csState._lodFinalHourLastTime;
+      }
+    }
+    if(window._csState && window._csState.cs_lordofdeath) {
+      window._csState._lodFinalHourLastTime = timeLeft;
+    }
     if(window._csState && window._csState._executionModeEndTime && performance.now() < window._csState._executionModeEndTime){
       if(isBoss) bossHP = Math.max(1, bossHP - Math.max(1, bossMaxHP*0.0015));
       else hp = Math.max(1, hp - Math.max(1, maxHP*0.0015));
@@ -8583,13 +9060,17 @@ function processHit(e, now) {
   let _comboInc = (window._csState && window._csState.cs_goblinLeader) ? 2 : 1;
   if(window._csState && window._csState.cs_taoFunka && window._csState._taoFunkFeverEndTime && performance.now() < window._csState._taoFunkFeverEndTime) _comboInc += 1;
   if(window._csState && window._csState._rageRushEndTime && performance.now() < window._csState._rageRushEndTime) _comboInc += 2;
+  // LORD OF DEBT: MASSACRE state — +1 combo per hit
+  if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_comboGainBonus) _comboInc += window._csState._lod_comboGainBonus;
   // FABRE/STAINER: extend combo window; STING tradeoff: shorten combo window
   const _comboWindow = 220
     * (1 + (window._csState && window._csState.cs_comboDecaySlow || 0))
     * (1 - (window._csState && window._csState.cs_comboDecayFast || 0))
     * (1 - (window._csState && window._csState._turtleComboDecayFast || 0))
     * (1 - (window._csState && window._csState._taoComboDecayFast || 0))
-    * (1 - ((window._csState && window._csState._devilingoCursedPanicActive) ? 0.20 : 0));
+    * (1 - ((window._csState && window._csState._devilingoCursedPanicActive) ? 0.20 : 0))
+    // LORD OF DEBT: DEBT STACK — each stack speeds up combo decay +5%
+    * (1 - (_lodDebtStacks * 0.05));
   const _suppressReset = window._csState && (
     (window._csState._whizperComboPauseUntil && performance.now() < window._csState._whizperComboPauseUntil) ||
     window._csState._ktullanuxComboProtect ||
@@ -8597,7 +9078,9 @@ function processHit(e, now) {
     (window._csState._freeModeEndTime && performance.now() < window._csState._freeModeEndTime) ||
     (window._csState._weebFocusEndTime && performance.now() < window._csState._weebFocusEndTime) ||
     (window._csState._drakeComboLockEndTime && performance.now() < window._csState._drakeComboLockEndTime) ||
-    (window._csState.cs_comboNoReset && Math.random() < window._csState.cs_comboNoReset)
+    (window._csState.cs_comboNoReset && Math.random() < window._csState.cs_comboNoReset) ||
+    // LORD OF DEBT: REQUIEM state — combo cannot decay (suppress reset)
+    _lodDebtRequiemActive
   );
   if(isWpHit || gap < _comboWindow) combo = Math.min(combo + _comboInc, 47);
   else if(!_suppressReset) combo = 1;
@@ -8737,6 +9220,10 @@ function processHit(e, now) {
     // DETAILED: Critical Analysis — +20% crit chance for 8s
     if(window._csState.cs_detailed && window._csState._analysisCritEndTime && performance.now() < window._csState._analysisCritEndTime) _critChance += 0.25;
     if(window._csState._amogCritEndTime && performance.now() < window._csState._amogCritEndTime) _critChance += 0.20;
+    // LORD OF DEBT: EXECUTION — crit +25% when boss HP <15%
+    if(window._csState.cs_lordofdeath && window._csState._lod_execLowHp && isBoss && bossHP < bossMaxHP * 0.15) _critChance += 0.25;
+    // LORD OF DEBT: FINAL HOUR — crit +30%
+    if(window._csState.cs_lordofdeath && window._csState._lod_critBonus) _critChance += window._csState._lod_critBonus;
   }
   if(_critChance&&Math.random()<_critChance){dmg=Math.round(dmg*(_sc.critMult||2));isCrit=true;}
   // LUNATIC: crit dmg +15%
@@ -8745,6 +9232,8 @@ function processHit(e, now) {
   if(isCrit && window._csState && window._csState.cs_jakkCrit && godLevel>0) dmg = Math.round(dmg*1.15);
   // DETAILED: Critical Analysis — +25% crit dmg for 8s
   if(isCrit && window._csState && window._csState.cs_detailed && window._csState._analysisCritEndTime && performance.now() < window._csState._analysisCritEndTime) dmg = Math.round(dmg * 1.35);
+  // LORD OF DEBT: MASSACRE — crit dmg +45%
+  if(isCrit && window._csState && window._csState.cs_lordofdeath && window._csState._lod_critDmgBonus) dmg = Math.round(dmg * (1 + window._csState._lod_critDmgBonus));
   // IFRIED: build Inferno Stack on crit (max 15)
   if(isCrit && window._csState && window._csState.cs_ifriedBreak) {
     window._csState._ifriedStacks = Math.min(15, (window._csState._ifriedStacks || 0) + 1);
@@ -8884,6 +9373,16 @@ function processHit(e, now) {
         showHitNum(_p.x + 24, _p.y - 24, _shadowDmg, godLevel > 0, _shadowWillCrit);
         applyBossDamage(_shadowDmg, 'doppel-shadow');
       }, 80);
+    }
+    // LORD OF DEBT: BERSERK state — extra shadow hit 35% DMG, no combo/OD/break/recursive
+    if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_berserkShadow) {
+      const _bsBase = Math.round(_totalDmg * 0.35);
+      const _bsDmg = _sanitizeDamage(_bsBase, 'lod-berserk-shadow');
+      setTimeout(()=>{
+        if(!gameRunning || gamePaused) return;
+        showHitNum(pos2.x - 20, pos2.y - 30, _bsDmg, false, false);
+        applyBossDamage(_bsDmg, 'lod-berserk-shadow');
+      }, 120);
     }
     // boss phase / KO checks (mirrors applyDamage logic)
     if(isBoss){
@@ -9154,7 +9653,9 @@ function activateGodLevel(lv) {
 
   clearInterval(godInterval);
   godInterval=setInterval(()=>{
-    godSecondsLeft--;
+    // LORD OF DEBT: OVERLOAD state — OD drains 1.5x faster
+    const _overloadDrain = (window._csState && window._csState.cs_lordofdeath && window._csState._lod_odDrainFast) ? 2 : 1;
+    godSecondsLeft -= _overloadDrain;
     updateGodLevelUI();
     if(godSecondsLeft<=0){
       clearInterval(godInterval);
