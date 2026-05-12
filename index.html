@@ -4547,6 +4547,7 @@ function initState() {
   wpRound = 1;
   wpCompletions = 0;
   wp5FirstDone = false;
+  _lastWpPos = null; // AK47 Safe Spawn: clear previous position on new round
   _ocaDropCount = 0; // OCA Drop System — reset per-round cap
   pressureReset();
   updateWpCounter();
@@ -4591,41 +4592,133 @@ function scheduleWeakPoint() {
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
+// ══════════════════════════════════════════════════════════════
+// AK47 SAFE SPAWN SYSTEM — NOCTISAK47: OVERDRIVE RAMPAGE
+// ──────────────────────────────────────────────────────────────
+// Guarantees AK47 weakpoints:
+//   • Never clip off-screen or under UI elements
+//   • Always fully tappable on mobile portrait
+//   • Minimum distance from other active WPs
+//   • Slight bias toward boss center-mass
+//   • Accounts for WP icon size + LOD/Hydra scale bonuses
+// ══════════════════════════════════════════════════════════════
+
+function _getWpSafeRegion() {
+  const W = vvW(), H = vvH();
+
+  // ── Base icon radius (70px / 2 = 35) + glow bleed (≈8px)
+  // Scale bonus from LOD Hunter (+20%) and other card effects
+  const cs = window._csState;
+  const scaleBonus = (cs && cs.cs_lordofdeath && cs._lod_wpSizeBonus) ? cs._lod_wpSizeBonus : 0;
+  // Hydra: each head adds a subtle visual size bump (≈+6% per head)
+  const hydraBonus = (cs && cs.cs_hydra) ? Math.min(0.18, (cs._hydraHeads || 0) * 0.06) : 0;
+  const totalScale = 1 + scaleBonus + hydraBonus;
+  const iconRadius = Math.ceil(35 * totalScale) + 10; // icon half-width + glow + tap buffer
+
+  // ── Viewport-based safe padding (12% W / 15% H)
+  // Clamped so it never shrinks below icon radius on tiny screens
+  const padX = Math.max(iconRadius, Math.round(W * 0.12));
+  const padY = Math.max(iconRadius, Math.round(H * 0.15));
+
+  // ── Hard UI clearance zones (measured from actual CSS positions)
+  // topUI: abs top, roughly 110–130px on most phones at standard scale
+  const topUIClear   = Math.max(padY, 130);
+  // wpCounter: bottom:75px + slots ~50px + label ~20px → clear 155px from bottom
+  const bottomUIClear = Math.max(padY, 160);
+  // comboWrap: abs left:12px, font up to 110px wide; clear left band
+  const leftUIClear  = Math.max(padX, 0);   // padX already covers this
+  // godLevelWrap: abs right:12px, ~80px wide; clear right band
+  const rightUIClear = Math.max(padX, 0);   // padX already covers this
+  // lodCardDisplay: abs left clamp(18px,5vw,30px), bottom:80px, ~72px wide, ~96px tall
+  const lodCardRight = Math.min(30, W * 0.05) + 80; // approx right edge
+
+  return {
+    W, H,
+    iconRadius,
+    // Final spawn bounds (center of WP must stay inside)
+    minX: leftUIClear,
+    maxX: W - rightUIClear,
+    minY: topUIClear,
+    maxY: H - bottomUIClear,
+    // UI exclusion zones for mid-screen side HUD
+    // comboWrap: left 0–(120+padX)px, vertical 30%–70% of screen
+    comboZone:   { x1: 0,         x2: 120 + padX * 0.5, y1: H * 0.30, y2: H * 0.70 },
+    // godLevelWrap: right (W-100-padX)–W px, vertical 30%–70%
+    godZone:     { x1: W - 100 - padX * 0.5, x2: W,   y1: H * 0.30, y2: H * 0.70 },
+    // lodCardDisplay: bottom-left band
+    lodZone:     { x1: 0, x2: lodCardRight + 20, y1: H * 0.60, y2: H - 60 },
+    // Boss center-mass for spawn bias (vertical center of combat area)
+    bossCX: W * 0.50,
+    bossCY: H * 0.42,
+  };
+}
+
+function _wpInExclusionZone(px, py, zone) {
+  return px >= zone.x1 && px <= zone.x2 && py >= zone.y1 && py <= zone.y2;
+}
+
+// Track last accepted WP position for minimum-distance check
+let _lastWpPos = null;
+
 function showWeakPoint() {
   wpSchedule = null;
   if(!gameRunning || wpActive) return;
   if(typeof pressureIsBreak === 'function' && pressureIsBreak()) return;
+
   const wp = $('weakPoint');
-  const W = vvW();
-  const H = vvH();
-  const r = 40; // รัศมี weak point + margin
+  const reg = _getWpSafeRegion();
+  const { W, H, minX, maxX, minY, maxY, iconRadius } = reg;
 
-  // Safe zone: หลีกเลี่ยง UI
-  // topUI: top 0 → ~110px
-  // ingameCoin: top-right ~40px
-  // comboWrap: left ~100px, middle-vertical
-  // godLevelWrap: right ~80px, middle-vertical
-  // bossBar / wpCounter: bottom ~130px
-  // streakLabel: bottom ~28px
-  const safeTop    = 120;        // ใต้ top UI
-  const safeBottom = H - 150;    // เหนือ bottom UI
-  const safeLeft   = r;
-  const safeRight  = W - r;
+  // Minimum spacing between active WPs (10–14% vw)
+  const minSpacing = Math.round(W * 0.12);
 
-  let px, py, attempts = 0;
-  do {
-    px = safeLeft + Math.random() * (safeRight - safeLeft);
-    py = safeTop  + Math.random() * (safeBottom - safeTop);
-    attempts++;
-    // หลีกเลี่ยง combo (left 0–110px, ±30% height)
-    const avoidComboX = px < 110;
-    const avoidComboY = py > H*0.35 && py < H*0.65;
-    // หลีกเลี่ยง godLevel (right W-90px, ±30% height)
-    const avoidGodX   = px > W - 90;
-    const avoidGodY   = py > H*0.35 && py < H*0.65;
-    if((avoidComboX && avoidComboY) || (avoidGodX && avoidGodY)) continue;
+  // Boss-center bias: blend random position toward boss center-mass
+  // 40% pull toward (bossCX, bossCY) — keeps spawns intentional, not corner-hunting
+  const BIAS = 0.40;
+
+  let px, py;
+  let accepted = false;
+  const MAX_ATTEMPTS = 30;
+
+  for(let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    // Raw random within safe region
+    const rx = minX + Math.random() * (maxX - minX);
+    const ry = minY + Math.random() * (maxY - minY);
+
+    // Apply boss-center bias
+    const bx = rx + (reg.bossCX - rx) * BIAS * Math.random();
+    const by = ry + (reg.bossCY - ry) * BIAS * Math.random();
+
+    // Clamp back to safe region (bias can pull toward edge on narrow screens)
+    px = Math.max(minX, Math.min(maxX, bx));
+    py = Math.max(minY, Math.min(maxY, by));
+
+    // ── Reject: inside side-HUD exclusion zones
+    if(_wpInExclusionZone(px, py, reg.comboZone)) continue;
+    if(_wpInExclusionZone(px, py, reg.godZone))   continue;
+    if(_wpInExclusionZone(px, py, reg.lodZone))   continue;
+
+    // ── Reject: too close to last WP position (anti-overlap)
+    if(_lastWpPos) {
+      const dist = Math.hypot(px - _lastWpPos.x, py - _lastWpPos.y);
+      if(dist < minSpacing && attempt < MAX_ATTEMPTS - 5) continue; // relax on final attempts
+    }
+
+    accepted = true;
     break;
-  } while(attempts < 20);
+  }
+
+  // Absolute fallback: guaranteed safe center if all attempts exhausted
+  if(!accepted) {
+    px = W * 0.50;
+    py = H * 0.42;
+  }
+
+  // Clamp icon center so icon body never clips viewport edges
+  px = Math.max(iconRadius, Math.min(W - iconRadius, px));
+  py = Math.max(iconRadius, Math.min(H - iconRadius, py));
+
+  _lastWpPos = { x: px, y: py };
 
   wp.style.left = px + 'px';
   wp.style.top  = py + 'px';
@@ -4633,18 +4726,20 @@ function showWeakPoint() {
   wp.classList.remove('wp-vanish');
   wpActive = true;
 
-  // visible 1.0–1.4s (avg 1.2s) — กดทันถ้าตั้งใจ แต่ไม่มีเวลาลังเล
+  // ── Duration: 1.0–1.4s base + card bonuses (unchanged)
   const _wpDurationBonus = (window._csState && window._csState.cs_wpDuration) ? window._csState.cs_wpDuration * 1000 : 0;
   // LORD OF DEBT: HUNTER state — AK47 visible time +40%
   const _lodHunterDurBonus = (window._csState && window._csState.cs_lordofdeath && window._csState._lod_wpDurationBonus)
     ? (1000 + Math.random()*400) * window._csState._lod_wpDurationBonus : 0;
   const ttl = 1000 + Math.random()*400 + _wpDurationBonus + _lodHunterDurBonus;
-  // LORD OF DEBT: HUNTER state — AK47 size +20%
+
+  // ── Scale: LORD OF DEBT HUNTER +20% (unchanged, scale is purely visual)
   if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_wpSizeBonus) {
-    wp.style.transform = `scale(${1 + window._csState._lod_wpSizeBonus})`;
+    wp.style.transform = `translate(-50%,-50%) scale(${1 + window._csState._lod_wpSizeBonus})`;
   } else {
     wp.style.transform = '';
   }
+
   wpTimeout = setTimeout(hideWeakPoint, ttl);
 }
 
