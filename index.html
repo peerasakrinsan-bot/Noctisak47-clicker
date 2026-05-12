@@ -2531,6 +2531,128 @@
   }
   .oca-ticket-card.disabled .oca-ticket-img { animation: none !important; }
 
+  /* ══ CARD MASTERY SYSTEM ══ */
+
+  /* RUNS badge shown in collection grid, modal, and card slot */
+  .cm-runs-badge {
+    font-family: 'Oswald', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #666;
+    text-align: center;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .cm-runs-badge.glossy  { color: #aaccee; }
+  .cm-runs-badge.prismatic { color: #bb99ff; }
+
+  /* Mastery tier label (GLOSSY / PRISMATIC) shown near card name */
+  .cm-tier-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 8px;
+    letter-spacing: 3px;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+  .cm-tier-label.glossy   { color: #88ccee; }
+  .cm-tier-label.prismatic { color: #cc88ff; }
+
+  /* ── GLOSSY overlay — CSS pseudo-element shimmer ── */
+  .cm-glossy-wrap {
+    position: relative;
+  }
+  .cm-glossy-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      transparent 30%,
+      rgba(255,255,255,0.13) 48%,
+      rgba(255,255,255,0.08) 52%,
+      transparent 70%
+    );
+    background-size: 200% 200%;
+    animation: cmGlossySweep 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+  @keyframes cmGlossySweep {
+    0%   { background-position: 200% 200%; opacity: 0.6; }
+    50%  { background-position: 0%   0%;   opacity: 1;   }
+    100% { background-position: 200% 200%; opacity: 0.6; }
+  }
+
+  /* ── PRISMATIC overlay — holo foil effect ── */
+  .cm-prismatic-wrap {
+    position: relative;
+  }
+  .cm-prismatic-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      125deg,
+      transparent      20%,
+      rgba(0,255,238,0.10)  30%,
+      rgba(120,80,255,0.11) 42%,
+      rgba(0,255,238,0.09)  54%,
+      rgba(200,80,255,0.08) 66%,
+      transparent      80%
+    );
+    background-size: 300% 300%;
+    animation: cmPrismaticShift 5s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: screen;
+  }
+  @keyframes cmPrismaticShift {
+    0%   { background-position: 0%   0%;   opacity: 0.7; }
+    33%  { background-position: 100% 50%;  opacity: 1;   }
+    66%  { background-position: 50%  100%; opacity: 0.8; }
+    100% { background-position: 0%   0%;   opacity: 0.7; }
+  }
+
+  /* ── Prismatic border pulse (only on collection cards, not modals) ── */
+  .cc-card.cm-prismatic-wrap {
+    animation: cmPrismaticBorder 4s ease-in-out infinite;
+  }
+  @keyframes cmPrismaticBorder {
+    0%,100% { box-shadow: 0 0 6px rgba(170,100,255,0.35); }
+    50%     { box-shadow: 0 0 12px rgba(0,255,238,0.45), 0 0 18px rgba(170,100,255,0.25); }
+  }
+
+  /* ── Runs display row in modal ── */
+  #cardModalMasteryRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #555;
+    margin-top: 2px;
+  }
+  #cardModalMasteryRow .cm-tier-label { margin-left: 4px; }
+
+  /* Runs label in card-slot screen (under card image) */
+  .cs-card-runs {
+    font-family: 'Oswald', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #555;
+    text-align: center;
+    margin-top: 2px;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+  .cs-card-runs.glossy   { color: #88bbdd; }
+  .cs-card-runs.prismatic { color: #aa77ee; }
+
+  /* ══ END CARD MASTERY SYSTEM ══ */
+
   /* ══ OCA DROP SYSTEM ══ */
   @keyframes ocaDropAnim {
     0%   { transform: translate(-50%,-50%)  scale(0);   opacity: 0; }
@@ -2865,6 +2987,7 @@
     <img id="cardModalImg" src="" alt="">
     <div id="cardModalName"></div>
     <div id="cardModalTier"></div>
+    <div id="cardModalMasteryRow"></div>
     <div id="cardModalEffect"></div>
     <div id="cardModalTradeoff"></div>
     <button class="back-btn" onclick="closeCardModal()" style="margin-top:16px;"><span class="back-arrow"></span>CLOSE</button>
@@ -3480,7 +3603,8 @@ function defaultSave() {
            ocaTickets:{ standard:0, premium:0, elite:0 },
            dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
            settings:normalizeSettings(gameSettings),
-           cloudPlayerId:null };
+           cloudPlayerId:null,
+           cardRuns:{} };
 }
 
 function normalizeSaveData(d) {
@@ -3509,6 +3633,9 @@ function normalizeSaveData(d) {
   d.quitPenalty = false;
   d.unlockedCards = _migrateIds(d.unlockedCards);
   if (d.savedCards) d.savedCards = _migrateIds(d.savedCards);
+  // cardRuns: { [cardId]: number } — default to {} for old saves, values clamped to 0
+  if (!d.cardRuns || typeof d.cardRuns !== 'object' || Array.isArray(d.cardRuns)) d.cardRuns = {};
+  Object.keys(d.cardRuns).forEach(k => { d.cardRuns[k] = Math.max(0, Math.floor(Number(d.cardRuns[k]) || 0)); });
   return d;
 }
 
@@ -5870,6 +5997,8 @@ function openCardSlot(onChosen) {
 
     div.addEventListener('click', () => _csSelectCard(div, card));
     div.addEventListener('touchstart', e => { e.preventDefault(); _csSelectCard(div, card); }, { passive:false });
+    // ── Card Mastery: add runs label + visual overlay
+    cmDecorateCardSlotCard(div, card);
     wrap.appendChild(div);
   });
 }
@@ -6468,6 +6597,8 @@ function _showActiveCard(card) {
   } else {
     img.style.opacity = '0';
   }
+  // ── Card Mastery: apply visual to in-game card thumbnail
+  cmApplyVisual(img, card.id);
 }
 
 function _lodHideCard() {
@@ -7723,6 +7854,8 @@ function renderCardCollection() {
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
       img.onerror = ()=>{ img.style.opacity='0'; };
       div.appendChild(img);
+      // ── Card Mastery: runs badge + visual overlay
+      cmDecorateCollectionCard(div, card);
       // tap เท่านั้น — ไม่ใช่ long press หรือ scroll
       let _tapStartX=0, _tapStartY=0, _tapStartT=0;
       div.addEventListener('touchstart', e=>{
@@ -7756,6 +7889,8 @@ function openCardModal(card) {
   const tierEl = $('cardModalTier');
   tierEl.textContent = card.rarity.toUpperCase();
   tierEl.className = 'tier-'+card.rarity;
+  // ── Card Mastery: update runs + visual
+  cmUpdateModalMastery(card.id);
   const rawDesc = card.fullDescription || card.effect || '';
   const formattedDesc = rawDesc
     .replace(/\n/g, '<br>')
@@ -8928,6 +9063,8 @@ function endGame(opts = {}) {
   save.quitPenalty = false;
   save.savedCards = null;
   doSave();
+  // ── Card Mastery: record this run for the active card (time-up / game over only)
+  if (activeCard && activeCard.id) cmRecordRun(activeCard.id);
   tryClaimDailyReward();
   _csLastCards = null;
 
@@ -10791,6 +10928,110 @@ function showOcaDropToast(tier) {
 </script>
 
 <script>
+// ══ CARD MASTERY SYSTEM ══
+// Cosmetic-only. No stat changes. No balance impact.
+// Tracks runs per card: NORMAL (0-9) → GLOSSY (10+) → PRISMATIC (30+)
+// ─────────────────────────────────────────────────────────────────────
+
+const CM_TIER = { NORMAL: 'normal', GLOSSY: 'glossy', PRISMATIC: 'prismatic' };
+const CM_GLOSSY_THRESHOLD   = 10;
+const CM_PRISMATIC_THRESHOLD = 30;
+
+// Returns how many runs this card has (safe, defaults to 0 for old saves)
+function cmGetRuns(cardId) {
+  if (!save.cardRuns || typeof save.cardRuns !== 'object') save.cardRuns = {};
+  return Math.max(0, Math.floor(Number(save.cardRuns[cardId]) || 0));
+}
+
+// Returns CM_TIER string for a card id
+function cmGetTier(cardId) {
+  const runs = cmGetRuns(cardId);
+  if (runs >= CM_PRISMATIC_THRESHOLD) return CM_TIER.PRISMATIC;
+  if (runs >= CM_GLOSSY_THRESHOLD)    return CM_TIER.GLOSSY;
+  return CM_TIER.NORMAL;
+}
+
+// Called at the end of a valid run (die / game over / normal time-up).
+// DO NOT call on: instant restart, menu leave, card swap, pause-quit.
+function cmRecordRun(cardId) {
+  if (!cardId) return;
+  if (!save.cardRuns || typeof save.cardRuns !== 'object') save.cardRuns = {};
+  const prev = cmGetRuns(cardId);
+  save.cardRuns[cardId] = prev + 1;
+  // save is already persisted by endGame's doSave() call above this;
+  // we deliberately do NOT call doSave() again here to avoid double-write.
+}
+
+// Builds an HTML string showing "RUNS: X" plus optional tier label
+function cmRunsHtml(cardId, classes) {
+  const runs = cmGetRuns(cardId);
+  const tier  = cmGetTier(cardId);
+  const clsList = (classes || '') + (tier !== CM_TIER.NORMAL ? ' ' + tier : '');
+  let html = `<span class="cm-runs-badge ${clsList.trim()}">RUNS: ${runs}</span>`;
+  if (tier !== CM_TIER.NORMAL) {
+    html += `<span class="cm-tier-label ${tier}">${tier.toUpperCase()}</span>`;
+  }
+  return html;
+}
+
+// Apply / remove mastery CSS classes to a card wrapper element (img or div)
+// wrapEl should be the element that gets the ::after pseudo-overlay
+function cmApplyVisual(wrapEl, cardId) {
+  if (!wrapEl) return;
+  wrapEl.classList.remove('cm-glossy-wrap', 'cm-prismatic-wrap');
+  const tier = cmGetTier(cardId);
+  if (tier === CM_TIER.PRISMATIC) wrapEl.classList.add('cm-prismatic-wrap');
+  else if (tier === CM_TIER.GLOSSY) wrapEl.classList.add('cm-glossy-wrap');
+}
+
+// ── Collection grid: append runs badge below card image ──
+// Called from renderCardCollection, patches each unlocked cc-card div.
+function cmDecorateCollectionCard(ccCardDiv, card) {
+  if (!ccCardDiv || !card) return;
+  cmApplyVisual(ccCardDiv, card.id);
+  // remove old badge if re-rendering
+  const old = ccCardDiv.querySelector('.cm-runs-badge');
+  if (old) old.remove();
+  const badge = document.createElement('div');
+  badge.style.cssText =
+    'position:absolute;bottom:3px;left:0;right:0;text-align:center;' +
+    'z-index:2;pointer-events:none;';
+  const tier = cmGetTier(card.id);
+  badge.innerHTML = `<span class="cm-runs-badge ${tier !== CM_TIER.NORMAL ? tier : ''}" style="font-size:8px;letter-spacing:1.5px;">RUNS: ${cmGetRuns(card.id)}</span>`;
+  ccCardDiv.style.position = 'relative';
+  ccCardDiv.appendChild(badge);
+}
+
+// ── Card Modal: populate mastery row ──
+function cmUpdateModalMastery(cardId) {
+  const row = document.getElementById('cardModalMasteryRow');
+  if (!row) return;
+  row.innerHTML = cmRunsHtml(cardId, '');
+  // Apply visual to the modal image wrapper
+  cmApplyVisual(document.getElementById('cardModalImg'), cardId);
+}
+
+// ── Card Slot Screen: append runs label under each cs-card ──
+function cmDecorateCardSlotCard(csCardDiv, card) {
+  if (!csCardDiv || !card) return;
+  // remove old
+  const old = csCardDiv.querySelector('.cs-card-runs');
+  if (old) old.remove();
+  const tier = cmGetTier(card.id);
+  const runs = cmGetRuns(card.id);
+  const lbl = document.createElement('div');
+  lbl.className = 'cs-card-runs' + (tier !== CM_TIER.NORMAL ? ' ' + tier : '');
+  lbl.textContent = 'RUNS: ' + runs;
+  csCardDiv.appendChild(lbl);
+  cmApplyVisual(csCardDiv.querySelector('.cs-card-img'), card.id);
+}
+
+// ── In-game active card display (lodCardDisplay / lodCardImg) ──
+function cmUpdateActiveCardDisplay(cardId) {
+  cmApplyVisual(document.getElementById('lodCardImg'), cardId);
+}
+// ══ END CARD MASTERY SYSTEM ══
+
 // ══ PWA: Service Worker ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
