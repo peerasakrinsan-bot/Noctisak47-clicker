@@ -2531,6 +2531,109 @@
   }
   .oca-ticket-card.disabled .oca-ticket-img { animation: none !important; }
 
+  /* ══ CARD MASTERY SYSTEM ══ */
+
+  /* ── GLOSSY overlay — CSS pseudo-element shimmer ── */
+  .cm-glossy-wrap {
+    position: relative;
+  }
+  .cm-glossy-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      transparent 30%,
+      rgba(255,255,255,0.13) 48%,
+      rgba(255,255,255,0.08) 52%,
+      transparent 70%
+    );
+    background-size: 200% 200%;
+    animation: cmGlossySweep 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+  @keyframes cmGlossySweep {
+    0%   { background-position: 200% 200%; opacity: 0.6; }
+    50%  { background-position: 0%   0%;   opacity: 1;   }
+    100% { background-position: 200% 200%; opacity: 0.6; }
+  }
+
+  /* ── PRISMATIC overlay — holo foil effect ── */
+  .cm-prismatic-wrap {
+    position: relative;
+  }
+  .cm-prismatic-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      125deg,
+      transparent      20%,
+      rgba(0,255,238,0.10)  30%,
+      rgba(120,80,255,0.11) 42%,
+      rgba(0,255,238,0.09)  54%,
+      rgba(200,80,255,0.08) 66%,
+      transparent      80%
+    );
+    background-size: 300% 300%;
+    animation: cmPrismaticShift 5s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: screen;
+  }
+  @keyframes cmPrismaticShift {
+    0%   { background-position: 0%   0%;   opacity: 0.7; }
+    33%  { background-position: 100% 50%;  opacity: 1;   }
+    66%  { background-position: 50%  100%; opacity: 0.8; }
+    100% { background-position: 0%   0%;   opacity: 0.7; }
+  }
+
+  /* ── Prismatic border pulse (collection cards only) ── */
+  .cc-card.cm-prismatic-wrap {
+    animation: cmPrismaticBorder 4s ease-in-out infinite;
+  }
+  @keyframes cmPrismaticBorder {
+    0%,100% { box-shadow: 0 0 6px rgba(170,100,255,0.35); }
+    50%     { box-shadow: 0 0 12px rgba(0,255,238,0.45), 0 0 18px rgba(170,100,255,0.25); }
+  }
+
+  /* ── Evolution reveal flash (one-shot on tier unlock) ── */
+  @keyframes cmEvolveFlash {
+    0%   { opacity: 0; transform: scale(0.85); }
+    15%  { opacity: 1; transform: scale(1.05); }
+    80%  { opacity: 1; transform: scale(1);    }
+    100% { opacity: 0; transform: scale(1);    }
+  }
+  #cmEvolveToast {
+    position: fixed;
+    bottom: 22%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  #cmEvolveToast.show {
+    display: flex;
+    animation: cmEvolveFlash 2.2s ease-out forwards;
+  }
+  #cmEvolveToastMain {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #fff;
+  }
+  #cmEvolveToast.glossy  #cmEvolveToastMain { color: #aaddf5; text-shadow: 0 0 12px #88ccee; }
+  #cmEvolveToast.prismatic #cmEvolveToastMain { color: #cc99ff; text-shadow: 0 0 14px #9955ff; }
+
+  /* ══ END CARD MASTERY SYSTEM ══ */
+
   /* ══ OCA DROP SYSTEM ══ */
   @keyframes ocaDropAnim {
     0%   { transform: translate(-50%,-50%)  scale(0);   opacity: 0; }
@@ -3001,6 +3104,9 @@
 <div id="bigSplashText">
   <div class="splash-main" id="splashMain"></div>
   <div class="splash-sub"  id="splashSub"></div>
+</div>
+<div id="cmEvolveToast">
+  <div id="cmEvolveToastMain"></div>
 </div>
 
 <div id="streakLabel">TAP FAST</div>
@@ -3480,7 +3586,8 @@ function defaultSave() {
            ocaTickets:{ standard:0, premium:0, elite:0 },
            dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
            settings:normalizeSettings(gameSettings),
-           cloudPlayerId:null };
+           cloudPlayerId:null,
+           cardRuns:{} };
 }
 
 function normalizeSaveData(d) {
@@ -3509,6 +3616,9 @@ function normalizeSaveData(d) {
   d.quitPenalty = false;
   d.unlockedCards = _migrateIds(d.unlockedCards);
   if (d.savedCards) d.savedCards = _migrateIds(d.savedCards);
+  // cardRuns: { [cardId]: number } — default to {} for old saves, values clamped to 0
+  if (!d.cardRuns || typeof d.cardRuns !== 'object' || Array.isArray(d.cardRuns)) d.cardRuns = {};
+  Object.keys(d.cardRuns).forEach(k => { d.cardRuns[k] = Math.max(0, Math.floor(Number(d.cardRuns[k]) || 0)); });
   return d;
 }
 
@@ -4928,9 +5038,16 @@ function triggerBombExplosion() {
 
   updateUI();
 
-  // FREEONI: AK47 complete → OD timer +2s (if OD active)
-  if(window._csState && window._csState.cs_freeoni && godLevel > 0) {
-    godSecondsLeft += 2;
+  // FREEONI: AK47 complete → OD +35% (if inactive) OR OD timer +2s (if active)
+  if(window._csState && window._csState.cs_freeoni) {
+    if(godLevel > 0) {
+      godSecondsLeft += 2;
+    } else {
+      const _fBar = _el.godFill;
+      const _fCur = parseFloat(_fBar.style.width) || 0;
+      _fBar.style.width = Math.min(100, _fCur + 35) + '%';
+      if(parseFloat(_fBar.style.width) >= 100 && canEnterGod) activateGodLevel(1);
+    }
   }
   // HYDRA: gain head on every AK47 complete (max 3)
   if(window._csState && window._csState.cs_hydra) {
@@ -5167,9 +5284,9 @@ const CARD_POOL = [
     apply(s){ s.cs_hydra = true; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
-    effect:'AK47 Complete:<br>OD <strong>+35%</strong> + OD time <strong>+2s</strong> + Speed burst<br><br>OD: AK47 hit = DMG Stack <strong>+4%</strong> (max <strong>+40%</strong>)<br><br>BREAK: Rage <strong>-12</strong> + <strong>FREE MODE</strong> 5s<br>FREE MODE: Combo ไม่ลด + OD gain <strong>+50%</strong>', tradeoff:null,
-    shortDescription:'AK47 ครบ: OD +35% + ยืดเวลา\nระหว่าง OD ตี AK47 สะสม DMG Stack',
-    fullDescription:'[AK47 COMPLETE]\n• OD +35%\n• OD time +2 วิ\n• Speed burst ชั่วคราว\n\n[ระหว่าง OD]\nตี AK47: DMG Stack +4% (สูงสุด +40%)\n\n[BREAK สำเร็จ]\n• ล้าง Rage -12\n• FREE MODE 5 วิ\n\n[FREE MODE]\n• Combo ไม่ลด\n• OD gain +50%',
+    effect:'AK47 Complete:<br>OD inactive → <strong>OD +35%</strong> ชาร์จ | OD active → <strong>+2s</strong><br><br>OD: AK47 hit = DMG Stack <strong>+4%</strong> (max <strong>+40%</strong>)<br><br>BREAK: Rage <strong>-12</strong> + <strong>FREE MODE</strong> 5s<br>FREE MODE: Combo ไม่ลด + OD ชาร์จ <strong>+50%/คลิก</strong>', tradeoff:null,
+    shortDescription:'AK47 ครบ: OD +35% (หรือ +2s ถ้า OD กำลังใช้)\nระหว่าง OD ตี AK47 สะสม DMG Stack',
+    fullDescription:'[AK47 COMPLETE]\n• OD ไม่ active: OD +35%\n• OD active: OD time +2 วิ\n\n[ระหว่าง OD]\nตี AK47: DMG Stack +4% (สูงสุด +40%)\n\n[BREAK สำเร็จ]\n• ล้าง Rage -12\n• FREE MODE 5 วิ\n\n[FREE MODE]\n• Combo ไม่ลด\n• OD ชาร์จ +50% ต่อคลิก',
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
     effect:'Combo ≥25 เปิด SHOGUN STANCE 6วิ: DMG +45% | BREAK DMG +25% | KO +250', tradeoff:'ระหว่าง STANCE คอมโบร่วงเร็วขึ้น 35%',
@@ -5391,9 +5508,9 @@ const CARD_POOL = [
     apply(s){ s.cs_taoFunka=true; }
   },
   { id:'dc',    name:'DRUNKULA CARD',        img:'cards/drunkula.png',     rarity:'elite',
-    shortDescription:'Crit มีลุ้น BLOOD DRINK\nติดแล้วได้ OD+Zeny แต่ติดคูลดาวน์',
-    effect:'Crit มีโอกาส <strong>25%</strong> ติด <strong>BLOOD DRINK</strong><br>BLOOD DRINK: OD <strong>+3%</strong> และ Zeny <strong>+8</strong> (ICD 0.8 วิ)', tradeoff:null,
-    fullDescription:'[BLOOD DRINK]\nทุก Crit: โอกาส 25%\n• OD +3%\n• Zeny +8\n(CD 0.8 วิ)\n\n[PASSIVE]\nCrit DMG +35%',
+    shortDescription:'[PASSIVE] Crit DMG +35%\nCrit มีลุ้น BLOOD DRINK → OD+Zeny',
+    effect:'[PASSIVE] Crit DMG <strong>+35%</strong><br><br>Crit มีโอกาส <strong>25%</strong> ติด <strong>BLOOD DRINK</strong><br>BLOOD DRINK: OD <strong>+3%</strong> และ Zeny <strong>+8</strong> (ICD 0.8 วิ)', tradeoff:null,
+    fullDescription:'[PASSIVE]\nCrit DMG +35%\n\n[BLOOD DRINK]\nทุก Crit: โอกาส 25%\n• OD +3%\n• Zeny +8\n(CD 0.8 วิ)',
     balanceNote:'REWORK - สายคริตสุ่มจังหวะ เน้นเร่ง OD แบบมีเพดานผ่าน ICD',
     apply(s){ s.cs_drunkula=true; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.35; }
   },
@@ -5413,7 +5530,7 @@ const CARD_POOL = [
   },
   { id:'dl',   name:'DORK LORD CARD',      img:'cards/dork_lord.png',   rarity:'elite',
     shortDescription:'ทุก 15วิได้ NIGHT STACK\nยิ่งแรง แต่เวลาเดินเร็วขึ้น',
-    effect:'ทุก 15วิรับ NIGHT STACK (สูงสุด 5): ต่อ Stack DMG +6% / BREAK DMG +4%', tradeoff:'ต่อ Stack timer speed +3% (สูงสุด +15%)',
+    effect:'ทุก 15วิรับ NIGHT STACK (สูงสุด 5): ต่อ Stack DMG +6% / BREAK DMG +4%', tradeoff:'ต่อ Stack timer speed +3% (สูงสุด +15%) | Zeny per KO <strong>-15%</strong>',
     fullDescription:'[NIGHT STACK]\nทุก 15 วิ: +1 Stack (สูงสุด 5)\n\nต่อ Stack:\n• DMG +6%\n• BREAK DMG +4%',
     balanceNote:'REWORK - การ์ดคอร์รัปชันสะสมแบบมีเพดาน ป้องกันยืดเวลาเกินขอบเขต',
     apply(s){ s.cs_dorkLord = true; }
@@ -5530,9 +5647,9 @@ const CARD_POOL = [
 
   // ── ELITE ใหม่ ──
   { id:'mi',   name:'MINORAGE CARD',      img:'cards/minorage.png',    rarity:'elite',
-    effect:'>70% HP: DMG <strong>+40%</strong> + Combo ไม่ลด<br>>50% HP: คลิกมีโอกาส <strong>20%</strong> ได้ Rage Stack<br>>30% HP: Crit DMG <strong>+50%</strong><br><br>ผ่าน 70/50/30 เร็วพอ: <strong>RAGE RUSH</strong> 4s<br>Combo <strong>+2/คลิก</strong> + Crit <strong>+25%</strong>', tradeoff:null,
+    effect:'>70% HP: DMG <strong>+40%</strong> + Combo ไม่ลด<br>>50% HP: คลิกมีโอกาส <strong>20%</strong> ได้ Rage Stack (+4%/stack)<br>≤30% HP: DMG <strong>+50%</strong><br><br>ผ่าน 70/50/30 เร็วพอ: <strong>RAGE RUSH</strong> 4s<br>Combo <strong>+2/คลิก</strong> + Crit <strong>+25%</strong>', tradeoff:null,
     shortDescription:'HP สูง บุกหนัก — ผ่านแต่ละเฟสเร็วพอ ปลด RAGE RUSH',
-    fullDescription:'[HP > 70%]\nDMG +40% + Combo ไม่ลด\n\n[HP > 50%]\nคลิกมีโอกาส 20% ได้ Rage Stack\n\n[HP > 30%]\nCrit DMG +50%\n\n[RAGE RUSH]\nผ่าน 3 เฟสเร็วพอ — เปิด 4 วิ\n• Combo +2 ต่อคลิก\n• Crit +25%',
+    fullDescription:'[HP > 70%]\nDMG +40% + Combo ไม่ลด\n\n[HP > 50%]\nคลิกมีโอกาส 20% ได้ Rage Stack (+4%/stack สูงสุด 5)\n\n[HP ≤ 30%]\nDMG +50%\n\n[RAGE RUSH]\nผ่าน 3 เฟสเร็วพอ — เปิด 4 วิ\n• Combo +2 ต่อคลิก\n• Crit +25%',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_minorous = true; }
   },
@@ -5596,8 +5713,8 @@ const CARD_POOL = [
   },
   { id:'vr', name:'VALKYRIZZ CARD', img:'cards/valkyrizz.png', rarity:'mythic',
     effect:'AK47ครบ/BREAK: สุ่ม effect ใหม่จาก <strong>ELITE pool</strong>', tradeoff:null,
-    shortDescription:'AK47 ครบ / BREAK สำเร็จ\nสุ่มรับพลัง ELITE ใหม่',
-    fullDescription:'[VALKYRIE SWAP]\nทุกครั้งที่ AK47 ครบ\nหรือ BREAK สำเร็จ\n\nสุ่มรับพลัง Elite card\nแบบชั่วคราว 1 อย่าง',
+    shortDescription:'AK47 ครบ / BREAK สำเร็จ\nสุ่มรับพลัง ELITE ใหม่ (ถาวรจนกว่าจะ swap ครั้งต่อไป)',
+    fullDescription:'[VALKYRIE SWAP]\nทุกครั้งที่ AK47 ครบ\nหรือ BREAK สำเร็จ\n\nสุ่มรับพลัง Elite card 1 อย่าง\nมีผลถาวรจนกว่าจะ swap ครั้งถัดไป',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_valkyrieRandgris = true; }
   },
@@ -5655,9 +5772,9 @@ const CARD_POOL = [
 
   // ── ELITE NEW (v2) ──
   { id:'ghp', name:'GHOSTPING CARD',       img:'cards/ghostping_card.png',      rarity:'elite',
-    shortDescription:'พลาด AK47 ช่วยเร่ง BREAK และบูสต์ DMG ตอน BREAK',
-    effect:'เมื่อพลาด AK47:<br>BREAK จะมาถึงเร็วขึ้น <strong>1.5 วิ</strong><br>(สูงสุด 6 ครั้ง/รอบ)<br><br>BREAK:<br>DMG <strong>+55%</strong><br>BREAK progress <strong>+15%</strong>', tradeoff:null,
-    fullDescription:'[พลาด AK47]\nBREAK มาถึงเร็วขึ้น 1.5 วิ\n(สูงสุด 6 ครั้ง ต่อรอบ BREAK)\n\n[ระหว่าง BREAK]\n• DMG +55%\n• BREAK gauge +15% ต่อคลิก',
+    shortDescription:'พลาด AK47 แต่ละลูก ช่วยเร่ง BREAK และบูสต์ DMG ตอน BREAK',
+    effect:'เมื่อพลาด AK47 แต่ละลูก:<br>BREAK จะมาถึงเร็วขึ้น <strong>1.5 วิ</strong><br>(สูงสุด 6 ลูก/รอบ BREAK)<br><br>BREAK:<br>DMG <strong>+55%</strong><br>BREAK progress <strong>+15%</strong>', tradeoff:null,
+    fullDescription:'[พลาด AK47 ลูก]\nBREAK มาถึงเร็วขึ้น 1.5 วิ ต่อลูก\n(สูงสุด 6 ลูก ต่อรอบ BREAK)\nnับ reset เมื่อ BREAK เริ่ม\n\n[ระหว่าง BREAK]\n• DMG +55%\n• BREAK gauge +15% ต่อคลิก',
     balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
     apply(s){ s.cs_ghostping=true; }
   },
@@ -5870,6 +5987,8 @@ function openCardSlot(onChosen) {
 
     div.addEventListener('click', () => _csSelectCard(div, card));
     div.addEventListener('touchstart', e => { e.preventDefault(); _csSelectCard(div, card); }, { passive:false });
+    // ── Card Mastery: add runs label + visual overlay
+    cmDecorateCardSlotCard(div, card);
     wrap.appendChild(div);
   });
 }
@@ -6468,6 +6587,8 @@ function _showActiveCard(card) {
   } else {
     img.style.opacity = '0';
   }
+  // ── Card Mastery: apply visual to in-game card thumbnail
+  cmApplyVisual(img, card.id);
 }
 
 function _lodHideCard() {
@@ -6616,6 +6737,8 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_detailed && typeof pressureIsBreak === 'function' && pressureIsBreak() && cs._analysisStacks) d *= (1 + (cs._analysisStacks * 0.04));
   // GLOOM UNDER SIDE: run-scaling dmg bonus (+3% per stack, max +60%)
   if(cs.cs_gloomUnderSide && cs._gloomStacks) d *= (1 + cs._gloomStacks * 0.03);
+  // DORK LORD: NIGHT STACK dmg +6%/stack (max 5 stacks = +30%)
+  if(cs.cs_dorkLord && cs._dorkNightStacks) d *= (1 + cs._dorkNightStacks * 0.06);
   // SALVAGE: during BREAK → dmg +15% additional
   if(cs.cs_salvageBreak && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= 1.15;
   // HYDRA: BREAK DMG +10% per Head (max 3 heads = +30%)
@@ -7723,6 +7846,8 @@ function renderCardCollection() {
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
       img.onerror = ()=>{ img.style.opacity='0'; };
       div.appendChild(img);
+      // ── Card Mastery: runs badge + visual overlay
+      cmDecorateCollectionCard(div, card);
       // tap เท่านั้น — ไม่ใช่ long press หรือ scroll
       let _tapStartX=0, _tapStartY=0, _tapStartT=0;
       div.addEventListener('touchstart', e=>{
@@ -7756,6 +7881,8 @@ function openCardModal(card) {
   const tierEl = $('cardModalTier');
   tierEl.textContent = card.rarity.toUpperCase();
   tierEl.className = 'tier-'+card.rarity;
+  // ── Card Mastery: update runs + visual
+  cmUpdateModalMastery(card.id);
   const rawDesc = card.fullDescription || card.effect || '';
   const formattedDesc = rawDesc
     .replace(/\n/g, '<br>')
@@ -8928,6 +9055,9 @@ function endGame(opts = {}) {
   save.quitPenalty = false;
   save.savedCards = null;
   doSave();
+  // ── Card Mastery: record this run for the active card (time-up / game over only)
+  let _cmNewTier = null;
+  if (activeCard && activeCard.id) _cmNewTier = cmRecordRun(activeCard.id);
   tryClaimDailyReward();
   _csLastCards = null;
 
@@ -8953,6 +9083,8 @@ function endGame(opts = {}) {
     $('res-highscore').style.color = isNewRecord ? 'var(--gold)' : '#555';
     $('resultScreen').style.display = 'flex';
     updateShopCoinUI(); _syncSoundBtns();
+    // ── Card Mastery: show evolution reveal if tier changed this run
+    if (_cmNewTier) setTimeout(() => cmShowEvolutionReveal(_cmNewTier), 800);
   }
 
   // score >= 10k → ลุ้นการ์ด
@@ -9359,6 +9491,8 @@ function processHit(e, now) {
     if(window._csState.cs_jakkCrit && godLevel>0) _critChance += 0.20;
     // JACKED: +8% crit during BREAK (even outside OD)
     if(window._csState.cs_jakkCrit && godLevel===0 && typeof pressureIsBreak === 'function' && pressureIsBreak()) _critChance += 0.08;
+    // MISSSTRESS: Crit +10% during OD
+    if(window._csState.cs_mistress && godLevel > 0) _critChance += 0.10;
     // SOLDIER SKELLYTON: +10% crit for 5s after WP collect
     if(window._csState.cs_skellytonWp && window._csState._skellytonCritEndTime && performance.now() < window._csState._skellytonCritEndTime) _critChance += 0.10;
     // IFRIED: +10% crit during BREAK (legacy bonus kept for feel)
@@ -10791,6 +10925,105 @@ function showOcaDropToast(tier) {
 </script>
 
 <script>
+// ══ CARD MASTERY SYSTEM ══
+// Hidden progression. Backend tracks runs. Only visuals are revealed.
+// Players discover NORMAL → GLOSSY → PRISMATIC organically.
+// ─────────────────────────────────────────────────────────────────────
+
+const CM_TIER = { NORMAL: 'normal', GLOSSY: 'glossy', PRISMATIC: 'prismatic' };
+const CM_GLOSSY_THRESHOLD    = 10;
+const CM_PRISMATIC_THRESHOLD = 30;
+
+// ── Backend: run count read/write ──────────────────────────────────────
+
+function cmGetRuns(cardId) {
+  if (!save.cardRuns || typeof save.cardRuns !== 'object') save.cardRuns = {};
+  return Math.max(0, Math.floor(Number(save.cardRuns[cardId]) || 0));
+}
+
+function cmGetTier(cardId) {
+  const runs = cmGetRuns(cardId);
+  if (runs >= CM_PRISMATIC_THRESHOLD) return CM_TIER.PRISMATIC;
+  if (runs >= CM_GLOSSY_THRESHOLD)    return CM_TIER.GLOSSY;
+  return CM_TIER.NORMAL;
+}
+
+// Records a run and returns the new tier if an evolution just occurred,
+// or null if no tier change happened.
+function cmRecordRun(cardId) {
+  if (!cardId) return null;
+  if (!save.cardRuns || typeof save.cardRuns !== 'object') save.cardRuns = {};
+  const prevRuns = cmGetRuns(cardId);
+  const prevTier = cmGetTier(cardId);
+  save.cardRuns[cardId] = prevRuns + 1;
+  const newTier = cmGetTier(cardId);
+  return (newTier !== prevTier) ? newTier : null;
+}
+
+// ── Visual: apply mastery overlay class to an element ─────────────────
+
+function cmApplyVisual(wrapEl, cardId) {
+  if (!wrapEl) return;
+  wrapEl.classList.remove('cm-glossy-wrap', 'cm-prismatic-wrap');
+  const tier = cmGetTier(cardId);
+  if (tier === CM_TIER.PRISMATIC)    wrapEl.classList.add('cm-prismatic-wrap');
+  else if (tier === CM_TIER.GLOSSY)  wrapEl.classList.add('cm-glossy-wrap');
+}
+
+// ── UI: collection grid — visual only, no text ────────────────────────
+
+function cmDecorateCollectionCard(ccCardDiv, card) {
+  if (!ccCardDiv || !card) return;
+  ccCardDiv.style.position = 'relative';
+  cmApplyVisual(ccCardDiv, card.id);
+}
+
+// ── UI: card modal — visual on image only, no text row ────────────────
+
+function cmUpdateModalMastery(cardId) {
+  cmApplyVisual(document.getElementById('cardModalImg'), cardId);
+}
+
+// ── UI: card slot screen — visual on img only, no runs label ──────────
+
+function cmDecorateCardSlotCard(csCardDiv, card) {
+  if (!csCardDiv || !card) return;
+  cmApplyVisual(csCardDiv.querySelector('.cs-card-img'), card.id);
+}
+
+// ── UI: in-game active card display ───────────────────────────────────
+
+function cmUpdateActiveCardDisplay(cardId) {
+  cmApplyVisual(document.getElementById('lodCardImg'), cardId);
+}
+
+// ── Discovery moment: subtle toast on tier evolution ──────────────────
+// Called from endGame after cmRecordRun returns a new tier.
+// Fires after result screen is visible so it overlays cleanly.
+
+let _cmEvolveToastTimer = null;
+
+function cmShowEvolutionReveal(newTier) {
+  const toast = document.getElementById('cmEvolveToast');
+  const main  = document.getElementById('cmEvolveToastMain');
+  if (!toast || !main) return;
+
+  // Clear any existing animation cleanly
+  if (_cmEvolveToastTimer) { clearTimeout(_cmEvolveToastTimer); _cmEvolveToastTimer = null; }
+  toast.className = '';
+  void toast.offsetWidth; // reflow
+
+  main.textContent = newTier === CM_TIER.PRISMATIC ? 'CARD EVOLVED' : 'CARD EVOLVED';
+  toast.className = 'show ' + newTier;
+
+  _cmEvolveToastTimer = setTimeout(() => {
+    toast.className = '';
+    _cmEvolveToastTimer = null;
+  }, 2400);
+}
+// ══ END CARD MASTERY SYSTEM ══
+</script>
+
 // ══ PWA: Service Worker ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
