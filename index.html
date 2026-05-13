@@ -5284,9 +5284,11 @@ const CARD_POOL = [
     apply(s){ s.cs_hydra = true; }
   },
   { id:'ph',   name:'FREEONI CARD',      img:'cards/freeoni.png',    rarity:'elite',
-    effect:'AK47 Complete:<br>OD inactive → <strong>OD +35%</strong> ชาร์จ | OD active → <strong>+2s</strong><br><br>OD: AK47 hit = DMG Stack <strong>+4%</strong> (max <strong>+40%</strong>)<br><br>BREAK: Rage <strong>-12</strong> + <strong>FREE MODE</strong> 5s<br>FREE MODE: Combo ไม่ลด + OD ชาร์จ <strong>+50%/คลิก</strong>', tradeoff:null,
-    shortDescription:'AK47 ครบ: OD +35% (หรือ +2s ถ้า OD กำลังใช้)\nระหว่าง OD ตี AK47 สะสม DMG Stack',
-    fullDescription:'[AK47 COMPLETE]\n• OD ไม่ active: OD +35%\n• OD active: OD time +2 วิ\n\n[ระหว่าง OD]\nตี AK47: DMG Stack +4% (สูงสุด +40%)\n\n[BREAK สำเร็จ]\n• ล้าง Rage -12\n• FREE MODE 5 วิ\n\n[FREE MODE]\n• Combo ไม่ลด\n• OD ชาร์จ +50% ต่อคลิก',
+    effect:'AK47 Complete:<br>OD inactive → <strong>OD +35%</strong> | OD active → <strong>+2 วิ</strong><br><br>OD: AK47 hit = DMG Stack <strong>+4%</strong> (สูงสุด <strong>+40%</strong>)<br><br>BREAK: Combo <strong>-12</strong> + <strong>FREE MODE</strong> 5 วิ (CD 3 วิ)<br>FREE MODE: Combo ไม่ลด + OD ชาร์จ <strong>+50%/คลิก</strong>', tradeoff:null,
+    shortDescription:'AK47 ครบ: ชาร์จ OD +35% หรือยืด OD +2 วิ\nBREAK: Combo -12 + FREE MODE 5 วิ (CD 3 วิ)',
+    fullDescription:'[AK47 COMPLETE]\n• OD ไม่ active: OD +35%\n• OD active: OD time +2 วิ\n\n[ระหว่าง OD]\nตี AK47: DMG Stack +4% (สูงสุด +40%)\n\n[BREAK สำเร็จ]\n• Combo -12\n• FREE MODE 5 วิ (CD 3 วิ)\n\n[FREE MODE]\n• Combo ไม่ลด\n• OD ชาร์จ +50% ต่อคลิก\n(FREE MODE มี CD 3 วิ ป้องกัน BREAK loop)',
+    balanceNote:'FIXED - เปลี่ยน "Rage" เป็น "Combo" ให้ตรงกับ code & เพิ่ม CD 3 วิ สำหรับ FREE MODE',
+    apply(s){ s.cs_freeoni=true; }
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
     effect:'Combo ≥25 เปิด SHOGUN STANCE 6วิ: DMG +45% | BREAK DMG +25% | KO +250', tradeoff:'ระหว่าง STANCE คอมโบร่วงเร็วขึ้น 35%',
@@ -5296,9 +5298,11 @@ const CARD_POOL = [
     apply(s){ s.cs_turtleShogun = true; }
   },
   { id:'dk',      name:'DRAKE CARD',         img:'cards/drake.png',       rarity:'elite',
-    effect:'HP Phase 75/50/25%:<br><strong>Phase Burst</strong> แรงขึ้นทุกเฟส<br><br>75%: OD <strong>+20%</strong> + DMG <strong>+15%</strong> 4s<br>50%: OD <strong>+30%</strong> + DMG <strong>+25%</strong> + Combo lock 4s<br>25%: OD <strong>+50%</strong> + Rage Stack <strong>+2</strong> + BREAK DMG boost<br><br>ครบทั้ง 3 เฟส: <strong>DRAKE TAKE</strong> 6s (OD x2, BREAK x2, AK47 spawn เร็วขึ้น)', tradeoff:null,
-    shortDescription:'ผ่านแต่ละเฟส HP รับ Phase Burst\nครบ 3 เฟส ปลด DRAKE TAKE',
-    fullDescription:'[PHASE BURST]\nทุกครั้งที่ HP ลดผ่าน 75 / 50 / 25%\n\n75%: OD +20%, DMG +15% (4 วิ)\n50%: OD +30%, DMG +25%, Combo lock (4 วิ)\n25%: OD +50%, Rage Stack +2, BREAK DMG boost\n\n[DRAKE TAKE]\nครบ 3 เฟส\n• OD ×2\n• BREAK ×2\n• AK47 spawn เร็วขึ้น\n• นาน 6 วิ',
+    effect:'HP ผ่าน 75/50/25%: <strong>Phase Burst</strong><br><br>75%: OD <strong>+20%</strong> + DMG <strong>+15%</strong> 4 วิ<br>50%: OD <strong>+30%</strong> + DMG <strong>+25%</strong> + Combo lock 4 วิ<br>25%: OD <strong>+50%</strong> + BREAK DMG <strong>+35%</strong><br><br>ครบ 3 เฟส: <strong>DRAKE TAKE</strong> 6 วิ (DMG ×2, BREAK ×2)', tradeoff:null,
+    shortDescription:'ผ่านแต่ละเฟส HP รับ Phase Burst\nครบ 3 เฟส ปลด DRAKE TAKE 6 วิ',
+    fullDescription:'[PHASE BURST]\nHP ผ่าน 75/50/25% ครั้งละ 1 ครั้ง\n\n75%: OD +20%, DMG +15% (4 วิ)\n50%: OD +30%, DMG +25%, Combo lock (4 วิ)\n25%: OD +50%, BREAK DMG +35%\n\n[DRAKE TAKE]\nครบทั้ง 3 เฟส: เปิด 6 วิ\n• DMG ×2\n• BREAK ×2',
+    balanceNote:'FIXED - เพิ่ม apply() ที่หายไป ทำให้ Phase Burst ทำงานได้จริง',
+    apply(s){ s.cs_drakeIgnoreThreshold = true; }
   },
   { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
     shortDescription:'คอมโบ 30+ เปิด EXECUTION READY 5 วิ\nต้องคุมคอมโบเพื่อจบงานบอส',
@@ -5310,9 +5314,11 @@ const CARD_POOL = [
 
   // ── VOID (MVP) ──
   { id:'th',   name:'THANABROS CARD',      img:'cards/thanabros.png',    rarity:'mythic',
-    effect:'AK47 DMG <strong>×2.5</strong> | BREAK: OD เต็ม & <strong>Thanatos Phase</strong> 5 วิ (DMG <strong>×2</strong> & AK47: OD <strong>+1 วิ</strong>)', tradeoff:'Combo reset ทุก 10 วิ',
-    shortDescription:'AK47 DMG ×2.5\nBREAK ปลด Thanatos Phase + OD เต็ม',
-    fullDescription:'[PASSIVE]\nAK47 DMG ×2.5\n\n[BREAK สำเร็จ]\n• OD ชาร์จเต็มทันที\n• เปิด THANATOS PHASE 5 วิ\n\n[THANATOS PHASE]\n• DMG ×2\n• ตี AK47: OD time +1 วิ',
+    effect:'AK47 DMG <strong>×2.5</strong><br>BREAK สำเร็จ: OD เต็มทันที + <strong>Thanatos Phase</strong> 5 วิ<br>(DMG ×2 & ตี AK47: OD time +1 วิ)', tradeoff:'Combo reset ทุก 10 วิ',
+    shortDescription:'AK47 DMG ×2.5\nBREAK ปลด Thanatos Phase + OD เต็ม\n[TRADEOFF: Combo reset ทุก 10 วิ]',
+    fullDescription:'[PASSIVE]\nAK47 DMG ×2.5\n\n[BREAK สำเร็จ]\n• OD ชาร์จเต็มทันที\n• เปิด THANATOS PHASE 5 วิ\n\n[THANATOS PHASE]\n• DMG ×2\n• ตี AK47: OD time +1 วิ\n\n[TRADEOFF]\nCombo reset เป็น 1 ทุก 10 วิ',
+    balanceNote:'FIXED - เพิ่ม apply() ที่หายไป ทำให้ cs_thanatos ถูก set และ Thanatos timer เริ่มทำงาน',
+    apply(s){ s.cs_thanatos = true; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
     effect:'ทุกคลิก: <strong>TRIPLE STRIKE</strong> (ฮิตหลัก 100% + เงา 40%x2, คริตเงาต่ำลง) <br>BREAK สำเร็จ: เรียก AK47 ทันที 3 จุด + <strong>DEVIL BET</strong>', tradeoff:'<strong>OD ถูกสาป:</strong> ไม่รับ OD gain ทุกแหล่ง',
@@ -5322,9 +5328,11 @@ const CARD_POOL = [
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
-    effect:'OD Lv.1 active ตลอด | ทุก 15 วิ: Lv.2 burst <strong>5 วิ</strong>', tradeoff:'ล็อค OD Lv.1',
-    shortDescription:'OD Lv.1 ถาวร\nทุก 15 วิ ปะทุ Lv.2 ชั่วคราว',
-    fullDescription:'[PASSIVE]\nOD Lv.1 เปิดตลอดรอบ\n\n[ทุก 15 วิ]\nเปิด Lv.2 Burst 5 วิ',
+    effect:'OD Lv.1 เปิดตลอดรอบ<br>ทุก 15 วิ: <strong>Lv.2 Burst</strong> 5 วิ', tradeoff:'ล็อค OD Lv.1 ตลอดเวลา',
+    shortDescription:'OD Lv.1 ถาวร\nทุก 15 วิ ปะทุ Lv.2 ชั่วคราว 5 วิ',
+    fullDescription:'[PASSIVE]\nOD Lv.1 เปิดตลอดรอบ\n(ไม่สามารถเลื่อนขึ้น Lv.2 ด้วยการชาร์จปกติ)\n\n[ทุก 15 วิ]\nเปิด Lv.2 Burst 5 วิ โดยอัตโนมัติ\nหลังจบ Burst: กลับ Lv.1\n\n[TRADEOFF]\nOD ล็อคอยู่ที่ Lv.1 ตลอดเวลา',
+    balanceNote:'FIXED - เพิ่ม apply() ที่หายไป ทำให้ cs_eddga ถูก set และ _csStartEddga() ทำงาน',
+    apply(s){ s.cs_eddga = true; }
   },
   { id:'os',     name:'NOSIRIS CARD',        img:'cards/nosiris.png',      rarity:'mythic',
     shortDescription:'สะสม Soul Stack จาก BREAK\nปฏิเสธความตาย และเปิด JUDGMENT',
@@ -5334,24 +5342,24 @@ const CARD_POOL = [
     apply(s){ s.cs_osiris = true; }
   },
   { id:'mt',   name:'MISSSTRESS CARD',      img:'cards/missstress.png',    rarity:'mythic',
-    shortDescription:'OD คลิกเพิ่ม Zeny และยืดเวลา Overdrive',
-    effect:'OD:<br>คลิก = Zeny <strong>+12</strong> & OD timer <strong>+0.35 วิ</strong><br>(สูงสุด <strong>+6 วิ/OD</strong>) & Crit <strong>+10%</strong>', tradeoff:null,
-    fullDescription:'[ระหว่าง OD]\nทุกคลิก:\n• Zeny +12\n• OD time +0.35 วิ\n• Crit +10%\n\nยืดเวลา OD ได้สูงสุด +6 วิ ต่อรอบ OD',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    shortDescription:'OD คลิกเพิ่ม Zeny (0.3 วิ/ครั้ง) และยืดเวลา Overdrive',
+    effect:'OD:<br>คลิก = Zeny <strong>+12</strong> (ทุก 0.3 วิ) & OD timer <strong>+0.35 วิ</strong><br>(สูงสุด <strong>+4 วิ/OD</strong>) & Crit <strong>+10%</strong>', tradeoff:null,
+    fullDescription:'[ระหว่าง OD]\nทุกคลิก (ทุก 0.3 วิ):\n• Zeny +12\n• OD time +0.35 วิ\n• Crit +10%\n\nยืดเวลา OD ได้สูงสุด +4 วิ ต่อรอบ OD\n(Zeny มี ICD 0.3 วิ ป้องกันการกด spam)',
+    balanceNote:'FIXED - เพิ่ม ICD 300ms สำหรับ Zeny gain & ลด cap OD time จาก +6s เป็น +4s',
     apply(s){ s.cs_mistress = true; }
   },
   { id:'gb',  name:'GOLDEN BRUH CARD',    img:'cards/golden_bruh.png',  rarity:'mythic',
-    shortDescription:'คอมโบเร่ง Zeny และปลด GOLD RUSH เมื่อ Max Combo',
-    effect:'คลิก = Combo <strong>+1</strong><br>Zeny <strong>×3</strong><br>Max Combo (47): <strong>GOLD RUSH</strong> 12 วิ<br>Zeny ×9 & คลิก = +8<br>Cooldown 10 วิ', tradeoff:'OD ชาร์จไม่ได้',
-    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +1\nZeny ×3\n\n[GOLD RUSH]\nเมื่อ Combo เต็ม (47)\nเปิด 12 วิ (CD 10 วิ)\n\n• Zeny ×9\n• คลิก = Zeny +8',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    shortDescription:'คอมโบเร่ง Zeny และปลด GOLD RUSH เมื่อ Max Combo\n[GOLD RUSH ไม่ซ้อนกันได้]',
+    effect:'คลิก = Combo <strong>+1</strong><br>Zeny <strong>×3</strong><br>Max Combo (47): <strong>GOLD RUSH</strong> 12 วิ<br>Zeny ×9 & คลิก = +8 Zeny<br>Cooldown <strong>14 วิ</strong>', tradeoff:'OD ชาร์จไม่ได้',
+    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +1\nZeny ×3\n\n[GOLD RUSH]\nเมื่อ Combo เต็ม (47)\nเปิด 12 วิ (CD 14 วิ)\n\n• Zeny ×9\n• คลิก = Zeny +8\n\n(Gold Rush ใหม่จะไม่ทับ Rush ที่ยังเปิดอยู่)',
+    balanceNote:'FIXED - CD 14s > Duration 12s ป้องกัน Rush chain loop ที่เคยเกิดได้',
     apply(s){ s.cs_goldenbug = true; }
   },
   { id:'oh',    name:'COKE ZERO CARD',      img:'cards/coke_zero.png',    rarity:'mythic',
-    shortDescription:'เร่ง OD charge สูง แต่ต้องแลกเวลากับ Stack DMG',
-    effect:'OD charge <strong>×4</strong><br>OD หมด: DMG <strong>+15%</strong> Stack<br>(สูงสุด +90%)', tradeoff:null,
-    fullDescription:'[PASSIVE]\nOD charge ×4\n\n[หลังออกจาก OD]\nDMG Stack +15%\n(สูงสุด +90%)\n\nยิ่งใช้ OD บ่อย ยิ่งแรงขึ้นเรื่อยๆ',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    shortDescription:'เร่ง OD charge ×4 และสะสม Stack DMG จากการใช้ OD',
+    effect:'OD charge <strong>×4</strong><br>OD หมด: DMG <strong>+15%</strong> Stack<br>(สูงสุด +90%)', tradeoff:'เริ่มเกมด้วยเวลา <strong>-5 วิ</strong>',
+    fullDescription:'[PASSIVE]\nOD charge ×4\n\n[หลังออกจาก OD]\nDMG Stack +15%\n(สูงสุด +90%)\n\nยิ่งใช้ OD บ่อย ยิ่งแรงขึ้นเรื่อยๆ\n\n[TRADEOFF]\nเริ่มรอบด้วยเวลา -5 วิ',
+    balanceNote:'FIXED - แก้ OD charge จาก ×3.5 เป็น ×4 ตามที่ระบุ & เพิ่ม tradeoff เวลา -5 วิ ในคำบรรยาย',
     apply(s){ s.cs_orchero = true; }
   },
   { id:'ld',name:'LORD OF DEBT CARD', img:'cards/lord_of_debt.png',rarity:'mythic',
@@ -5668,10 +5676,10 @@ const CARD_POOL = [
     apply(s){ s.cs_whisper = true; s.cs_whizperGhostProtocol = true; s.cs_ak47DuplicateChance = (s.cs_ak47DuplicateChance||0) + 0.35; }
   },
   { id:'gl',name:'GOBLIN WEEBER CARD',img:'cards/goblin_weeber.png',rarity:'elite',
-    effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥35: คลิกซ้ำฟรี <strong>20%</strong><br>Combo ≥75: <strong>WEEB FOCUS</strong> 5s<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
+    effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥35: คลิกซ้ำฟรี <strong>20%</strong> (ทุก 0.25 วิ)<br>Combo ≥75: <strong>WEEB FOCUS</strong> 5 วิ<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
     shortDescription:'ทุกคลิก Combo +2 ยิ่งคอมโบสูง ยิ่งแรง\nถึง 75 ปลด WEEB FOCUS',
-    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +2\n\nCombo ≥25: DMG +20%\nCombo ≥35: คลิกซ้ำฟรี 20%\n\n[WEEB FOCUS]\nCombo ≥75 เปิด 5 วิ\n• Combo ไม่ลด\n• OD gain +35%\n• Crit +20%',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +2\n\nCombo ≥25: DMG +20%\nCombo ≥35: คลิกซ้ำฟรี 20%\n(คลิกซ้ำมี ICD 0.25 วิ ป้องกัน cascade)\n\n[WEEB FOCUS]\nCombo ≥75 เปิด 5 วิ\n• Combo ไม่ลด\n• OD gain +35%\n• Crit +20%',
+    balanceNote:'FIXED - เพิ่ม ICD 250ms สำหรับ free-click proc ป้องกัน cascade burst',
     apply(s){ s.cs_goblinLeader = true; }
   },
   { id:'ar',     name:'AMOG RA CARD',       img:'cards/amog_ra.png',     rarity:'elite',
@@ -5779,20 +5787,19 @@ const CARD_POOL = [
     apply(s){ s.cs_ghostping=true; }
   },
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
-    shortDescription:'15วิแรกบุกสุด: Boss DMG +70%, Zeny +30%, AK47 เร็วขึ้น\nหลังจากนั้นติด CURSED PANIC ทั้งรอบ',
-    effect:'เปิดรอบ 15 วิแรก: Boss DMG <strong>+70%</strong> | Zeny <strong>+30%</strong> | AK47 spawn <strong>+20%</strong>', tradeoff:'หลัง 15 วิ: <strong>CURSED PANIC</strong> (เวลาไหลเร็ว +15%, คอมโบร่วงเร็ว +20%)',
-    fullDescription:'[15 วิแรก]\n• Boss DMG +70%\n• Zeny +30%\n• AK47 spawn +20%',
-    balanceNote:'REWORK - เร่งต้นเกมแรงมากแล้วกดดันปลายเกมชัดเจน เป็นการ์ดสปีดรันที่มีความเสี่ยงจริง',
+    shortDescription:'15 วิแรก: Boss DMG +70%, Zeny +30%, AK47 เร็วขึ้น\nหลัง 15 วิ: CURSED PANIC ทั้งรอบ (ทุกศัตรู)',
+    effect:'15 วิแรกของรอบ: Boss DMG <strong>+70%</strong> | Zeny <strong>+30%</strong> | AK47 spawn <strong>+20%</strong>', tradeoff:'หลัง 15 วิ: <strong>CURSED PANIC</strong><br>(เวลาไหลเร็ว +15%, คอมโบร่วงเร็ว +20%<br>ทุกศัตรูในรอบ)',
+    fullDescription:'[15 วิแรกของรอบ]\n• Boss DMG +70%\n• Zeny +30%\n• AK47 spawn +20%\n\n[หลัง 15 วิ — ตลอดรอบ]\nCURSED PANIC:\n• เวลาไหลเร็วขึ้น +15%\n• คอมโบร่วงเร็วขึ้น +20%\n(ใช้กับทุกศัตรู ไม่ใช่เฉพาะบอส)',
+    balanceNote:'FIXED - CURSED PANIC ตอนนี้ใช้กับทั้งรอบ (นับจาก run start) ไม่ใช่เฉพาะบอสหลัง 15 วิ',
     apply(s){ s.cs_devilingo=true; }
   },
   { id:'ltn', name:'LADY TRAINEE CARD',    img:'cards/lady_trainee_card.png',   rarity:'elite',
-    shortDescription:'OD Lv.Up สะสม DMG และปลด Spotlight',
-    effect:'OD Lv. เพิ่ม:<br>DMG <strong>+4%</strong> Stack<br>(สูงสุด +60%)<br><br>10 Stacks:<br><strong>Spotlight Mode</strong><br>OD charge <strong>+10%/คลิก</strong>', tradeoff:null,
-    fullDescription:'[OD LV. UP]\nDMG Stack +4% ต่อครั้ง\n(สูงสุด +60%)\n\n[SPOTLIGHT MODE]\nเมื่อครบ 10 Stacks\nOD charge +10% ต่อคลิก',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
-    apply(s){ s.cs_ladyTrainee=true; }
+    shortDescription:'เข้า OD ทุกครั้ง: สะสม DMG Stack +4%\nครบ 10 ครั้ง ปลด Spotlight Mode',
+    effect:'เข้า OD ทุกครั้ง:<br>DMG <strong>+4%</strong> Stack<br>(สูงสุด +60%)<br><br>10 Stacks:<br><strong>Spotlight Mode</strong><br>OD charge <strong>+10%/คลิก</strong>', tradeoff:null,
+    fullDescription:'[ทุกครั้งที่เข้า OD]\nDMG Stack +4% ต่อครั้ง\n(สูงสุด +60%)\n\n[SPOTLIGHT MODE]\nเมื่อครบ 10 Stacks\nOD charge +10% ต่อคลิก\n\n(นับ 1 Stack ต่อการเข้า OD 1 ครั้ง ไม่ใช่ต่อ Level)',
+    balanceNote:'FIXED - เปลี่ยน description จาก "OD Lv. เพิ่ม" เป็น "เข้า OD ทุกครั้ง" ให้ตรงกับ code จริง',
+    apply(s){ s.cs_ladyTrainee = true; }
   },
-
   // ── MYTHIC NEW (v2) ──
   { id:'fwc', name:'FALLEN WECHAT CARD',   img:'cards/fallen_wechat_card.png',  rarity:'mythic',
     shortDescription:'OD เต็มแล้วเปิด Overloaded BREAK แบบระเบิดพลัง',
@@ -6108,7 +6115,11 @@ function _csRefreshVolatileCardEffects(nextState) {
   }
 
   // DEVILINGO: record combat start time
-  if(nextState && nextState.cs_devilingo) { nextState._devilingoCombatStart = Date.now(); _csDebugLog('DEVILINGO started', nextState._devilingoCombatStart); }
+  if(nextState && nextState.cs_devilingo) {
+    nextState._devilingoCombatStart = Date.now();
+    nextState._devilingoRoundStart  = Date.now(); // set ONCE at run start — used for CURSED PANIC
+    _csDebugLog('DEVILINGO started', nextState._devilingoCombatStart);
+  }
   // GLOOM UNDER SIDE: start 2s obsession stack timer (+3%/stack up to 20; each stack also drains timer +1%)
   // Stacks persist through KO, Boss KO, and all combat. Reset only on run end.
   if(nextState && nextState.cs_gloomUnderSide) {
@@ -6824,12 +6835,19 @@ function csApplyCoinMod(coins) {
 function csOnClick(isGod) {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
-  // MISSSTRESS: Zeny +12 and OD timer +0.35s during OD (cap per OD = +6s)
+  // MISSSTRESS: Zeny +12 (ICD 300ms) and OD timer +0.35s during OD (cap per OD = +4s)
+  // FIX: Added ICD to Zeny gain (prevent ~+1200 Zeny/OD at max tap rate)
+  // FIX: Reduced time cap from +6s to +4s to match updated card description
   if(cs.cs_mistress && isGod) {
-    roundCoins += 12;
+    const _mNow = performance.now();
+    if(!cs._mistressZenyIcdUntil) cs._mistressZenyIcdUntil = 0;
+    if(_mNow >= cs._mistressZenyIcdUntil) {
+      roundCoins += 12;
+      cs._mistressZenyIcdUntil = _mNow + 300;
+    }
     if(!cs._mistressOdTimeGain) cs._mistressOdTimeGain = 0;
-    if(cs._mistressOdTimeGain < 6) {
-      const gain = Math.min(0.35, 6 - cs._mistressOdTimeGain);
+    if(cs._mistressOdTimeGain < 4) {
+      const gain = Math.min(0.35, 4 - cs._mistressOdTimeGain);
       cs._mistressOdTimeGain += gain;
       godSecondsLeft += gain;
     }
@@ -6991,6 +7009,13 @@ function csOnKO() {
   if(cs.cs_drakeIgnoreThreshold) {
     cs._drakeTriggered = new Set();
   }
+  // MINORAGE: reset Rage Stacks on each KO — prevents permanent +20% DMG inflation at 250+ KO
+  if(cs.cs_minorous) {
+    cs._minorageRageStacks = 0;
+    cs._minorageCross70 = 0;
+    cs._minorageCross50 = 0;
+    cs._minorageLastRatio = 1;
+  }
   // Nightmare: +2% OD charge per KO
   if(cs.cs_koOdCharge && !cs.cs_baphomet && !cs.cs_goldenbug) {
     const cur = parseFloat(_el.godFill.style.width)||0;
@@ -7028,6 +7053,7 @@ function csOnOdEnd() {
   if(!window._csState) return;
   const cs = window._csState;
   cs._mistressOdTimeGain = 0;
+  cs._mistressZenyIcdUntil = 0; // reset ICD so Zeny gain starts fresh next OD
   cs._odTimerClickGain = 0;
   cs._stormyOdTimeGain = 0;
   // COKE ZERO: accumulate dmg bonus +10% per OD end (max +50%)
@@ -7170,10 +7196,15 @@ function csOnBreakSuccess() {
     cs._weebvilOdGainEndTime = performance.now() + 4000;
   }
   if(cs.cs_freeoni) {
-    cs._freeModeEndTime = performance.now() + 5000;
-    // FREEONI: BREAK → Rage (Combo) -12
-    combo = Math.max(1, combo - 12);
-    if(typeof updateComboUI === 'function') updateComboUI();
+    // FIX: Added 3s cooldown between FREE MODE activations to prevent OD/BREAK chain loop
+    const _freeModeCdClear = !cs._freeModeCooldownUntil || performance.now() >= cs._freeModeCooldownUntil;
+    if(_freeModeCdClear) {
+      cs._freeModeEndTime = performance.now() + 5000;
+      cs._freeModeCooldownUntil = performance.now() + 3000; // 3s CD between activations
+      // FREEONI: BREAK → Combo -12
+      combo = Math.max(1, combo - 12);
+      if(typeof updateComboUI === 'function') updateComboUI();
+    }
   }
   // ATROSUS: Resonance window (6s base, 10s with Mastery); track count toward Mastery
   if(cs.cs_atrosusBreak) {
@@ -8985,7 +9016,9 @@ function startTimer() {
   timerInterval=setInterval(()=>{
     pressureUpdate(50);
     const baseRate = performance.now() < (PRESSURE.successFreezeUntil || 0) ? 0.18 : (PRESSURE.phase === 'break' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0));
-    const rate = baseRate * (1 + ((window._csState && window._csState._dorkTimerRateBonus) || 0) + ((window._csState && window._csState._devilingoCursedPanicActive) ? 0.15 : 0)
+    const rate = baseRate * (1 + ((window._csState && window._csState._dorkTimerRateBonus) || 0)
+      // DEVILINGO CURSED PANIC: after 15s from run start, timer drains 15% faster (all phases)
+      + ((window._csState && window._csState.cs_devilingo && window._csState._devilingoRoundStart && Date.now() - window._csState._devilingoRoundStart > 15000) ? 0.15 : 0)
       // LORD OF DEBT: REQUIEM state — timer drains 30% faster
       + ((window._csState && window._csState.cs_lordofdeath && window._csState._lod_timerDrain) ? window._csState._lod_timerDrain : 0)
     );
@@ -9334,7 +9367,7 @@ function processHit(e, now) {
     * (1 - (window._csState && window._csState.cs_comboDecayFast || 0))
     * (1 - (window._csState && window._csState._turtleComboDecayFast || 0))
     * (1 - (window._csState && window._csState._taoComboDecayFast || 0))
-    * (1 - ((window._csState && window._csState._devilingoCursedPanicActive) ? 0.20 : 0))
+    * (1 - ((window._csState && window._csState.cs_devilingo && window._csState._devilingoRoundStart && Date.now() - window._csState._devilingoRoundStart > 15000) ? 0.20 : 0))
     // LORD OF DEBT: DEBT STACK — each stack speeds up combo decay +5%
     * (1 - (_lodDebtStacks * 0.05));
   const _suppressReset = window._csState && (
@@ -9350,10 +9383,14 @@ function processHit(e, now) {
   );
   if(isWpHit || gap < _comboWindow) combo = Math.min(combo + _comboInc, 47);
   else if(!_suppressReset) combo = 1;
-  // GOBLIN WEEBER: Combo >= 35 → 20% chance free click (with re-entrancy guard)
+  // GOBLIN WEEBER: Combo >= 35 → 20% chance free click (re-entrancy guard + 250ms ICD)
+  // FIX: Added _goblinFreeClickIcdUntil to prevent cascade bursts at high tap speed
   if(window._csState && window._csState.cs_goblinLeader && combo >= 35
-     && !window._csState._goblinFreeClickPending && Math.random() < 0.20) {
+     && !window._csState._goblinFreeClickPending
+     && (!window._csState._goblinFreeClickIcdUntil || now >= window._csState._goblinFreeClickIcdUntil)
+     && Math.random() < 0.20) {
     window._csState._goblinFreeClickPending = true;
+    window._csState._goblinFreeClickIcdUntil = now + 250; // 250ms ICD prevents cascade chains
     const _fakeEvt = { clientX: rawX, clientY: rawY };
     setTimeout(() => {
       if(gameRunning && !gamePaused && window._csState) {
@@ -9373,10 +9410,10 @@ function processHit(e, now) {
 
   // god bar
   _el.godFill.style.width=(combo/47*100)+'%';
-  // ORC HERO: charge x3 — boost fill
+  // ORC HERO: charge x4 — boost fill (base already set above, add 3.0× more to reach ×4 total)
   if(window._csState && window._csState.cs_orchero) {
     const cur = parseFloat(_el.godFill.style.width)||0;
-    _el.godFill.style.width = Math.min(100, cur + (combo/47*100)*2.5) + '%';
+    _el.godFill.style.width = Math.min(100, cur + (combo/47*100)*3.0) + '%';
   }
   // MOONLIGHT FLOWER: OD charge x2
   if(window._csState && window._csState.cs_moonlightflower) {
@@ -9436,11 +9473,14 @@ function processHit(e, now) {
       activateGodLevel(1);
   }
   // GOLDEN BRUH: Gold Rush at max combo (replaces OD)
+  // FIX: Guard against re-trigger while Rush still active (was: CD 10s < Duration 12s → overlap loop)
   if(window._csState && window._csState.cs_goldenbug && combo === 47) {
     const _grNow = performance.now();
-    if(!window._csState._goldRushCooldownUntil || _grNow >= window._csState._goldRushCooldownUntil) {
-      window._csState._goldRushEndTime = _grNow + 12000;
-      window._csState._goldRushCooldownUntil = _grNow + 10000;
+    const _rushStillActive = window._csState._goldRushEndTime && _grNow < window._csState._goldRushEndTime;
+    const _rushOnCooldown  = window._csState._goldRushCooldownUntil && _grNow < window._csState._goldRushCooldownUntil;
+    if(!_rushStillActive && !_rushOnCooldown) {
+      window._csState._goldRushEndTime       = _grNow + 12000;
+      window._csState._goldRushCooldownUntil = _grNow + 14000; // CD > Duration — no chain overlap
       showBigSplash('GOLD RUSH', 'ZENY x9 — 12s', '#ffcc00', false);
     }
   }
@@ -9582,7 +9622,9 @@ function processHit(e, now) {
       showBigSplash('EXECUTE', 'BOSS FINISH +30% ZENY', '#ff3355', false);
       _cs._aknightReadyEndTime = 0;
       _cs._aknightReadyCooldownUntil = _now + 12000;
-      applyDamage(999999999, e, false);
+      // FIX: use bossHP+1 instead of magic number — same instant-kill result, future-proof
+      const _execFinishDmg = isBoss ? (bossHP + 1) : (hp + 1);
+      applyDamage(_execFinishDmg, e, false);
       return;
     }
   }
@@ -9646,7 +9688,8 @@ function processHit(e, now) {
     applyBossDamage(_totalDmg, 'tap');
     if(window._csState && window._csState.cs_doppelShadow) {
       const _shadowBase = Math.round(_totalDmg * (isCrit ? 0.60 : 0.45));
-      const _shadowWillCrit = Math.random() < Math.min(1, ((_sc.critChance||0) + 0.20));
+      // FIX: use runtime _critChance (includes AMOG RA, FUNK FEVER, etc.) not raw shop stat
+      const _shadowWillCrit = Math.random() < Math.min(1, (_critChance + 0.20));
       const _shadowDmg = _sanitizeDamage(Math.round(_shadowBase * (_shadowWillCrit ? (_sc.critMult||2) : 1)), 'doppelShadow');
       setTimeout(()=>{
         if(!gameRunning || gamePaused) return;
@@ -9883,7 +9926,7 @@ function activateGodLevel(lv) {
     const _now = Date.now();
     if(!pressureIsBreak() && (!_fwcs._fallenWechatCooldownUntil || _now >= _fwcs._fallenWechatCooldownUntil)) {
       _fwcs._fallenWechatBreakActive = true;
-      _fwcs._fallenWechatCooldownUntil = _now + 20000;
+      _fwcs._fallenWechatCooldownUntil = _now + 24000; // FIX: was 20000 — description says 24s
       if(_el && _el.godFill) _el.godFill.style.width = '0%';
       showBigSplash('OVERLOADED BREAK', 'OD → BREAK', '#ff2233', false);
       setTimeout(() => {
