@@ -5474,7 +5474,7 @@ const CARD_POOL = [
   { id:'si',      name:'STONK CARD',          img:'cards/stonk.png',       rarity:'premium',
     effect:'DMG <strong>+8%</strong> | BREAK: DMG <strong>+20%</strong> เพิ่ม', tradeoff:'Combo decay เร็วขึ้น <strong>20%</strong>',
     shortDescription:'DMG +8% & ระหว่าง BREAK: DMG +20%\n[TRADE-OFF: Combo ร่วงเร็วขึ้น 20%]',
-    fullDescription:'[PASSIVE]\nDMG +8%\n\n[ระหว่าง BREAK]\nDMG +20% เพิ่ม\n\n[TRADE-OFF]\nCombo ร่วงเร็วขึ้น 20%',
+    fullDescription:'[PASSIVE]\nDMG +8%\n\n[ระหว่าง BREAK]\nDMG +20% เพิ่ม',
     balanceNote:'OK - ค่าเหมาะสมกับ Premium แก้ไขเฉพาะ description',
     apply(s){ s.cs_dmgBonus=(s.cs_dmgBonus||0)+0.08; s.cs_comboDecayFast=(s.cs_comboDecayFast||0)+0.20; s.cs_stonkBreak=true; }
   },
@@ -5495,7 +5495,7 @@ const CARD_POOL = [
   { id:'hg',     name:'WRONG CARD',         img:'cards/wrong.png',      rarity:'premium',
     effect:'เวลา < 15 วิ: DMG <strong>+20%</strong>', tradeoff:'ขณะมีผล: Combo decay เร็วขึ้น <strong>15%</strong>',
     shortDescription:'เวลา < 15 วิ: DMG +20%\n[TRADE-OFF: Combo ร่วงเร็วขึ้น 15% ขณะมีผล]',
-    fullDescription:'[เงื่อนไข]\nเมื่อเวลาเหลือ < 15 วิ:\nDMG +20%\n\n[TRADE-OFF]\nขณะ DMG เพิ่ม:\nCombo ร่วงเร็วขึ้น 15%',
+    fullDescription:'[เงื่อนไข]\nเมื่อเวลาเหลือ < 15 วิ:\nDMG +20%',
     balanceNote:'NERF - ลด DMG bonus จาก +35% เป็น +20% และลดหน้าต่างเวลาจาก <20s เป็น <15s เพื่อไม่ครอบคลุม 1 ใน 3 ของรอบ เพิ่ม combo decay tradeoff',
     apply(s){ s.cs_horong = true; s.cs_horongTradeoff = true; }
   },
@@ -5789,7 +5789,7 @@ const CARD_POOL = [
   { id:'dvl', name:'DEVILINGO CARD',       img:'cards/devilingo_card.png',      rarity:'elite',
     shortDescription:'15 วิแรก: Boss DMG +70%, Zeny +30%, AK47 เร็วขึ้น\nหลัง 15 วิ: CURSED PANIC ทั้งรอบ (ทุกศัตรู)',
     effect:'15 วิแรกของรอบ: Boss DMG <strong>+70%</strong> | Zeny <strong>+30%</strong> | AK47 spawn <strong>+20%</strong>', tradeoff:'หลัง 15 วิ: <strong>CURSED PANIC</strong><br>(เวลาไหลเร็ว +15%, คอมโบร่วงเร็ว +20%<br>ทุกศัตรูในรอบ)',
-    fullDescription:'[15 วิแรกของรอบ]\n• Boss DMG +70%\n• Zeny +30%\n• AK47 spawn +20%\n\n[หลัง 15 วิ — ตลอดรอบ]\nCURSED PANIC:\n• เวลาไหลเร็วขึ้น +15%\n• คอมโบร่วงเร็วขึ้น +20%\n(ใช้กับทุกศัตรู ไม่ใช่เฉพาะบอส)',
+    fullDescription:'[15 วิแรกของรอบ]\n• Boss DMG +70%\n• Zeny +30%\n• AK47 spawn +20%\n\n[หลัง 15 วิ — ตลอดรอบ]',
     balanceNote:'FIXED - CURSED PANIC ตอนนี้ใช้กับทั้งรอบ (นับจาก run start) ไม่ใช่เฉพาะบอสหลัง 15 วิ',
     apply(s){ s.cs_devilingo=true; }
   },
