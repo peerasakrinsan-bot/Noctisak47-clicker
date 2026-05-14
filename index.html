@@ -1005,6 +1005,34 @@
   .res-btn.cyan-btn { border-color:var(--cyan); color:var(--cyan); }
   .res-btn.cyan-btn:active { background:var(--cyan); color:#000; }
 
+  /* ══ AUTO CLOUD SAVE STATUS PILL ══ */
+  #autoCloudStatus {
+    font-family:'Oswald',sans-serif;
+    font-size:10px; letter-spacing:2px;
+    padding:5px 12px; border-radius:2px;
+    display:none; align-items:center; gap:6px;
+    border:1px solid #333; color:#555; background:transparent;
+    transition:all 0.3s ease;
+    pointer-events:none;
+    white-space:nowrap;
+  }
+  #autoCloudStatus.acs-saving  { display:flex; border-color:#4488ff; color:#4488ff; }
+  #autoCloudStatus.acs-ok      { display:flex; border-color:#00ff88; color:#00ff88; }
+  #autoCloudStatus.acs-fail    { display:flex; border-color:#ff2233; color:#ff2233; }
+  #autoCloudStatus.acs-offline { display:flex; border-color:#ffcc00; color:#ffcc00; }
+  #autoCloudStatus.acs-pending { display:flex; border-color:#ff8800; color:#ff8800; }
+  .acs-dot {
+    width:6px; height:6px; border-radius:50%; flex-shrink:0;
+    background:currentColor;
+  }
+  .acs-saving-spin {
+    width:8px; height:8px; border-radius:50%; flex-shrink:0;
+    border:1.5px solid transparent;
+    border-top-color:currentColor;
+    animation:acs-spin 0.7s linear infinite;
+  }
+  @keyframes acs-spin { to { transform:rotate(360deg); } }
+
   /* ══ TOP UI (In-Game) ══ */
   #topUI {
     position:absolute; top:0; left:0; right:0; z-index:10;
@@ -3016,6 +3044,7 @@
     <button class="res-btn cyan-btn" onclick="openShop('result')">SHOP</button>
     <button class="res-btn" onclick="goMainMenu()" style="border-color:#666;color:#888;">MENU</button>
   </div>
+  <div id="autoCloudStatus" aria-live="polite"></div>
 </div>
 
 <!-- ══════════════ GAME UI ══════════════ -->
@@ -3619,12 +3648,56 @@ function normalizeSaveData(d) {
   // cardRuns: { [cardId]: number } — default to {} for old saves, values clamped to 0
   if (!d.cardRuns || typeof d.cardRuns !== 'object' || Array.isArray(d.cardRuns)) d.cardRuns = {};
   Object.keys(d.cardRuns).forEach(k => { d.cardRuns[k] = Math.max(0, Math.floor(Number(d.cardRuns[k]) || 0)); });
+  // ── v6 migration: preserve auto-save metadata if present, seed defaults for old saves ──
+  d.saveVersion = Math.max(0, Math.floor(Number(d.saveVersion) || 0));
+  d.updatedAt   = (typeof d.updatedAt === 'string' && d.updatedAt) ? d.updatedAt : '';
+  d.deviceId    = (typeof d.deviceId  === 'string' && d.deviceId)  ? d.deviceId  : '';
+  d.lastRunId   = (typeof d.lastRunId === 'string' && d.lastRunId)  ? d.lastRunId : null;
   return d;
 }
 
 function _saveEnvelope(payload) {
-  return { version: 5, payload, saved_at: new Date().toISOString() };
+  return { version: 6, payload, saved_at: new Date().toISOString() };
 }
+
+// ── Unique device ID (persisted in localStorage independently of save) ──
+function _getDeviceId() {
+  const KEY = 'noctisak47_device_id';
+  let id = null;
+  try { id = localStorage.getItem(KEY); } catch(e) {}
+  if (!id) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    id = 'dev_' + Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    try { localStorage.setItem(KEY, id); } catch(e) {}
+  }
+  return id;
+}
+const _DEVICE_ID = _getDeviceId();
+
+// ── Run ID: unique per run, set at game start, consumed at endGame ──
+let _currentRunId = null;
+function _newRunId() {
+  const ts = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 7);
+  return `run_${ts}_${rand}`;
+}
+
+// ── Shared save payload builder — single source of truth ──
+function buildSavePayload() {
+  const now = new Date().toISOString();
+  const base = normalizeSaveData(Object.assign({}, save));
+  base.saveVersion  = (base.saveVersion || 0) + 1;  // incremented at build time
+  base.updatedAt    = now;
+  base.deviceId     = _DEVICE_ID;
+  base.lastRunId    = _currentRunId || base.lastRunId || null;
+  return base;
+}
+
+// ── Pending sync queue (survives page close via localStorage) ──
+const _PENDING_SYNC_KEY = 'noctisak47_pending_sync';
+function _pendingSyncGet()        { try { return JSON.parse(localStorage.getItem(_PENDING_SYNC_KEY)) || null; } catch(e) { return null; } }
+function _pendingSyncSet(payload) { try { localStorage.setItem(_PENDING_SYNC_KEY, JSON.stringify(payload)); } catch(e) {} }
+function _pendingSyncClear()      { try { localStorage.removeItem(_PENDING_SYNC_KEY); } catch(e) {} }
 
 function _safeLocalStorageGet(key) {
   try { return localStorage.getItem(key); }
@@ -3712,8 +3785,15 @@ async function verifyLocalSaveSignature() {
 }
 
 function doSave(action) {
-  save = normalizeSaveData(save);
+  const payload = buildSavePayload();
+  // Write the enriched payload back so save object carries version/updatedAt/etc.
+  Object.assign(save, payload);
   try { _storeLocalSave(save); } catch(e) { console.warn('[doSave] local save failed', e); }
+  if (typeof DEV_LOG === 'function') DEV_LOG('[doSave]', action || 'save', 'saveVersion:', save.saveVersion, 'updatedAt:', save.updatedAt);
+}
+// ── Dev-only logger (stripped silently in prod — set window.NOCTIS_DEV=true to enable) ──
+function DEV_LOG(...args) {
+  if (window.NOCTIS_DEV) console.log('[NOCTIS]', ...args);
 }
 
 
@@ -7945,6 +8025,8 @@ function closeCardModal() {
 }
 
 function startGame() {
+  _currentRunId = _newRunId();
+  DEV_LOG('[startGame] new runId:', _currentRunId);
   prefetchFightBGM();
   _applyArenaBg();
   $('mainMenu').style.display='none';
@@ -7991,6 +8073,8 @@ function startGame() {
 }
 
 function retryGame() {
+  _currentRunId = _newRunId();
+  DEV_LOG('[retryGame] new runId:', _currentRunId);
   stopFightBGM(); _stopCollectBGM();
   prefetchFightBGM();
   _applyArenaBg();
@@ -9135,6 +9219,10 @@ function endGame(opts = {}) {
     updateShopCoinUI(); _syncSoundBtns();
     // ── Card Mastery: show evolution reveal if tier changed this run
     if (_cmNewTier) setTimeout(() => cmShowEvolutionReveal(_cmNewTier), 800);
+    // ── Auto Cloud Save: fire after screen is rendered, never blocking ──
+    // Show pending badge immediately if previous save was not flushed yet
+    _acsShowPendingIfNeeded();
+    setTimeout(() => { autoCloudSave(); }, 200);
   }
 
   // score >= 10k → ลุ้นการ์ด
@@ -10258,7 +10346,208 @@ function getPos(e){
 // Cloud Save only
 // ══════════════════════════════════════════
 
-// ══ CLOUD SAVE (Supabase) ══
+// ══ AUTO CLOUD SAVE ENGINE ══
+// Runs after every completed run. Never blocks the result screen.
+// Local save always happens first (in endGame via doSave).
+// Debounced: only one auto-save per run end (keyed by runId).
+
+const _AUTO_SAVE_DEBOUNCE_MS = 2000;  // ignore duplicate endGame calls within 2s
+let   _lastAutoSaveRunId     = null;
+let   _autoSaveDebounceTimer = null;
+let   _autoSaveInFlight      = false;
+
+// ── Status pill UI ──
+function _acsShow(state, label) {
+  const el = document.getElementById('autoCloudStatus');
+  if (!el) return;
+  el.className = 'acs-' + state;
+  const icon = state === 'saving'
+    ? '<span class="acs-saving-spin"></span>'
+    : '<span class="acs-dot"></span>';
+  el.innerHTML = icon + label;
+  // Auto-hide ok/fail after 4s; pending/offline stay visible
+  if (state === 'ok' || state === 'fail') {
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => {
+      el.className = '';
+      el.innerHTML = '';
+    }, 4000);
+  }
+}
+
+function _acsHide() {
+  const el = document.getElementById('autoCloudStatus');
+  if (!el) return;
+  el.className = '';
+  el.innerHTML = '';
+}
+
+// ── Conflict guard: compare updatedAt + saveVersion ──
+// Returns true if localPayload is strictly NEWER than cloudPayload.
+function _isLocalNewer(localPayload, cloudPayload) {
+  if (!cloudPayload) return true; // no cloud save yet — safe to upload
+  const lv = localPayload.saveVersion  || 0;
+  const cv = cloudPayload.saveVersion  || 0;
+  if (lv !== cv) return lv > cv;
+  // fallback: ISO timestamp comparison
+  const lt = localPayload.updatedAt || '';
+  const ct = cloudPayload.updatedAt || cloudPayload.uploaded_at || '';
+  if (lt && ct) return lt > ct;
+  return true; // unknown — allow upload (conservative)
+}
+
+// ── Core auto-upload ──
+async function _autoCloudUploadCore(payload) {
+  const creds   = _cloudLoadCreds();
+  const boundId = _cloudBoundId();
+  if (!boundId || !creds.key) {
+    DEV_LOG('[autoCloud] no bound ID — skip');
+    return false; // not registered — no-op (silent)
+  }
+  const id  = boundId;
+  const key = creds.key;
+
+  // ① Fetch current cloud save to run conflict check
+  let cloudRow = null;
+  try {
+    const chkUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`;
+    const chkRes = await fetch(chkUrl, { headers: _cloudHeaders() });
+    if (chkRes.ok) {
+      const rows = await chkRes.json();
+      cloudRow = (rows && rows[0]) || null;
+    }
+  } catch(e) {
+    if (_isLikelyNetworkFetchError(e)) throw e; // re-throw for offline handling
+    DEV_LOG('[autoCloud] conflict-check error (non-network):', e);
+  }
+
+  if (cloudRow) {
+    // Validate secret key still matches (detect account swap / hostile overwrite)
+    if (cloudRow.secret_key && cloudRow.secret_key !== key) {
+      DEV_LOG('[autoCloud] secret key mismatch — abort');
+      return false;
+    }
+    const cloudSaveData = cloudRow.save_data || {};
+    if (!_isLocalNewer(payload, cloudSaveData)) {
+      DEV_LOG('[autoCloud] cloud is newer or equal — skip upload. cloudSV:', cloudSaveData.saveVersion, 'localSV:', payload.saveVersion);
+      return false;
+    }
+  }
+
+  // ② Upload
+  const uploadBody = JSON.stringify({
+    save_data: payload,
+    uploaded_at: new Date().toISOString()
+  });
+  const uploadUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`;
+  const res = await fetch(uploadUrl, {
+    method: 'PATCH',
+    headers: _cloudHeaders({ 'Content-Type': 'application/json' }),
+    body: uploadBody
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(`HTTP ${res.status}: ${JSON.stringify(errBody)}`);
+  }
+  DEV_LOG('[autoCloud] upload OK — runId:', payload.lastRunId, 'saveVersion:', payload.saveVersion);
+  return true;
+}
+
+// ── Public: called from endGame after result screen is shown ──
+async function autoCloudSave() {
+  // Debounce: guard duplicate endGame calls
+  const runId = _currentRunId;
+  if (runId && runId === _lastAutoSaveRunId) {
+    DEV_LOG('[autoCloud] debounce — same runId:', runId);
+    return;
+  }
+  if (_autoSaveInFlight) {
+    DEV_LOG('[autoCloud] in-flight — skip');
+    return;
+  }
+  // Rate-gate with debounce timer
+  clearTimeout(_autoSaveDebounceTimer);
+  _autoSaveDebounceTimer = setTimeout(async () => {
+    _lastAutoSaveRunId = runId;
+    _autoSaveInFlight  = true;
+
+    // Only auto-save if this device has a bound cloud ID
+    const boundId = _cloudBoundId();
+    if (!boundId) {
+      DEV_LOG('[autoCloud] no bound ID — auto-save skipped (player not registered)');
+      _autoSaveInFlight = false;
+      return;
+    }
+
+    _acsShow('saving', 'CLOUD SYNC...');
+    const payload = Object.assign({}, save); // save already enriched by doSave()
+
+    try {
+      const uploaded = await _autoCloudUploadCore(payload);
+      if (uploaded) {
+        _pendingSyncClear();
+        _acsShow('ok', 'CLOUD SAVED ✓');
+        DEV_LOG('[autoCloud] success');
+      } else {
+        // Conflict guard fired or no-op — not an error
+        _acsHide();
+      }
+    } catch(e) {
+      const isOffline = _isLikelyNetworkFetchError(e);
+      if (isOffline) {
+        // Queue for later flush
+        _pendingSyncSet(payload);
+        _acsShow('offline', 'OFFLINE: SAVED LOCALLY');
+        DEV_LOG('[autoCloud] offline — pending sync queued');
+      } else {
+        _pendingSyncSet(payload);
+        _acsShow('fail', 'CLOUD SAVE FAILED');
+        console.warn('[autoCloud] upload error:', e);
+      }
+    } finally {
+      _autoSaveInFlight = false;
+    }
+  }, _AUTO_SAVE_DEBOUNCE_MS);
+}
+
+// ── Flush pending sync (called from manual cloud save + on app resume) ──
+async function flushPendingCloudSync() {
+  const pending = _pendingSyncGet();
+  if (!pending) return false;
+  DEV_LOG('[autoCloud] flushing pending sync...');
+  _acsShow('saving', 'SYNC PENDING...');
+  try {
+    const uploaded = await _autoCloudUploadCore(pending);
+    if (uploaded) {
+      _pendingSyncClear();
+      _acsShow('ok', 'SYNC COMPLETE ✓');
+      DEV_LOG('[autoCloud] pending flush OK');
+      return true;
+    } else {
+      _acsHide();
+      return false;
+    }
+  } catch(e) {
+    const isOffline = _isLikelyNetworkFetchError(e);
+    _acsShow(isOffline ? 'offline' : 'pending', isOffline ? 'OFFLINE: SYNC PENDING' : 'SYNC PENDING');
+    DEV_LOG('[autoCloud] flush failed:', e);
+    return false;
+  }
+}
+
+// ── Flush on reconnect ──
+window.addEventListener('online', () => {
+  DEV_LOG('[autoCloud] online — attempting pending flush');
+  flushPendingCloudSync();
+});
+
+// ── Show pending-sync badge on result screen if queue is non-empty ──
+function _acsShowPendingIfNeeded() {
+  if (_pendingSyncGet()) _acsShow('pending', 'SYNC PENDING');
+}
+// ══ END AUTO CLOUD SAVE ENGINE ══
+
+
 
 const _CLOUD_STORE_KEY = 'noctisak47_cloud';
 // key ที่ lock ว่า save นี้ผูกกับ cloud ID ไหนแล้ว (แยกจาก creds เพื่อไม่ให้ถูกล้างตาม load)
@@ -10421,7 +10710,7 @@ async function svCloudUpload() {
   btn.disabled  = true;
 
   try {
-    const existingUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=secret_key`;
+    const existingUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=secret_key,save_data,uploaded_at`;
     const existingRes = await fetch(existingUrl, { headers: _cloudHeaders() });
     if (!existingRes.ok) { svShowMsg(saveMsg, `❌ ตรวจสอบ ID ไม่สำเร็จ (${existingRes.status})`, 'err'); return; }
 
@@ -10432,7 +10721,30 @@ async function svCloudUpload() {
       return;
     }
 
-    const uploadSave = normalizeSaveData(Object.assign({}, save, { cloudPlayerId: id }));
+    // ── Conflict guard: if cloud has newer data, warn player ──
+    if (row && row.save_data) {
+      const cloudSaveData = row.save_data;
+      const localPayload  = buildSavePayload();
+      if (!_isLocalNewer(localPayload, cloudSaveData)) {
+        const cloudDev = cloudSaveData.deviceId || '?';
+        if (cloudDev !== _DEVICE_ID) {
+          svShowMsg(saveMsg, `⚠️ Cloud มีข้อมูลใหม่กว่า (จากอุปกรณ์อื่น) — กด Cloud Load เพื่อนำมาใช้`, 'err');
+          return;
+        }
+      }
+    }
+
+    // Flush any pending auto-save payload: use whichever is newer
+    const pendingPayload = _pendingSyncGet();
+    const uploadSaveRaw  = buildSavePayload();
+    let uploadSave;
+    if (pendingPayload && _isLocalNewer(pendingPayload, uploadSaveRaw)) {
+      uploadSave = normalizeSaveData(Object.assign({}, pendingPayload, { cloudPlayerId: id }));
+      DEV_LOG('[manualCloud] using pending payload (newer)');
+    } else {
+      uploadSave = normalizeSaveData(Object.assign({}, uploadSaveRaw, { cloudPlayerId: id }));
+    }
+
     const payload = JSON.stringify({ save_data: uploadSave, uploaded_at: new Date().toISOString() });
     const res = row
       ? await fetch(`${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`, {
@@ -10452,11 +10764,13 @@ async function svCloudUpload() {
       _saveSignatureState = 'local';
       _cloudBindSave(id);
       _cloudSaveCreds(id, key);
+      _pendingSyncClear(); // manual save flushes the pending queue
       svSetSecretDisplay(key, false);
       $('sv-cloud-id').readOnly = true;
       if ($('sv-cloud-load-id')) $('sv-cloud-load-id').value = id;
       if ($('sv-cloud-load-key')) $('sv-cloud-load-key').value = key;
       svShowMsg(saveMsg, `✅ Upload สำเร็จ! ID: ${id}`, 'ok');
+      DEV_LOG('[manualCloud] upload OK — saveVersion:', uploadSave.saveVersion);
     } else {
       const err = await res.json().catch(() => ({}));
       console.error('[cloudUpload] HTTP', res.status, err);
