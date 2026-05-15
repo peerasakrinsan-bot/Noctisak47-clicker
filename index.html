@@ -4372,8 +4372,7 @@ function confirmOCA() {
   markSaveDirty('card_purchase');
   doSave();
   scheduleCloudSync('card_purchase');
-
-  // สุ่มการ์ด
+  $('ocaConfirmModal').style.display = 'none';
   const weights = def.dropWeights;
   const tiers = Object.keys(weights);
   const total = tiers.reduce((s,t)=>s+weights[t],0);
@@ -9147,7 +9146,9 @@ function pressureTryOcaTicketDrop(x, y) {
   if(Math.random() >= pressureOcaTicketChance()) return false;
   if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
   save.ocaTickets.standard = (save.ocaTickets.standard || 0) + 1;
+  markSaveDirty('inventory_changed');
   doSave();
+  scheduleCloudSync('inventory_changed');
   showOcaDropFX(x, y, 'standard');
   showOcaDropToast('standard');
   return true;
@@ -10524,21 +10525,29 @@ function _isLocalNewer(localPayload, cloudPayload) {
 }
 
 // ── Core upload (used by both auto and manual) ──
+// Includes 10-second fetch timeout via AbortController to prevent indefinite hang.
 async function _cloudUploadCore(payload) {
   const id  = cloudProfile.playerId  || _cloudBoundId();
   const key = cloudProfile.secret    || (_cloudLoadCreds().key);
   if (!id || !key) { DEV_LOG('[upload] no credentials — skip'); return false; }
 
+  const _fetchWithTimeout = (url, opts, ms) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, Object.assign({}, opts, { signal: ctrl.signal }))
+      .finally(() => clearTimeout(timer));
+  };
+
   // Conflict check: fetch existing row
   let cloudRow = null;
   try {
-    const chkRes = await fetch(
+    const chkRes = await _fetchWithTimeout(
       `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
-      { headers: _cloudHeaders() }
+      { headers: _cloudHeaders() }, 10000
     );
     if (chkRes.ok) { const rows = await chkRes.json(); cloudRow = rows && rows[0] || null; }
   } catch(e) {
-    if (_isLikelyNetworkFetchError(e)) throw e;
+    if (_isLikelyNetworkFetchError(e) || e.name === 'AbortError') throw e;
     DEV_LOG('[upload] conflict-check error:', e);
   }
 
@@ -10561,15 +10570,16 @@ async function _cloudUploadCore(payload) {
   }
 
   const body = JSON.stringify({ save_data: payload, uploaded_at: new Date().toISOString() });
-  const res = await fetch(
+  const res = await _fetchWithTimeout(
     `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`,
-    { method: 'PATCH', headers: _cloudHeaders({ 'Content-Type': 'application/json' }), body }
+    { method: 'PATCH', headers: _cloudHeaders({ 'Content-Type': 'application/json' }), body },
+    10000
   );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(`HTTP ${res.status}: ${JSON.stringify(err)}`);
   }
-  saveState.lastSyncHash  = hash;
+  saveState.lastSyncHash    = hash;
   saveState.lastCloudSyncAt = Date.now();
   DEV_LOG('[upload] OK — runId:', payload.lastRunId, 'saveVersion:', payload.saveVersion);
   return true;
@@ -10587,8 +10597,7 @@ async function performCloudSync(reason) {
     return;
   }
   saveState.cloudSyncInProgress = true;
-  saveState.dirty               = false;
-  saveState.dirtyReason         = null;
+  // NOTE: dirty flag cleared AFTER success only — so 5-min interval retries on failure
   DEV_LOG('[sync] starting —', reason);
 
   const payload = Object.assign({}, save);
@@ -10597,6 +10606,8 @@ async function performCloudSync(reason) {
     const uploaded = await _cloudUploadCore(payload);
     if (uploaded) {
       _pendingSyncClear();
+      saveState.dirty            = false;   // ← only clear on success
+      saveState.dirtyReason      = null;
       saveState.pendingCloudSync = false;
       showSaveToast('cloud');
       DEV_LOG('[sync] success');
@@ -10607,6 +10618,7 @@ async function performCloudSync(reason) {
     const offline = _isLikelyNetworkFetchError(e);
     _pendingSyncSet(payload);
     saveState.pendingCloudSync = true;
+    // dirty stays true — 5-min interval will retry
     showSaveToast(offline ? 'offline' : 'failed');
     if (!offline) console.warn('[sync] error:', e);
     DEV_LOG('[sync] failed —', offline ? 'offline' : e.message);
@@ -10637,17 +10649,23 @@ function scheduleCloudSync(reason) {
 }
 
 // ── flushPendingCloudSync: upload queued payload from localStorage ──
+// Always uses the NEWER of (stored pending, live save) to avoid uploading a stale snapshot.
 async function flushPendingCloudSync() {
   const pending = _pendingSyncGet();
   if (!pending) return false;
   if (saveState.cloudSyncInProgress) return false;
   DEV_LOG('[flush] flushing pending sync...');
+  // Pick the newer payload: live save may have advanced beyond what was queued
+  const livePayload = Object.assign({}, save);
+  const flushPayload = _isLocalNewer(livePayload, pending) ? livePayload : pending;
+  DEV_LOG('[flush] using', flushPayload === livePayload ? 'live save' : 'stored pending', 'sv:', flushPayload.saveVersion);
   showSaveToast('syncing');
   try {
-    const uploaded = await _cloudUploadCore(pending);
+    const uploaded = await _cloudUploadCore(flushPayload);
     if (uploaded) {
       _pendingSyncClear();
       saveState.pendingCloudSync = false;
+      saveState.dirty            = false;
       showSaveToast('cloud');
       DEV_LOG('[flush] OK');
       return true;
@@ -10690,8 +10708,15 @@ async function startupCloudRestore() {
   showSaveToast('checking');
   DEV_LOG('[restore] checking cloud for player:', id);
 
+  const _restoreFetch = (url, opts) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10000);
+    return fetch(url, Object.assign({}, opts || {}, { signal: ctrl.signal }))
+      .finally(() => clearTimeout(timer));
+  };
+
   try {
-    const res = await fetch(
+    const res = await _restoreFetch(
       `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
       { headers: _cloudHeaders() }
     );
@@ -10748,10 +10773,10 @@ async function startupCloudRestore() {
       DEV_LOG('[restore] applied — coins:', save.coins, 'hs:', save.stats && save.stats.highScore);
     }
   } catch(e) {
-    if (_isLikelyNetworkFetchError(e)) {
+    if (_isLikelyNetworkFetchError(e) || e.name === 'AbortError') {
       showSaveToast('offline');
       saveState.pendingCloudSync = true;
-      DEV_LOG('[restore] offline — keeping local');
+      DEV_LOG('[restore] offline/timeout — keeping local');
     } else {
       _hideToast();
       console.warn('[restore] error:', e);
@@ -10854,6 +10879,15 @@ function _cloudBindSave(id)    { save.cloudPlayerId = id; _cloudSetLock(id); doS
 function _cloudClearAccountState() {
   _cloudClearCreds();
   _cloudClearLock();
+  // Reset in-memory profile so future auto-syncs don't target the old account
+  cloudProfile.isCloudEnabled = false;
+  cloudProfile.playerId       = '';
+  cloudProfile.secret         = '';
+  saveState.pendingCloudSync  = false;
+  saveState.dirty             = false;
+  saveState.lastSyncHash      = null;
+  _pendingSyncClear();
+  DEV_LOG('[cloudProfile] cleared on account reset');
 }
 function _cloudHeaders(extra)  {
   return Object.assign({
@@ -11459,6 +11493,7 @@ function awardOcaTierDrop(tier, x, y) {
   save.ocaTickets[tier] = (save.ocaTickets[tier] || 0) + 1;
   markSaveDirty('inventory_changed');
   doSave();
+  scheduleCloudSync('inventory_changed');
   showOcaDropFX(x, y, tier);
   showOcaDropToast(tier);
 }
