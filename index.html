@@ -3551,7 +3551,9 @@ function persistSettings() {
   try { localStorage.setItem('noctis_sound', soundEnabled ? 'on' : 'off'); } catch(e) {}
   if (typeof save !== 'undefined' && save) {
     save.settings = gameSettings;
+    markSaveDirty('settings_changed');
     doSave('settings');
+    scheduleCloudSync('settings_changed');
   }
 }
 
@@ -3829,12 +3831,65 @@ function DEV_LOG(...args) {
 // Flag: set true by endGame so doSave() shows 'Local Saved' toast exactly once
 let _showLocalSaveToast = false;
 
+// ══ SAVE STATE ══
+const saveState = {
+  dirty:               false,
+  dirtyReason:         null,
+  lastLocalSaveAt:     0,
+  lastCloudSyncAt:     0,
+  cloudSyncInProgress: false,
+  pendingCloudSync:    false,
+  lastSyncRunId:       null,
+  lastSyncHash:        null
+};
+
+// ══ CLOUD PROFILE ══
+const cloudProfile = {
+  isCloudEnabled: false,
+  playerId:       '',
+  secret:         '',
+  deviceId:       _DEVICE_ID,
+  updatedAt:      0,
+  saveVersion:    1
+};
+function _cpInit() {
+  const creds   = _cloudLoadCreds();
+  const boundId = _cloudBoundId();
+  if (boundId && creds.key) {
+    cloudProfile.isCloudEnabled = true;
+    cloudProfile.playerId       = boundId;
+    cloudProfile.secret         = creds.key;
+  }
+  DEV_LOG('[cloudProfile] enabled:', cloudProfile.isCloudEnabled, 'id:', cloudProfile.playerId || '(none)');
+}
+
+// ── markSaveDirty: tag the reason before every important doSave ──
+function markSaveDirty(reason) {
+  saveState.dirty       = true;
+  saveState.dirtyReason = reason || 'unknown';
+  DEV_LOG('[dirty]', reason);
+}
+
+// ── Lightweight hash for dedup: skip upload if payload unchanged ──
+function _saveHash(payload) {
+  const s = JSON.stringify({
+    coins: payload.coins, sv: payload.saveVersion, ua: payload.updatedAt,
+    hs: payload.stats && payload.stats.highScore, gc: payload.gamesCompleted
+  });
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return h.toString(36);
+}
+
 
 let save = loadSave();
 gameSettings = normalizeSettings(save.settings || gameSettings);
 save.settings = gameSettings;
 applyAudioSettings();
 const _saveReadyPromise = verifyLocalSaveSignature();
+// Init cloud profile from persisted creds (safe: _cloudLoadCreds uses localStorage, always available)
+// _cpInit() references _cloudLoadCreds/_cloudBoundId defined later in the file, so we defer one tick.
+setTimeout(() => _cpInit(), 0);
 
 // item level helper
 function itemLv(id) { return (save.items && save.items[id]) || 0; }
@@ -4164,9 +4219,10 @@ function showMainMenu() {
   $('wpCounter').style.display = 'none';
   pressureHide();
   _el.multiBadge.classList.remove('show');
-  // show save/transfer button
   _applyArenaBg();
   playBGM();
+  // Startup cloud restore — runs once, background, non-blocking
+  setTimeout(() => startupCloudRestore(), 300);
 }
 
 function updateShopCoinUI() {
@@ -4313,8 +4369,9 @@ function confirmOCA() {
   const def = SHOP_DEF.find(d=>d.id==='oca');
   if(save.coins < def.cost) return;
   save.coins -= def.cost;
+  markSaveDirty('card_purchase');
   doSave();
-  $('ocaConfirmModal').style.display = 'none';
+  scheduleCloudSync('card_purchase');
 
   // สุ่มการ์ด
   const weights = def.dropWeights;
@@ -4346,8 +4403,10 @@ function buyItem(id, lv, cost) {
   save.coins -= cost;
   if (!save.items) save.items = {};
   save.items[id] = lv;
+  markSaveDirty('shop_purchase');
   doSave();
-  rebuildStatCache(); // อัปเดต stat cache ทันที
+  scheduleCloudSync('shop_purchase');
+  rebuildStatCache();
   renderShop();
   $('shopCoinNum').textContent = save.coins;
   if ($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
@@ -4536,15 +4595,19 @@ function buyBossSkin(id) {
   save.coins -= skin.cost;
   if (!save.ownedSkins) save.ownedSkins = ['default'];
   if (!save.ownedSkins.includes(id)) save.ownedSkins.push(id);
+  markSaveDirty('shop_purchase');
   doSave();
+  scheduleCloudSync('shop_purchase');
   renderBossShop();
   $('bossCoinNum').textContent = save.coins;
 }
 
 function applySkin(id) {
   save.activeSkin = id;
-  _cachedSkin = null; // invalidate cache
+  _cachedSkin = null;
+  markSaveDirty('inventory_changed');
   doSave();
+  scheduleCloudSync('inventory_changed');
   // preload ภาพ skin ที่เลือก ทันที
   const sk = BOSS_SKINS.find(s=>s.id===id);
   if(sk){ _preloadImg(sk.files.idle); sk.files.hits.forEach(_preloadImg); }
@@ -4704,7 +4767,9 @@ function buyArena(id) {
   save.coins -= arena.cost;
   if (!save.ownedArenas) save.ownedArenas = ['default'];
   if (!save.ownedArenas.includes(id)) save.ownedArenas.push(id);
+  markSaveDirty('shop_purchase');
   doSave();
+  scheduleCloudSync('shop_purchase');
   renderArenaShop();
   // sync coin display ทุกหน้า
   $('arenaCoinNum').textContent = save.coins;
@@ -4715,7 +4780,9 @@ function buyArena(id) {
 
 function applyArena(id) {
   save.activeArena = id;
+  markSaveDirty('inventory_changed');
   doSave();
+  scheduleCloudSync('inventory_changed');
   _applyArenaBg();
   renderArenaShop();
 }
@@ -7695,7 +7762,7 @@ function isCardUnlocked(id) {
 
 function unlockCard(id) {
   const uc = getUnlockedCards();
-  if(!uc.includes(id)) { uc.push(id); save.unlockedCards = uc; doSave(); }
+  if(!uc.includes(id)) { uc.push(id); save.unlockedCards = uc; markSaveDirty('card_opened'); doSave(); }
 }
 
 // active card state for this round
@@ -7955,7 +8022,9 @@ function collectCard() {
   if(!isOCA) {
     save.gamesCompleted = (save.gamesCompleted||0)+1;
   }
+  markSaveDirty('card_opened');
   doSave();
+  scheduleCloudSync('card_opened');
   $('cardDrawScreen').style.display = 'none';
   try {
     if(typeof onDone === 'function') onDone();
@@ -9221,8 +9290,10 @@ function endGame(opts = {}) {
   save.coins=(save.coins||0)+roundCoins;
   save.quitPenalty = false;
   save.savedCards = null;
+  markSaveDirty('run_complete');
   _showLocalSaveToast = true;  // ← arm: next doSave() will show 'Local Saved' toast
   doSave();
+  // Cloud sync fires after Local Saved toast; sequenced in _showResultScreen via autoCloudSave()
   // ── Card Mastery: record this run for the active card (time-up / game over only)
   let _cmNewTier = null;
   if (activeCard && activeCard.id) _cmNewTier = cmRecordRun(activeCard.id);
@@ -10344,26 +10415,6 @@ window.addEventListener('popstate', () => {
 // push state ตั้งต้น เพื่อให้ popstate ทำงานได้
 history.pushState(null, '', location.href);
 
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    if (gameRunning && !gamePaused) pauseGame();
-    ['akSound','punchSound','bgmSound','countdownSound'].forEach(id => {
-      const s = $(id); if(s){ s.pause(); s.currentTime = 0; }
-    });
-    if(_fightBgmCurrent && !_fightBgmCurrent.paused) _fightBgmCurrent.pause();
-  } else {
-    if (!gameRunning && !gamePaused) playBGM();
-  }
-});
-
-// iOS Safari: pagehide fires เมื่อพับจอหรือ switch app
-window.addEventListener('pagehide', () => {
-  ['akSound','punchSound','bgmSound','countdownSound'].forEach(id => {
-    const s = $(id); if(s){ s.pause(); s.currentTime = 0; }
-  });
-  if(_fightBgmCurrent) { _fightBgmCurrent.pause(); }
-});
-
 function _root(){ return document.getElementById('gameRoot') || document.body; }
 function vvW(){ return window.visualViewport ? window.visualViewport.width  : window.innerWidth;  }
 function vvH(){ return window.visualViewport ? window.visualViewport.height : window.innerHeight; }
@@ -10380,36 +10431,38 @@ function getPos(e){
 // Cloud Save only
 // ══════════════════════════════════════════
 
-// ══ AUTO CLOUD SAVE ENGINE ══
-// Runs after every completed run. Never blocks the result screen.
-// Local save always happens first (in endGame via doSave).
-// Debounced: only one auto-save per run end (keyed by runId).
+// ══════════════════════════════════════════════════════════════════════
+// ══ CLOUD SAVE ENGINE v2 — Guest-first Smart Auto Sync               ══
+// ══════════════════════════════════════════════════════════════════════
+//
+// FLOW: Local save always first. Cloud is async backup. Never blocks UI.
+// GUEST MODE: works fully without any cloud setup.
+// CLOUD MODE: auto-syncs after run, purchase, card open, 5-min dirty, hide.
 
-const _AUTO_SAVE_DEBOUNCE_MS = 2000;  // ignore duplicate endGame calls within 2s
-let   _lastAutoSaveRunId     = null;
-let   _autoSaveDebounceTimer = null;
-let   _autoSaveInFlight      = false;
-
-// ── Status pill UI ──
-// ══ SAVE STATUS TOAST ══
-// Single floating corner toast — no layout shift, z-index 99999, pointer-events:none.
-// Call showSaveToast(type) from anywhere; safe if DOM not ready.
+// ── TOAST SYSTEM ──
+// Single reusable fixed top-right corner toast. pointer-events:none.
 
 const _TOAST_TIMING = {
-  local:   1200,
-  syncing: 0,      // 0 = stays until replaced
-  cloud:   1600,
-  pending: 2200,
-  offline: 2600,
-  failed:  3000
+  local:    1200,
+  syncing:  0,       // indefinite — replaced by result
+  checking: 0,       // indefinite — replaced by result
+  cloud:    1600,
+  loaded:   2000,
+  pending:  2200,
+  offline:  2600,
+  failed:   3000,
+  localonly:1200
 };
 const _TOAST_CONFIG = {
-  local:   { cls: 'st-local',   icon: '💾', label: 'Local Saved'        },
-  syncing: { cls: 'st-syncing', icon: '☁️', label: 'Syncing...',  spin: true },
-  cloud:   { cls: 'st-cloud',   icon: '☁️', label: 'Cloud Synced'       },
-  pending: { cls: 'st-pending', icon: '⏳', label: 'Sync Pending'       },
-  offline: { cls: 'st-offline', icon: '⚠️', label: 'Offline — Local Saved' },
-  failed:  { cls: 'st-failed',  icon: '❌', label: 'Cloud Failed'       }
+  local:    { cls: 'st-local',   icon: '💾', label: 'Local Saved'            },
+  syncing:  { cls: 'st-syncing', icon: '☁️', label: 'Syncing...',   spin:true },
+  checking: { cls: 'st-syncing', icon: '☁️', label: 'Checking Cloud...', spin:true },
+  cloud:    { cls: 'st-cloud',   icon: '☁️', label: 'Cloud Synced'           },
+  loaded:   { cls: 'st-cloud',   icon: '☁️', label: 'Cloud Loaded'           },
+  pending:  { cls: 'st-pending', icon: '⏳', label: 'Sync Pending'           },
+  offline:  { cls: 'st-offline', icon: '⚠️', label: 'Offline — Local Saved'  },
+  failed:   { cls: 'st-failed',  icon: '❌', label: 'Cloud Failed'           },
+  localonly:{ cls: 'st-local',   icon: '💾', label: 'Local Save Active'      }
 };
 
 let _toastEl        = null;
@@ -10418,7 +10471,6 @@ let _toastFadeTimer = null;
 
 function _getToastEl() {
   if (_toastEl) return _toastEl;
-  // Lazily create on first call so DOM doesn't need to be ready at parse time
   const el = document.createElement('div');
   el.id = 'saveToast';
   el.setAttribute('role', 'status');
@@ -10434,32 +10486,20 @@ function showSaveToast(type, msgOverride) {
     const cfg = _TOAST_CONFIG[type];
     if (!cfg) return;
     const el = _getToastEl();
-
-    // Cancel any pending hide/fade
     clearTimeout(_toastHideTimer);
     clearTimeout(_toastFadeTimer);
-
-    // Build inner HTML
     const iconHtml = cfg.spin
       ? `<span class="st-spin" aria-hidden="true">${cfg.icon}</span>`
       : `<span class="st-icon" aria-hidden="true">${cfg.icon}</span>`;
     const text = msgOverride || cfg.label;
     el.innerHTML = iconHtml + `<span class="st-label">${text}</span>`;
-
-    // Reset to hidden state instantly (kills old transition), then re-apply class next frame
     el.className = cfg.cls;
-    // Force reflow so transition fires cleanly even when replacing same type
-    void el.offsetWidth;
+    void el.offsetWidth;  // force reflow for clean transition
     el.classList.add('st-visible');
-
     DEV_LOG('[toast]', type, text);
-
     const ms = _TOAST_TIMING[type];
-    if (ms > 0) {
-      _toastHideTimer = setTimeout(() => _hideToast(), ms);
-    }
+    if (ms > 0) _toastHideTimer = setTimeout(() => _hideToast(), ms);
   } catch(e) {
-    // Never throw — toast is non-critical UI
     if (window.NOCTIS_DEV) console.warn('[toast] error:', e);
   }
 }
@@ -10467,179 +10507,318 @@ function showSaveToast(type, msgOverride) {
 function _hideToast() {
   if (!_toastEl) return;
   _toastEl.classList.remove('st-visible');
-  // After transition completes, clear type class so it's truly invisible
-  _toastFadeTimer = setTimeout(() => {
-    if (_toastEl) _toastEl.className = '';
-  }, 260);
+  _toastFadeTimer = setTimeout(() => { if (_toastEl) _toastEl.className = ''; }, 260);
 }
 
-// Legacy bridge — called internally; now routes to showSaveToast
-function _acsShowPendingIfNeeded() {
-  if (_pendingSyncGet()) showSaveToast('pending');
-}
-// ══ END SAVE STATUS TOAST ══
-
-// ── Conflict guard: compare updatedAt + saveVersion ──
-// Returns true if localPayload is strictly NEWER than cloudPayload.
+// ── Conflict guard ──
+// Returns true if localPayload is strictly newer than cloudPayload.
 function _isLocalNewer(localPayload, cloudPayload) {
-  if (!cloudPayload) return true; // no cloud save yet — safe to upload
+  if (!cloudPayload) return true;
   const lv = localPayload.saveVersion  || 0;
   const cv = cloudPayload.saveVersion  || 0;
   if (lv !== cv) return lv > cv;
-  // fallback: ISO timestamp comparison
   const lt = localPayload.updatedAt || '';
   const ct = cloudPayload.updatedAt || cloudPayload.uploaded_at || '';
   if (lt && ct) return lt > ct;
-  return true; // unknown — allow upload (conservative)
-}
-
-// ── Core auto-upload ──
-async function _autoCloudUploadCore(payload) {
-  const creds   = _cloudLoadCreds();
-  const boundId = _cloudBoundId();
-  if (!boundId || !creds.key) {
-    DEV_LOG('[autoCloud] no bound ID — skip');
-    return false; // not registered — no-op (silent)
-  }
-  const id  = boundId;
-  const key = creds.key;
-
-  // ① Fetch current cloud save to run conflict check
-  let cloudRow = null;
-  try {
-    const chkUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`;
-    const chkRes = await fetch(chkUrl, { headers: _cloudHeaders() });
-    if (chkRes.ok) {
-      const rows = await chkRes.json();
-      cloudRow = (rows && rows[0]) || null;
-    }
-  } catch(e) {
-    if (_isLikelyNetworkFetchError(e)) throw e; // re-throw for offline handling
-    DEV_LOG('[autoCloud] conflict-check error (non-network):', e);
-  }
-
-  if (cloudRow) {
-    // Validate secret key still matches (detect account swap / hostile overwrite)
-    if (cloudRow.secret_key && cloudRow.secret_key !== key) {
-      DEV_LOG('[autoCloud] secret key mismatch — abort');
-      return false;
-    }
-    const cloudSaveData = cloudRow.save_data || {};
-    if (!_isLocalNewer(payload, cloudSaveData)) {
-      DEV_LOG('[autoCloud] cloud is newer or equal — skip upload. cloudSV:', cloudSaveData.saveVersion, 'localSV:', payload.saveVersion);
-      return false;
-    }
-  }
-
-  // ② Upload
-  const uploadBody = JSON.stringify({
-    save_data: payload,
-    uploaded_at: new Date().toISOString()
-  });
-  const uploadUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`;
-  const res = await fetch(uploadUrl, {
-    method: 'PATCH',
-    headers: _cloudHeaders({ 'Content-Type': 'application/json' }),
-    body: uploadBody
-  });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(`HTTP ${res.status}: ${JSON.stringify(errBody)}`);
-  }
-  DEV_LOG('[autoCloud] upload OK — runId:', payload.lastRunId, 'saveVersion:', payload.saveVersion);
   return true;
 }
 
-// ── Public: called from endGame after result screen is shown ──
-async function autoCloudSave() {
-  // Debounce: guard duplicate endGame calls
-  const runId = _currentRunId;
-  if (runId && runId === _lastAutoSaveRunId) {
-    DEV_LOG('[autoCloud] debounce — same runId:', runId);
-    return;
+// ── Core upload (used by both auto and manual) ──
+async function _cloudUploadCore(payload) {
+  const id  = cloudProfile.playerId  || _cloudBoundId();
+  const key = cloudProfile.secret    || (_cloudLoadCreds().key);
+  if (!id || !key) { DEV_LOG('[upload] no credentials — skip'); return false; }
+
+  // Conflict check: fetch existing row
+  let cloudRow = null;
+  try {
+    const chkRes = await fetch(
+      `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
+      { headers: _cloudHeaders() }
+    );
+    if (chkRes.ok) { const rows = await chkRes.json(); cloudRow = rows && rows[0] || null; }
+  } catch(e) {
+    if (_isLikelyNetworkFetchError(e)) throw e;
+    DEV_LOG('[upload] conflict-check error:', e);
   }
-  if (_autoSaveInFlight) {
-    DEV_LOG('[autoCloud] in-flight — skip');
-    return;
+
+  if (cloudRow) {
+    if (cloudRow.secret_key && cloudRow.secret_key !== key) {
+      DEV_LOG('[upload] secret key mismatch — abort');
+      return false;
+    }
+    if (!_isLocalNewer(payload, cloudRow.save_data || {})) {
+      DEV_LOG('[upload] cloud equal/newer — skip. cloudSV:', (cloudRow.save_data||{}).saveVersion, 'localSV:', payload.saveVersion);
+      return false;
+    }
   }
-  // Rate-gate with debounce timer
-  clearTimeout(_autoSaveDebounceTimer);
-  _autoSaveDebounceTimer = setTimeout(async () => {
-    _lastAutoSaveRunId = runId;
-    _autoSaveInFlight  = true;
 
-    // Only auto-save if this device has a bound cloud ID
-    const boundId = _cloudBoundId();
-    if (!boundId) {
-      DEV_LOG('[autoCloud] no bound ID — auto-save skipped (player not registered)');
-      _autoSaveInFlight = false;
-      return;
-    }
+  // Dedup hash check
+  const hash = _saveHash(payload);
+  if (hash === saveState.lastSyncHash) {
+    DEV_LOG('[upload] payload unchanged (hash match) — skip');
+    return false;
+  }
 
-    _acsShowPendingIfNeeded();
-    const payload = Object.assign({}, save); // save already enriched by doSave()
-
-    // Show 'Syncing...' after Local Saved has had its moment
-    setTimeout(() => showSaveToast('syncing'), _TOAST_TIMING.local + 100);
-
-    try {
-      const uploaded = await _autoCloudUploadCore(payload);
-      if (uploaded) {
-        _pendingSyncClear();
-        showSaveToast('cloud');
-        DEV_LOG('[autoCloud] success');
-      } else {
-        // Conflict guard fired or no-op — not an error, hide syncing spinner
-        _hideToast();
-      }
-    } catch(e) {
-      const isOffline = _isLikelyNetworkFetchError(e);
-      if (isOffline) {
-        _pendingSyncSet(payload);
-        showSaveToast('offline');
-        DEV_LOG('[autoCloud] offline — pending sync queued');
-      } else {
-        _pendingSyncSet(payload);
-        showSaveToast('failed');
-        console.warn('[autoCloud] upload error:', e);
-      }
-    } finally {
-      _autoSaveInFlight = false;
-    }
-  }, _AUTO_SAVE_DEBOUNCE_MS);
+  const body = JSON.stringify({ save_data: payload, uploaded_at: new Date().toISOString() });
+  const res = await fetch(
+    `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`,
+    { method: 'PATCH', headers: _cloudHeaders({ 'Content-Type': 'application/json' }), body }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`HTTP ${res.status}: ${JSON.stringify(err)}`);
+  }
+  saveState.lastSyncHash  = hash;
+  saveState.lastCloudSyncAt = Date.now();
+  DEV_LOG('[upload] OK — runId:', payload.lastRunId, 'saveVersion:', payload.saveVersion);
+  return true;
 }
 
-// ── Flush pending sync (called from manual cloud save + on app resume) ──
+// ── Core performer: does the actual sync. Fire-and-forget safe. ──
+async function performCloudSync(reason) {
+  if (!cloudProfile.isCloudEnabled) {
+    DEV_LOG('[sync] cloud disabled — local only');
+    return;
+  }
+  if (saveState.cloudSyncInProgress) {
+    saveState.pendingCloudSync = true;
+    DEV_LOG('[sync] already in flight — marked pending');
+    return;
+  }
+  saveState.cloudSyncInProgress = true;
+  saveState.dirty               = false;
+  saveState.dirtyReason         = null;
+  DEV_LOG('[sync] starting —', reason);
+
+  const payload = Object.assign({}, save);
+
+  try {
+    const uploaded = await _cloudUploadCore(payload);
+    if (uploaded) {
+      _pendingSyncClear();
+      saveState.pendingCloudSync = false;
+      showSaveToast('cloud');
+      DEV_LOG('[sync] success');
+    } else {
+      _hideToast();
+    }
+  } catch(e) {
+    const offline = _isLikelyNetworkFetchError(e);
+    _pendingSyncSet(payload);
+    saveState.pendingCloudSync = true;
+    showSaveToast(offline ? 'offline' : 'failed');
+    if (!offline) console.warn('[sync] error:', e);
+    DEV_LOG('[sync] failed —', offline ? 'offline' : e.message);
+  } finally {
+    saveState.cloudSyncInProgress = false;
+    // If another sync was queued while this one ran, flush it now
+    if (saveState.pendingCloudSync && cloudProfile.isCloudEnabled) {
+      setTimeout(() => flushPendingCloudSync(), 1500);
+    }
+  }
+}
+
+// ── scheduleCloudSync: debounced, deduped, respects in-flight ──
+const _SYNC_DEBOUNCE = { immediate: 800, deferred: 5000 };
+const _syncTimers    = {};
+const _SYNC_IMMEDIATE = new Set(['run_complete','shop_purchase','card_purchase','card_opened','manual_save','daily_reward']);
+
+function scheduleCloudSync(reason) {
+  if (!cloudProfile.isCloudEnabled) return;
+  const delay = _SYNC_IMMEDIATE.has(reason) ? _SYNC_DEBOUNCE.immediate : _SYNC_DEBOUNCE.deferred;
+  clearTimeout(_syncTimers[reason]);
+  _syncTimers[reason] = setTimeout(() => {
+    // Show syncing toast only for immediate reasons; silent for background ones
+    if (_SYNC_IMMEDIATE.has(reason)) showSaveToast('syncing');
+    performCloudSync(reason);
+  }, delay);
+  DEV_LOG('[scheduleSync]', reason, 'delay:', delay);
+}
+
+// ── flushPendingCloudSync: upload queued payload from localStorage ──
 async function flushPendingCloudSync() {
   const pending = _pendingSyncGet();
   if (!pending) return false;
-  DEV_LOG('[autoCloud] flushing pending sync...');
+  if (saveState.cloudSyncInProgress) return false;
+  DEV_LOG('[flush] flushing pending sync...');
   showSaveToast('syncing');
   try {
-    const uploaded = await _autoCloudUploadCore(pending);
+    const uploaded = await _cloudUploadCore(pending);
     if (uploaded) {
       _pendingSyncClear();
+      saveState.pendingCloudSync = false;
       showSaveToast('cloud');
-      DEV_LOG('[autoCloud] pending flush OK');
+      DEV_LOG('[flush] OK');
       return true;
     } else {
       _hideToast();
       return false;
     }
   } catch(e) {
-    const isOffline = _isLikelyNetworkFetchError(e);
-    showSaveToast(isOffline ? 'offline' : 'pending');
-    DEV_LOG('[autoCloud] flush failed:', e);
+    showSaveToast(_isLikelyNetworkFetchError(e) ? 'offline' : 'pending');
+    DEV_LOG('[flush] failed:', e);
     return false;
   }
 }
 
-// ── Flush on reconnect ──
+// ── Legacy alias (called from endGame / result screen) ──
+function autoCloudSave() {
+  scheduleCloudSync('run_complete');
+}
+
+// ── Legacy bridge (result screen pending check) ──
+function _acsShowPendingIfNeeded() {
+  if (_pendingSyncGet()) showSaveToast('pending');
+}
+
+// ── Startup Cloud Restore ──
+// Called after local save is loaded and main menu is first shown.
+// Never blocks startup. Never overwrites newer local save.
+let _startupRestoreDone = false;
+async function startupCloudRestore() {
+  if (_startupRestoreDone) return;
+  _startupRestoreDone = true;
+  if (!cloudProfile.isCloudEnabled) {
+    DEV_LOG('[restore] cloud disabled — guest mode');
+    return;
+  }
+  const id  = cloudProfile.playerId;
+  const key = cloudProfile.secret;
+  if (!id || !key) return;
+
+  showSaveToast('checking');
+  DEV_LOG('[restore] checking cloud for player:', id);
+
+  try {
+    const res = await fetch(
+      `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
+      { headers: _cloudHeaders() }
+    );
+    if (!res.ok) { _hideToast(); DEV_LOG('[restore] fetch failed:', res.status); return; }
+
+    const rows = await res.json();
+    const row  = rows && rows[0];
+    if (!row || !row.save_data) {
+      // No cloud save yet — local is canonical, schedule upload
+      showSaveToast('localonly');
+      DEV_LOG('[restore] no cloud save found — local is canonical');
+      markSaveDirty('startup_no_cloud');
+      scheduleCloudSync('run_complete');
+      return;
+    }
+
+    // Validate secret
+    if (row.secret_key && row.secret_key !== key) {
+      _hideToast();
+      DEV_LOG('[restore] secret key mismatch on restore — abort');
+      return;
+    }
+
+    const cloudSaveData = row.save_data;
+
+    // Sanity check cloud payload
+    if (typeof cloudSaveData !== 'object' || !cloudSaveData.stats) {
+      _hideToast();
+      DEV_LOG('[restore] cloud payload corrupted — keeping local');
+      return;
+    }
+
+    if (_isLocalNewer(save, cloudSaveData)) {
+      // Local is newer — show badge, schedule push
+      showSaveToast('localonly');
+      DEV_LOG('[restore] local is newer — keeping local, scheduling push');
+      markSaveDirty('local_newer_at_startup');
+      scheduleCloudSync('run_complete');
+    } else {
+      // Cloud is newer — apply it
+      DEV_LOG('[restore] cloud is newer — applying. cloudSV:', cloudSaveData.saveVersion);
+      const restored = normalizeSaveData(Object.assign({}, cloudSaveData));
+      Object.assign(save, restored);
+      _storeLocalSave(save);
+      gameSettings = normalizeSettings(save.settings || gameSettings);
+      save.settings = gameSettings;
+      applyAudioSettings();
+      // Re-render any live UI that shows save data
+      try { updateShopCoinUI(); } catch(e) {}
+      try { if (typeof checkDailyQuestReset === 'function') checkDailyQuestReset(); } catch(e) {}
+      try { if (typeof updateDailyQuestUI  === 'function') updateDailyQuestUI();    } catch(e) {}
+      saveState.lastSyncHash = _saveHash(save);
+      showSaveToast('loaded');
+      DEV_LOG('[restore] applied — coins:', save.coins, 'hs:', save.stats && save.stats.highScore);
+    }
+  } catch(e) {
+    if (_isLikelyNetworkFetchError(e)) {
+      showSaveToast('offline');
+      saveState.pendingCloudSync = true;
+      DEV_LOG('[restore] offline — keeping local');
+    } else {
+      _hideToast();
+      console.warn('[restore] error:', e);
+    }
+  }
+}
+
+// ── 5-minute dirty sync interval ──
+setInterval(() => {
+  if (saveState.dirty && cloudProfile.isCloudEnabled && !saveState.cloudSyncInProgress) {
+    DEV_LOG('[interval] dirty — scheduling 5-min sync');
+    scheduleCloudSync('interval_dirty');
+  }
+}, 5 * 60 * 1000);
+
+// ── App hide / close: save local synchronously, attempt quick cloud ──
+function _onAppHide() {
+  // Always commit local save immediately
+  try { _storeLocalSave(save); } catch(e) {}
+  if (cloudProfile.isCloudEnabled && saveState.dirty) {
+    if (saveState.cloudSyncInProgress) {
+      saveState.pendingCloudSync = true;
+    } else {
+      // Best-effort fire-and-forget; queue if it fails
+      _pendingSyncSet(Object.assign({}, save));
+      performCloudSync('app_hide').catch(() => {});
+    }
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    _onAppHide();
+    if (gameRunning && !gamePaused) pauseGame();
+    ['akSound','punchSound','bgmSound','countdownSound'].forEach(id => {
+      const s = $(id); if(s){ s.pause(); s.currentTime = 0; }
+    });
+    if(_fightBgmCurrent && !_fightBgmCurrent.paused) _fightBgmCurrent.pause();
+  } else {
+    if (!gameRunning && !gamePaused) playBGM();
+    // On resume: flush any pending sync
+    if (saveState.pendingCloudSync) {
+      setTimeout(() => flushPendingCloudSync(), 2000);
+    }
+  }
+});
+
+window.addEventListener('pagehide', () => {
+  _onAppHide();
+  ['akSound','punchSound','bgmSound','countdownSound'].forEach(id => {
+    const s = $(id); if(s){ s.pause(); s.currentTime = 0; }
+  });
+  if(_fightBgmCurrent) { _fightBgmCurrent.pause(); }
+});
+
+window.addEventListener('beforeunload', () => {
+  try { _storeLocalSave(save); } catch(e) {}
+});
+
+// ── Online reconnect: flush pending ──
 window.addEventListener('online', () => {
-  DEV_LOG('[autoCloud] online — attempting pending flush');
+  DEV_LOG('[online] reconnected — flushing pending sync');
   flushPendingCloudSync();
 });
-// ══ END AUTO CLOUD SAVE ENGINE ══
+
+// ══ END CLOUD SAVE ENGINE v2 ══
+
 
 
 
@@ -10795,6 +10974,8 @@ async function svCloudUpload() {
     svShowMsg(saveMsg, `🔒 Save นี้ผูกกับ ID "${boundId}" แล้ว ใช้ ID อื่นไม่ได้`, 'err'); return;
   }
 
+  markSaveDirty('manual_save');
+
   let creds = _cloudLoadCreds();
   let key   = (creds.id === id) ? creds.key : null;
   if (!key) key = _cloudGenSecret();
@@ -10858,7 +11039,13 @@ async function svCloudUpload() {
       _saveSignatureState = 'local';
       _cloudBindSave(id);
       _cloudSaveCreds(id, key);
-      _pendingSyncClear(); // manual save flushes the pending queue
+      _pendingSyncClear();
+      saveState.pendingCloudSync = false;
+      saveState.lastSyncHash     = _saveHash(uploadSave);
+      // Refresh cloudProfile so future auto-syncs work without page reload
+      cloudProfile.isCloudEnabled = true;
+      cloudProfile.playerId       = id;
+      cloudProfile.secret         = key;
       svSetSecretDisplay(key, false);
       $('sv-cloud-id').readOnly = true;
       if ($('sv-cloud-load-id')) $('sv-cloud-load-id').value = id;
@@ -11057,7 +11244,9 @@ function tryClaimDailyReward() {
   if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
   save.ocaTickets[ticketType] = (save.ocaTickets[ticketType] || 0) + 1;
 
+  markSaveDirty('daily_reward');
   doSave();
+  scheduleCloudSync('daily_reward');
   showDailyRewardToast(dq.streak, ticketType);
   updateDailyQuestUI();
 }
@@ -11119,7 +11308,9 @@ function updateDailyQuestUI() {
 function useOcaTicket(type) {
   if (!save.ocaTickets || (save.ocaTickets[type] || 0) <= 0) return;
   save.ocaTickets[type]--;
+  markSaveDirty('card_purchase');
   doSave();
+  scheduleCloudSync('card_purchase');
 
   // Select drop weights by ticket grade
   var weights;
@@ -11266,6 +11457,7 @@ function awardOcaTierDrop(tier, x, y) {
   _ocaDropCount++;
   if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
   save.ocaTickets[tier] = (save.ocaTickets[tier] || 0) + 1;
+  markSaveDirty('inventory_changed');
   doSave();
   showOcaDropFX(x, y, tier);
   showOcaDropToast(tier);
