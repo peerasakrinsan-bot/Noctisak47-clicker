@@ -3833,15 +3833,121 @@ let _showLocalSaveToast = false;
 
 // ══ SAVE STATE ══
 const saveState = {
-  dirty:               false,
-  dirtyReason:         null,
-  lastLocalSaveAt:     0,
-  lastCloudSyncAt:     0,
-  cloudSyncInProgress: false,
-  pendingCloudSync:    false,
-  lastSyncRunId:       null,
-  lastSyncHash:        null
+  dirty:                false,
+  dirtyReason:          null,
+  dirtyReasons:         new Set(),  // multi-reason tracking
+  lastLocalSaveAt:      0,
+  lastCloudSyncAt:      0,
+  cloudSyncInProgress:  false,
+  pendingCloudSync:     false,
+  lastSyncRunId:        null,
+  lastSyncHash:         null,
+  // Startup read throttle — one cloud check per session window
+  startupCloudChecked:  false,
+  lastRemoteCheckedAt:  0,
+  // Exponential retry backoff state
+  _retryCount:          0,
+  _retryTimer:          null,
+  _retryDelays:         [30000, 60000, 120000, 300000],  // 30s, 1m, 2m, 5m
 };
+
+// ══ TOAST RATE-LIMIT STATE ══
+// Prevents toast spam during rapid card opening.
+const saveToastState = {
+  lastShownAt:   0,       // timestamp of last rendered success toast
+  lastType:      null,    // last type shown
+  suppressUntil: 0,       // suppress success toasts until this timestamp
+  batchCount:    0,       // number of card_opened events in current batch
+  batchTimer:    null,    // timer for "batch idle" final toast
+  errorLastAt:   {}       // map of error-type → last shown timestamp
+};
+
+// Minimum gap (ms) between success toasts during normal operation
+const _TOAST_SUCCESS_MIN_GAP  = 5000;
+// Gap between same error type repeating
+const _TOAST_ERROR_MIN_GAP    = 7000;
+// How long after last card open to show the final batch summary toast
+const _TOAST_BATCH_IDLE_MS    = 2200;
+// During rapid card opening, suppress individual toasts for this long
+const _TOAST_CARD_SUPPRESS_MS = 4000;
+
+const _TOAST_SUCCESS_TYPES = new Set(['local','syncing','cloud','loaded','localonly']);
+const _TOAST_ERROR_TYPES   = new Set(['failed','offline','pending']);
+
+/**
+ * showSaveToastThrottled — rate-limited wrapper around showSaveToast.
+ * @param {string} type         - toast type key
+ * @param {object} [opts]       - { silentToast, batchToast, reason, msgOverride }
+ */
+function showSaveToastThrottled(type, opts) {
+  opts = opts || {};
+  const now = Date.now();
+
+  // Always allow non-save-status toasts through raw
+  if (!_TOAST_SUCCESS_TYPES.has(type) && !_TOAST_ERROR_TYPES.has(type)) {
+    showSaveToast(type, opts.msgOverride);
+    return;
+  }
+
+  // silentToast: suppress entirely (used during card_opened batch)
+  if (opts.silentToast) return;
+
+  if (_TOAST_SUCCESS_TYPES.has(type)) {
+    // If currently in a batch suppress window, don't show
+    if (now < saveToastState.suppressUntil) {
+      DEV_LOG('[toast-throttle] suppressed (batch window):', type);
+      return;
+    }
+    // Enforce minimum gap between success toasts
+    if (now - saveToastState.lastShownAt < _TOAST_SUCCESS_MIN_GAP) {
+      DEV_LOG('[toast-throttle] suppressed (min gap):', type);
+      return;
+    }
+    saveToastState.lastShownAt = now;
+    saveToastState.lastType    = type;
+    showSaveToast(type, opts.msgOverride);
+
+  } else if (_TOAST_ERROR_TYPES.has(type)) {
+    // Error types: allow but throttle per-type
+    const lastErr = saveToastState.errorLastAt[type] || 0;
+    if (now - lastErr < _TOAST_ERROR_MIN_GAP) {
+      DEV_LOG('[toast-throttle] error suppressed (min gap):', type);
+      return;
+    }
+    saveToastState.errorLastAt[type] = now;
+    showSaveToast(type, opts.msgOverride);
+  }
+}
+
+/**
+ * markCardOpenBatch — called on every card open.
+ * Suppresses individual success toasts and schedules one final summary.
+ * @param {string} [finalType] - 'cloud'|'pending'|'offline' — shown after batch idle
+ */
+function markCardOpenBatch(finalType) {
+  saveToastState.batchCount++;
+  // Extend suppress window from now
+  saveToastState.suppressUntil = Date.now() + _TOAST_CARD_SUPPRESS_MS;
+
+  // Cancel any pending batch timer and restart
+  clearTimeout(saveToastState.batchTimer);
+  saveToastState.batchTimer = setTimeout(() => {
+    saveToastState.batchTimer = null;
+    saveToastState.batchCount = 0;
+    saveToastState.suppressUntil = 0;
+    // Show one final compact toast — type resolved at call time
+    const resolvedType = finalType || '_pendingBatch';
+    if (resolvedType !== '_pendingBatch') {
+      // Show a real type
+      saveToastState.lastShownAt = Date.now();
+      saveToastState.lastType    = resolvedType;
+      showSaveToast(resolvedType);
+      DEV_LOG('[toast-batch] final batch toast:', resolvedType);
+    }
+    // If finalType not yet known, the sync will show it via showSaveToastThrottled
+    // (suppress window is now 0 so next call will render)
+  }, _TOAST_BATCH_IDLE_MS);
+}
 
 // ══ CLOUD PROFILE ══
 const cloudProfile = {
@@ -3867,14 +3973,30 @@ function _cpInit() {
 function markSaveDirty(reason) {
   saveState.dirty       = true;
   saveState.dirtyReason = reason || 'unknown';
+  if (saveState.dirtyReasons) saveState.dirtyReasons.add(reason || 'unknown');
   DEV_LOG('[dirty]', reason);
 }
 
 // ── Lightweight hash for dedup: skip upload if payload unchanged ──
+// Covers all persistent fields — volatile runtime data is excluded upstream via buildSavePayload.
 function _saveHash(payload) {
   const s = JSON.stringify({
-    coins: payload.coins, sv: payload.saveVersion, ua: payload.updatedAt,
-    hs: payload.stats && payload.stats.highScore, gc: payload.gamesCompleted
+    coins:    payload.coins,
+    sv:       payload.saveVersion,
+    ua:       payload.updatedAt,
+    hs:       payload.stats && payload.stats.highScore,
+    gc:       payload.gamesCompleted,
+    ko:       payload.stats && payload.stats.totalKO,
+    mc:       payload.stats && payload.stats.maxCombo,
+    cards:    payload.unlockedCards,
+    items:    payload.items,
+    skins:    payload.ownedSkins,
+    arenas:   payload.ownedArenas,
+    oca:      payload.ocaTickets,
+    activeSk: payload.activeSkin,
+    activeAr: payload.activeArena,
+    dq:       payload.dailyQuest && payload.dailyQuest.streak,
+    cr:       payload.cardRuns ? Object.keys(payload.cardRuns).sort().map(k => k + ':' + payload.cardRuns[k]).join(',') : ''
   });
   let h = 0;
   for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
@@ -7761,7 +7883,9 @@ function isCardUnlocked(id) {
 
 function unlockCard(id) {
   const uc = getUnlockedCards();
-  if(!uc.includes(id)) { uc.push(id); save.unlockedCards = uc; markSaveDirty('card_opened'); doSave(); }
+  // Note: doSave() is NOT called here — collectCard() calls doSave() right after.
+  // Calling it here would cause a double-write and could trigger extra toasts.
+  if(!uc.includes(id)) { uc.push(id); save.unlockedCards = uc; markSaveDirty('card_opened'); }
 }
 
 // active card state for this round
@@ -8023,7 +8147,9 @@ function collectCard() {
   }
   markSaveDirty('card_opened');
   doSave();
-  scheduleCloudSync('card_opened');
+  // ── BATCH TOAST: suppress per-card syncing/cloud toasts; one final toast after idle ──
+  markCardOpenBatch('cloud');
+  scheduleCloudSync('card_opened', { silentToast: true, batchToast: true, reason: 'card_opened' });
   $('cardDrawScreen').style.display = 'none';
   try {
     if(typeof onDone === 'function') onDone();
@@ -10526,47 +10652,61 @@ function _isLocalNewer(localPayload, cloudPayload) {
 
 // ── Core upload (used by both auto and manual) ──
 // Includes 10-second fetch timeout via AbortController to prevent indefinite hang.
-async function _cloudUploadCore(payload) {
+// OPTIMIZATION: pre-upload READ is skipped for auto-sync; only done at startup,
+// on manual cloud load, or when a different device is suspected. This eliminates
+// one Supabase read per auto-sync cycle.
+async function _cloudUploadCore(payload, opts) {
+  opts = opts || {};
   const id  = cloudProfile.playerId  || _cloudBoundId();
   const key = cloudProfile.secret    || (_cloudLoadCreds().key);
   if (!id || !key) { DEV_LOG('[upload] no credentials — skip'); return false; }
 
-  const _fetchWithTimeout = (url, opts, ms) => {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), ms);
-    return fetch(url, Object.assign({}, opts, { signal: ctrl.signal }))
-      .finally(() => clearTimeout(timer));
-  };
-
-  // Conflict check: fetch existing row
-  let cloudRow = null;
-  try {
-    const chkRes = await _fetchWithTimeout(
-      `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
-      { headers: _cloudHeaders() }, 10000
-    );
-    if (chkRes.ok) { const rows = await chkRes.json(); cloudRow = rows && rows[0] || null; }
-  } catch(e) {
-    if (_isLikelyNetworkFetchError(e) || e.name === 'AbortError') throw e;
-    DEV_LOG('[upload] conflict-check error:', e);
-  }
-
-  if (cloudRow) {
-    if (cloudRow.secret_key && cloudRow.secret_key !== key) {
-      DEV_LOG('[upload] secret key mismatch — abort');
-      return false;
-    }
-    if (!_isLocalNewer(payload, cloudRow.save_data || {})) {
-      DEV_LOG('[upload] cloud equal/newer — skip. cloudSV:', (cloudRow.save_data||{}).saveVersion, 'localSV:', payload.saveVersion);
-      return false;
-    }
-  }
-
-  // Dedup hash check
+  // Hash-based skip: if payload is identical to last synced hash, skip write entirely
   const hash = _saveHash(payload);
   if (hash === saveState.lastSyncHash) {
     DEV_LOG('[upload] payload unchanged (hash match) — skip');
+    // Clear dirty if hash matches — data is already in cloud
+    saveState.dirty = false;
+    if (saveState.dirtyReasons) saveState.dirtyReasons.clear();
     return false;
+  }
+
+  const _fetchWithTimeout = (url, fetchOpts, ms) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, Object.assign({}, fetchOpts, { signal: ctrl.signal }))
+      .finally(() => clearTimeout(timer));
+  };
+
+  // Conflict check READ — only when explicitly requested (startup, manual, conflict suspected).
+  // Auto-sync uses PATCH with secret_key filter; Supabase returns 0 rows on mismatch (safe).
+  let cloudRow = null;
+  if (opts.forceConflictCheck) {
+    try {
+      const chkRes = await _fetchWithTimeout(
+        `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
+        { headers: _cloudHeaders() }, 10000
+      );
+      if (chkRes.ok) {
+        const rows = await chkRes.json();
+        cloudRow = rows && rows[0] || null;
+        saveState.lastRemoteCheckedAt = Date.now();
+      }
+    } catch(e) {
+      if (_isLikelyNetworkFetchError(e) || e.name === 'AbortError') throw e;
+      DEV_LOG('[upload] conflict-check error (non-fatal):', e);
+    }
+
+    if (cloudRow) {
+      if (cloudRow.secret_key && cloudRow.secret_key !== key) {
+        DEV_LOG('[upload] secret key mismatch — abort');
+        return false;
+      }
+      if (!_isLocalNewer(payload, cloudRow.save_data || {})) {
+        DEV_LOG('[upload] cloud equal/newer — skip. cloudSV:', (cloudRow.save_data||{}).saveVersion, 'localSV:', payload.saveVersion);
+        return false;
+      }
+    }
   }
 
   const body = JSON.stringify({ save_data: payload, uploaded_at: new Date().toISOString() });
@@ -10581,12 +10721,14 @@ async function _cloudUploadCore(payload) {
   }
   saveState.lastSyncHash    = hash;
   saveState.lastCloudSyncAt = Date.now();
+  saveState._retryCount     = 0;  // reset backoff on success
   DEV_LOG('[upload] OK — runId:', payload.lastRunId, 'saveVersion:', payload.saveVersion);
   return true;
 }
 
 // ── Core performer: does the actual sync. Fire-and-forget safe. ──
-async function performCloudSync(reason) {
+async function performCloudSync(reason, opts) {
+  opts = opts || {};
   if (!cloudProfile.isCloudEnabled) {
     DEV_LOG('[sync] cloud disabled — local only');
     return;
@@ -10600,17 +10742,28 @@ async function performCloudSync(reason) {
   // NOTE: dirty flag cleared AFTER success only — so 5-min interval retries on failure
   DEV_LOG('[sync] starting —', reason);
 
-  const payload = Object.assign({}, save);
+  // Build minimal persistent payload — strip volatile runtime fields
+  const payload = buildSavePayload();
 
   try {
-    const uploaded = await _cloudUploadCore(payload);
+    const uploaded = await _cloudUploadCore(payload, opts);
     if (uploaded) {
       _pendingSyncClear();
       saveState.dirty            = false;   // ← only clear on success
       saveState.dirtyReason      = null;
       saveState.pendingCloudSync = false;
-      showSaveToast('cloud');
-      DEV_LOG('[sync] success');
+      if (saveState.dirtyReasons) saveState.dirtyReasons.clear();
+      // Cancel any pending retry timer on success
+      if (saveState._retryTimer) { clearTimeout(saveState._retryTimer); saveState._retryTimer = null; }
+      saveState._retryCount = 0;
+      if (opts.silentToast) {
+        DEV_LOG('[sync] success (silent)');
+      } else if (opts.batchToast) {
+        DEV_LOG('[sync] success (batch) — batch idle will show toast');
+      } else {
+        showSaveToastThrottled('cloud');
+        DEV_LOG('[sync] success');
+      }
     } else {
       _hideToast();
     }
@@ -10618,34 +10771,105 @@ async function performCloudSync(reason) {
     const offline = _isLikelyNetworkFetchError(e);
     _pendingSyncSet(payload);
     saveState.pendingCloudSync = true;
-    // dirty stays true — 5-min interval will retry
-    showSaveToast(offline ? 'offline' : 'failed');
+    // dirty stays true — exponential retry will handle it
+    const errType = offline ? 'offline' : 'failed';
+    showSaveToastThrottled(errType);
     if (!offline) console.warn('[sync] error:', e);
     DEV_LOG('[sync] failed —', offline ? 'offline' : e.message);
+    // Exponential backoff retry (skip for manual_save and app_hide — user already knows)
+    if (reason !== 'manual_save' && reason !== 'app_hide') {
+      _scheduleRetryBackoff();
+    }
   } finally {
     saveState.cloudSyncInProgress = false;
-    // If another sync was queued while this one ran, flush it now
+    // If another sync was queued while this one ran, flush it now (after 1.5s)
     if (saveState.pendingCloudSync && cloudProfile.isCloudEnabled) {
       setTimeout(() => flushPendingCloudSync(), 1500);
     }
   }
 }
 
-// ── scheduleCloudSync: debounced, deduped, respects in-flight ──
-const _SYNC_DEBOUNCE = { immediate: 800, deferred: 5000 };
-const _syncTimers    = {};
-const _SYNC_IMMEDIATE = new Set(['run_complete','shop_purchase','card_purchase','card_opened','manual_save','daily_reward']);
+// ── Exponential retry backoff ──
+function _scheduleRetryBackoff() {
+  if (saveState._retryTimer) return; // already scheduled
+  const delays = saveState._retryDelays || [30000, 60000, 120000, 300000];
+  const idx = Math.min(saveState._retryCount, delays.length - 1);
+  const delay = delays[idx];
+  saveState._retryCount = (saveState._retryCount || 0) + 1;
+  DEV_LOG('[retry] scheduled in', delay / 1000, 's (attempt', saveState._retryCount, ')');
+  saveState._retryTimer = setTimeout(() => {
+    saveState._retryTimer = null;
+    if (saveState.dirty && cloudProfile.isCloudEnabled && !saveState.cloudSyncInProgress) {
+      DEV_LOG('[retry] firing retry attempt', saveState._retryCount);
+      flushPendingCloudSync();
+    }
+  }, delay);
+}
 
-function scheduleCloudSync(reason) {
+// ── scheduleCloudSync: debounced, deduped, respects in-flight ──
+// ── Reason-based debounce table (per spec) ──
+const _SYNC_REASON_DELAY = {
+  // Immediate / high-priority
+  manual_save:       0,       // immediate
+  run_complete:      1500,    // 1.5s
+  app_hide:          0,       // immediate (best-effort)
+  daily_reward:      1500,
+  // Medium priority
+  shop_purchase:     7000,    // 7s (batch rapid buys)
+  card_purchase:     7000,
+  card_opened:       12000,   // 12s (batch rapid card opening)
+  // Low priority
+  inventory_changed: 15000,
+  settings_changed:  25000,
+  cosmetic_change:   25000,
+  cloud_bind:        5000,
+  // Background fallback
+  startup_no_cloud:  3000,
+  local_newer_at_startup: 3000,
+  interval_dirty:    5000,
+};
+// Global minimum write interval: never auto-sync more often than every 30 seconds
+// Exceptions: manual_save, app_hide
+const _MIN_CLOUD_WRITE_INTERVAL = 30000;
+const _SYNC_MIN_BYPASS = new Set(['manual_save', 'app_hide']);
+
+const _syncTimers    = {};
+
+/**
+ * scheduleCloudSync
+ * @param {string} reason
+ * @param {object} [opts] - { silentToast: bool, batchToast: bool }
+ *   silentToast: suppress syncing + cloud toasts entirely for this call
+ *   batchToast:  defer success toast to batch idle handler (markCardOpenBatch)
+ */
+function scheduleCloudSync(reason, opts) {
   if (!cloudProfile.isCloudEnabled) return;
-  const delay = _SYNC_IMMEDIATE.has(reason) ? _SYNC_DEBOUNCE.immediate : _SYNC_DEBOUNCE.deferred;
+  opts = opts || {};
+  const delay = (_SYNC_REASON_DELAY[reason] !== undefined) ? _SYNC_REASON_DELAY[reason] : 15000;
   clearTimeout(_syncTimers[reason]);
   _syncTimers[reason] = setTimeout(() => {
-    // Show syncing toast only for immediate reasons; silent for background ones
-    if (_SYNC_IMMEDIATE.has(reason)) showSaveToast('syncing');
-    performCloudSync(reason);
+    // Global minimum write interval guard (skip for manual/app_hide)
+    if (!_SYNC_MIN_BYPASS.has(reason)) {
+      const msSinceLastSync = Date.now() - saveState.lastCloudSyncAt;
+      if (msSinceLastSync < _MIN_CLOUD_WRITE_INTERVAL) {
+        const waitMs = _MIN_CLOUD_WRITE_INTERVAL - msSinceLastSync;
+        DEV_LOG('[scheduleSync] min interval guard — waiting', waitMs, 'ms for', reason);
+        saveState.pendingCloudSync = true;
+        clearTimeout(_syncTimers[reason + '_minwait']);
+        _syncTimers[reason + '_minwait'] = setTimeout(() => {
+          performCloudSync(reason, opts);
+        }, waitMs + 100);
+        return;
+      }
+    }
+    // Show syncing toast only for high-priority reasons (not batched/silenced)
+    const isHighPri = delay <= 2000;
+    if (isHighPri && !opts.silentToast && !opts.batchToast) {
+      showSaveToastThrottled('syncing');
+    }
+    performCloudSync(reason, opts);
   }, delay);
-  DEV_LOG('[scheduleSync]', reason, 'delay:', delay);
+  DEV_LOG('[scheduleSync]', reason, 'delay:', delay, opts);
 }
 
 // ── flushPendingCloudSync: upload queued payload from localStorage ──
@@ -10656,17 +10880,22 @@ async function flushPendingCloudSync() {
   if (saveState.cloudSyncInProgress) return false;
   DEV_LOG('[flush] flushing pending sync...');
   // Pick the newer payload: live save may have advanced beyond what was queued
-  const livePayload = Object.assign({}, save);
+  const livePayload = buildSavePayload();
   const flushPayload = _isLocalNewer(livePayload, pending) ? livePayload : pending;
   DEV_LOG('[flush] using', flushPayload === livePayload ? 'live save' : 'stored pending', 'sv:', flushPayload.saveVersion);
-  showSaveToast('syncing');
+  showSaveToastThrottled('syncing');
   try {
-    const uploaded = await _cloudUploadCore(flushPayload);
+    // On flush, do a conflict-check read if we haven't checked cloud recently (>2 min)
+    const needsConflictCheck = (Date.now() - saveState.lastRemoteCheckedAt) > 120000;
+    const uploaded = await _cloudUploadCore(flushPayload, { forceConflictCheck: needsConflictCheck });
     if (uploaded) {
       _pendingSyncClear();
       saveState.pendingCloudSync = false;
       saveState.dirty            = false;
-      showSaveToast('cloud');
+      if (saveState.dirtyReasons) saveState.dirtyReasons.clear();
+      if (saveState._retryTimer) { clearTimeout(saveState._retryTimer); saveState._retryTimer = null; }
+      saveState._retryCount = 0;
+      showSaveToastThrottled('cloud');
       DEV_LOG('[flush] OK');
       return true;
     } else {
@@ -10674,8 +10903,10 @@ async function flushPendingCloudSync() {
       return false;
     }
   } catch(e) {
-    showSaveToast(_isLikelyNetworkFetchError(e) ? 'offline' : 'pending');
+    showSaveToastThrottled(_isLikelyNetworkFetchError(e) ? 'offline' : 'pending');
     DEV_LOG('[flush] failed:', e);
+    // Schedule retry backoff
+    _scheduleRetryBackoff();
     return false;
   }
 }
@@ -10687,16 +10918,19 @@ function autoCloudSave() {
 
 // ── Legacy bridge (result screen pending check) ──
 function _acsShowPendingIfNeeded() {
-  if (_pendingSyncGet()) showSaveToast('pending');
+  if (_pendingSyncGet()) showSaveToastThrottled('pending');
 }
 
 // ── Startup Cloud Restore ──
 // Called after local save is loaded and main menu is first shown.
 // Never blocks startup. Never overwrites newer local save.
+// Throttled: at most ONE cloud read per session (startupCloudChecked flag),
+// and only if we haven't checked within the last 3 minutes (lastRemoteCheckedAt).
 let _startupRestoreDone = false;
 async function startupCloudRestore() {
   if (_startupRestoreDone) return;
   _startupRestoreDone = true;
+
   if (!cloudProfile.isCloudEnabled) {
     DEV_LOG('[restore] cloud disabled — guest mode');
     return;
@@ -10704,6 +10938,21 @@ async function startupCloudRestore() {
   const id  = cloudProfile.playerId;
   const key = cloudProfile.secret;
   if (!id || !key) return;
+
+  // Skip if already checked this session
+  if (saveState.startupCloudChecked) {
+    DEV_LOG('[restore] already checked this session — skip');
+    return;
+  }
+  // Skip if checked recently (within 3 minutes) — handles page refresh or rapid menu navigation
+  const msSinceLastCheck = Date.now() - saveState.lastRemoteCheckedAt;
+  if (saveState.lastRemoteCheckedAt > 0 && msSinceLastCheck < 180000) {
+    DEV_LOG('[restore] checked recently (', Math.round(msSinceLastCheck/1000), 's ago) — skip');
+    return;
+  }
+
+  saveState.startupCloudChecked = true;
+  saveState.lastRemoteCheckedAt = Date.now();
 
   showSaveToast('checking');
   DEV_LOG('[restore] checking cloud for player:', id);
@@ -10729,7 +10978,7 @@ async function startupCloudRestore() {
       showSaveToast('localonly');
       DEV_LOG('[restore] no cloud save found — local is canonical');
       markSaveDirty('startup_no_cloud');
-      scheduleCloudSync('run_complete');
+      scheduleCloudSync('startup_no_cloud');
       return;
     }
 
@@ -10754,7 +11003,7 @@ async function startupCloudRestore() {
       showSaveToast('localonly');
       DEV_LOG('[restore] local is newer — keeping local, scheduling push');
       markSaveDirty('local_newer_at_startup');
-      scheduleCloudSync('run_complete');
+      scheduleCloudSync('local_newer_at_startup');
     } else {
       // Cloud is newer — apply it
       DEV_LOG('[restore] cloud is newer — applying. cloudSV:', cloudSaveData.saveVersion);
@@ -10785,10 +11034,14 @@ async function startupCloudRestore() {
 }
 
 // ── 5-minute dirty sync interval ──
+// Only fires if dirty AND at least 30s since last cloud sync (min write interval).
 setInterval(() => {
   if (saveState.dirty && cloudProfile.isCloudEnabled && !saveState.cloudSyncInProgress) {
-    DEV_LOG('[interval] dirty — scheduling 5-min sync');
-    scheduleCloudSync('interval_dirty');
+    const msSince = Date.now() - saveState.lastCloudSyncAt;
+    if (msSince >= _MIN_CLOUD_WRITE_INTERVAL) {
+      DEV_LOG('[interval] dirty — scheduling 5-min sync');
+      scheduleCloudSync('interval_dirty');
+    }
   }
 }, 5 * 60 * 1000);
 
@@ -10801,7 +11054,10 @@ function _onAppHide() {
       saveState.pendingCloudSync = true;
     } else {
       // Best-effort fire-and-forget; queue if it fails
-      _pendingSyncSet(Object.assign({}, save));
+      const _hidePayload = buildSavePayload();
+      _pendingSyncSet(_hidePayload);
+      // Cancel any pending retry timer — new attempt on next launch
+      if (saveState._retryTimer) { clearTimeout(saveState._retryTimer); saveState._retryTimer = null; }
       performCloudSync('app_hide').catch(() => {});
     }
   }
@@ -10886,6 +11142,11 @@ function _cloudClearAccountState() {
   saveState.pendingCloudSync  = false;
   saveState.dirty             = false;
   saveState.lastSyncHash      = null;
+  saveState.startupCloudChecked = false;
+  saveState.lastRemoteCheckedAt = 0;
+  saveState._retryCount       = 0;
+  if (saveState._retryTimer) { clearTimeout(saveState._retryTimer); saveState._retryTimer = null; }
+  if (saveState.dirtyReasons) saveState.dirtyReasons.clear();
   _pendingSyncClear();
   DEV_LOG('[cloudProfile] cleared on account reset');
 }
@@ -11076,6 +11337,11 @@ async function svCloudUpload() {
       _pendingSyncClear();
       saveState.pendingCloudSync = false;
       saveState.lastSyncHash     = _saveHash(uploadSave);
+      saveState.lastCloudSyncAt  = Date.now();
+      saveState.dirty            = false;
+      saveState._retryCount      = 0;
+      if (saveState._retryTimer) { clearTimeout(saveState._retryTimer); saveState._retryTimer = null; }
+      if (saveState.dirtyReasons) saveState.dirtyReasons.clear();
       // Refresh cloudProfile so future auto-syncs work without page reload
       cloudProfile.isCloudEnabled = true;
       cloudProfile.playerId       = id;
