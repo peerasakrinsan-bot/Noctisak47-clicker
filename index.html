@@ -1005,33 +1005,60 @@
   .res-btn.cyan-btn { border-color:var(--cyan); color:var(--cyan); }
   .res-btn.cyan-btn:active { background:var(--cyan); color:#000; }
 
-  /* ══ AUTO CLOUD SAVE STATUS PILL ══ */
-  #autoCloudStatus {
-    font-family:'Oswald',sans-serif;
-    font-size:10px; letter-spacing:2px;
-    padding:5px 12px; border-radius:2px;
-    display:none; align-items:center; gap:6px;
-    border:1px solid #333; color:#555; background:transparent;
-    transition:all 0.3s ease;
-    pointer-events:none;
-    white-space:nowrap;
+  /* ══ SAVE STATUS TOAST ══ */
+  #saveToast {
+    position: fixed;
+    top:  calc(env(safe-area-inset-top,  0px) + 12px);
+    right: calc(env(safe-area-inset-right, 0px) + 12px);
+    z-index: 99999;
+    max-width: 220px;
+    min-width: 120px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 11px 6px 9px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    background: rgba(10,10,14,0.92);
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1.4px;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+    /* start hidden */
+    opacity: 0;
+    transform: translateX(12px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    will-change: opacity, transform;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
-  #autoCloudStatus.acs-saving  { display:flex; border-color:#4488ff; color:#4488ff; }
-  #autoCloudStatus.acs-ok      { display:flex; border-color:#00ff88; color:#00ff88; }
-  #autoCloudStatus.acs-fail    { display:flex; border-color:#ff2233; color:#ff2233; }
-  #autoCloudStatus.acs-offline { display:flex; border-color:#ffcc00; color:#ffcc00; }
-  #autoCloudStatus.acs-pending { display:flex; border-color:#ff8800; color:#ff8800; }
-  .acs-dot {
-    width:6px; height:6px; border-radius:50%; flex-shrink:0;
-    background:currentColor;
+  #saveToast.st-visible {
+    opacity: 1;
+    transform: translateX(0);
   }
-  .acs-saving-spin {
-    width:8px; height:8px; border-radius:50%; flex-shrink:0;
-    border:1.5px solid transparent;
-    border-top-color:currentColor;
-    animation:acs-spin 0.7s linear infinite;
+  /* type colours */
+  #saveToast.st-local   { border-color: rgba(80,80,100,0.7); color: #888; box-shadow: 0 0 8px rgba(80,80,100,0.15); }
+  #saveToast.st-syncing { border-color: rgba(60,120,255,0.6); color: #6699ff; box-shadow: 0 0 10px rgba(60,120,255,0.18); }
+  #saveToast.st-cloud   { border-color: rgba(0,220,130,0.55); color: #00dd88; box-shadow: 0 0 10px rgba(0,220,130,0.18); }
+  #saveToast.st-pending { border-color: rgba(255,150,0,0.55);  color: #ffaa33; box-shadow: 0 0 10px rgba(255,150,0,0.18); }
+  #saveToast.st-offline { border-color: rgba(255,200,0,0.5);   color: #ffcc44; box-shadow: 0 0 10px rgba(255,200,0,0.15); }
+  #saveToast.st-failed  { border-color: rgba(255,40,60,0.55);  color: #ff4455; box-shadow: 0 0 10px rgba(255,40,60,0.18); }
+  /* icon area */
+  .st-icon {
+    font-size: 12px;
+    flex-shrink: 0;
+    line-height: 1;
   }
-  @keyframes acs-spin { to { transform:rotate(360deg); } }
+  .st-spin {
+    display: inline-block;
+    animation: st-rotate 0.75s linear infinite;
+    flex-shrink: 0;
+    font-size: 12px;
+    line-height: 1;
+  }
+  @keyframes st-rotate { to { transform: rotate(360deg); } }
 
   /* ══ TOP UI (In-Game) ══ */
   #topUI {
@@ -3044,7 +3071,6 @@
     <button class="res-btn cyan-btn" onclick="openShop('result')">SHOP</button>
     <button class="res-btn" onclick="goMainMenu()" style="border-color:#666;color:#888;">MENU</button>
   </div>
-  <div id="autoCloudStatus" aria-live="polite"></div>
 </div>
 
 <!-- ══════════════ GAME UI ══════════════ -->
@@ -3789,12 +3815,19 @@ function doSave(action) {
   // Write the enriched payload back so save object carries version/updatedAt/etc.
   Object.assign(save, payload);
   try { _storeLocalSave(save); } catch(e) { console.warn('[doSave] local save failed', e); }
+  if (_showLocalSaveToast) {
+    _showLocalSaveToast = false;
+    showSaveToast('local');
+  }
   if (typeof DEV_LOG === 'function') DEV_LOG('[doSave]', action || 'save', 'saveVersion:', save.saveVersion, 'updatedAt:', save.updatedAt);
 }
 // ── Dev-only logger (stripped silently in prod — set window.NOCTIS_DEV=true to enable) ──
 function DEV_LOG(...args) {
   if (window.NOCTIS_DEV) console.log('[NOCTIS]', ...args);
 }
+
+// Flag: set true by endGame so doSave() shows 'Local Saved' toast exactly once
+let _showLocalSaveToast = false;
 
 
 let save = loadSave();
@@ -9188,6 +9221,7 @@ function endGame(opts = {}) {
   save.coins=(save.coins||0)+roundCoins;
   save.quitPenalty = false;
   save.savedCards = null;
+  _showLocalSaveToast = true;  // ← arm: next doSave() will show 'Local Saved' toast
   doSave();
   // ── Card Mastery: record this run for the active card (time-up / game over only)
   let _cmNewTier = null;
@@ -10357,30 +10391,93 @@ let   _autoSaveDebounceTimer = null;
 let   _autoSaveInFlight      = false;
 
 // ── Status pill UI ──
-function _acsShow(state, label) {
-  const el = document.getElementById('autoCloudStatus');
-  if (!el) return;
-  el.className = 'acs-' + state;
-  const icon = state === 'saving'
-    ? '<span class="acs-saving-spin"></span>'
-    : '<span class="acs-dot"></span>';
-  el.innerHTML = icon + label;
-  // Auto-hide ok/fail after 4s; pending/offline stay visible
-  if (state === 'ok' || state === 'fail') {
-    clearTimeout(el._hideTimer);
-    el._hideTimer = setTimeout(() => {
-      el.className = '';
-      el.innerHTML = '';
-    }, 4000);
+// ══ SAVE STATUS TOAST ══
+// Single floating corner toast — no layout shift, z-index 99999, pointer-events:none.
+// Call showSaveToast(type) from anywhere; safe if DOM not ready.
+
+const _TOAST_TIMING = {
+  local:   1200,
+  syncing: 0,      // 0 = stays until replaced
+  cloud:   1600,
+  pending: 2200,
+  offline: 2600,
+  failed:  3000
+};
+const _TOAST_CONFIG = {
+  local:   { cls: 'st-local',   icon: '💾', label: 'Local Saved'        },
+  syncing: { cls: 'st-syncing', icon: '☁️', label: 'Syncing...',  spin: true },
+  cloud:   { cls: 'st-cloud',   icon: '☁️', label: 'Cloud Synced'       },
+  pending: { cls: 'st-pending', icon: '⏳', label: 'Sync Pending'       },
+  offline: { cls: 'st-offline', icon: '⚠️', label: 'Offline — Local Saved' },
+  failed:  { cls: 'st-failed',  icon: '❌', label: 'Cloud Failed'       }
+};
+
+let _toastEl        = null;
+let _toastHideTimer = null;
+let _toastFadeTimer = null;
+
+function _getToastEl() {
+  if (_toastEl) return _toastEl;
+  // Lazily create on first call so DOM doesn't need to be ready at parse time
+  const el = document.createElement('div');
+  el.id = 'saveToast';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.setAttribute('aria-atomic', 'true');
+  (document.body || document.documentElement).appendChild(el);
+  _toastEl = el;
+  return el;
+}
+
+function showSaveToast(type, msgOverride) {
+  try {
+    const cfg = _TOAST_CONFIG[type];
+    if (!cfg) return;
+    const el = _getToastEl();
+
+    // Cancel any pending hide/fade
+    clearTimeout(_toastHideTimer);
+    clearTimeout(_toastFadeTimer);
+
+    // Build inner HTML
+    const iconHtml = cfg.spin
+      ? `<span class="st-spin" aria-hidden="true">${cfg.icon}</span>`
+      : `<span class="st-icon" aria-hidden="true">${cfg.icon}</span>`;
+    const text = msgOverride || cfg.label;
+    el.innerHTML = iconHtml + `<span class="st-label">${text}</span>`;
+
+    // Reset to hidden state instantly (kills old transition), then re-apply class next frame
+    el.className = cfg.cls;
+    // Force reflow so transition fires cleanly even when replacing same type
+    void el.offsetWidth;
+    el.classList.add('st-visible');
+
+    DEV_LOG('[toast]', type, text);
+
+    const ms = _TOAST_TIMING[type];
+    if (ms > 0) {
+      _toastHideTimer = setTimeout(() => _hideToast(), ms);
+    }
+  } catch(e) {
+    // Never throw — toast is non-critical UI
+    if (window.NOCTIS_DEV) console.warn('[toast] error:', e);
   }
 }
 
-function _acsHide() {
-  const el = document.getElementById('autoCloudStatus');
-  if (!el) return;
-  el.className = '';
-  el.innerHTML = '';
+function _hideToast() {
+  if (!_toastEl) return;
+  _toastEl.classList.remove('st-visible');
+  // After transition completes, clear type class so it's truly invisible
+  _toastFadeTimer = setTimeout(() => {
+    if (_toastEl) _toastEl.className = '';
+  }, 260);
 }
+
+// Legacy bridge — called internally; now routes to showSaveToast
+function _acsShowPendingIfNeeded() {
+  if (_pendingSyncGet()) showSaveToast('pending');
+}
+// ══ END SAVE STATUS TOAST ══
 
 // ── Conflict guard: compare updatedAt + saveVersion ──
 // Returns true if localPayload is strictly NEWER than cloudPayload.
@@ -10479,29 +10576,31 @@ async function autoCloudSave() {
       return;
     }
 
-    _acsShow('saving', 'CLOUD SYNC...');
+    _acsShowPendingIfNeeded();
     const payload = Object.assign({}, save); // save already enriched by doSave()
+
+    // Show 'Syncing...' after Local Saved has had its moment
+    setTimeout(() => showSaveToast('syncing'), _TOAST_TIMING.local + 100);
 
     try {
       const uploaded = await _autoCloudUploadCore(payload);
       if (uploaded) {
         _pendingSyncClear();
-        _acsShow('ok', 'CLOUD SAVED ✓');
+        showSaveToast('cloud');
         DEV_LOG('[autoCloud] success');
       } else {
-        // Conflict guard fired or no-op — not an error
-        _acsHide();
+        // Conflict guard fired or no-op — not an error, hide syncing spinner
+        _hideToast();
       }
     } catch(e) {
       const isOffline = _isLikelyNetworkFetchError(e);
       if (isOffline) {
-        // Queue for later flush
         _pendingSyncSet(payload);
-        _acsShow('offline', 'OFFLINE: SAVED LOCALLY');
+        showSaveToast('offline');
         DEV_LOG('[autoCloud] offline — pending sync queued');
       } else {
         _pendingSyncSet(payload);
-        _acsShow('fail', 'CLOUD SAVE FAILED');
+        showSaveToast('failed');
         console.warn('[autoCloud] upload error:', e);
       }
     } finally {
@@ -10515,21 +10614,21 @@ async function flushPendingCloudSync() {
   const pending = _pendingSyncGet();
   if (!pending) return false;
   DEV_LOG('[autoCloud] flushing pending sync...');
-  _acsShow('saving', 'SYNC PENDING...');
+  showSaveToast('syncing');
   try {
     const uploaded = await _autoCloudUploadCore(pending);
     if (uploaded) {
       _pendingSyncClear();
-      _acsShow('ok', 'SYNC COMPLETE ✓');
+      showSaveToast('cloud');
       DEV_LOG('[autoCloud] pending flush OK');
       return true;
     } else {
-      _acsHide();
+      _hideToast();
       return false;
     }
   } catch(e) {
     const isOffline = _isLikelyNetworkFetchError(e);
-    _acsShow(isOffline ? 'offline' : 'pending', isOffline ? 'OFFLINE: SYNC PENDING' : 'SYNC PENDING');
+    showSaveToast(isOffline ? 'offline' : 'pending');
     DEV_LOG('[autoCloud] flush failed:', e);
     return false;
   }
@@ -10540,11 +10639,6 @@ window.addEventListener('online', () => {
   DEV_LOG('[autoCloud] online — attempting pending flush');
   flushPendingCloudSync();
 });
-
-// ── Show pending-sync badge on result screen if queue is non-empty ──
-function _acsShowPendingIfNeeded() {
-  if (_pendingSyncGet()) _acsShow('pending', 'SYNC PENDING');
-}
 // ══ END AUTO CLOUD SAVE ENGINE ══
 
 
@@ -10770,15 +10864,18 @@ async function svCloudUpload() {
       if ($('sv-cloud-load-id')) $('sv-cloud-load-id').value = id;
       if ($('sv-cloud-load-key')) $('sv-cloud-load-key').value = key;
       svShowMsg(saveMsg, `✅ Upload สำเร็จ! ID: ${id}`, 'ok');
+      showSaveToast('cloud');
       DEV_LOG('[manualCloud] upload OK — saveVersion:', uploadSave.saveVersion);
     } else {
       const err = await res.json().catch(() => ({}));
       console.error('[cloudUpload] HTTP', res.status, err);
       svShowMsg(saveMsg, `❌ Upload ไม่สำเร็จ (${res.status})`, 'err');
+      showSaveToast('failed');
     }
   } catch(e) {
     console.error('[cloudUpload]', e);
     svShowMsg(saveMsg, _cloudFriendlyError(e), 'err');
+    showSaveToast(_isLikelyNetworkFetchError(e) ? 'offline' : 'failed');
   } finally {
     btn.innerHTML = '☁️ CLOUD SAVE';
     btn.disabled  = false;
