@@ -3921,31 +3921,33 @@ function showSaveToastThrottled(type, opts) {
 
 /**
  * markCardOpenBatch — called on every card open.
- * Suppresses individual success toasts and schedules one final summary.
- * @param {string} [finalType] - 'cloud'|'pending'|'offline' — shown after batch idle
+ * Suppresses individual success toasts during rapid opening to prevent spam.
+ * @param {string|null} [finalType]
+ *   Pass null (default): suppress window only; sync shows its own toast when it resolves.
+ *   Pass a type string: show that toast once after batch idle (only use for local-save types).
+ *   NEVER pass 'cloud' here — cloud success is confirmed only by the actual upload callback.
  */
 function markCardOpenBatch(finalType) {
   saveToastState.batchCount++;
-  // Extend suppress window from now
+  // Extend suppress window so rapid-open individual toasts are muted
   saveToastState.suppressUntil = Date.now() + _TOAST_CARD_SUPPRESS_MS;
 
-  // Cancel any pending batch timer and restart
+  // Restart the idle timer — fires 2.2s after the LAST card collect
   clearTimeout(saveToastState.batchTimer);
   saveToastState.batchTimer = setTimeout(() => {
     saveToastState.batchTimer = null;
     saveToastState.batchCount = 0;
     saveToastState.suppressUntil = 0;
-    // Show one final compact toast — type resolved at call time
-    const resolvedType = finalType || '_pendingBatch';
-    if (resolvedType !== '_pendingBatch') {
-      // Show a real type
+    // Only show a toast if a concrete type was requested
+    // (null = let the upcoming cloud sync show its own cloud/failed/offline toast)
+    if (finalType) {
       saveToastState.lastShownAt = Date.now();
-      saveToastState.lastType    = resolvedType;
-      showSaveToast(resolvedType);
-      DEV_LOG('[toast-batch] final batch toast:', resolvedType);
+      saveToastState.lastType    = finalType;
+      showSaveToast(finalType);
+      DEV_LOG('[toast-batch] final batch toast:', finalType);
+    } else {
+      DEV_LOG('[toast-batch] idle — suppress lifted; cloud sync will show its own toast');
     }
-    // If finalType not yet known, the sync will show it via showSaveToastThrottled
-    // (suppress window is now 0 so next call will render)
   }, _TOAST_BATCH_IDLE_MS);
 }
 
@@ -3977,27 +3979,77 @@ function markSaveDirty(reason) {
   DEV_LOG('[dirty]', reason);
 }
 
-// ── Lightweight hash for dedup: skip upload if payload unchanged ──
-// Covers all persistent fields — volatile runtime data is excluded upstream via buildSavePayload.
+// ── Stable save hash — excludes ALL volatile metadata ──
+// Only hashes persistent gameplay data that actually matters for dedup.
+// Excludes: saveVersion, updatedAt, lastRunId, deviceId, lastLocalSaveAt,
+//           lastCloudSyncAt, toast/modal/animation state, runtime flags.
+// This makes hash-skip actually fire when nothing real has changed between syncs.
 function _saveHash(payload) {
-  const s = JSON.stringify({
-    coins:    payload.coins,
-    sv:       payload.saveVersion,
-    ua:       payload.updatedAt,
-    hs:       payload.stats && payload.stats.highScore,
-    gc:       payload.gamesCompleted,
-    ko:       payload.stats && payload.stats.totalKO,
-    mc:       payload.stats && payload.stats.maxCombo,
-    cards:    payload.unlockedCards,
-    items:    payload.items,
-    skins:    payload.ownedSkins,
-    arenas:   payload.ownedArenas,
-    oca:      payload.ocaTickets,
-    activeSk: payload.activeSkin,
-    activeAr: payload.activeArena,
-    dq:       payload.dailyQuest && payload.dailyQuest.streak,
-    cr:       payload.cardRuns ? Object.keys(payload.cardRuns).sort().map(k => k + ':' + payload.cardRuns[k]).join(',') : ''
-  });
+  return computeStableSaveHash(payload);
+}
+
+function computeStableSaveHash(d) {
+  if (!d) return '0';
+  // Sort array/object fields for stable JSON serialisation regardless of insertion order
+  const sortedCards = d.unlockedCards
+    ? [...d.unlockedCards].sort()
+    : [];
+  const sortedSkins = d.ownedSkins
+    ? [...d.ownedSkins].sort()
+    : [];
+  const sortedArenas = d.ownedArenas
+    ? [...d.ownedArenas].sort()
+    : [];
+  const sortedItems = d.items
+    ? Object.keys(d.items).sort().map(k => k + ':' + d.items[k]).join(',')
+    : '';
+  const sortedOca = d.ocaTickets
+    ? ['standard','premium','elite'].map(t => t + ':' + (d.ocaTickets[t] || 0)).join(',')
+    : '';
+  const sortedCardRuns = d.cardRuns
+    ? Object.keys(d.cardRuns).sort().map(k => k + ':' + d.cardRuns[k]).join(',')
+    : '';
+  // Card mastery: only mastery tier per card (the persistent advancement level)
+  const sortedMastery = d.cardMastery
+    ? Object.keys(d.cardMastery).sort().map(k => {
+        const m = d.cardMastery[k];
+        return k + ':' + (m ? (m.tier || 0) : 0);
+      }).join(',')
+    : '';
+  // Daily quest: only the week key and per-day claimed state (not claim timestamps)
+  const dqKey     = d.dailyQuest ? (d.dailyQuest.weekKey || '') : '';
+  const dqStreak  = d.dailyQuest ? (d.dailyQuest.streak  || 0) : 0;
+  const dqClaimed = d.dailyQuest && d.dailyQuest.claimed
+    ? [...d.dailyQuest.claimed].sort().join(',')
+    : '';
+  // Settings: only values that affect gameplay or cloud identity
+  const settingsKey = d.settings
+    ? ['sfxVol','bgmVol','sfxMuted','bgmMuted']
+        .map(k => k + ':' + (d.settings[k] !== undefined ? d.settings[k] : ''))
+        .join(',')
+    : '';
+
+  const s = JSON.stringify([
+    d.coins        || 0,
+    d.gamesCompleted || 0,
+    (d.stats && d.stats.highScore)  || 0,
+    (d.stats && d.stats.totalKO)    || 0,
+    (d.stats && d.stats.maxCombo)   || 0,
+    d.activeSkin   || '',
+    d.activeArena  || '',
+    d.cloudPlayerId || '',
+    sortedCards,
+    sortedSkins,
+    sortedArenas,
+    sortedItems,
+    sortedOca,
+    sortedCardRuns,
+    sortedMastery,
+    dqKey,
+    dqStreak,
+    dqClaimed,
+    settingsKey,
+  ]);
   let h = 0;
   for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
   return h.toString(36);
@@ -8147,9 +8199,12 @@ function collectCard() {
   }
   markSaveDirty('card_opened');
   doSave();
-  // ── BATCH TOAST: suppress per-card syncing/cloud toasts; one final toast after idle ──
-  markCardOpenBatch('cloud');
-  scheduleCloudSync('card_opened', { silentToast: true, batchToast: true, reason: 'card_opened' });
+  // ── BATCH TOAST: suppress per-card toasts during rapid opening ──
+  // Pass null — do NOT claim 'Cloud Synced' here. The actual sync fires at 12s idle
+  // and shows its own cloud/failed/offline toast when it resolves. Showing 'cloud' now
+  // would be a false positive if the sync later fails (offline, timeout, 401).
+  markCardOpenBatch(null);
+  scheduleCloudSync('card_opened', { silentToast: false, batchToast: false, reason: 'card_opened' });
   $('cardDrawScreen').style.display = 'none';
   try {
     if(typeof onDone === 'function') onDone();
@@ -10827,6 +10882,9 @@ const _SYNC_REASON_DELAY = {
   startup_no_cloud:  3000,
   local_newer_at_startup: 3000,
   interval_dirty:    5000,
+  // Daily/weekly state resets — silent background sync, low priority
+  daily_reset:       10000,
+  weekly_reset:      10000,
 };
 // Global minimum write interval: never auto-sync more often than every 30 seconds
 // Exceptions: manual_save, app_hide
@@ -11404,6 +11462,20 @@ async function svCloudDownload() {
     _saveSignatureState = 'local';
     _cloudBindSave(id);
     _cloudSaveCreds(id, key);
+    // ── Sync state: record that save now matches cloud so the next auto-sync
+    //    does not immediately re-upload the same data we just downloaded. ──
+    saveState.lastSyncHash    = computeStableSaveHash(save);
+    saveState.lastCloudSyncAt = Date.now();
+    saveState.lastRemoteCheckedAt = Date.now();
+    saveState.dirty            = false;
+    saveState.pendingCloudSync = false;
+    if (saveState.dirtyReasons) saveState.dirtyReasons.clear();
+    if (saveState._retryTimer) { clearTimeout(saveState._retryTimer); saveState._retryTimer = null; }
+    saveState._retryCount = 0;
+    // Enable cloud auto-sync for this session with the loaded credentials
+    cloudProfile.isCloudEnabled = true;
+    cloudProfile.playerId       = id;
+    cloudProfile.secret         = key;
     updateShopCoinUI();
     if ($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
     if ($('menuHsNum'))   $('menuHsNum').textContent   = formatNum(save.stats.highScore || 0);
@@ -11524,7 +11596,11 @@ function checkDailyQuestReset() {
   const currentWeekKey = getDailyWeekKey();
   if (!save.dailyQuest || save.dailyQuest.weekKey !== currentWeekKey) {
     save.dailyQuest = { weekKey: currentWeekKey, streak: 0, lastClaimDate: '', claimed: [] };
+    // Mark dirty so cloud reflects the week reset, even if the player closes immediately.
+    // Guest mode: markSaveDirty is safe (no-op on cloud side); scheduleCloudSync guards isCloudEnabled.
+    markSaveDirty('weekly_reset');
     doSave();
+    scheduleCloudSync('weekly_reset', { silentToast: true });
     updateDailyQuestUI();
   }
 }
