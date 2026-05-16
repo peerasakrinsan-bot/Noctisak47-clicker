@@ -600,22 +600,56 @@
       inset 0 0 24px rgba(255,34,51,0.10) !important;
   }
 
-  /* ── POLISH: SELECTED badge ── */
+  /* ── SELECTED INDICATOR: top-right badge only, no text over card content ── */
+  /* .cs-selected-badge is removed — it sat at bottom:6px and covered card description */
   .cs-selected-badge {
-    position: absolute;
-    bottom: 6px; left: 50%; transform: translateX(-50%);
-    font-family: 'Oswald', sans-serif; font-size: 7px; letter-spacing: 3px;
-    color: var(--cyan); background: rgba(0,255,238,0.10);
-    border: 1px solid var(--cyan);
-    padding: 2px 7px;
-    pointer-events: none;
-    white-space: nowrap;
-    opacity: 0; transition: opacity 0.15s ease;
-    z-index: 2;
+    display: none !important; /* legacy node kept in DOM for safety; hidden always */
   }
-  .cs-card.selected .cs-selected-badge { opacity: 1; }
-  .cs-card.rarity-elite.selected   .cs-selected-badge { color: var(--gold); border-color: var(--gold); background: rgba(255,204,0,0.10); }
-  .cs-card.rarity-mythic.selected  .cs-selected-badge { color: #ff5566;     border-color: #ff2233;     background: rgba(255,34,51,0.10); }
+
+  /* Checkmark badge — top-right corner, inside card frame, never over content */
+  .cs-card-check {
+    position: absolute;
+    top: 7px; right: 8px;
+    width: 22px; height: 22px;
+    display: none;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(0, 255, 153, 0.18);
+    border: 1.5px solid #00ff99;
+    font-size: 13px;
+    line-height: 1;
+    color: #00ff99;
+    font-weight: 900;
+    z-index: 5;
+    pointer-events: none;
+    box-shadow: 0 0 6px rgba(0,255,153,0.55);
+  }
+  .cs-card-check::before {
+    content: "✓";
+    display: block;
+    text-align: center;
+    line-height: 20px;
+    width: 100%;
+  }
+  .cs-card.selected .cs-card-check {
+    display: grid;
+  }
+  /* Elite selected — gold checkmark */
+  .cs-card.rarity-elite.selected .cs-card-check {
+    background: rgba(255,204,0,0.18);
+    border-color: #ffcc00;
+    color: #ffcc00;
+    box-shadow: 0 0 6px rgba(255,204,0,0.6);
+  }
+  .cs-card.rarity-elite.selected .cs-card-check::before { color: #ffcc00; }
+  /* Mythic selected — red checkmark */
+  .cs-card.rarity-mythic.selected .cs-card-check {
+    background: rgba(255,34,51,0.18);
+    border-color: #ff5566;
+    color: #ff5566;
+    box-shadow: 0 0 6px rgba(255,34,51,0.65);
+  }
+  .cs-card.rarity-mythic.selected .cs-card-check::before { color: #ff5566; }
 
   /* rarity border & glow */
   .cs-card.rarity-standard  { border-color:#333; }
@@ -692,12 +726,7 @@
     width:100%;
   }
 
-  /* selected checkmark */
-  .cs-card-check {
-    position:absolute; top:6px; right:8px;
-    font-size:14px; color:#00ff88; display:none;
-  }
-  .cs-card.selected .cs-card-check { display:block; }
+  /* cs-card-check styles defined above in selected-indicator block */
 
   .cs-footer {
     font-family:'Sarabun',sans-serif; font-size:10px;
@@ -1919,11 +1948,23 @@
   @keyframes floatUp    { 0%{opacity:1;transform:translateY(0)    scale(1);}   100%{opacity:0;transform:translateY(-70px) scale(0.7);} }
   @keyframes floatUpOD  { 0%{opacity:1;transform:translateY(0)    scale(1.15);} 100%{opacity:0;transform:translateY(-90px) scale(0.75);} }
   @keyframes floatUpAgg { 0%{opacity:1;transform:translateY(0)    scale(1.2);}  100%{opacity:0;transform:translateY(-80px) scale(0.8);} }
+  /* hn-alt: suffix class that makes browser treat reused nodes as a fresh animation target.
+     Contains no extra rules — it's a specificity tag only, toggled by JS bit-flip. */
+  .hit-num.hn-alt      { animation-name: floatUp;    }
+  .hit-num-od.hn-alt   { animation-name: floatUpOD;  }
+  .hit-num-agg.hn-alt  { animation-name: floatUpAgg; }
+  .crit-label.hn-alt   { animation-name: critAnim;   }
+  .break-crack-burst.hn-alt { animation-name: breakCrackBurst; }
+  .break-impact.heavy.hn-alt { animation-name: breakImpactHeavy; }
   /* reduce-flash: shorter lifetime, no scale pop */
   body.reduce-flash .hit-num,
+  body.reduce-flash .hit-num.hn-alt,
   body.reduce-flash .hit-num-od,
-  body.reduce-flash .hit-num-agg  { animation-duration:0.38s !important; }
-  body.reduce-flash .crit-label   { animation-duration:0.44s !important; }
+  body.reduce-flash .hit-num-od.hn-alt,
+  body.reduce-flash .hit-num-agg,
+  body.reduce-flash .hit-num-agg.hn-alt  { animation-duration:0.38s !important; }
+  body.reduce-flash .crit-label,
+  body.reduce-flash .crit-label.hn-alt   { animation-duration:0.44s !important; }
 
   /* ─── SPLASHES ─── */
   #godSplash {
@@ -5688,24 +5729,56 @@ function onAk47Complete(x, y) {
   tryOcaBombDrop(x, y);
 }
 
+// ── Pooled AK47 visual FX nodes (no createElement during gameplay) ──
+const _wpMissPool = [];   // showWpMissPenalty nodes
+const _wpHitPool  = [];   // showWpHitFX nodes
+
+function _getWpMissEl() {
+  const el = _wpMissPool.pop() || (() => {
+    const n = document.createElement('div');
+    n.style.cssText = 'position:absolute;top:28%;left:50%;transform:translate(-50%,-50%);font-family:\'Oswald\',sans-serif;font-size:clamp(14px,4vw,22px);color:#ff2233;text-align:center;pointer-events:none;z-index:40;text-shadow:0 0 12px #ff0000;';
+    n.innerHTML = 'X MISS — AK47 RESET';
+    return n;
+  })();
+  return el;
+}
+function _getWpHitEl() {
+  return _wpHitPool.pop() || (() => {
+    const n = document.createElement('div');
+    n.className = 'wp-hit-text';
+    return n;
+  })();
+}
+
 function showWpMissPenalty() {
-  const el = document.createElement('div');
-  el.style.cssText = 'position:absolute;top:28%;left:50%;transform:translate(-50%,-50%);font-family:\'Oswald\',sans-serif;font-size:clamp(14px,4vw,22px);color:#ff2233;text-align:center;pointer-events:none;z-index:40;animation:floatUp 0.75s forwards;text-shadow:0 0 12px #ff0000;';
-  el.innerHTML = 'X MISS — AK47 RESET';
-  document.getElementById("gameRoot").appendChild(el);
-  setTimeout(()=>el.remove(), 800);
+  const root = _hnRoot || document.getElementById('gameRoot');
+  if (!root) return;
+  const el = _getWpMissEl();
+  // Restart animation without layout read: clear class, set, re-apply
+  el.className = '';
+  el.style.animation = 'none';
+  el.style.animation = '';
+  el.className = 'hn-alt'; // toggle alt bit to force keyframe restart
+  el.style.animationName = 'floatUp';
+  el.style.animationDuration = '0.75s';
+  el.style.animationFillMode = 'forwards';
+  root.appendChild(el);
+  setTimeout(() => { el.style.animation='none'; el.className=''; root.contains(el) && root.removeChild(el); _wpMissPool.length < 3 && _wpMissPool.push(el); }, 820);
   triggerFlash('flash-god3');
 }
 
 function showWpHitFX(x, y, dmg) {
-  // ตัวเลขใหญ่สีทอง
-  const el = document.createElement('div');
-  el.className = 'wp-hit-text';
+  const root = _hnRoot || document.getElementById('gameRoot');
+  if (!root) return;
+  // ตัวเลขใหญ่สีทอง — pooled node
+  const el = _getWpHitEl();
+  el.className = '';
   el.innerHTML = `<div style="font-size:clamp(36px,12vw,60px);color:#ffcc00;text-shadow:0 0 20px #ff8800,0 0 40px #ff4400;">${dmg}</div><div style="font-size:13px;letter-spacing:3px;color:#ff4444;margin-top:-4px;">AK47 COLLECT!</div>`;
   el.style.left = (x-60)+'px';
   el.style.top  = (y-40)+'px';
-  document.getElementById("gameRoot").appendChild(el);
-  setTimeout(()=>el.remove(), 850);
+  el.className = 'wp-hit-text';
+  root.appendChild(el);
+  setTimeout(() => { el.className=''; root.contains(el) && root.removeChild(el); _wpHitPool.length < 3 && _wpHitPool.push(el); }, 870);
   // Use pool + fragment — 10 particles (was 18), avoids DOM thrashing on mobile
   const _wpFrag=document.createDocumentFragment();
   for(let i=0;i<10;i++){
@@ -6683,7 +6756,7 @@ function _csRenderRerollCards() {
         ${imgHtml}
         <div class="cs-card-name">${card.name}</div>
         <div class="cs-card-effect">${slotDesc}</div>
-        <div class="cs-card-check"><span class="css-check" style="color:#00ff88;display:inline-block;"></span></div>
+        <div class="cs-card-check" aria-label="Selected" role="img"></div>
         <div class="cs-selected-badge">SELECTED</div>
       `;
 
@@ -9959,17 +10032,28 @@ function pressureSuccess() {
 
 
 
+// Pooled crack burst nodes — BREAK phase fires these rapidly; pool avoids createElement storm
+const _crackBurstPool = [];
+function _getCrackBurst() {
+  return _crackBurstPool.pop() || document.createElement('div');
+}
+
 function pressureSpawnCrackBurst(point, failed=false) {
   const root = $('gameRoot');
   if(!root) return;
   const cx = point && point.x ? point.x : vvW()/2;
   const cy = point && point.y ? point.y : vvH()*0.42;
-  const crack = document.createElement('div');
-  crack.className = 'break-crack-burst' + (failed ? ' fail' : '');
+  const crack = _getCrackBurst();
+  // Reset class/animation before reuse
+  crack.className = '';
+  crack.style.animation = 'none';
   crack.style.left = cx + 'px';
   crack.style.top = cy + 'px';
+  // Alternate suffix forces keyframe restart without reflow
+  crack.className = 'break-crack-burst' + (failed ? ' fail' : '') + ' hn-alt';
   root.appendChild(crack);
-  setTimeout(()=>crack.remove(), failed ? 420 : 360);
+  const ttl = failed ? 440 : 380;
+  setTimeout(()=>{ crack.className=''; crack.style.animation='none'; root.contains(crack) && root.removeChild(crack); _crackBurstPool.length < 4 && _crackBurstPool.push(crack); }, ttl);
 }
 
 function pressurePlaySuccessRelease(point) {
@@ -9985,10 +10069,14 @@ function pressurePlaySuccessRelease(point) {
   const cx = point && point.x ? point.x : vvW()/2;
   const cy = point && point.y ? point.y : vvH()*0.42;
   pressureSpawnCrackBurst(point, false);
-  const burst = document.createElement('div');
-  burst.className = 'break-impact heavy';
+  // Pooled break-impact heavy burst — avoids createElement on every BREAK success
+  const burst = _biPool.pop() || document.createElement('div');
+  burst.className = '';
+  burst.style.animation = 'none';
   burst.style.left = cx + 'px'; burst.style.top = cy + 'px';
-  root.appendChild(burst); setTimeout(()=>burst.remove(), 320);
+  burst.className = 'break-impact heavy hn-alt';
+  root.appendChild(burst);
+  setTimeout(()=>{ burst.className=''; burst.style.animation='none'; root.contains(burst) && root.removeChild(burst); _biPool.push(burst); }, 330);
   // Batch-spawn 3 FX bursts (matching weak-point weight)
   const _bPos=[];
   for(let i=0;i<3;i++) _bPos.push([cx+(Math.random()-.5)*110, cy+(Math.random()-.5)*90]);
@@ -11322,6 +11410,7 @@ let _critActive = 0;
 function _hnPrewarm() {
   const root = document.getElementById('gameRoot');
   if (!root) return;
+  _hnRoot = root; // cache immediately — no getElementById in hot path
   for (let i = 0; i < HIT_NUM_POOL_SIZE; i++) {
     const el = document.createElement('div');
     el.style.cssText = 'display:none;';
@@ -11333,6 +11422,26 @@ function _hnPrewarm() {
     el.style.display = 'none';
     root.appendChild(el);
     _critNodes.push(el);
+  }
+  // Pre-fill allied pools (KO flash, AK47 text, crack burst)
+  for (let i = 0; i < 2; i++) {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:absolute;font-family:\'Oswald\',sans-serif;pointer-events:none;z-index:40;';
+    _koFlashPool.push(el);
+  }
+  for (let i = 0; i < 2; i++) {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:absolute;top:28%;left:50%;transform:translate(-50%,-50%);font-family:\'Oswald\',sans-serif;font-size:clamp(14px,4vw,22px);color:#ff2233;text-align:center;pointer-events:none;z-index:40;text-shadow:0 0 12px #ff0000;';
+    el.innerHTML = 'X MISS — AK47 RESET';
+    _wpMissPool.push(el);
+  }
+  for (let i = 0; i < 2; i++) {
+    const el = document.createElement('div');
+    _wpHitPool.push(el);
+  }
+  for (let i = 0; i < 4; i++) {
+    const el = document.createElement('div');
+    _crackBurstPool.push(el);
   }
 }
 
@@ -11373,25 +11482,35 @@ function _critAcquire() {
 }
 
 // Actual DOM update — uses only className + style.cssText (no layout reads)
+// Animation restart trick: clear class → rAF → set class. Avoids offsetWidth reflow.
+// Uses _hnAltBit to alternate between twin CSS classes that share identical keyframes
+// so the browser always sees a *new* class name and restarts the animation.
+let _hnAltBit = 0;
 function _hnShow(el, x, y, text, cls, color, fontSize, lifetime) {
   // small random offset so stacked hits don't overlap perfectly
   const ox = (Math.random() - 0.5) * 24;
   const oy = (Math.random() - 0.5) * 16;
-  el.className = cls;
+  // Reset to bare state first so animation restarts cleanly
+  el.className = '';
   el.textContent = text;
   el.style.cssText =
     `display:block;left:${x - 20 + ox}px;top:${y - 20 + oy}px;` +
     `font-size:${fontSize};color:${color};`;
+  // Alternate suffix forces browser to re-apply animation even for same logical class
+  const suffix = (_hnAltBit ^= 1) ? ' hn-alt' : '';
+  el.className = cls + suffix;
   _hnActive++;
-  const _snap = el; // capture for closure
+  const _snap = el;
   setTimeout(() => _hnRecycle(_snap), lifetime);
 }
 
+let _critAltBit = 0;
 function _critShow(el, x, y, lifetime) {
-  el.className = 'crit-label';
+  el.className = '';
   el.textContent = 'CRITICAL!';
   el.style.cssText =
     `display:block;left:${x - 40}px;top:${y - 40}px;`;
+  el.className = 'crit-label' + ((_critAltBit ^= 1) ? ' hn-alt' : '');
   _critActive++;
   const _snap = el;
   setTimeout(() => _critRecycle(_snap), lifetime);
@@ -11405,14 +11524,15 @@ function _hnCanShow() {
 }
 
 // Core display function — called by aggregation flush and direct callers
+// _hnRoot is cached after prewarm — no getElementById in hot path
+let _hnRoot = null;
 function _hnDisplayNow(x, y, dmg, hitCount, isGun, isCrit) {
   if (!_hnCanShow()) return; // hard cap: skip if too many active
 
-  const root = document.getElementById('gameRoot');
-  if (!root) return;
-
   // Make sure pool exists (first call after game start)
   _hnEnsurePrewarm();
+  if (!_hnRoot) _hnRoot = document.getElementById('gameRoot');
+  if (!_hnRoot) return;
 
   const reduceFlash = document.body.classList.contains('reduce-flash');
   const lifetime    = reduceFlash ? 380 : (hitCount > 1 ? 680 : 580);
@@ -11487,6 +11607,7 @@ function _hnReset() {
   if (_hnAggTimer) { clearTimeout(_hnAggTimer); _hnAggTimer = 0; }
   _hnAggDmg = 0; _hnAggCount = 0;
   _hnActive  = 0; _critActive = 0;
+  _hnRoot = null; // will re-cache on next hit (safe: gameRoot may re-render between runs)
   // Hide all pooled nodes
   for (const n of _hnNodes)  { n.style.display = 'none'; n.className = ''; }
   for (const n of _critNodes) { n.style.display = 'none'; n.className = ''; }
@@ -11549,11 +11670,20 @@ function triggerFlash(cls){
   flash.className='';
   requestAnimationFrame(()=>{ flash.className=cls; });
 }
+// Pooled KO flash nodes — 2 slots (boss KO and regular KO rarely overlap)
+const _koFlashPool = [];
 function showKOFlash(isBossKO){
-  const el=document.createElement('div');
-  el.style.cssText=`position:absolute;top:14%;right:16px;font-family:'Oswald',sans-serif;font-size:clamp(28px,8vw,48px);color:${Math.random()>0.5?'#ffcc00':'#ff2233'};z-index:40;pointer-events:none;animation:floatUp 0.7s forwards;text-shadow:0 0 20px currentColor;`;
-  el.textContent=isBossKO?'BOSS KO!':'KO!';
-  document.getElementById("gameRoot").appendChild(el); setTimeout(()=>el.remove(),750);
+  const root = _hnRoot || document.getElementById('gameRoot');
+  if (!root) return;
+  const el = _koFlashPool.pop() || document.createElement('div');
+  el.className = '';
+  el.style.cssText =`position:absolute;top:14%;right:16px;font-family:'Oswald',sans-serif;font-size:clamp(28px,8vw,48px);color:${Math.random()>0.5?'#ffcc00':'#ff2233'};z-index:40;pointer-events:none;text-shadow:0 0 20px currentColor;`;
+  el.textContent = isBossKO?'BOSS KO!':'KO!';
+  // animation restart without reflow
+  el.style.animation = 'none';
+  requestAnimationFrame(() => { el.style.animation = 'floatUp 0.7s forwards'; });
+  root.appendChild(el);
+  setTimeout(()=>{ el.style.animation='none'; root.contains(el) && root.removeChild(el); _koFlashPool.length < 2 && _koFlashPool.push(el); }, 780);
 }
 // FIX 4: DOM pool for coin popups — reuse nodes instead of creating a new div
 // every AK47 bomb, BREAK, boss KO, and annihilation call.
