@@ -711,6 +711,61 @@
   }
   .cs-reroll-shake { animation:csRerollShake 0.35s ease; }
 
+  /* ══ HIGH-RARITY REROLL CONFIRM MODAL ══ */
+  #rerollConfirmModal {
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    z-index:1200;
+    display:none; align-items:center; justify-content:center;
+  }
+  #rerollConfirmOverlay {
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.88); backdrop-filter:blur(4px);
+  }
+  #rerollConfirmBox {
+    position:relative; z-index:1;
+    display:flex; flex-direction:column; align-items:center;
+    gap:10px; padding:26px 22px 22px;
+    background:#0d0d0d; border:1px solid #c8a400;
+    box-shadow:0 0 28px rgba(255,204,0,0.25);
+    max-width:290px; width:90%; box-sizing:border-box;
+  }
+  #rerollConfirmIcon {
+    width:36px; height:36px; border-radius:50%;
+    background:rgba(255,204,0,0.12);
+    border:1px solid #c8a400;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; flex-shrink:0;
+  }
+  #rerollConfirmTitle {
+    font-family:'Oswald',sans-serif; font-size:15px; letter-spacing:3px;
+    color:var(--gold); text-align:center; line-height:1.3;
+  }
+  #rerollConfirmBody {
+    font-family:'Sarabun',sans-serif; font-size:11px; color:#888;
+    text-align:center; line-height:1.7;
+  }
+  #rerollConfirmCost {
+    font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:2px;
+    color:var(--cyan);
+  }
+  #rerollConfirmBtns {
+    display:flex; gap:10px; margin-top:6px; width:100%;
+  }
+  #rerollCancelBtn {
+    flex:1; font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:2px;
+    background:transparent; border:1px solid #444; color:#888;
+    padding:11px 0; cursor:pointer;
+    touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+  }
+  #rerollCancelBtn:active { background:#1a1a1a; }
+  #rerollDoRerollBtn {
+    flex:1.4; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:2px;
+    background:var(--gold); border:none; color:#000;
+    padding:11px 0; cursor:pointer; white-space:nowrap;
+    touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+  }
+  #rerollDoRerollBtn:active { filter:brightness(0.85); }
+
   /* penalty warning — จองพื้นที่ไว้เสมอ */
   #csPenaltyWarn {
     font-family:'Sarabun',sans-serif; font-size:10px;
@@ -3267,6 +3322,21 @@
       <div id="csRerollCostLabel"></div>
     </div>
     <button id="csConfirmBtn" onclick="_csConfirmClick()" ontouchstart="event.preventDefault();_csConfirmClick();"><span class="cs-confirm-icon"></span>CONFIRM</button>
+  </div>
+
+  <!-- ══ HIGH-RARITY REROLL CONFIRM MODAL ══ -->
+  <div id="rerollConfirmModal">
+    <div id="rerollConfirmOverlay" onclick="_rerollConfirmCancel()"></div>
+    <div id="rerollConfirmBox">
+      <div id="rerollConfirmIcon">⚠</div>
+      <div id="rerollConfirmTitle">REROLL HIGH-RARITY CARD?</div>
+      <div id="rerollConfirmBody">This offer contains ELITE / MYTHIC cards.<br>Reroll will replace all 3 cards.</div>
+      <div id="rerollConfirmCost">Cost: FREE</div>
+      <div id="rerollConfirmBtns">
+        <button id="rerollCancelBtn" onclick="_rerollConfirmCancel()">CANCEL</button>
+        <button id="rerollDoRerollBtn" onclick="_rerollConfirmExecute()">CONFIRM REROLL</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -6448,50 +6518,9 @@ function resetPreRunCardState() {
 }
 
 function rerollPreRunCards() {
-  // FIX-1: Double-fire guard — absorbs onclick + ontouchstart firing on the same gesture.
-  // setTimeout(0) holds the lock until both events in the same tick have been processed.
-  if (_rerollInProgress) return;
-  _rerollInProgress = true;
-
-  const cost = getRerollCost(_preRunCardState.rerollCount);
-
-  // Insufficient zeny — do NOT reroll, do NOT increment count
-  if (cost > save.coins) {
-    _csShowRerollFeedback('broke');
-    setTimeout(() => { _rerollInProgress = false; }, 0); // release on failed path
-    return;
-  }
-
-  // Deduct zeny immediately
-  if (cost > 0) {
-    save.coins -= cost;
-    // Update all coin displays
-    if ($('menuCoinNum'))  $('menuCoinNum').textContent  = formatNum(save.coins);
-    if ($('shopCoinNum'))  $('shopCoinNum').textContent  = save.coins;
-    if ($('bossCoinNum'))  $('bossCoinNum').textContent  = save.coins;
-    if ($('arenaCoinNum')) $('arenaCoinNum').textContent = save.coins;
-  }
-
-  // Increment rerollCount BEFORE generating offers so the new count drives rarity weights
-  _preRunCardState.rerollCount++;
-  _preRunCardState.selectedCardId = null;
-  _preRunCardState.offers = generatePreRunCardOffers(); // uses incremented rerollCount
-
-  // Update UI immediately — non-blocking
-  _csRenderRerollCards();
-  _csUpdateRerollBtn();
-
-  // Persist pre-run state so page-reload cannot restore free reroll exploit
-  _persistPreRunState();
-  // Local save immediately
-  markSaveDirty('card_reroll');
-  doSave();
-  // Background cloud sync — fire-and-forget, never awaited
-  scheduleCloudSync('card_reroll', { silentToast: true });
-
-  // Release lock after this event-loop tick — absorbs both onclick and ontouchstart
-  // from the same gesture before the next tap can register.
-  setTimeout(() => { _rerollInProgress = false; }, 0);
+  // Delegated to executePreRunReroll (which holds the _rerollInProgress guard).
+  // Kept for backward compatibility only — no direct callers remain post-refactor.
+  executePreRunReroll();
 }
 
 function selectPreRunCard(cardId) {
@@ -6616,9 +6645,100 @@ function _csUpdateRerollBtn() {
   }
 }
 
+// ── High-rarity offer detection ──
+function currentOffersContainHighRarity() {
+  return Array.isArray(_preRunCardState.offers) &&
+    _preRunCardState.offers.some(function(card) {
+      return card && (card.rarity === 'ELITE' || card.rarity === 'MYTHIC' ||
+                      card.rarity === 'elite' || card.rarity === 'mythic');
+    });
+}
+
+// ── Open / close reroll confirm modal ──
+function _openRerollConfirmModal() {
+  const modal = $('rerollConfirmModal');
+  if (!modal) return;
+  // Update cost line to reflect current reroll cost
+  const costEl = $('rerollConfirmCost');
+  if (costEl) {
+    const cost = getRerollCost(_preRunCardState.rerollCount);
+    costEl.textContent = cost === 0 ? 'Cost: FREE' : 'Cost: ' + cost.toLocaleString() + ' ZENY';
+  }
+  modal.style.display = 'flex';
+}
+
+function _closeRerollConfirmModal() {
+  const modal = $('rerollConfirmModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ── CANCEL: close modal, no reroll, no zeny deducted, no count increment ──
+function _rerollConfirmCancel() {
+  _closeRerollConfirmModal();
+  // _rerollInProgress was NOT set when the modal opened — nothing to release
+}
+
+// ── CONFIRM REROLL: close modal then execute normal reroll flow ──
+function _rerollConfirmExecute() {
+  _closeRerollConfirmModal();
+  executePreRunReroll();
+}
+
 // ── Reroll button click handler ──
 function _csRerollClick() {
-  rerollPreRunCards();
+  if (_rerollInProgress) return;
+
+  if (currentOffersContainHighRarity()) {
+    // Do NOT set _rerollInProgress here — modal is non-blocking
+    _openRerollConfirmModal();
+    return;
+  }
+
+  executePreRunReroll();
+}
+
+// ── Actual reroll execution (extracted from former rerollPreRunCards) ──
+function executePreRunReroll() {
+  // FIX-1: Double-fire guard — absorbs onclick + ontouchstart firing on the same gesture.
+  if (_rerollInProgress) return;
+  _rerollInProgress = true;
+
+  const cost = getRerollCost(_preRunCardState.rerollCount);
+
+  // Insufficient zeny — do NOT reroll, do NOT increment count
+  if (cost > save.coins) {
+    _csShowRerollFeedback('broke');
+    setTimeout(() => { _rerollInProgress = false; }, 0);
+    return;
+  }
+
+  // Deduct zeny immediately
+  if (cost > 0) {
+    save.coins -= cost;
+    if ($('menuCoinNum'))  $('menuCoinNum').textContent  = formatNum(save.coins);
+    if ($('shopCoinNum'))  $('shopCoinNum').textContent  = save.coins;
+    if ($('bossCoinNum'))  $('bossCoinNum').textContent  = save.coins;
+    if ($('arenaCoinNum')) $('arenaCoinNum').textContent = save.coins;
+  }
+
+  // Increment rerollCount BEFORE generating offers so the new count drives rarity weights
+  _preRunCardState.rerollCount++;
+  _preRunCardState.selectedCardId = null;
+  _preRunCardState.offers = generatePreRunCardOffers();
+
+  // Update UI immediately — non-blocking
+  _csRenderRerollCards();
+  _csUpdateRerollBtn();
+
+  // Persist pre-run state so page-reload cannot restore free reroll exploit
+  _persistPreRunState();
+  markSaveDirty('card_reroll');
+  doSave();
+  // Background cloud sync — fire-and-forget, never awaited
+  scheduleCloudSync('card_reroll', { silentToast: true });
+
+  // Release lock after this event-loop tick
+  setTimeout(() => { _rerollInProgress = false; }, 0);
 }
 
 // ── Visual feedback for broke state ──
