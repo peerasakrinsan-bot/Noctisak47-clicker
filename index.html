@@ -562,10 +562,60 @@
     to  { opacity:1; transform:translateY(0)    scale(1);    }
   }
   .cs-card:active { transform:scale(0.96); }
-  .cs-card.selected {
-    transform:scale(1.04) translateY(-4px);
-    animation:none; opacity:1;
+
+  /* ── POLISH: unselected cards dim when a selection is active ── */
+  .cs-cards-wrap.has-selection .cs-card:not(.selected) {
+    opacity: 0.55;
+    filter: brightness(0.7);
+    transition: opacity 0.18s ease, filter 0.18s ease;
   }
+  .cs-cards-wrap.has-selection .cs-card.selected {
+    transition: opacity 0.18s ease, filter 0.18s ease;
+  }
+
+  /* ── POLISH: stronger selected state ── */
+  .cs-card.selected {
+    transform: scale(1.05) translateY(-5px);
+    animation: none; opacity: 1;
+    border-color: var(--cyan) !important;
+    box-shadow:
+      0 0 0 2px var(--cyan),
+      0 0 18px rgba(0,255,238,0.55),
+      inset 0 0 20px rgba(0,255,238,0.06) !important;
+    filter: brightness(1.08);
+  }
+  /* elite/mythic selected keep their own colour accent + cyan ring */
+  .cs-card.rarity-elite.selected {
+    border-color: var(--gold) !important;
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 22px rgba(255,204,0,0.7),
+      inset 0 0 24px rgba(255,204,0,0.10) !important;
+  }
+  .cs-card.rarity-mythic.selected {
+    border-color: #ff2233 !important;
+    box-shadow:
+      0 0 0 2px #ff2233,
+      0 0 24px rgba(255,34,51,0.8),
+      inset 0 0 24px rgba(255,34,51,0.10) !important;
+  }
+
+  /* ── POLISH: SELECTED badge ── */
+  .cs-selected-badge {
+    position: absolute;
+    bottom: 6px; left: 50%; transform: translateX(-50%);
+    font-family: 'Oswald', sans-serif; font-size: 7px; letter-spacing: 3px;
+    color: var(--cyan); background: rgba(0,255,238,0.10);
+    border: 1px solid var(--cyan);
+    padding: 2px 7px;
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0; transition: opacity 0.15s ease;
+    z-index: 2;
+  }
+  .cs-card.selected .cs-selected-badge { opacity: 1; }
+  .cs-card.rarity-elite.selected   .cs-selected-badge { color: var(--gold); border-color: var(--gold); background: rgba(255,204,0,0.10); }
+  .cs-card.rarity-mythic.selected  .cs-selected-badge { color: #ff5566;     border-color: #ff2233;     background: rgba(255,34,51,0.10); }
 
   /* rarity border & glow */
   .cs-card.rarity-standard  { border-color:#333; }
@@ -661,33 +711,35 @@
     0%,100%{ opacity:0.4; } 50%{ opacity:1; }
   }
 
-  /* ══ REROLL BUTTON ══ */
+  /* ══ REROLL BUTTON — secondary to CONFIRM/START ══ */
   #csRerollWrap {
-    display:flex; flex-direction:column; align-items:center; gap:5px;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
     position:relative; z-index:1; flex-shrink:0;
   }
   #csRerollBtn {
-    font-family:'Oswald',sans-serif; font-size:clamp(11px,3.5vw,14px);
-    letter-spacing:3px; color:var(--cyan);
-    background:transparent; border:1px solid var(--cyan);
-    padding:clamp(8px,2vh,11px) clamp(22px,7vw,40px);
+    font-family:'Oswald',sans-serif; font-size:clamp(10px,3vw,12px);
+    letter-spacing:2px; color:#6ecfcf;
+    background:transparent; border:1px solid #2a6666;
+    padding:clamp(6px,1.6vh,9px) clamp(16px,5vw,28px);
     cursor:pointer; position:relative; white-space:nowrap;
     flex-shrink:0;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
-    transition:background 0.12s, opacity 0.12s;
-    display:flex; align-items:center; gap:8px;
+    transition:background 0.12s, opacity 0.12s, border-color 0.12s, color 0.12s;
+    display:flex; align-items:center; gap:7px;
+    opacity: 0.82;
   }
-  #csRerollBtn:active { background:rgba(0,255,238,0.1); }
+  #csRerollBtn:active { background:rgba(0,255,238,0.06); border-color:#3a8888; color:var(--cyan); opacity:1; }
+  #csRerollBtn:hover  { border-color:#3a8888; color:var(--cyan); opacity:1; }
   #csRerollBtn.reroll-not-enough {
-    border-color:#555; color:#555; pointer-events:none;
+    border-color:#333; color:#444; pointer-events:none; opacity:0.5;
   }
   #csRerollBtn.reroll-shuffling {
-    opacity:0.6; pointer-events:none;
+    opacity:0.4; pointer-events:none;
   }
   /* reroll shuffle icon ── two circular arrows */
   .cs-reroll-icon {
-    display:inline-block; width:13px; height:13px;
-    border:2px solid currentColor; border-radius:50%;
+    display:inline-block; width:11px; height:11px;
+    border:1.5px solid currentColor; border-radius:50%;
     border-top-color:transparent;
     flex-shrink:0;
   }
@@ -1838,11 +1890,40 @@
   /* ─── HIT NUMBER ─── */
   .hit-num {
     position:absolute; font-family:'Oswald',sans-serif; font-weight:700;
-    pointer-events:none; z-index:20;
-    animation:floatUp 0.6s forwards;
+    pointer-events:none; z-index:20; will-change:transform,opacity;
+    animation:floatUp 0.58s forwards;
     text-shadow:1px 1px 0 rgba(0,0,0,0.6);
   }
-  @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1);} 100%{opacity:0;transform:translateY(-70px) scale(0.7);} }
+  /* OD / gun hit — brighter, floats higher */
+  .hit-num-od {
+    position:absolute; font-family:'Oswald',sans-serif; font-weight:700;
+    pointer-events:none; z-index:21; will-change:transform,opacity;
+    animation:floatUpOD 0.62s forwards;
+    text-shadow:0 0 8px currentColor, 1px 1px 0 rgba(0,0,0,0.5);
+  }
+  /* Aggregated batch number — larger, shows hit count */
+  .hit-num-agg {
+    position:absolute; font-family:'Oswald',sans-serif; font-weight:700;
+    pointer-events:none; z-index:22; will-change:transform,opacity;
+    animation:floatUpAgg 0.72s forwards;
+    text-shadow:0 0 10px currentColor, 1px 1px 0 rgba(0,0,0,0.6);
+    line-height:1.1; text-align:center;
+  }
+  /* CRITICAL hit text — pooled */
+  .crit-label {
+    position:absolute; font-family:'Oswald',sans-serif; font-weight:700;
+    color:#ff4444; font-size:20px; pointer-events:none; z-index:22;
+    animation:critAnim 0.7s forwards; text-shadow:0 0 20px #ff0000;
+    will-change:transform,opacity;
+  }
+  @keyframes floatUp    { 0%{opacity:1;transform:translateY(0)    scale(1);}   100%{opacity:0;transform:translateY(-70px) scale(0.7);} }
+  @keyframes floatUpOD  { 0%{opacity:1;transform:translateY(0)    scale(1.15);} 100%{opacity:0;transform:translateY(-90px) scale(0.75);} }
+  @keyframes floatUpAgg { 0%{opacity:1;transform:translateY(0)    scale(1.2);}  100%{opacity:0;transform:translateY(-80px) scale(0.8);} }
+  /* reduce-flash: shorter lifetime, no scale pop */
+  body.reduce-flash .hit-num,
+  body.reduce-flash .hit-num-od,
+  body.reduce-flash .hit-num-agg  { animation-duration:0.38s !important; }
+  body.reduce-flash .crit-label   { animation-duration:0.44s !important; }
 
   /* ─── SPLASHES ─── */
   #godSplash {
@@ -2807,7 +2888,27 @@
   #cmEvolveToast.glossy  #cmEvolveToastMain { color: #aaddf5; text-shadow: 0 0 12px #88ccee; }
   #cmEvolveToast.prismatic #cmEvolveToastMain { color: #cc99ff; text-shadow: 0 0 14px #9955ff; }
 
+  /* ══ PERF R2: Offscreen shimmer pause ══ */
+  .cm-paused::after,
+  .cm-paused .card-foil,
+  .cm-paused .card-shimmer {
+    animation-play-state: paused !important;
+  }
   /* ══ END CARD MASTERY SYSTEM ══ */
+
+  /* ══ PERF R2: reduce-flash — additional suppressions not covered by FIX 6 ══ */
+  body.reduce-flash .card-heavy-shimmer {
+    animation: none !important;
+    opacity: 0 !important;
+    filter: none !important;
+  }
+  /* Moderate blur cost reduction on aura elements under reduce-flash */
+  body.reduce-flash #xuangAura::before { filter: blur(10px) saturate(1.1) !important; }
+  body.reduce-flash #xuangAura::after  { filter: blur(14px) !important; }
+  body.reduce-flash .xuang-aura-ripple { filter: blur(6px) !important; }
+  body.reduce-flash #fighter.toei-enigma-aura::before { filter: blur(12px) !important; }
+  body.reduce-flash #fighter.toei-enigma-aura::after  { filter: blur(18px) !important; }
+  /* ══ END PERF R2 reduce-flash ══ */
 
   /* ══ OCA DROP SYSTEM ══ */
   @keyframes ocaDropAnim {
@@ -5176,6 +5277,9 @@ function initState() {
   updateUI();
   rebuildStatCache();
   _resetHpTier();
+  // Hit-number pool: prewarm nodes on first run, reset aggregation state on every run
+  _hnEnsurePrewarm();
+  _hnReset();
 }
 
 function scheduleWeakPoint() {
@@ -6384,7 +6488,7 @@ function _restorePreRunStateFromSave() {
     // If empty (e.g. all restored IDs were unowned), return false so
     // ensurePreRunCardState() regenerates a clean offer from owned cards.
     if (!cards.length) return false;
-    _preRunCardState.rerollCount = Math.max(0, Math.floor(Number(p.rerollCount) || 0));
+    _preRunCardState.rerollCount = Math.min(999, Math.max(0, Math.floor(Number(p.rerollCount) || 0)));
     _preRunCardState.selectedCardId = p.selectedCardId || null;
     _preRunCardState.offers = cards;
     _preRunCardState.sessionId = p.sessionId;
@@ -6538,6 +6642,7 @@ function _csRenderRerollCards() {
 
   requestAnimationFrame(() => {
     wrap.innerHTML = '';
+    wrap.classList.remove('has-selection'); // POLISH: clear dim state on new offer
     const offers = _preRunCardState.offers;
 
     if (!offers || !offers.length) {
@@ -6571,12 +6676,15 @@ function _csRenderRerollCards() {
       }
 
       const slotDesc = getCardSlotDescription(card);
+      const isHighRarity = (card.rarity === 'elite' || card.rarity === 'mythic');
+      if (isHighRarity) div.classList.add('cs-offer-highrarity');
       div.innerHTML = `
         <div class="cs-rarity-tag">${RARITY_LABEL[card.rarity]}</div>
         ${imgHtml}
         <div class="cs-card-name">${card.name}</div>
         <div class="cs-card-effect">${slotDesc}</div>
         <div class="cs-card-check"><span class="css-check" style="color:#00ff88;display:inline-block;"></span></div>
+        <div class="cs-selected-badge">SELECTED</div>
       `;
 
       div.addEventListener('click', () => _csSelectRerollCard(div, card));
@@ -6590,6 +6698,8 @@ function _csRenderRerollCards() {
     requestAnimationFrame(() => {
       wrap.style.opacity = '';
       wrap.style.transform = '';
+      // POLISH: restore dim state if a card is already selected (Back → re-enter)
+      if (_preRunCardState.selectedCardId) wrap.classList.add('has-selection');
       setTimeout(() => { wrap.style.transition = ''; }, 220);
     });
   });
@@ -6599,6 +6709,9 @@ function _csSelectRerollCard(el, card) {
   // Deselect all
   document.querySelectorAll('.cs-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
+  // POLISH: dim unselected cards when one is active
+  const wrap = $('csCardsWrap');
+  if (wrap) wrap.classList.add('has-selection');
   selectPreRunCard(card.id);
 
   // Find the actual card object from offers
@@ -6741,22 +6854,35 @@ function executePreRunReroll() {
   setTimeout(() => { _rerollInProgress = false; }, 0);
 }
 
-// ── Visual feedback for broke state ──
+// ── Visual feedback for broke state — inline toast, auto-dismiss, no modal ──
+let _csZenyToastTimer = null;
 function _csShowRerollFeedback(type) {
   const btn = $('csRerollBtn');
   const costLabel = $('csRerollCostLabel');
   if (!btn) return;
 
   if (type === 'broke') {
-    if (costLabel) {
-      costLabel.textContent = 'NOT ENOUGH ZENY';
-      costLabel.className = 'not-enough';
-      costLabel.style.display = 'block';
-    }
+    // Shake the button
     btn.classList.remove('cs-reroll-shake');
     void btn.offsetWidth;
     btn.classList.add('cs-reroll-shake');
     setTimeout(() => btn.classList.remove('cs-reroll-shake'), 380);
+
+    // Show inline toast text, auto-dismiss after 1.6s
+    if (costLabel) {
+      costLabel.textContent = 'NOT ENOUGH ZENY';
+      costLabel.className = 'not-enough';
+      costLabel.style.display = 'block';
+      if (_csZenyToastTimer) clearTimeout(_csZenyToastTimer);
+      _csZenyToastTimer = setTimeout(() => {
+        // Only clear if still showing the broke message (don't stomp a fresh update)
+        if (costLabel.textContent === 'NOT ENOUGH ZENY') {
+          costLabel.textContent = '';
+          costLabel.style.display = 'none';
+        }
+        _csZenyToastTimer = null;
+      }, 1600);
+    }
   }
 }
 
@@ -6925,10 +7051,19 @@ function _csSelectCard(el, card) {
 let _csPendingCard   = null;
 let _csPendingChosen = null;
 
+// FIX: Double-fire guard for CONFIRM button (onclick + ontouchstart fire on same tap).
+// Mirrors the _rerollInProgress pattern used by the reroll button.
+let _confirmInProgress = false;
+
 function _csConfirmClick() {
-  if(!_csPendingCard || !_csPendingChosen) return;
+  // FIX: guard must come first — absorbs the second event in onclick+ontouchstart pair.
+  if (_confirmInProgress) return;
+  if (!_csPendingCard || !_csPendingChosen) return;
+  _confirmInProgress = true;
+
   const card     = _csPendingCard;
   const onChosen = _csPendingChosen;
+  // Clear pending refs before onChosen() so any re-entrant call is a no-op.
   _csPendingCard   = null;
   _csPendingChosen = null;
 
@@ -6944,10 +7079,17 @@ function _csConfirmClick() {
   card.apply(cs);
   window._csState = cs;
   _csRefreshVolatileCardEffects(cs);
+
+  // Release guard after this tick so both events in the gesture are absorbed.
+  setTimeout(() => { _confirmInProgress = false; }, 0);
   onChosen();
 }
 
 function _csBack() {
+  // FIX: guard against onclick + ontouchstart double-fire — if screen is already
+  // hidden a second call is a no-op, preserving all reroll state as intended.
+  if ($('cardSlotScreen').style.display === 'none') return;
+
   // _csLastCards ยังคงเดิม + save.savedCards ยังคงเดิม
   // กด PLAY ใหม่จะได้การ์ดเดิมเสมอ
   $('cardSlotScreen').style.display = 'none';
@@ -8772,6 +8914,38 @@ function collectCard() {
 }
 
 // ── Card Collection Screen ──
+// ── PERF R2: IntersectionObserver for shimmer pause/resume ──────────────
+let _ccShimmerObserver = null;
+
+function _ccEnsureShimmerObserver() {
+  if (_ccShimmerObserver) return;
+  if (!window.IntersectionObserver) return; // graceful fallback
+  _ccShimmerObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.remove('cm-paused');
+        } else {
+          entry.target.classList.add('cm-paused');
+        }
+      }
+    },
+    {
+      root: document.getElementById('cardCollectionScreen'),
+      rootMargin: '60px 0px',  // small pre-load buffer
+      threshold: 0
+    }
+  );
+}
+
+function _ccDisconnectShimmerObserver() {
+  if (_ccShimmerObserver) {
+    _ccShimmerObserver.disconnect();
+    _ccShimmerObserver = null;
+  }
+}
+// ── END PERF R2 observer helpers ──────────────────────────────────────
+
 function openCardCollection() {
   $('mainMenu').style.display = 'none';
   $('dailyQuestWidget').classList.remove('visible');
@@ -8782,6 +8956,8 @@ function openCardCollection() {
 }
 
 function closeCardCollection() {
+  // Disconnect observer before hiding — avoids stale references
+  _ccDisconnectShimmerObserver();
   $('cardCollectionScreen').style.display = 'none';
   $('mainMenu').style.display = 'flex';
   $('dailyQuestWidget').classList.add('visible');
@@ -8789,47 +8965,98 @@ function closeCardCollection() {
 
 function renderCardCollection() {
   const grid = $('cardCollectionGrid');
+
+  // PERF R2: disconnect old observer before clearing grid (avoids observing stale nodes)
+  _ccDisconnectShimmerObserver();
+
+  // Clear grid in one shot
   grid.innerHTML = '';
+
+  // PERF R2: remove any previously-delegated listeners cleanly by cloning the grid node
+  // (grid.innerHTML='' already drops children; clone is only needed if listeners were set on grid itself)
+  // We use event delegation so we only add ONE listener set per render.
+
   const RARITY_ORDER = { standard:0, premium:1, elite:2, mythic:3 };
   const unlocked = getUnlockedCards();
   const sorted = [...CARD_POOL].sort((a,b) => RARITY_ORDER[a.rarity] - RARITY_ORDER[b.rarity]);
-  sorted.forEach(card => {
+
+  // PERF R2: build all cards into a DocumentFragment — single DOM insertion
+  const frag = document.createDocumentFragment();
+
+  // Store card data on the DOM node so delegation can retrieve it cheaply
+  for (const card of sorted) {
     const div = document.createElement('div');
     const isUnlocked = unlocked.includes(card.id);
-    div.className = 'cc-card' + (isUnlocked ? ' unlocked rarity-'+card.rarity : ' locked');
-    if(isUnlocked) {
+    div.className = 'cc-card' + (isUnlocked ? ' unlocked rarity-' + card.rarity : ' locked');
+    div.dataset.cardId = card.id; // used by delegated listener
+
+    if (isUnlocked) {
       const img = document.createElement('img');
       img.src = card.img || '';
       img.alt = card.name;
       img.decoding = 'async';
+      img.loading = 'lazy'; // PERF R2: browser-native lazy load for offscreen images
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      img.onerror = ()=>{ img.style.opacity='0'; };
+      img.onerror = () => { img.style.opacity = '0'; };
       div.appendChild(img);
-      // ── Card Mastery: runs badge + visual overlay
+      // Card Mastery visual overlay (no save/cloud calls)
       cmDecorateCollectionCard(div, card);
-      // tap เท่านั้น — ไม่ใช่ long press หรือ scroll
-      let _tapStartX=0, _tapStartY=0, _tapStartT=0;
-      div.addEventListener('touchstart', e=>{
-        _tapStartX = e.touches[0].clientX;
-        _tapStartY = e.touches[0].clientY;
-        _tapStartT = Date.now();
-      }, {passive:true});
-      div.addEventListener('touchend', e=>{
-        const dx = Math.abs(e.changedTouches[0].clientX - _tapStartX);
-        const dy = Math.abs(e.changedTouches[0].clientY - _tapStartY);
-        const dt = Date.now() - _tapStartT;
-        // tap ต้องไม่ขยับเกิน 8px และไม่นานเกิน 300ms
-        if(dx < 8 && dy < 8 && dt < 300) {
-          e.preventDefault();
-          openCardModal(card);
-        }
-      }, {passive:false});
-      div.addEventListener('click', ()=>openCardModal(card));
     } else {
       div.innerHTML = '<div class="cc-card-locked">?</div>';
     }
-    grid.appendChild(div);
-  });
+
+    frag.appendChild(div);
+  }
+
+  // Single DOM write for all cards
+  grid.appendChild(frag);
+
+  // PERF R2: IntersectionObserver — observe cards that have shimmer classes
+  _ccEnsureShimmerObserver();
+  if (_ccShimmerObserver) {
+    const shimmerCards = grid.querySelectorAll('.cm-glossy-wrap, .cm-prismatic-wrap');
+    for (const el of shimmerCards) {
+      _ccShimmerObserver.observe(el);
+    }
+  }
+
+  // PERF R2: single delegated tap listener on grid (avoids N listeners for N cards)
+  // Guard: only attach once per grid element lifetime (innerHTML='' doesn't remove grid listeners)
+  if (!grid._perfR2ListenersAttached) {
+    grid._perfR2ListenersAttached = true;
+    let _tapStartX = 0, _tapStartY = 0, _tapStartT = 0, _tapTargetId = null;
+
+    grid.addEventListener('touchstart', e => {
+      const touch = e.touches[0];
+      _tapStartX = touch.clientX;
+      _tapStartY = touch.clientY;
+      _tapStartT = Date.now();
+      // Find nearest cc-card ancestor
+      const ccCard = e.target.closest('.cc-card');
+      _tapTargetId = ccCard ? ccCard.dataset.cardId : null;
+    }, { passive: true });
+
+    grid.addEventListener('touchend', e => {
+      if (!_tapTargetId) return;
+      const touch = e.changedTouches[0];
+      const dx = Math.abs(touch.clientX - _tapStartX);
+      const dy = Math.abs(touch.clientY - _tapStartY);
+      const dt = Date.now() - _tapStartT;
+      if (dx < 8 && dy < 8 && dt < 300) {
+        e.preventDefault();
+        const card = CARD_POOL.find(c => c.id === _tapTargetId);
+        if (card) openCardModal(card);
+      }
+      _tapTargetId = null;
+    }, { passive: false });
+
+    grid.addEventListener('click', e => {
+      const ccCard = e.target.closest('.cc-card.unlocked');
+      if (!ccCard) return;
+      const card = CARD_POOL.find(c => c.id === ccCard.dataset.cardId);
+      if (card) openCardModal(card);
+    });
+  }
 }
 
 function openCardModal(card) {
@@ -10019,6 +10246,7 @@ function endGame(opts = {}) {
   clearTimeout(wpSchedule); clearTimeout(wpTimeout);
   wpActive=false; $('weakPoint').style.display='none';
   gameRunning=false;
+  _hnReset(); // flush pending hit-number aggregate, hide all pooled nodes
   _csStopAllTimers();
   // Hunter Fly end bonus
   const endBonus = csGetEndBonusCoins();
@@ -10647,14 +10875,8 @@ function processHit(e, now) {
     // ── One damage application, one number, one flash ──
     const pos2 = pos; // pos already computed above
     spawnFX(pos2.x, pos2.y, godLevel > 0);
+    // showHitNum handles crit label internally via pooled _critNodes
     showHitNum(pos2.x, pos2.y, _totalDmg, godLevel > 0, isCrit);
-    if(isCrit){
-      const _ce = document.createElement('div');
-      _ce.className = 'crit-text'; _ce.textContent = 'CRITICAL!';
-      _ce.style.left = (pos2.x-40)+'px'; _ce.style.top = (pos2.y-40)+'px';
-      document.getElementById('gameRoot').appendChild(_ce);
-      setTimeout(()=>_ce.remove(), 700);
-    }
     applyBossDamage(_totalDmg, 'tap');
     if(window._csState && window._csState.cs_doppelShadow) {
       const _shadowBase = Math.round(_totalDmg * (isCrit ? 0.60 : 0.45));
@@ -10747,14 +10969,8 @@ function applyBossDamage(amount, source) {
 function applyDamage(dmg,e,isCrit) {
   const pos=getPos(e);
   spawnFX(pos.x,pos.y,godLevel>0);
+  // showHitNum handles crit label internally via pooled _critNodes
   showHitNum(pos.x,pos.y,dmg,godLevel>0,isCrit);
-
-  if(isCrit){
-    const el=document.createElement('div');
-    el.className='crit-text'; el.textContent='CRITICAL!';
-    el.style.left=(pos.x-40)+'px'; el.style.top=(pos.y-40)+'px';
-    document.getElementById("gameRoot").appendChild(el); setTimeout(()=>el.remove(),700);
-  }
 
   // Route through centralized damage function — updates hpFill on every hit
   applyBossDamage(dmg, 'tap');
@@ -11070,23 +11286,217 @@ function updateMultiBadge(multi) {
   else b.classList.remove('show');
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// HIT NUMBER POOL — Performance Patch
+// ──────────────────────────────────────────────────────────────────────
+// Bounded pool of pre-created DOM nodes reused in round-robin order.
+// Hard cap on simultaneous visible nodes. Aggregation for rapid hits.
+// Zero createElement during gameplay. No layout reads. Transform+opacity only.
+// ══════════════════════════════════════════════════════════════════════
+
+const HIT_NUM_POOL_SIZE = 36;   // total nodes pre-created
+const HIT_NUM_ACTIVE_CAP = 20;  // max nodes visible at once (hard cap)
+const HIT_NUM_AGG_WINDOW = 90;  // ms — hits within this window aggregate visually
+const HIT_NUM_REDUCE_CAP = 10;  // max visible nodes in reduce-flash mode
+
+// Pre-create pool nodes (once, at parse time — no createElement during gameplay)
+const _hnNodes = [];
+let _hnIdx = 0;          // round-robin cursor
+let _hnActive = 0;       // count of currently visible nodes
+
+// Aggregation state
+let _hnAggTimer = 0;     // setTimeout id
+let _hnAggDmg = 0;       // accumulated damage for pending aggregate
+let _hnAggCount = 0;     // hit count for pending aggregate
+let _hnAggX = 0;
+let _hnAggY = 0;
+let _hnAggIsGun = false;
+let _hnAggIsCrit = false;
+
+// Crit-text pool (separate, smaller — crits are rarer)
+const CRIT_POOL_SIZE = 8;
+const _critNodes = [];
+let _critIdx = 0;
+let _critActive = 0;
+
+function _hnPrewarm() {
+  const root = document.getElementById('gameRoot');
+  if (!root) return;
+  for (let i = 0; i < HIT_NUM_POOL_SIZE; i++) {
+    const el = document.createElement('div');
+    el.style.cssText = 'display:none;';
+    root.appendChild(el);
+    _hnNodes.push(el);
+  }
+  for (let i = 0; i < CRIT_POOL_SIZE; i++) {
+    const el = document.createElement('div');
+    el.style.display = 'none';
+    root.appendChild(el);
+    _critNodes.push(el);
+  }
+}
+
+// Prewarm after gameRoot is available (called from initState)
+function _hnEnsurePrewarm() {
+  if (_hnNodes.length === 0) _hnPrewarm();
+}
+
+// Recycle a node back to idle state
+function _hnRecycle(node) {
+  node.style.display = 'none';
+  node.className = '';
+  if (_hnActive > 0) _hnActive--;
+}
+function _critRecycle(node) {
+  node.style.display = 'none';
+  node.className = '';
+  if (_critActive > 0) _critActive--;
+}
+
+// Acquire the next round-robin node (displaces whatever was there)
+function _hnAcquire() {
+  const node = _hnNodes[_hnIdx];
+  _hnIdx = (_hnIdx + 1) % HIT_NUM_POOL_SIZE;
+  // If it was visible, recycle it first (hard cap: evict oldest)
+  if (node.style.display !== 'none') {
+    if (_hnActive > 0) _hnActive--;
+  }
+  return node;
+}
+function _critAcquire() {
+  const node = _critNodes[_critIdx];
+  _critIdx = (_critIdx + 1) % CRIT_POOL_SIZE;
+  if (node.style.display !== 'none') {
+    if (_critActive > 0) _critActive--;
+  }
+  return node;
+}
+
+// Actual DOM update — uses only className + style.cssText (no layout reads)
+function _hnShow(el, x, y, text, cls, color, fontSize, lifetime) {
+  // small random offset so stacked hits don't overlap perfectly
+  const ox = (Math.random() - 0.5) * 24;
+  const oy = (Math.random() - 0.5) * 16;
+  el.className = cls;
+  el.textContent = text;
+  el.style.cssText =
+    `display:block;left:${x - 20 + ox}px;top:${y - 20 + oy}px;` +
+    `font-size:${fontSize};color:${color};`;
+  _hnActive++;
+  const _snap = el; // capture for closure
+  setTimeout(() => _hnRecycle(_snap), lifetime);
+}
+
+function _critShow(el, x, y, lifetime) {
+  el.className = 'crit-label';
+  el.textContent = 'CRITICAL!';
+  el.style.cssText =
+    `display:block;left:${x - 40}px;top:${y - 40}px;`;
+  _critActive++;
+  const _snap = el;
+  setTimeout(() => _critRecycle(_snap), lifetime);
+}
+
+// Active-cap check — returns true if we can show another number
+function _hnCanShow() {
+  const cap = document.body.classList.contains('reduce-flash')
+    ? HIT_NUM_REDUCE_CAP : HIT_NUM_ACTIVE_CAP;
+  return _hnActive < cap;
+}
+
+// Core display function — called by aggregation flush and direct callers
+function _hnDisplayNow(x, y, dmg, hitCount, isGun, isCrit) {
+  if (!_hnCanShow()) return; // hard cap: skip if too many active
+
+  const root = document.getElementById('gameRoot');
+  if (!root) return;
+
+  // Make sure pool exists (first call after game start)
+  _hnEnsurePrewarm();
+
+  const reduceFlash = document.body.classList.contains('reduce-flash');
+  const lifetime    = reduceFlash ? 380 : (hitCount > 1 ? 680 : 580);
+
+  // Choose visual style
+  let cls, fontSize, color;
+  if (hitCount > 1) {
+    // Aggregated: show total + count
+    cls      = 'hit-num-agg';
+    fontSize = isCrit ? '26px' : isGun ? '24px' : '22px';
+    color    = isCrit ? '#ff4444' : isGun ? getGodColor() : '#ffcc00';
+  } else if (isGun) {
+    cls      = 'hit-num-od';
+    fontSize = isCrit ? '28px' : '24px';
+    color    = isCrit ? '#ff4444' : getGodColor();
+  } else {
+    cls      = 'hit-num';
+    fontSize = isCrit ? '28px' : '17px';
+    color    = isCrit ? '#ff4444' : '#ffcc00';
+  }
+
+  const el = _hnAcquire();
+  const text = hitCount > 1 ? `${dmg}\nx${hitCount}` : `${dmg}`;
+  _hnShow(el, x, y, text, cls, color, fontSize, lifetime);
+
+  // Crit label — only for single crits (aggregate already shows bigger number)
+  if (isCrit && hitCount === 1 && _critActive < CRIT_POOL_SIZE) {
+    const ce = _critAcquire();
+    _critShow(ce, x, y, reduceFlash ? 440 : 700);
+  }
+}
+
+// Aggregation flush — called when AGG_WINDOW expires
+function _hnFlushAgg() {
+  _hnAggTimer = 0;
+  if (_hnAggCount === 0) return;
+  const dmg   = _hnAggDmg;
+  const count = _hnAggCount;
+  const x     = _hnAggX;
+  const y     = _hnAggY;
+  const isGun = _hnAggIsGun;
+  const isCrit = _hnAggIsCrit;
+  // Reset
+  _hnAggDmg = 0; _hnAggCount = 0;
+  _hnAggIsGun = false; _hnAggIsCrit = false;
+  _hnDisplayNow(x, y, dmg, count, isGun, isCrit);
+}
+
+// Public entry point — replaces old showHitNum.
+// All callers pass the same signature: showHitNum(x, y, dmg, isGun, isCrit)
+// VISUAL ONLY — no damage/KO/economy logic here.
+function showHitNum(x, y, dmg, isGun, isCrit) {
+  // Accumulate into aggregation window
+  _hnAggDmg   += dmg;
+  _hnAggCount += 1;
+  _hnAggX      = x;   // use latest position (closest to actual impact)
+  _hnAggY      = y;
+  _hnAggIsGun  = _hnAggIsGun  || isGun;
+  _hnAggIsCrit = _hnAggIsCrit || isCrit;
+
+  if (_hnAggTimer) {
+    // Already pending — just accumulate, don't reset timer
+    // (flush fires at the end of the original window)
+    return;
+  }
+  // Start aggregation window
+  _hnAggTimer = setTimeout(_hnFlushAgg, HIT_NUM_AGG_WINDOW);
+}
+
+// Reset aggregation state on game start/end (prevents stale data across runs)
+function _hnReset() {
+  if (_hnAggTimer) { clearTimeout(_hnAggTimer); _hnAggTimer = 0; }
+  _hnAggDmg = 0; _hnAggCount = 0;
+  _hnActive  = 0; _critActive = 0;
+  // Hide all pooled nodes
+  for (const n of _hnNodes)  { n.style.display = 'none'; n.className = ''; }
+  for (const n of _critNodes) { n.style.display = 'none'; n.className = ''; }
+}
+
+function getGodColor(){return godLevel===3?'#ff2233':godLevel===2?'#4488ff':'#00ffee';}
+
 // ══════════════════════════════════════════
 // FX & PARTICLES
 // ══════════════════════════════════════════
-const _hnPool=[];
-function showHitNum(x,y,dmg,isGun,isCrit) {
-  const el=_hnPool.pop()||document.createElement('div');
-  // ใช้ rAF แทน force reflow — ไม่ block main thread
-  el.className='hit-num-reset';
-  el.className='hit-num';
-  el.textContent=dmg;
-  el.style.cssText=`left:${x-20}px;top:${y-20}px;font-size:${isCrit?'28px':isGun?'24px':'17px'};color:${isCrit?'#ff4444':isGun?getGodColor():'#ffcc00'};`;
-  document.getElementById("gameRoot").appendChild(el);
-  setTimeout(()=>{ el.remove(); _hnPool.push(el); },580);
-}
-function getGodColor(){return godLevel===3?'#ff2233':godLevel===2?'#4488ff':'#00ffee';}
-
-// ── Particle Pool (ลด DOM thrashing บน iOS) ──
 const _pPool=[], _rPool=[], _biPool=[];
 function _getParticle(){
   const p=_pPool.pop()||document.createElement('div');
