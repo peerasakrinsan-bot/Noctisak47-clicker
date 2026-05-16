@@ -661,6 +661,56 @@
     0%,100%{ opacity:0.4; } 50%{ opacity:1; }
   }
 
+  /* ══ REROLL BUTTON ══ */
+  #csRerollWrap {
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    position:relative; z-index:1; flex-shrink:0;
+  }
+  #csRerollBtn {
+    font-family:'Oswald',sans-serif; font-size:clamp(11px,3.5vw,14px);
+    letter-spacing:3px; color:var(--cyan);
+    background:transparent; border:1px solid var(--cyan);
+    padding:clamp(8px,2vh,11px) clamp(22px,7vw,40px);
+    cursor:pointer; position:relative; white-space:nowrap;
+    flex-shrink:0;
+    touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+    transition:background 0.12s, opacity 0.12s;
+    display:flex; align-items:center; gap:8px;
+  }
+  #csRerollBtn:active { background:rgba(0,255,238,0.1); }
+  #csRerollBtn.reroll-not-enough {
+    border-color:#555; color:#555; pointer-events:none;
+  }
+  #csRerollBtn.reroll-shuffling {
+    opacity:0.6; pointer-events:none;
+  }
+  /* reroll shuffle icon ── two circular arrows */
+  .cs-reroll-icon {
+    display:inline-block; width:13px; height:13px;
+    border:2px solid currentColor; border-radius:50%;
+    border-top-color:transparent;
+    flex-shrink:0;
+  }
+  .cs-reroll-icon.spinning {
+    animation: csRerollSpin 0.45s linear infinite;
+  }
+  @keyframes csRerollSpin {
+    to { transform:rotate(360deg); }
+  }
+  #csRerollCostLabel {
+    font-family:'Sarabun',sans-serif; font-size:10px;
+    letter-spacing:2px; color:#444;
+  }
+  #csRerollCostLabel.not-enough { color:#ff4444; }
+  /* small inline feedback (no-zeny / shake) */
+  @keyframes csRerollShake {
+    0%,100%{ transform:translateX(0); }
+    20%    { transform:translateX(-5px); }
+    60%    { transform:translateX(5px); }
+    80%    { transform:translateX(-3px); }
+  }
+  .cs-reroll-shake { animation:csRerollShake 0.35s ease; }
+
   /* penalty warning — จองพื้นที่ไว้เสมอ */
   #csPenaltyWarn {
     font-family:'Sarabun',sans-serif; font-size:10px;
@@ -3210,6 +3260,12 @@
     <div id="csPenaltyWarn"></div>
     <div class="cs-cards-wrap" id="csCardsWrap"></div>
     <div class="cs-footer" id="csFooter">TAP A CARD TO EQUIP</div>
+    <div id="csRerollWrap">
+      <button id="csRerollBtn" onclick="_csRerollClick()" ontouchstart="event.preventDefault();_csRerollClick();">
+        <span class="cs-reroll-icon" id="csRerollIcon"></span>REROLL — <span id="csRerollCostText">FREE</span>
+      </button>
+      <div id="csRerollCostLabel"></div>
+    </div>
     <button id="csConfirmBtn" onclick="_csConfirmClick()" ontouchstart="event.preventDefault();_csConfirmClick();"><span class="cs-confirm-icon"></span>CONFIRM</button>
   </div>
 </div>
@@ -3691,6 +3747,13 @@ function normalizeSaveData(d) {
   // cardRuns: { [cardId]: number } — default to {} for old saves, values clamped to 0
   if (!d.cardRuns || typeof d.cardRuns !== 'object' || Array.isArray(d.cardRuns)) d.cardRuns = {};
   Object.keys(d.cardRuns).forEach(k => { d.cardRuns[k] = Math.max(0, Math.floor(Number(d.cardRuns[k]) || 0)); });
+  // ── preRunState: persists rerollCount between navigations; cleared on run end ──
+  if (!d.preRunState || typeof d.preRunState !== 'object' || !d.preRunState.sessionId) {
+    d.preRunState = null;
+  } else {
+    // Clamp rerollCount against tampering
+    d.preRunState.rerollCount = Math.max(0, Math.floor(Number(d.preRunState.rerollCount) || 0));
+  }
   // ── v6 migration: preserve auto-save metadata if present, seed defaults for old saves ──
   d.saveVersion = Math.max(0, Math.floor(Number(d.saveVersion) || 0));
   d.updatedAt   = (typeof d.updatedAt === 'string' && d.updatedAt) ? d.updatedAt : '';
@@ -6203,6 +6266,380 @@ const CS_LOD_EXCLUDED_IDS = new Set(['ld','mf','vr']);
 const CS_VALKYRIE_EXCLUDED_IDS = new Set(['mf','vr']);
 const DEBUG_CARD_EFFECTS = false;
 
+// ══════════════════════════════════════════
+// PRE-RUN CARD REROLL SYSTEM
+// ══════════════════════════════════════════
+
+// Per-run reroll state — persists across Back/menu navigation; only resets on new run.
+// FIX: Added sessionId so we can detect stale vs. live pre-run state across page reloads.
+let _preRunCardState = {
+  offers: [],           // current 3-card offer (Card objects)
+  selectedCardId: null,
+  rerollCount: 0,       // number of successful rerolls this pre-run
+  sessionId: ''         // unique token; cleared on run-start / run-end
+};
+
+// FIX-1: Double-fire guard — prevents onclick + ontouchstart from both executing on one tap.
+// Released via setTimeout(0) so it absorbs both events in the same gesture before unlocking.
+let _rerollInProgress = false;
+
+// ── Serialize pre-run state to save object (call after each reroll) ──
+function _persistPreRunState() {
+  try {
+    save.preRunState = {
+      rerollCount: _preRunCardState.rerollCount,
+      selectedCardId: _preRunCardState.selectedCardId,
+      offerIds: (_preRunCardState.offers || []).map(c => c.id),
+      sessionId: _preRunCardState.sessionId
+    };
+  } catch(e) {}
+}
+
+// ── Restore pre-run state from save object on page reload ──
+function _restorePreRunStateFromSave() {
+  try {
+    const p = save.preRunState;
+    if (!p || typeof p !== 'object' || !p.sessionId) return false;
+    const ids = Array.isArray(p.offerIds) ? p.offerIds : [];
+
+    // FIX-2: Filter restored cards against current owned/unlocked list.
+    // getUnlockedCards() returns an array of ID strings — use directly.
+    // Prevents edited localStorage from injecting unowned cards into offers.
+    const unlocked = getUnlockedCards();
+    const cards = ids
+      .map(id => CARD_POOL.find(c => c.id === id))
+      .filter(c => c && unlocked.includes(c.id));  // must exist in pool AND be owned
+
+    // Validate: must have at least 1 valid owned card to be worth restoring.
+    // If empty (e.g. all restored IDs were unowned), return false so
+    // ensurePreRunCardState() regenerates a clean offer from owned cards.
+    if (!cards.length) return false;
+    _preRunCardState.rerollCount = Math.max(0, Math.floor(Number(p.rerollCount) || 0));
+    _preRunCardState.selectedCardId = p.selectedCardId || null;
+    _preRunCardState.offers = cards;
+    _preRunCardState.sessionId = p.sessionId;
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── Ensure valid pre-run state exists; only resets if state is stale/empty ──
+// FIX: replaces the unconditional resetPreRunCardState() call in openCardSlot().
+// FIX-3: Returns true if state was reset/newly created, false if existing state was kept.
+//        openCardSlot() uses the return value to skip doSave() on simple navigation.
+function ensurePreRunCardState() {
+  const valid =
+    _preRunCardState.sessionId &&
+    Array.isArray(_preRunCardState.offers) &&
+    _preRunCardState.offers.length > 0;
+  if (!valid) {
+    resetPreRunCardState();
+    return true;  // state was created/reset — caller should save
+  }
+  return false;   // existing valid state kept — no save needed
+}
+
+// Returns the zeny cost for the NEXT reroll given how many rerolls are already done.
+function getRerollCost(rerollCount) {
+  if (rerollCount === 0) return 0;      // 1st reroll: FREE
+  if (rerollCount <= 3) return 100;     // rerolls 2–4: 100
+  if (rerollCount <= 6) return 250;     // rerolls 5–7: 250
+  if (rerollCount <= 9) return 500;     // rerolls 8–10: 500
+  if (rerollCount <= 12) return 800;    // rerolls 11–13: 800
+  return 1200;                          // reroll 14+: cap
+}
+
+// Dynamic rarity weights — scales with how many rerolls have already succeeded.
+// Expensive rerolls feel more rewarding: ELITE/MYTHIC odds rise, STANDARD falls.
+// STANDARD never drops below 15%; MYTHIC never exceeds 13%.
+// Keys use lowercase to match CARD_POOL rarity strings.
+function getRerollRarityWeights(rerollCount) {
+  if (rerollCount <= 1)  return { standard:45, premium:32, elite:18, mythic:5  };
+  if (rerollCount <= 4)  return { standard:38, premium:34, elite:22, mythic:6  };
+  if (rerollCount <= 7)  return { standard:30, premium:36, elite:27, mythic:7  };
+  if (rerollCount <= 10) return { standard:24, premium:35, elite:32, mythic:9  };
+  if (rerollCount <= 13) return { standard:18, premium:33, elite:38, mythic:11 };
+  return                        { standard:15, premium:30, elite:42, mythic:13 };
+}
+
+// Returns all owned/unlocked card objects — starter 5 always included.
+function getOwnedCardsForReroll() {
+  const unlocked = getUnlockedCards(); // always includes DEFAULT_UNLOCKED starters
+  return CARD_POOL.filter(c => unlocked.includes(c.id));
+}
+
+// Pick one card using dynamic weights for the given rerollCount.
+// Only considers tiers that actually have available owned cards (missing rarities ignored).
+// Excludes card IDs already picked this offer (duplicate prevention).
+function _pickRerollCard(ownedByTier, excludeIds, rerollCount) {
+  const TIER_ORDER = ['mythic', 'elite', 'premium', 'standard'];
+  const weights = getRerollRarityWeights(rerollCount);
+
+  // Only roll among tiers that have at least one owned, unpicked card
+  const availTiers = TIER_ORDER.filter(
+    t => ownedByTier[t] && ownedByTier[t].some(c => !excludeIds.has(c.id))
+  );
+  if (!availTiers.length) return null;
+
+  // Sum weights of available tiers only (missing rarities are naturally ignored)
+  const totalW = availTiers.reduce((s, t) => s + (weights[t] || 0), 0);
+  if (totalW <= 0) {
+    // Fallback: uniform pick from any available card
+    for (const t of TIER_ORDER) {
+      const fb = (ownedByTier[t] || []).filter(c => !excludeIds.has(c.id));
+      if (fb.length) return fb[Math.floor(Math.random() * fb.length)];
+    }
+    return null;
+  }
+
+  // Weighted roll among available tiers
+  let r = Math.random() * totalW;
+  let rolledTier = availTiers[availTiers.length - 1];
+  for (const t of availTiers) {
+    r -= (weights[t] || 0);
+    if (r <= 0) { rolledTier = t; break; }
+  }
+
+  // Pick a random card from the rolled tier (excluding already-picked)
+  const pool = (ownedByTier[rolledTier] || []).filter(c => !excludeIds.has(c.id));
+  if (!pool.length) {
+    // Rare edge case: rolled tier emptied mid-pick — fallback to any available
+    for (const t of TIER_ORDER) {
+      const fb = (ownedByTier[t] || []).filter(c => !excludeIds.has(c.id));
+      if (fb.length) return fb[Math.floor(Math.random() * fb.length)];
+    }
+    return null;
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// Generate up to 3 unique owned cards for the pre-run offer.
+// Uses rerollCount from _preRunCardState to determine rarity weights.
+// Each successive pick recalculates available pools (duplicate prevention).
+function generatePreRunCardOffers() {
+  const owned = getOwnedCardsForReroll();
+  if (!owned.length) return [];
+
+  // Group owned cards by rarity tier
+  const byTier = { standard: [], premium: [], elite: [], mythic: [] };
+  owned.forEach(c => { if (byTier[c.rarity]) byTier[c.rarity].push(c); });
+
+  const picked = [];
+  const usedIds = new Set();
+  const count = Math.min(3, owned.length);
+  // Use current rerollCount so weights reflect how many rerolls have happened
+  const rc = _preRunCardState.rerollCount;
+
+  for (let i = 0; i < count; i++) {
+    const card = _pickRerollCard(byTier, usedIds, rc);
+    if (!card) break;
+    picked.push(card);
+    usedIds.add(card.id);
+  }
+  return picked;
+}
+
+function resetPreRunCardState() {
+  _preRunCardState.rerollCount = 0;
+  _preRunCardState.selectedCardId = null;
+  _preRunCardState.sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  _preRunCardState.offers = generatePreRunCardOffers(); // uses rerollCount=0 weights
+  // Clear persisted pre-run state so page-reload cannot restore a stale free reroll
+  if (save) { save.preRunState = null; }
+}
+
+function rerollPreRunCards() {
+  // FIX-1: Double-fire guard — absorbs onclick + ontouchstart firing on the same gesture.
+  // setTimeout(0) holds the lock until both events in the same tick have been processed.
+  if (_rerollInProgress) return;
+  _rerollInProgress = true;
+
+  const cost = getRerollCost(_preRunCardState.rerollCount);
+
+  // Insufficient zeny — do NOT reroll, do NOT increment count
+  if (cost > save.coins) {
+    _csShowRerollFeedback('broke');
+    setTimeout(() => { _rerollInProgress = false; }, 0); // release on failed path
+    return;
+  }
+
+  // Deduct zeny immediately
+  if (cost > 0) {
+    save.coins -= cost;
+    // Update all coin displays
+    if ($('menuCoinNum'))  $('menuCoinNum').textContent  = formatNum(save.coins);
+    if ($('shopCoinNum'))  $('shopCoinNum').textContent  = save.coins;
+    if ($('bossCoinNum'))  $('bossCoinNum').textContent  = save.coins;
+    if ($('arenaCoinNum')) $('arenaCoinNum').textContent = save.coins;
+  }
+
+  // Increment rerollCount BEFORE generating offers so the new count drives rarity weights
+  _preRunCardState.rerollCount++;
+  _preRunCardState.selectedCardId = null;
+  _preRunCardState.offers = generatePreRunCardOffers(); // uses incremented rerollCount
+
+  // Update UI immediately — non-blocking
+  _csRenderRerollCards();
+  _csUpdateRerollBtn();
+
+  // Persist pre-run state so page-reload cannot restore free reroll exploit
+  _persistPreRunState();
+  // Local save immediately
+  markSaveDirty('card_reroll');
+  doSave();
+  // Background cloud sync — fire-and-forget, never awaited
+  scheduleCloudSync('card_reroll', { silentToast: true });
+
+  // Release lock after this event-loop tick — absorbs both onclick and ontouchstart
+  // from the same gesture before the next tap can register.
+  setTimeout(() => { _rerollInProgress = false; }, 0);
+}
+
+function selectPreRunCard(cardId) {
+  _preRunCardState.selectedCardId = cardId;
+}
+
+// ── Render the 3 offered cards (called on open + after each reroll) ──
+function _csRenderRerollCards() {
+  const wrap = $('csCardsWrap');
+  if (!wrap) return;
+
+  // Animate out (shuffle feel) then render new
+  wrap.style.opacity = '0.3';
+  wrap.style.transform = 'scale(0.96)';
+
+  requestAnimationFrame(() => {
+    wrap.innerHTML = '';
+    const offers = _preRunCardState.offers;
+
+    if (!offers || !offers.length) {
+      // Fallback: no cards
+      const empty = document.createElement('div');
+      empty.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;color:#444;font-size:12px;letter-spacing:2px;font-family:\'Oswald\',sans-serif;';
+      empty.textContent = 'NO CARD EQUIPPED';
+      wrap.appendChild(empty);
+      wrap.style.opacity = '';
+      wrap.style.transform = '';
+      return;
+    }
+
+    offers.forEach((card, idx) => {
+      const div = document.createElement('div');
+      div.className = `cs-card rarity-${card.rarity}`;
+      div.style.animationDelay = (0.05 + idx * 0.10) + 's';
+
+      // Selected state
+      if (_preRunCardState.selectedCardId === card.id) {
+        div.classList.add('selected');
+      }
+
+      let imgHtml;
+      if (card.img) {
+        const cached = _imgObjCache[card.img];
+        const imgSrc = (cached && cached.complete && cached.naturalWidth > 0) ? cached.src : card.img;
+        imgHtml = `<img class="cs-card-img" src="${imgSrc}" alt="${card.name}" decoding="async" onerror="this.style.opacity='0'">`;
+      } else {
+        imgHtml = `<div class="cs-card-img" style="display:flex;align-items:center;justify-content:center;font-size:36px;background:#111;border-radius:4px;">#</div>`;
+      }
+
+      const slotDesc = getCardSlotDescription(card);
+      div.innerHTML = `
+        <div class="cs-rarity-tag">${RARITY_LABEL[card.rarity]}</div>
+        ${imgHtml}
+        <div class="cs-card-name">${card.name}</div>
+        <div class="cs-card-effect">${slotDesc}</div>
+        <div class="cs-card-check"><span class="css-check" style="color:#00ff88;display:inline-block;"></span></div>
+      `;
+
+      div.addEventListener('click', () => _csSelectRerollCard(div, card));
+      div.addEventListener('touchstart', e => { e.preventDefault(); _csSelectRerollCard(div, card); }, { passive: false });
+      cmDecorateCardSlotCard(div, card);
+      wrap.appendChild(div);
+    });
+
+    // Animate in
+    wrap.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    requestAnimationFrame(() => {
+      wrap.style.opacity = '';
+      wrap.style.transform = '';
+      setTimeout(() => { wrap.style.transition = ''; }, 220);
+    });
+  });
+}
+
+function _csSelectRerollCard(el, card) {
+  // Deselect all
+  document.querySelectorAll('.cs-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectPreRunCard(card.id);
+
+  // Find the actual card object from offers
+  const found = _preRunCardState.offers.find(c => c.id === card.id) || card;
+  _csPendingCard   = found;
+  _csPendingChosen = _csOnChosen;
+
+  // Show CONFIRM, hide footer
+  $('csFooter').classList.add('hidden');
+  $('csConfirmBtn').classList.add('visible');
+}
+
+// ── Update the reroll button label and state ──
+function _csUpdateRerollBtn() {
+  const btn = $('csRerollBtn');
+  const costText = $('csRerollCostText');
+  const costLabel = $('csRerollCostLabel');
+  const icon = $('csRerollIcon');
+  if (!btn || !costText) return;
+
+  const rc = _preRunCardState.rerollCount;
+  const cost = getRerollCost(rc);
+  const canAfford = save.coins >= cost;
+  const costStr = cost === 0 ? 'FREE' : cost.toLocaleString() + ' ZENY';
+
+  costText.textContent = costStr;
+
+  // Reset state
+  btn.classList.remove('reroll-not-enough', 'reroll-shuffling');
+  if (icon) icon.classList.remove('spinning');
+
+  if (!canAfford) {
+    btn.classList.add('reroll-not-enough');
+    if (costLabel) {
+      costLabel.textContent = 'NOT ENOUGH ZENY';
+      costLabel.className = 'not-enough';
+      costLabel.style.display = 'block';
+    }
+  } else {
+    if (costLabel) {
+      costLabel.textContent = '';
+      costLabel.style.display = 'none';
+    }
+  }
+}
+
+// ── Reroll button click handler ──
+function _csRerollClick() {
+  rerollPreRunCards();
+}
+
+// ── Visual feedback for broke state ──
+function _csShowRerollFeedback(type) {
+  const btn = $('csRerollBtn');
+  const costLabel = $('csRerollCostLabel');
+  if (!btn) return;
+
+  if (type === 'broke') {
+    if (costLabel) {
+      costLabel.textContent = 'NOT ENOUGH ZENY';
+      costLabel.className = 'not-enough';
+      costLabel.style.display = 'block';
+    }
+    btn.classList.remove('cs-reroll-shake');
+    void btn.offsetWidth;
+    btn.classList.add('cs-reroll-shake');
+    setTimeout(() => btn.classList.remove('cs-reroll-shake'), 380);
+  }
+}
+
 // Ensure UI-safe description fields across Premium/Elite without changing save/card IDs.
 for (const _card of CARD_POOL) {
   const _plainEffect = String(_card.effect || '')
@@ -6298,74 +6735,44 @@ const RARITY_LABEL = { standard:'STANDARD', premium:'PREMIUM', elite:'ELITE', my
 
 function openCardSlot(onChosen) {
   const screen = $('cardSlotScreen');
-  const wrap   = $('csCardsWrap');
   screen.style.display = 'flex';
-  wrap.innerHTML = '';
   _csOnChosen = onChosen;
-  // reset confirm state
+
+  // Reset confirm state
   $('csConfirmBtn').classList.remove('visible');
   $('csFooter').classList.remove('hidden');
 
-  // ซ่อน penalty warning (ลบระบบ penalty แล้ว)
+  // Hide penalty warning
   const penaltyWarn = $('csPenaltyWarn');
   penaltyWarn.textContent = '';
   penaltyWarn.classList.remove('visible');
 
-  // โหลดการ์ดจาก save ถ้ามี ไม่งั้นสุ่มใหม่
+  // ── Preserve pre-run reroll state across Back/menu navigation ──
+  // FIX: Only reset if no valid pre-run session exists (first open, or after run end).
+  // Blindly calling resetPreRunCardState() every open was the exploit root cause.
   const unlocked = getUnlockedCards();
 
-  let cards;
-  if(_csLastCards && _csLastCards.every(c => unlocked.includes(c.id))) {
-    // มีการ์ด cache ใน memory และทุกใบ unlock แล้ว
-    cards = _csLastCards;
-  } else if(save.savedCards && save.savedCards.length === 3) {
-    // โหลดจาก localStorage — เช็คว่าทุกใบ unlock แล้ว
-    const loaded = save.savedCards
-      .map(id => CARD_POOL.find(c => c.id === id))
-      .filter(c => c && unlocked.includes(c.id));
-    cards = loaded.length === 3 ? loaded : drawCardSlot();
-  } else {
-    cards = drawCardSlot();
+  // Try to restore from save (handles page-reload exploit: rerollCount is persisted)
+  if (!_preRunCardState.sessionId) {
+    _restorePreRunStateFromSave();
   }
-  _csLastCards = cards;
+  // FIX-3: ensurePreRunCardState() now returns true only when it reset/created new state.
+  // doSave() is called only when state genuinely changed — not on simple Back → re-enter.
+  const stateWasReset = ensurePreRunCardState();
 
-  // บันทึก card IDs ลง save ทันที
-  save.savedCards = cards.map(c => c.id);
-  doSave();
+  // Always sync _csLastCards for any external code that reads it
+  _csLastCards = _preRunCardState.offers.slice();
+  save.savedCards = _preRunCardState.offers.map(c => c.id);
+  // Save only when a new pre-run state was created — skip redundant write on navigation
+  if (stateWasReset) doSave();
 
-  cards.forEach((card, idx) => {
-    const div = document.createElement('div');
-    div.className = `cs-card rarity-${card.rarity}`;
-    div.style.animationDelay = (0.05 + idx * 0.13) + 's';
+  // Render offers
+  _csRenderRerollCards();
 
-    // ใช้ cached image object ถ้ามี ป้องกัน re-fetch
-    let imgHtml;
-    if(card.img) {
-      const cached = _imgObjCache[card.img];
-      const imgSrc = (cached && cached.complete && cached.naturalWidth > 0)
-        ? cached.src  // ใช้ src จาก cached object
-        : card.img;   // fallback ชื่อไฟล์
-      imgHtml = `<img class="cs-card-img" src="${imgSrc}" alt="${card.name}" decoding="async" onerror="this.style.opacity='0'">`;
-    } else {
-      imgHtml = `<div class="cs-card-img" style="display:flex;align-items:center;justify-content:center;font-size:36px;background:#111;border-radius:4px;">#</div>`;
-    }
-
-    const slotDesc = getCardSlotDescription(card);
-
-    div.innerHTML = `
-      <div class="cs-rarity-tag">${RARITY_LABEL[card.rarity]}</div>
-      ${imgHtml}
-      <div class="cs-card-name">${card.name}</div>
-      <div class="cs-card-effect">${slotDesc}</div>
-      <div class="cs-card-check"><span class="css-check" style="color:#00ff88;display:inline-block;"></span></div>
-    `;
-
-    div.addEventListener('click', () => _csSelectCard(div, card));
-    div.addEventListener('touchstart', e => { e.preventDefault(); _csSelectCard(div, card); }, { passive:false });
-    // ── Card Mastery: add runs label + visual overlay
-    cmDecorateCardSlotCard(div, card);
-    wrap.appendChild(div);
-  });
+  // Render reroll button
+  _csUpdateRerollBtn();
+  const rerollWrap = $('csRerollWrap');
+  if (rerollWrap) rerollWrap.style.display = 'flex';
 }
 
 function getCardSlotDescription(card) {
@@ -6426,6 +6833,9 @@ function _csBack() {
   $('cardSlotScreen').style.display = 'none';
   $('csConfirmBtn').classList.remove('visible');
   $('csFooter').classList.remove('hidden');
+  // Clear reroll pending state
+  _csPendingCard   = null;
+  _csPendingChosen = null;
   // ไม่ stopBGM() — เพลงเล่นต่อเนื่องจาก main menu อยู่แล้ว
   // stopBGM() จะ reset currentTime = 0 ทำให้เพลงเริ่มใหม่
   goMainMenu();
@@ -7899,6 +8309,10 @@ function csReset(clearSavedCards = false) {
   _csOnChosen = null;
   if(clearSavedCards) {
     save.savedCards = null;
+    // FIX: Invalidate pre-run state on hard reset (retry / quit) so next open is fresh
+    _preRunCardState.sessionId = '';
+    _preRunCardState.offers = [];
+    if (save) { save.preRunState = null; }
     doSave();
   }
   _csStopAllTimers();
@@ -9505,6 +9919,11 @@ function endGame(opts = {}) {
   save.coins=(save.coins||0)+roundCoins;
   save.quitPenalty = false;
   save.savedCards = null;
+  // FIX: Invalidate pre-run state so next CARD SLOT open generates fresh offers with rerollCount=0.
+  // Clearing sessionId causes ensurePreRunCardState() to call resetPreRunCardState() on next open.
+  _preRunCardState.sessionId = '';
+  _preRunCardState.offers = [];
+  if (save) { save.preRunState = null; }
   markSaveDirty('run_complete');
   _showLocalSaveToast = true;  // ← arm: next doSave() will show 'Local Saved' toast
   doSave();
@@ -10925,6 +11344,7 @@ const _SYNC_REASON_DELAY = {
   shop_purchase:     7000,    // 7s (batch rapid buys)
   card_purchase:     7000,
   card_opened:       12000,   // 12s (batch rapid card opening)
+  card_reroll:       10000,   // 10s — fire-and-forget after reroll
   // Low priority
   inventory_changed: 15000,
   settings_changed:  25000,
