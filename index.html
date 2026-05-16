@@ -1148,11 +1148,15 @@
   }
 
   /* HP hit flash — driven by js class toggle; intensity scales with tap ramp via --ramp-flash */
+  /* FIX 1: use two alternating classes (hp-hit-a / hp-hit-b) so the animation restarts
+     without a forced layout reflow (no offsetWidth needed). */
   @keyframes hpHitFlash {
     0%   { filter:brightness(var(--ramp-flash, 2.2)) saturate(0.3); }
     100% { filter:none; }
   }
-  #hpFill.hp-hit { animation:hpHitFlash 0.13s ease-out forwards; }
+  #hpFill.hp-hit  { animation:hpHitFlash 0.13s ease-out forwards; }
+  #hpFill.hp-hit-a { animation:hpHitFlash 0.13s ease-out forwards; }
+  #hpFill.hp-hit-b { animation:hpHitFlash 0.13s ease-out forwards; }
 
   /* OD fill — cyan/light-blue, thinner glow */
   #godFill {
@@ -2421,6 +2425,17 @@
   body.reduce-flash #fighter.xuang-aura-hit #xuangAura::before,
   body.reduce-flash #fighter.xuang-aura-hit .xuang-aura-core { opacity:.55; transform:translate(-50%,-50%) scale(1.03); }
 
+  /* FIX 6: suppress heavy Xuang particle / blur animations in reduce-flash mode
+     (default for all players). Keeps the base aura glow but removes the 6 rising
+     particles, the smoke drift, and the core breath — the most GPU-heavy layers. */
+  body.reduce-flash .xuang-particle,
+  body.reduce-flash .xuang-aura-smoke,
+  body.reduce-flash .xuang-aura-core {
+    animation: none !important;
+    opacity: 0 !important;
+    filter: none !important;
+  }
+
   /* ══ DAILY BATTLE REWARD SYSTEM ══ */
   @keyframes toastIn  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
   @keyframes toastOut { to{opacity:0;transform:translateY(-8px)} }
@@ -3077,7 +3092,7 @@
 <div id="topUI">
   <div class="ui-row">
     <div id="koDisplay">KO<span id="koNum">0</span></div>
-    <div id="timerDisplay">60<span style="font-size:18px;opacity:0.6">.00</span></div>
+    <div id="timerDisplay"><span id="timerSec">60</span><span id="timerMs" style="font-size:18px;opacity:0.6">.00</span></div>
     <div class="ui-right">
       <div id="scoreDisplay">SCORE<span id="scoreNum">0</span></div>
       <div id="inlineCoin">+<span id="coinNum">0</span> C</div>
@@ -9429,11 +9444,29 @@ function startTimer() {
     renderTimer();
   },50);
 }
+// FIX 3: cache timer child nodes once; use textContent instead of innerHTML
+// to avoid DOM parse + child node churn 20×/sec.
+let _timerSecEl = null, _timerMsEl = null;
+let _lastTimerSec = -1, _lastTimerMs = '';
+function _initTimerEls() {
+  if (!_timerSecEl) { _timerSecEl = document.getElementById('timerSec'); }
+  if (!_timerMsEl)  { _timerMsEl  = document.getElementById('timerMs');  }
+}
 function renderTimer() {
-  const t=$('timerDisplay');
-  const ms=Math.round((timeLeft%1)*100);
-  t.innerHTML=`${Math.floor(timeLeft)}<span style="font-size:16px">.${String(ms).padStart(2,'0')}</span>`;
-  t.classList.toggle('urgent', timeLeft <= 10);
+  _initTimerEls();
+  const sec = Math.floor(timeLeft);
+  const ms  = Math.max(0, Math.floor((timeLeft % 1) * 100));
+  if (_lastTimerSec !== sec) {
+    _lastTimerSec = sec;
+    if (_timerSecEl) _timerSecEl.textContent = String(sec);
+  }
+  const msText = '.' + String(ms).padStart(2, '0');
+  if (_lastTimerMs !== msText) {
+    _lastTimerMs = msText;
+    if (_timerMsEl) _timerMsEl.textContent = msText;
+  }
+  const timerDisplay = document.getElementById('timerDisplay');
+  if (timerDisplay) timerDisplay.classList.toggle('urgent', timeLeft <= 10);
 }
 function endGame(opts = {}) {
   const gameOver = !!(opts && opts.gameOver);
@@ -10159,7 +10192,9 @@ function processHit(e, now) {
 // ══════════════════════════════════════════
 
 // ── Centralized HP mutation — every damage source must call this ──
-// Ensures hpFill always reflects current HP regardless of mode (normal, OD, boss, BREAK, WP bomb).
+// FIX 2: updateUI() removed from here. The main tick loop (INPUT.tick) and
+// processHit already call updateUI() once per batch — calling it here caused
+// a duplicate forced reflow on every single hit.
 function applyBossDamage(amount, source) {
   if (isBoss) {
     bossHP = Math.max(0, bossHP - amount);
@@ -10167,8 +10202,7 @@ function applyBossDamage(amount, source) {
   } else {
     hp = Math.max(0, hp - amount);
   }
-  // Always sync the main HP bar so it never appears stuck during OD or boss phase
-  updateUI();
+  // updateUI() intentionally removed — rendering handled by tick loop
 }
 
 function applyDamage(dmg,e,isCrit) {
@@ -10438,9 +10472,11 @@ function updateGodLevelUI() {
 // UI UPDATE
 // ══════════════════════════════════════════
 let _lastHpTier = -1; // track tier เพื่อไม่ set background ซ้ำทุก hit
+let _hpHitFlip  = false; // FIX 1: alternates between hp-hit-a and hp-hit-b, no reflow needed
+let _lastOdChargingState = null; // FIX 5: skip classList.toggle when OD charging state unchanged
 let _hpChipEl   = null; // cached once after DOM ready
 function _getHpChip() { return _hpChipEl || (_hpChipEl = document.getElementById('hpChip')); }
-function _resetHpTier() { _lastHpTier = -1; }
+function _resetHpTier() { _lastHpTier = -1; _hpHitFlip = false; _lastOdChargingState = null; }
 function updateUI() {
   const ratio = isBoss ? (bossHP / bossMaxHP) : (hp / maxHP);
   const pct   = ratio * 100;
@@ -10454,15 +10490,21 @@ function updateUI() {
   }
 
   // HP hit flash — intensity scales with tap ramp (base 2.2, +0.015 per tap, cap 4.5)
+  // FIX 1: no offsetWidth reflow — alternate between hp-hit-a and hp-hit-b to restart animation
   const _flashBright = Math.min(4.5, 2.2 + bossTapCount * 0.015);
   _el.hpFill.style.setProperty('--ramp-flash', _flashBright);
-  _el.hpFill.classList.remove('hp-hit');
-  void _el.hpFill.offsetWidth; // force reflow so re-adding fires
-  _el.hpFill.classList.add('hp-hit');
+  _hpHitFlip = !_hpHitFlip;
+  _el.hpFill.classList.remove(_hpHitFlip ? 'hp-hit-b' : 'hp-hit-a');
+  _el.hpFill.classList.add(_hpHitFlip ? 'hp-hit-a' : 'hp-hit-b');
 
   // OD charging glow — on while bar has charge but OD not active
+  // FIX 5: only write classList when the state actually changes
   const odPct = parseFloat(_el.godFill.style.width) || 0;
-  _el.godFill.classList.toggle('od-charging', typeof godLevel !== 'undefined' && godLevel === 0 && odPct > 1);
+  const _shouldOdCharge = typeof godLevel !== 'undefined' && godLevel === 0 && odPct > 1;
+  if (_shouldOdCharge !== _lastOdChargingState) {
+    _lastOdChargingState = _shouldOdCharge;
+    _el.godFill.classList.toggle('od-charging', _shouldOdCharge);
+  }
 
   const tier = ratio > 0.5 ? 2 : ratio > 0.25 ? 1 : 0;
   if (tier !== _lastHpTier) {
@@ -10564,12 +10606,22 @@ function showKOFlash(isBossKO){
   el.textContent=isBossKO?'BOSS KO!':'KO!';
   document.getElementById("gameRoot").appendChild(el); setTimeout(()=>el.remove(),750);
 }
+// FIX 4: DOM pool for coin popups — reuse nodes instead of creating a new div
+// every AK47 bomb, BREAK, boss KO, and annihilation call.
+const _coinPopupPool = [];
 function spawnCoinPopup(amount){
-  const el=document.createElement('div'); el.className='coin-popup';
-  el.textContent='+'+amount+' C';
-  el.style.right='18px'; el.style.top='22%';
-  el.style.left='auto';
-  document.getElementById("gameRoot").appendChild(el); setTimeout(()=>el.remove(),800);
+  const el = _coinPopupPool.pop() || document.createElement('div');
+  el.className = 'coin-popup';
+  el.textContent = '+' + amount + ' C';
+  el.style.cssText = 'right:18px;top:22%;left:auto;';
+  document.getElementById('gameRoot').appendChild(el);
+  setTimeout(() => {
+    el.remove();
+    el.className = '';
+    el.textContent = '';
+    el.removeAttribute('style');
+    if (_coinPopupPool.length < 10) _coinPopupPool.push(el);
+  }, 800);
 }
 function showBigSplash(main,sub,color,center){
   const el=$('bigSplashText');
