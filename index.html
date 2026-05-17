@@ -2729,6 +2729,26 @@
     font-size:11px;
     color:#777;
   }
+  /* ── Flash Effect segmented control ── */
+  .flash-seg-wrap {
+    display:flex; flex-direction:row;
+    border:1px solid #444; overflow:hidden;
+    flex-shrink:0;
+  }
+  .flash-seg-btn {
+    flex:1; padding:7px 8px;
+    font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:1px;
+    background:transparent; color:#555; border:none;
+    cursor:pointer; touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    transition:background 0.12s, color 0.12s;
+    border-right:1px solid #333;
+  }
+  .flash-seg-btn:last-child { border-right:none; }
+  .flash-seg-btn.active-on  { background:rgba(0,255,238,0.12); color:var(--cyan); }
+  .flash-seg-btn.active-low { background:rgba(255,204,0,0.10);  color:var(--gold); }
+  .flash-seg-btn.active-off { background:rgba(255,34,51,0.10);   color:#ff6666; }
+  .flash-seg-btn:active { filter:brightness(1.2); }
   body.reduce-flash #timerDisplay.urgent,
   body.reduce-flash .combo-max #bigCombo {
     animation:none !important;
@@ -3054,6 +3074,113 @@
   body.reduce-flash #fighter.toei-enigma-aura::before { filter: blur(12px) !important; }
   body.reduce-flash #fighter.toei-enigma-aura::after  { filter: blur(18px) !important; }
   /* ══ END PERF R2 reduce-flash ══ */
+
+  /* ══ FLASH EFFECT: LOW — further reduction on top of reduce-flash baseline ══ */
+  body.flash-low .flash-punch,
+  body.flash-low .flash-god,
+  body.flash-low .flash-god2,
+  body.flash-low .flash-god3,
+  body.flash-low .flash-boss { animation:sfLow 0.1s ease-out forwards !important; }
+  @keyframes sfLow { 0%{opacity:0.025;background:white;} 100%{opacity:0;} }
+
+  body.flash-low #annihilationFlash.boom { animation:anniLow 0.5s ease-out forwards !important; }
+  @keyframes anniLow { 0%{opacity:0.07;background:#ffcc00;} 100%{opacity:0;} }
+
+  body.flash-low #bombFlash.boom { animation:bombLow 0.5s ease-out forwards !important; }
+  @keyframes bombLow { 0%{opacity:0.06;background:#ffcc00;} 100%{opacity:0;} }
+
+  body.flash-low #gameRoot.shake,
+  body.flash-low #gameRoot.shake-wp,
+  body.flash-low #gameRoot.shake-wp2,
+  body.flash-low #gameRoot.pressure-impact-freeze,
+  body.flash-low #gameRoot.pressure-success-release #fighter,
+  body.flash-low #gameRoot.pressure-fail-backlash #fighter { animation:none !important; }
+
+  body.flash-low #pressureBossAura { opacity:.14 !important; animation:none !important; }
+  body.flash-low #pressureBossAura::before,
+  body.flash-low #pressureBossAura::after,
+  body.flash-low #pressureBossAura .pressure-aura-core,
+  body.flash-low #pressureBossAura .pressure-aura-smoke,
+  body.flash-low #pressureBossAura .pressure-aura-ring { animation:none !important; }
+
+  body.flash-low .break-crack { opacity:.12 !important; }
+  body.flash-low .break-crack-burst { animation:breakImpact .18s ease-out forwards; opacity:.18; }
+
+  body.flash-low #gameRoot.pressure-streak-hot #fighter,
+  body.flash-low #gameRoot.pressure-streak-insane #fighter { filter:drop-shadow(0 0 5px rgba(120,0,18,.18)); }
+
+  body.flash-low #timerDisplay.urgent,
+  body.flash-low .combo-max #bigCombo { animation:none !important; opacity:1; text-shadow:0 0 6px rgba(255,34,51,0.18); }
+
+  body.flash-low .xuang-particle,
+  body.flash-low .xuang-aura-smoke,
+  body.flash-low .xuang-aura-core { animation:none !important; opacity:0 !important; filter:none !important; }
+  body.flash-low #xuangAura { opacity:.30 !important; }
+  body.flash-low .xuang-aura-ripple { animation:none !important; opacity:0 !important; }
+  body.flash-low #fighter.xuang-aura-hit #xuangAura { filter:none; }
+
+  body.flash-low .card-heavy-shimmer { animation:none !important; opacity:0 !important; filter:none !important; }
+
+  /* ══ FLASH EFFECT: OFF — disable strong flashes, preserve gameplay readability ══ */
+  body.flash-off .flash-punch,
+  body.flash-off .flash-god,
+  body.flash-off .flash-god2,
+  body.flash-off .flash-god3,
+  body.flash-off .flash-boss { animation:none !important; opacity:0 !important; }
+
+  body.flash-off #annihilationFlash,
+  body.flash-off #bombFlash { opacity:0 !important; animation:none !important; }
+
+  body.flash-off #gameRoot.shake,
+  body.flash-off #gameRoot.shake-wp,
+  body.flash-off #gameRoot.shake-wp2,
+  body.flash-off #gameRoot.pressure-impact-freeze,
+  body.flash-off #gameRoot.pressure-success-release #fighter,
+  body.flash-off #gameRoot.pressure-fail-backlash #fighter {
+    animation: none !important;
+    transform: translate(-50%,-40%) !important;
+  }
+
+  body.flash-off #pressureBossAura,
+  body.flash-off #pressureBossAura::before,
+  body.flash-off #pressureBossAura::after,
+  body.flash-off #pressureBossAura .pressure-aura-core,
+  body.flash-off #pressureBossAura .pressure-aura-smoke,
+  body.flash-off #pressureBossAura .pressure-aura-ring { opacity:0 !important; animation:none !important; }
+
+  body.flash-off .break-crack,
+  body.flash-off .break-crack-burst { opacity:0 !important; animation:none !important; }
+
+  body.flash-off #timerDisplay.urgent,
+  body.flash-off .combo-max #bigCombo { animation:none !important; opacity:1; text-shadow:none; }
+
+  body.flash-off .xuang-particle,
+  body.flash-off .xuang-aura-smoke,
+  body.flash-off .xuang-aura-core,
+  body.flash-off .xuang-aura-ripple { animation:none !important; opacity:0 !important; filter:none !important; }
+  /* keep base xuang glow at very low opacity so equipped state is still visible */
+  body.flash-off #xuangAura { opacity:.12 !important; }
+  body.flash-off #fighter.xuang-aura-hit #xuangAura { filter:none; }
+
+  body.flash-off .card-heavy-shimmer { animation:none !important; opacity:0 !important; filter:none !important; }
+
+  body.flash-off #screenFlash { opacity:0 !important; animation:none !important; }
+
+  /* FIX 1 — OD Lv3 glitch flicker suppression */
+  body.flash-low #godLevelWrap.od-lv3 #godLevelNum,
+  body.flash-low #godLevelWrap.od-lv3 #godLevelLabel {
+    animation: none !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 8px #ff2233 !important;
+  }
+  body.flash-off #godLevelWrap.od-lv3 #godLevelNum,
+  body.flash-off #godLevelWrap.od-lv3 #godLevelLabel {
+    animation: none !important;
+    opacity: 1 !important;
+    color: #ff2233 !important;
+    text-shadow: none !important;
+  }
+  /* ══ END FLASH EFFECT CSS ══ */
 
   /* ══ OCA DROP SYSTEM ══ */
   @keyframes ocaDropAnim {
@@ -3627,6 +3754,14 @@
         <div class="setting-value" id="sfxVolumeValue">100%</div>
       </div>
     </div>
+    <div class="setting-row">
+      <div class="setting-label"><strong>FLASH EFFECT</strong><span>Reduce flashing lights</span></div>
+      <div class="flash-seg-wrap">
+        <button class="flash-seg-btn" id="flashSegOn"  onclick="setFlashEffect('on')">ON</button>
+        <button class="flash-seg-btn" id="flashSegLow" onclick="setFlashEffect('low')">LOW</button>
+        <button class="flash-seg-btn" id="flashSegOff" onclick="setFlashEffect('off')">OFF</button>
+      </div>
+    </div>
   </div>
   <div class="pause-btn-group">
     <button class="pause-btn pause-btn-resume" onclick="resumeGame()"><span class="pause-icon-play"></span>RESUME</button>
@@ -3805,10 +3940,11 @@ const CARD_HIDDEN_IMG = 'card_hidden.png';
 // ══════════════════════════════════════════
 // SOUND SYSTEM
 // ══════════════════════════════════════════
-const DEFAULT_SETTINGS = { musicOn:true, musicVolume:1, sfxOn:true, sfxVolume:1, reduceFlash:true };
+const DEFAULT_SETTINGS = { musicOn:true, musicVolume:1, sfxOn:true, sfxVolume:1, reduceFlash:true, flashEffect:'low' };
 function _clamp01(v) { v = Number(v); return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1; }
 function normalizeSettings(src) {
   src = (src && typeof src === 'object') ? src : {};
+  const fe = src.flashEffect;
   return {
     musicOn: src.musicOn !== false,
     musicVolume: _clamp01(src.musicVolume === undefined ? 1 : src.musicVolume),
@@ -3818,6 +3954,7 @@ function normalizeSettings(src) {
     // Keep the flag internal/always true so old saves with reduceFlash:false
     // cannot re-enable harsher flashes or heavier shake.
     reduceFlash: true,
+    flashEffect: (fe === 'on' || fe === 'low' || fe === 'off') ? fe : 'low',
   };
 }
 function _loadLocalSettings() {
@@ -3939,7 +4076,22 @@ function applyAudioSettings() {
     window._collectAudio.gain.gain.value = _musicGain(COLLECT_BGM_VOLUME);
   }
   document.body.classList.toggle('reduce-flash', !!gameSettings.reduceFlash);
+  applyFlashEffectSetting();
   syncSettingsUI();
+}
+
+function applyFlashEffectSetting() {
+  const fe = gameSettings.flashEffect || 'low';
+  document.body.classList.toggle('flash-low', fe === 'low');
+  document.body.classList.toggle('flash-off', fe === 'off');
+}
+
+function setFlashEffect(value) {
+  if (value !== 'on' && value !== 'low' && value !== 'off') return;
+  gameSettings.flashEffect = value;
+  applyFlashEffectSetting();
+  syncSettingsUI();
+  persistSettings();
 }
 
 function persistSettings() {
@@ -3969,6 +4121,14 @@ function syncSettingsUI() {
   if(sv) sv.value = Math.round(gameSettings.sfxVolume * 100);
   const svv = $('sfxVolumeValue');
   if(svv) svv.textContent = Math.round(gameSettings.sfxVolume * 100) + '%';
+  // Flash Effect segmented buttons
+  const fe = gameSettings.flashEffect || 'low';
+  const fsOn  = $('flashSegOn');
+  const fsLow = $('flashSegLow');
+  const fsOff = $('flashSegOff');
+  if(fsOn)  { fsOn.className  = 'flash-seg-btn' + (fe === 'on'  ? ' active-on'  : ''); }
+  if(fsLow) { fsLow.className = 'flash-seg-btn' + (fe === 'low' ? ' active-low' : ''); }
+  if(fsOff) { fsOff.className = 'flash-seg-btn' + (fe === 'off' ? ' active-off' : ''); }
 }
 
 function toggleSetting(type) {
@@ -4428,7 +4588,7 @@ function computeStableSaveHash(d) {
     : '';
   // Settings: only values that affect gameplay or cloud identity
   const settingsKey = d.settings
-    ? ['sfxVol','bgmVol','sfxMuted','bgmMuted']
+    ? ['sfxVol','bgmVol','sfxMuted','bgmMuted','flashEffect']
         .map(k => k + ':' + (d.settings[k] !== undefined ? d.settings[k] : ''))
         .join(',')
     : '';
