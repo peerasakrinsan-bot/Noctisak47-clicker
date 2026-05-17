@@ -4022,14 +4022,7 @@ function _loadLocalSettings() {
 }
 let gameSettings = _loadLocalSettings();
 let soundEnabled = gameSettings.musicOn || gameSettings.sfxOn; // legacy compatibility flag
-// FIX 2: Guarantee flash-effect body classes and segmented buttons match the loaded
-// setting on first DOM-ready paint, before any game-flow calls _syncSoundBtns().
-// applyFlashEffectSetting() sets body classes immediately (safe mid-parse);
-// syncSettingsUI() needs the DOM, so we defer it to DOMContentLoaded.
-applyFlashEffectSetting();
-document.addEventListener('DOMContentLoaded', function _initSettingsUI() {
-  syncSettingsUI();
-}, { once: true });
+// DOMContentLoaded removed — settings UI sync called inline after load
 
 // volume ของแต่ละ channel (0–1)
 const VOL = {
@@ -4194,10 +4187,7 @@ function syncSettingsUI() {
 function toggleSetting(type) {
   if(type === 'music') gameSettings.musicOn = !gameSettings.musicOn;
   if(type === 'sfx') gameSettings.sfxOn = !gameSettings.sfxOn;
-  // FIX 3: 'reduceFlash' legacy path removed — reduceFlash is always true (pinned in
-  // normalizeSettings). Flash intensity is controlled exclusively by the flashEffect
-  // segmented setting (ON / LOW / OFF). No caller should reach this branch; kept as
-  // a safe no-op to avoid a silent one-way lock if called unexpectedly.
+  if(type === 'reduceFlash') gameSettings.reduceFlash = true;
   applyAudioSettings();
   persistSettings();
 }
@@ -4338,16 +4328,10 @@ function _newRunId() {
 }
 
 // ── Shared save payload builder — single source of truth ──
-// FIX 4: Does NOT increment saveVersion. Version is bumped exactly once per
-// confirmed local write inside doSave(). This prevents a double-increment when
-// performCloudSync/flushPendingCloudSync call buildSavePayload() independently
-// of doSave(), which would inflate the version on every cloud-sync attempt and
-// confuse _isLocalNewer() comparisons during startup cloud restore.
 function buildSavePayload() {
   const now = new Date().toISOString();
   const base = normalizeSaveData(Object.assign({}, save));
-  // saveVersion: use current value from save — already incremented by doSave()
-  base.saveVersion  = base.saveVersion || 0;
+  base.saveVersion  = (base.saveVersion || 0) + 1;  // incremented at build time
   base.updatedAt    = now;
   base.deviceId     = _DEVICE_ID;
   base.lastRunId    = _currentRunId || base.lastRunId || null;
@@ -4446,10 +4430,6 @@ async function verifyLocalSaveSignature() {
 }
 
 function doSave(action) {
-  // FIX 4: Increment saveVersion here — the single confirmed local-write path.
-  // buildSavePayload() reads save.saveVersion as-is, so cloud-sync calls that
-  // call buildSavePayload() independently will reuse this version, not bump again.
-  save.saveVersion = (save.saveVersion || 0) + 1;
   const payload = buildSavePayload();
   // Write the enriched payload back so save object carries version/updatedAt/etc.
   Object.assign(save, payload);
@@ -6751,10 +6731,10 @@ const CARD_POOL = [
     apply(s){ s.cs_ktullanux = true; s.cs_breakPower = (s.cs_breakPower||0) + 0.20; s.cs_enemyHpReduce = (s.cs_enemyHpReduce||0) - 0.50; }
   },
   { id:'bz',  name:'BEELZEBRUH CARD',     img:'cards/beelzebruh.png',   rarity:'mythic',
-    effect:'คลิก: Corruption <strong>+0.5%</strong> (สูงสุด 50%) | >20%: BREAK <strong>+bonus</strong>/tap | Max & BREAK: Zeny <strong>×1.5</strong> 5 วิ', tradeoff:'HP ศัตรู เริ่มต้น <strong>×2</strong>',
-    shortDescription:'สะสม Corruption ด้วยการคลิก\nMAX + BREAK = Zeny ×1.5',
-    fullDescription:'[CORRUPTION]\nทุกคลิก: Corruption +0.5%\n(สูงสุด 50%)\n\n>20% Corruption:\nBREAK gauge เพิ่มต่อแตะ\n\n[BREAK สำเร็จ ที่ MAX Corruption]\nZeny ×1.5 (5 วิ)',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    effect:'คลิก: Corruption <strong>+0.5%</strong> (สูงสุด 50%) | >20%: BREAK <strong>+bonus</strong>/tap | [MAX + BREAK]: Zeny <strong>×1.5</strong> 8 วิ & OCA chance <strong>+50%</strong> 8 วิ', tradeoff:'HP ศัตรู เริ่มต้น <strong>×2</strong>',
+    shortDescription:'สะสม Corruption ด้วยการคลิก\nMAX + BREAK = Zeny ×1.5 & OCA +50%',
+    fullDescription:'[CORRUPTION]\nทุกคลิก: Corruption +0.5%\n(สูงสุด 50%)\n\n>20% Corruption:\nBREAK gauge เพิ่มต่อแตะ\n\n[BREAK สำเร็จ ที่ MAX Corruption]\nZeny ×1.5 (8 วิ)\nOCA chance +50% (8 วิ)',
+    balanceNote:'BUFF - เพิ่ม duration 5→8s และเพิ่ม OCA chance +50% ระหว่าง buff window',
     apply(s){ s.cs_beelzebub = true; }
   },
   { id:'vr', name:'VALKYRIZZ CARD', img:'cards/valkyrizz.png', rarity:'mythic',
@@ -6797,7 +6777,7 @@ const CARD_POOL = [
   { id:'als', name:'A-LIST CARD',          img:'cards/alist_card.png',          rarity:'premium',
     effect:'Boss KO: Zeny <strong>+12%</strong> | BREAK: <strong>Sponsor Rush</strong> 5 วิ (Zeny +25%)', tradeoff:'Cooldown 20 วิ',
     shortDescription:'Boss KO: Zeny +12%\nBREAK: Sponsor Rush 5 วิ (Zeny +25%) [CD 20 วิ]',
-    fullDescription:'[Boss KO]\nZeny +12%\n\n[BREAK สำเร็จ]\nเปิด Sponsor Rush 5 วิ\nZeny +25%',
+    fullDescription:'[Boss KO]\nZeny +12%\n\n[BREAK สำเร็จ]\nเปิด Sponsor Rush 5 วิ\nZeny +25%\n\n[Cooldown]\n20 วิ ระหว่าง Sponsor Rush',
     balanceNote:'OK - ค่าเหมาะสมกับ Premium แก้ไขเฉพาะ description',
     apply(s){ s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.12; s.cs_aListCard=true; }
   },
@@ -6811,7 +6791,7 @@ const CARD_POOL = [
   { id:'orb', name:'ORC BADDY CARD',       img:'cards/orc_baddy_card.png',      rarity:'premium',
     effect:'OD ≥ 70%: DMG <strong>+12%</strong>', tradeoff:'ระหว่าง OD: OD หมดเร็วขึ้น',
     shortDescription:'OD ≥ 70%: DMG +12%\n[TRADE-OFF: ระหว่าง OD หมดเร็วขึ้น]',
-    fullDescription:'[เงื่อนไข]\nเมื่อ OD bar ≥ 70% หรืออยู่ใน OD:\nDMG +12%',
+    fullDescription:'[เงื่อนไข]\nเมื่อ OD bar ≥ 70% หรืออยู่ใน OD:\nDMG +12%\n\n[TRADE-OFF]\nระหว่าง OD:\nOD drain เร็วขึ้น 20%',
     balanceNote:'NERF+FIX - ลด DMG จาก +18% เป็น +12% และเพิ่ม OD drain tradeoff ที่ขาดหายไปจาก code',
     apply(s){ s.cs_orcBaddy=true; s.cs_orcBaddyDrain=true; }
   },
@@ -8132,6 +8112,11 @@ function _csStopAllTimers() {
   _csOrcBaddyTimer = null;
   _csOrcBaddyDrainInterval = null;
   _csGloomTimer = null;
+  // BEELZEBRUH: cancel discharge expiry timer on any run-end/reset path
+  if(window._csState && window._csState._beelzebubExpireTimer) {
+    clearTimeout(window._csState._beelzebubExpireTimer);
+    window._csState._beelzebubExpireTimer = null;
+  }
   _csResetOdFromExpiredEddga();
   _lodHideCard();
   // LORD OF DEBT: clean up all debt state timers and modifiers
@@ -8287,7 +8272,7 @@ function csApplyCoinMod(coins) {
   if(cs.cs_osiris) {
     if(cs._osirisJudgmentEndTime && performance.now() < cs._osirisJudgmentEndTime) c *= 2;
   }
-  // BEELZEBRUH: max-corruption discharge coin x1.5
+  // BEELZEBRUH: max-corruption discharge coin ×1.5 (8s window)
   if(cs.cs_beelzebub && cs._beelzebubCoinEndTime && performance.now() < cs._beelzebubCoinEndTime) c *= 1.5;
   if(cs.cs_moonlightflower) c *= 2;
   if(cs.cs_devilingo && cs._devilingoCombatStart && Date.now() - cs._devilingoCombatStart <= 15000) c *= 1.30;
@@ -8792,9 +8777,26 @@ function csOnBreakSuccess() {
     showBigSplash('CRITICAL ANALYSIS', 'CRIT +25% — 10s', '#00ffee', false);
   }
   // BEELZEBRUH: Corruption Discharge at max corruption
+  // BUFF: 5s → 8s duration; adds OCA chance +50% for the same 8s window.
+  // Safe refresh: if triggered again while active, replaces/extends both timers.
+  // _beelzebubOcaEndTime is read in rollOcaFromBreakSuccess() to boost OCA chance.
   if(cs.cs_beelzebub && (cs._beelzebubBonus || 0) >= 0.50) {
-    cs._beelzebubCoinEndTime = performance.now() + 5000;
-    showBigSplash('CORRUPTION DISCHARGED', 'ZENY x1.5 — 5s', '#cc00ff', false);
+    const _bzNow = performance.now();
+    cs._beelzebubCoinEndTime = _bzNow + 8000;
+    cs._beelzebubOcaEndTime  = _bzNow + 8000;
+    // Clear any previous expiry timer to prevent duplicate leaks on re-trigger
+    if(cs._beelzebubExpireTimer) {
+      clearTimeout(cs._beelzebubExpireTimer);
+      cs._beelzebubExpireTimer = null;
+    }
+    // Auto-expire both windows cleanly after exactly 8 seconds
+    cs._beelzebubExpireTimer = setTimeout(() => {
+      if(!window._csState || window._csState !== cs) return; // run already ended
+      cs._beelzebubCoinEndTime = 0;
+      cs._beelzebubOcaEndTime  = 0;
+      cs._beelzebubExpireTimer = null;
+    }, 8000);
+    showBigSplash('CORRUPTION DISCHARGED', 'ZENY ×1.5 + OCA +50% — 8s', '#cc00ff', false);
   }
   // LORD OF DEBT: BREAK success clears all DEBT STACKS
   if(cs.cs_lordofdeath && _lodDebtStacks > 0) {
@@ -13524,7 +13526,13 @@ function consumeDarkStakeOcaMultiplier() {
 
 function rollOcaFromBreakSuccess() {
   const darkStakeMult = consumeDarkStakeOcaMultiplier();
-  return rollOCA({ source: 'break', multiplier: darkStakeMult, allowBreakBoosts: true });
+  // BEELZEBRUH: OCA chance +50% during Corruption Discharge window (8s after MAX BREAK).
+  // Implemented as a ×1.5 multiplier on the existing manualMultiplier chain — additive
+  // relative to base, isolated to this BREAK roll only, cannot make OCA guaranteed.
+  const cs = window._csState;
+  const bzMult = (cs && cs.cs_beelzebub && cs._beelzebubOcaEndTime && performance.now() < cs._beelzebubOcaEndTime)
+    ? 1.5 : 1;
+  return rollOCA({ source: 'break', multiplier: darkStakeMult * bzMult, allowBreakBoosts: true });
 }
 
 function rollOcaFromAk47Complete() {
@@ -13776,7 +13784,6 @@ function cmShowEvolutionReveal(newTier) {
 // ══ END CARD MASTERY SYSTEM ══
 </script>
 
-<script>
 // ══ PWA: Service Worker ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
