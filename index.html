@@ -6797,7 +6797,7 @@ const CARD_POOL = [
   { id:'als', name:'A-LIST CARD',          img:'cards/alist_card.png',          rarity:'premium',
     effect:'Boss KO: Zeny <strong>+12%</strong> | BREAK: <strong>Sponsor Rush</strong> 5 วิ (Zeny +25%)', tradeoff:'Cooldown 20 วิ',
     shortDescription:'Boss KO: Zeny +12%\nBREAK: Sponsor Rush 5 วิ (Zeny +25%) [CD 20 วิ]',
-    fullDescription:'[Boss KO]\nZeny +12%\n\n[BREAK สำเร็จ]\nเปิด Sponsor Rush 5 วิ\nZeny +25%\n\n[Cooldown]\n20 วิ ระหว่าง Sponsor Rush',
+    fullDescription:'[Boss KO]\nZeny +12%\n\n[BREAK สำเร็จ]\nเปิด Sponsor Rush 5 วิ\nZeny +25%',
     balanceNote:'OK - ค่าเหมาะสมกับ Premium แก้ไขเฉพาะ description',
     apply(s){ s.cs_bossCoinPct=(s.cs_bossCoinPct||0)+0.12; s.cs_aListCard=true; }
   },
@@ -6811,7 +6811,7 @@ const CARD_POOL = [
   { id:'orb', name:'ORC BADDY CARD',       img:'cards/orc_baddy_card.png',      rarity:'premium',
     effect:'OD ≥ 70%: DMG <strong>+12%</strong>', tradeoff:'ระหว่าง OD: OD หมดเร็วขึ้น',
     shortDescription:'OD ≥ 70%: DMG +12%\n[TRADE-OFF: ระหว่าง OD หมดเร็วขึ้น]',
-    fullDescription:'[เงื่อนไข]\nเมื่อ OD bar ≥ 70% หรืออยู่ใน OD:\nDMG +12%\n\n[TRADE-OFF]\nระหว่าง OD:\nOD drain เร็วขึ้น 20%',
+    fullDescription:'[เงื่อนไข]\nเมื่อ OD bar ≥ 70% หรืออยู่ใน OD:\nDMG +12%',
     balanceNote:'NERF+FIX - ลด DMG จาก +18% เป็น +12% และเพิ่ม OD drain tradeoff ที่ขาดหายไปจาก code',
     apply(s){ s.cs_orcBaddy=true; s.cs_orcBaddyDrain=true; }
   },
