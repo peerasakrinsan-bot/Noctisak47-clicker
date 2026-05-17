@@ -4022,7 +4022,14 @@ function _loadLocalSettings() {
 }
 let gameSettings = _loadLocalSettings();
 let soundEnabled = gameSettings.musicOn || gameSettings.sfxOn; // legacy compatibility flag
-// DOMContentLoaded removed — settings UI sync called inline after load
+// FIX 2: Guarantee flash-effect body classes and segmented buttons match the loaded
+// setting on first DOM-ready paint, before any game-flow calls _syncSoundBtns().
+// applyFlashEffectSetting() sets body classes immediately (safe mid-parse);
+// syncSettingsUI() needs the DOM, so we defer it to DOMContentLoaded.
+applyFlashEffectSetting();
+document.addEventListener('DOMContentLoaded', function _initSettingsUI() {
+  syncSettingsUI();
+}, { once: true });
 
 // volume ของแต่ละ channel (0–1)
 const VOL = {
@@ -4187,7 +4194,10 @@ function syncSettingsUI() {
 function toggleSetting(type) {
   if(type === 'music') gameSettings.musicOn = !gameSettings.musicOn;
   if(type === 'sfx') gameSettings.sfxOn = !gameSettings.sfxOn;
-  if(type === 'reduceFlash') gameSettings.reduceFlash = true;
+  // FIX 3: 'reduceFlash' legacy path removed — reduceFlash is always true (pinned in
+  // normalizeSettings). Flash intensity is controlled exclusively by the flashEffect
+  // segmented setting (ON / LOW / OFF). No caller should reach this branch; kept as
+  // a safe no-op to avoid a silent one-way lock if called unexpectedly.
   applyAudioSettings();
   persistSettings();
 }
@@ -4328,10 +4338,16 @@ function _newRunId() {
 }
 
 // ── Shared save payload builder — single source of truth ──
+// FIX 4: Does NOT increment saveVersion. Version is bumped exactly once per
+// confirmed local write inside doSave(). This prevents a double-increment when
+// performCloudSync/flushPendingCloudSync call buildSavePayload() independently
+// of doSave(), which would inflate the version on every cloud-sync attempt and
+// confuse _isLocalNewer() comparisons during startup cloud restore.
 function buildSavePayload() {
   const now = new Date().toISOString();
   const base = normalizeSaveData(Object.assign({}, save));
-  base.saveVersion  = (base.saveVersion || 0) + 1;  // incremented at build time
+  // saveVersion: use current value from save — already incremented by doSave()
+  base.saveVersion  = base.saveVersion || 0;
   base.updatedAt    = now;
   base.deviceId     = _DEVICE_ID;
   base.lastRunId    = _currentRunId || base.lastRunId || null;
@@ -4430,6 +4446,10 @@ async function verifyLocalSaveSignature() {
 }
 
 function doSave(action) {
+  // FIX 4: Increment saveVersion here — the single confirmed local-write path.
+  // buildSavePayload() reads save.saveVersion as-is, so cloud-sync calls that
+  // call buildSavePayload() independently will reuse this version, not bump again.
+  save.saveVersion = (save.saveVersion || 0) + 1;
   const payload = buildSavePayload();
   // Write the enriched payload back so save object carries version/updatedAt/etc.
   Object.assign(save, payload);
@@ -13756,6 +13776,7 @@ function cmShowEvolutionReveal(newTier) {
 // ══ END CARD MASTERY SYSTEM ══
 </script>
 
+<script>
 // ══ PWA: Service Worker ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
