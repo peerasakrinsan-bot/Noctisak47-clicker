@@ -3131,10 +3131,15 @@
   body.flash-off #annihilationFlash,
   body.flash-off #bombFlash { opacity:0 !important; animation:none !important; }
 
+  /* Cancel shake animations on #gameRoot — do NOT override its transform (base is translateZ(0)) */
   body.flash-off #gameRoot.shake,
   body.flash-off #gameRoot.shake-wp,
   body.flash-off #gameRoot.shake-wp2,
-  body.flash-off #gameRoot.pressure-impact-freeze,
+  body.flash-off #gameRoot.pressure-impact-freeze {
+    animation: none !important;
+  }
+
+  /* Cancel pressure animations on #fighter — safe to reset its transform (base is translate(-50%,-40%)) */
   body.flash-off #gameRoot.pressure-success-release #fighter,
   body.flash-off #gameRoot.pressure-fail-backlash #fighter {
     animation: none !important;
