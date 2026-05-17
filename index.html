@@ -9140,6 +9140,18 @@ function openCardCollection() {
   screen.style.display = 'flex';
   renderCardCollection();
   updateOcaTicketUI();
+  // FIX 3 — defer observer setup until after layout is settled and screen is truly visible
+  // (avoids all shimmer cards being paused because root was display:none at observer creation)
+  requestAnimationFrame(() => {
+    _ccEnsureShimmerObserver();
+    const grid = $('cardCollectionGrid');
+    if (_ccShimmerObserver && grid) {
+      const shimmerCards = grid.querySelectorAll('.cm-glossy-wrap, .cm-prismatic-wrap');
+      for (const el of shimmerCards) {
+        _ccShimmerObserver.observe(el);
+      }
+    }
+  });
 }
 
 function closeCardCollection() {
@@ -9198,14 +9210,9 @@ function renderCardCollection() {
   // Single DOM write for all cards
   grid.appendChild(frag);
 
-  // PERF R2: IntersectionObserver — observe cards that have shimmer classes
-  _ccEnsureShimmerObserver();
-  if (_ccShimmerObserver) {
-    const shimmerCards = grid.querySelectorAll('.cm-glossy-wrap, .cm-prismatic-wrap');
-    for (const el of shimmerCards) {
-      _ccShimmerObserver.observe(el);
-    }
-  }
+  // NOTE: shimmer observer setup moved to openCardCollection() inside requestAnimationFrame
+  // to avoid race where IntersectionObserver root is display:none at creation time.
+  // renderCardCollection() only builds DOM; observer wiring happens after screen is visible.
 
   // PERF R2: single delegated tap listener on grid (avoids N listeners for N cards)
   // Guard: only attach once per grid element lifetime (innerHTML='' doesn't remove grid listeners)
@@ -12374,6 +12381,8 @@ async function startupCloudRestore() {
       applyAudioSettings();
       // Re-render any live UI that shows save data
       try { updateShopCoinUI(); } catch(e) {}
+      // FIX 2 — update main menu coin display immediately after cloud restore
+      try { if ($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins); } catch(e) {}
       try { if (typeof checkDailyQuestReset === 'function') checkDailyQuestReset(); } catch(e) {}
       try { if (typeof updateDailyQuestUI  === 'function') updateDailyQuestUI();    } catch(e) {}
       saveState.lastSyncHash = _saveHash(save);
@@ -12540,8 +12549,32 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// pagehide fires on Android when tab is killed or navigated away — pause only
-window.addEventListener('pagehide', pauseAudioForBackground);
+// handleAppBackgroundLifecycle — shared handler for pagehide and blur.
+// Both events can fire on Android without visibilitychange (tab kill, home button,
+// notification tray, WebView app-switch). Calling this handler ensures:
+//   1. Audio pauses (via existing guards in pauseAudioForBackground)
+//   2. Local save commits immediately (best-effort, sync write)
+//   3. Cloud sync fires fire-and-forget (non-blocking)
+//   4. Active game run pauses (timer/OD/WP/INPUT stop via existing pauseGame guards)
+// All three subroutines carry their own re-entrancy guards so duplicate calls
+// (e.g. visibilitychange + blur firing together) are safe no-ops.
+function handleAppBackgroundLifecycle() {
+  pauseAudioForBackground();
+
+  if (typeof _onAppHide === 'function') {
+    _onAppHide();
+  }
+
+  if (typeof gameRunning !== 'undefined' && typeof gamePaused !== 'undefined') {
+    if (gameRunning && !gamePaused && typeof pauseGame === 'function') {
+      pauseGame();
+    }
+  }
+}
+
+// pagehide fires on Android when tab is killed or navigated away.
+// Previously only paused audio; now also commits save and pauses the run.
+window.addEventListener('pagehide', handleAppBackgroundLifecycle);
 
 // pageshow fires when BFCache restores the page — resume if appropriate
 window.addEventListener('pageshow', (e) => {
@@ -12550,9 +12583,10 @@ window.addEventListener('pageshow', (e) => {
 });
 
 // blur/focus: catches app-switch, home button, notification drawer on Android
-// These fire independently of visibilitychange on some Android WebViews
-window.addEventListener('blur',  pauseAudioForBackground,  { passive: true });
-window.addEventListener('focus', resumeAudioFromBackground, { passive: true });
+// These fire independently of visibilitychange on some Android WebViews.
+// blur previously only paused audio; now also commits save and pauses the run.
+window.addEventListener('blur',  handleAppBackgroundLifecycle, { passive: true });
+window.addEventListener('focus', resumeAudioFromBackground,    { passive: true });
 
 window.addEventListener('beforeunload', () => {
   try { _storeLocalSave(save); } catch(e) {}
@@ -13089,40 +13123,56 @@ function updateDailyQuestUI() {
   });
 }
 
+// FIX 1 — OCA Ticket double-tap guard
+let _ocaTicketInProgress = false;
+
 function useOcaTicket(type) {
+  // Guard: reject rapid double-taps before any state mutation
+  if (_ocaTicketInProgress) return;
   if (!save.ocaTickets || (save.ocaTickets[type] || 0) <= 0) return;
-  save.ocaTickets[type]--;
-  markSaveDirty('card_purchase');
-  doSave();
-  scheduleCloudSync('card_purchase');
 
-  // Select drop weights by ticket grade
-  var weights;
-  if      (type === 'premium') weights = CARD_DROP_WEIGHTS_PITY5;
-  else if (type === 'elite')   weights = CARD_DROP_WEIGHTS_PITY25;
-  else                         weights = CARD_DROP_WEIGHTS;
+  _ocaTicketInProgress = true;
 
-  // Roll tier
-  var tiers = Object.keys(weights);
-  var total = tiers.reduce(function(s, t) { return s + weights[t]; }, 0);
-  var r = Math.random() * total;
-  var tier = tiers[tiers.length - 1];
-  for (var i = 0; i < tiers.length; i++) {
-    r -= weights[tiers[i]];
-    if (r <= 0) { tier = tiers[i]; break; }
+  try {
+    save.ocaTickets[type]--;
+    markSaveDirty('card_purchase');
+    doSave();
+    scheduleCloudSync('card_purchase');
+
+    // Select drop weights by ticket grade
+    var weights;
+    if      (type === 'premium') weights = CARD_DROP_WEIGHTS_PITY5;
+    else if (type === 'elite')   weights = CARD_DROP_WEIGHTS_PITY25;
+    else                         weights = CARD_DROP_WEIGHTS;
+
+    // Roll tier
+    var tiers = Object.keys(weights);
+    var total = tiers.reduce(function(s, t) { return s + weights[t]; }, 0);
+    var r = Math.random() * total;
+    var tier = tiers[tiers.length - 1];
+    for (var i = 0; i < tiers.length; i++) {
+      r -= weights[tiers[i]];
+      if (r <= 0) { tier = tiers[i]; break; }
+    }
+
+    // Pick random card from tier pool
+    var pool = CARD_POOL.filter(function(c) { return c.rarity === tier; });
+    var card = pool.length ? pool[Math.floor(Math.random() * pool.length)] : CARD_POOL[0];
+    var unlocked  = getUnlockedCards();
+    var isDupe    = unlocked.includes(card.id);
+    var dupeCoins = isDupe ? (CARD_DUPE_COINS[card.rarity] || 50) : 0;
+
+    _openOcaDraw(
+      { card: card, tier: tier, isDupe: isDupe, dupeCoins: dupeCoins },
+      function() {
+        _ocaTicketInProgress = false;
+        openCardCollection();
+      }
+    );
+  } catch(e) {
+    _ocaTicketInProgress = false;
+    throw e;
   }
-
-  // Pick random card from tier pool
-  var pool = CARD_POOL.filter(function(c) { return c.rarity === tier; });
-  var card = pool.length ? pool[Math.floor(Math.random() * pool.length)] : CARD_POOL[0];
-  var unlocked  = getUnlockedCards();
-  var isDupe    = unlocked.includes(card.id);
-  var dupeCoins = isDupe ? (CARD_DUPE_COINS[card.rarity] || 50) : 0;
-
-  _openOcaDraw(
-    { card: card, tier: tier, isDupe: isDupe, dupeCoins: dupeCoins },
-    function() { openCardCollection(); }
-  );
 }
 
 function updateOcaTicketUI() {
