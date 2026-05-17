@@ -2808,32 +2808,404 @@
   }
   #dailyQuestWidget {
     position: fixed;
-    top: max(env(safe-area-inset-top, 0px), 12px);
-    left: 12px;
+    top: max(env(safe-area-inset-top, 0px), 10px);
+    left: 10px;
     z-index: 1001;
     background: rgba(0,0,0,0.82);
     border: 1px solid #2a2a2a;
-    border-radius: 6px;
-    padding: 4px 8px 5px;
-    display: none; flex-direction: column; gap: 3px;
+    border-radius: 5px;
+    padding: 3px 7px 4px;
+    display: none; flex-direction: column; gap: 2px;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     box-sizing: border-box;
     overflow: hidden;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s;
   }
+  #dailyQuestWidget:active { border-color: #444; }
   #dailyQuestWidget.visible {
     display: flex;
   }
+
+  /* ══ WEEKLY CHALLENGE ROW ══ */
+  #wqRow {
+    display: flex;
+    align-items: center;
+    gap: clamp(2px, 0.9vw, 4px);
+    margin-top: 0;
+  }
+  #wqLabel {
+    font-family: Oswald;
+    font-size: clamp(7px, 1.8vw, 8px);
+    letter-spacing: 1.5px;
+    color: #00ffee;
+    opacity: 0.65;
+  }
+  .wq-tier-badge {
+    width:  clamp(11px, 3.2vw, 15px);
+    height: clamp(11px, 3.2vw, 15px);
+    border-radius: 50%;
+    border: 1.5px solid #2a5555;
+    background: #0a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+    position: relative;
+  }
+  .wq-tier-badge .wq-numeral {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(5px, 1.5vw, 7px);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1;
+    color: #2a5555;
+    pointer-events: none;
+    user-select: none;
+    text-align: center;
+    display: block;
+  }
+  /* incomplete state — default above */
+  /* ready-to-claim state */
+  .wq-tier-badge.wq-ready {
+    border-color: #00ffee;
+    background: rgba(0,255,238,0.08);
+    box-shadow: 0 0 7px rgba(0,255,238,0.55);
+    animation: wqBadgePulse 1.4s ease-in-out infinite;
+  }
+  .wq-tier-badge.wq-ready .wq-numeral { color: #00ffee; }
+  /* tier 3 ready — gold accent */
+  .wq-tier-badge.wq-ready.wq-t3 {
+    border-color: #ffcc00;
+    background: rgba(255,204,0,0.08);
+    box-shadow: 0 0 7px rgba(255,204,0,0.55);
+  }
+  .wq-tier-badge.wq-ready.wq-t3 .wq-numeral { color: #ffcc00; }
+  /* claimed state */
+  .wq-tier-badge.wq-claimed {
+    border-color: #00ffee;
+    background: rgba(0,255,238,0.18);
+    box-shadow: 0 0 5px rgba(0,255,238,0.3);
+    animation: none;
+  }
+  .wq-tier-badge.wq-claimed .wq-numeral { color: #00ffee; }
+  .wq-tier-badge.wq-claimed.wq-t3 {
+    border-color: #ffcc00;
+    background: rgba(255,204,0,0.18);
+    box-shadow: 0 0 5px rgba(255,204,0,0.3);
+  }
+  .wq-tier-badge.wq-claimed.wq-t3 .wq-numeral { color: #ffcc00; }
+  @keyframes wqBadgePulse {
+    0%,100% { opacity: 0.65; }
+    50%      { opacity: 1; }
+  }
+
+  /* ══ REWARDS MODAL ══ */
+  #rewardsModal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 1500;
+    background: rgba(0,0,0,0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 14px);
+    box-sizing: border-box;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #rewardsModal.open { display: flex; }
+  #rewardsPanel {
+    width: min(92vw, 440px);
+    /* Fixed height so modal never shrinks between Daily and Weekly tabs */
+    height: min(72vh, 560px);
+    background: #0a0a0a;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  #rewardsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 0;
+    flex-shrink: 0;
+  }
+  #rewardsPanelTitle {
+    font-family: 'Oswald', sans-serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: var(--gold);
+  }
+  #rewardsCloseBtn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #666;
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 5px 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #rewardsCloseBtn:active { background: #1a1a1a; color: #aaa; }
+  /* Tabs */
+  #rewardsTabs {
+    display: flex;
+    border-bottom: 1px solid #1e1e1e;
+    margin-top: 10px;
+    flex-shrink: 0;
+  }
+  .rw-tab {
+    flex: 1;
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 8px 0;
+    text-align: center;
+    color: #444;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .rw-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .rw-tab:active { opacity: 0.75; }
+  /* Tab body — flex:1 + min-height:0 ensures it fills remaining panel height */
+  #rewardsBody {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 12px 14px 20px;
+    box-sizing: border-box;
+    /* Tab panes are display:flex so body height is fully occupied */
+    display: flex;
+    flex-direction: column;
+  }
+  /* Tab panes fill the body so modal never collapses on short content */
+  #rwDailyTab, #rwWeeklyTab {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+  }
+  #rwDailyTab.rw-active, #rwWeeklyTab.rw-active { display: flex; }
+
+  /* Daily summary — tight, intentional spacing */
+  #rwDailySummary {
+    padding: 0 0 10px;
+  }
+  .rwd-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 10px;
+    opacity: 0.8;
+  }
+  .rwd-dots-row {
+    display: flex;
+    gap: 7px;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+  }
+  .rwd-dot-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  .rwd-dot {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid #2a2a2a;
+    background: #111;
+    flex-shrink: 0;
+  }
+  .rwd-day-label {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    color: #444;
+    white-space: nowrap;
+  }
+  .rwd-note {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 10px;
+    color: #555;
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+
+  /* Weekly tier cards */
+  .wq-tier-card {
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    margin-bottom: 10px;
+    padding: 12px 14px 14px;
+    position: relative;
+  }
+  .wq-tier-card.wq-card-ready { border-color: #1a3a3a; }
+  .wq-tier-card.wq-card-claimed { border-color: #112222; }
+  .wq-tc-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .wq-tc-badge {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid #2a5555;
+    background: #0a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .wq-tc-badge .wq-tc-numeral {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #2a5555;
+    line-height: 1;
+    user-select: none;
+  }
+  .wq-card-ready .wq-tc-badge { border-color: #00ffee; background: rgba(0,255,238,0.08); }
+  .wq-card-ready .wq-tc-numeral { color: #00ffee; }
+  .wq-card-claimed .wq-tc-badge { border-color: #00ffee; background: rgba(0,255,238,0.15); }
+  .wq-card-claimed .wq-tc-numeral { color: #00ffee; }
+  /* tier3 gold */
+  .wq-t3card.wq-card-ready .wq-tc-badge { border-color: #ffcc00; background: rgba(255,204,0,0.08); }
+  .wq-t3card.wq-card-ready .wq-tc-numeral { color: #ffcc00; }
+  .wq-t3card.wq-card-claimed .wq-tc-badge { border-color: #ffcc00; background: rgba(255,204,0,0.15); }
+  .wq-t3card.wq-card-claimed .wq-tc-numeral { color: #ffcc00; }
+
+  .wq-tc-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #888;
+    flex: 1;
+  }
+  .wq-card-ready .wq-tc-name  { color: #ccc; }
+  .wq-card-claimed .wq-tc-name { color: #555; }
+
+  .wq-tc-objectives {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.7;
+    margin-bottom: 8px;
+  }
+  .wq-tc-obj-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .wq-tc-obj-text { color: #888; }
+  .wq-tc-obj-val  { color: #aaa; font-family: 'Oswald', sans-serif; font-size: 11px; letter-spacing: 1px; white-space: nowrap; }
+
+  /* Progress bar */
+  .wq-tc-progress {
+    height: 3px;
+    background: #1a1a1a;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .wq-tc-progress-fill {
+    height: 100%;
+    background: #1a4a4a;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .wq-card-ready .wq-tc-progress-fill  { background: #00ffee; }
+  .wq-card-claimed .wq-tc-progress-fill { background: #225555; }
+  .wq-t3card .wq-tc-progress-fill { background: #4a3a00; }
+  .wq-t3card.wq-card-ready .wq-tc-progress-fill  { background: #ffcc00; }
+  .wq-t3card.wq-card-claimed .wq-tc-progress-fill { background: #554400; }
+
+  /* Rewards preview */
+  .wq-tc-rewards {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 10px;
+    color: #555;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+    line-height: 1.6;
+  }
+  .wq-tc-rew-item { display: inline; }
+  .wq-tc-rew-item.prm { color: #0066cc; }
+  .wq-tc-rew-item.elt { color: #aa8800; }
+  .wq-tc-rew-item.zny { color: #886600; }
+
+  /* Claim button */
+  .wq-claim-btn {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    letter-spacing: 3px;
+    padding: 8px 20px;
+    border: 1px solid #00ffee;
+    color: #00ffee;
+    background: transparent;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s;
+  }
+  .wq-claim-btn:active { background: rgba(0,255,238,0.08); }
+  .wq-t3card .wq-claim-btn { border-color: #ffcc00; color: #ffcc00; }
+  .wq-t3card .wq-claim-btn:active { background: rgba(255,204,0,0.08); }
+  .wq-claimed-tag {
+    font-family: 'Oswald', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #1a5555;
+    text-align: center;
+    padding: 6px 0 0;
+  }
+  .wq-t3card .wq-claimed-tag { color: #554400; }
+  .wq-locked-tag {
+    font-family: 'Oswald', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #333;
+    text-align: center;
+    padding: 6px 0 0;
+  }
+  /* Reset countdown */
+  #wqResetNote {
+    font-family: 'Sarabun', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #333;
+    text-align: center;
+    margin-top: 8px;
+  }
   #dqLabel {
     font-family: Oswald;
-    font-size: clamp(7px, 1.8vw, 9px);
-    letter-spacing: 2px;
+    font-size: clamp(7px, 1.8vw, 8px);
+    letter-spacing: 1.5px;
     color: var(--gold);
   }
   #dqDots {
     display: flex;
-    gap: clamp(2px, 0.9vw, 4px);
+    gap: clamp(2px, 0.7vw, 3px);
     align-items: center;
   }
   .dq-dot-group {
@@ -2841,8 +3213,8 @@
     align-items: center;
   }
   .dq-dot {
-    width:  clamp(8px, 2.5vw, 12px);
-    height: clamp(8px, 2.5vw, 12px);
+    width:  clamp(7px, 2.2vw, 10px);
+    height: clamp(7px, 2.2vw, 10px);
     border-radius: 50%;
     border: 1.5px solid #2a2a2a;
     background: #111;
@@ -2850,8 +3222,8 @@
     transition: all 0.25s ease;
   }
   .dq-dot[data-day="6"] {
-    width:  clamp(10px, 3vw, 14px);
-    height: clamp(10px, 3vw, 14px);
+    width:  clamp(9px, 2.6vw, 12px);
+    height: clamp(9px, 2.6vw, 12px);
     border-width: 2px;
   }
 
@@ -3312,8 +3684,8 @@
   <div id="tapToStart" style="display:none;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:4px;color:#ff2233;animation:pulse-btn 1.2s ease-in-out infinite;cursor:pointer;">TAP TO START</div>
 </div>
 
-<!-- ── DAILY BATTLE REWARD WIDGET ── -->
-<div id="dailyQuestWidget">
+<!-- ── REWARD HUB WIDGET (Daily + Weekly) ── -->
+<div id="dailyQuestWidget" onclick="openRewardsModal()">
   <div id="dqLabel">DAILY</div>
   <div id="dqDots">
     <div class="dq-dot-group"><div class="dq-dot" data-day="0"></div></div>
@@ -3323,6 +3695,41 @@
     <div class="dq-dot-group"><div class="dq-dot" data-day="4"></div></div>
     <div class="dq-dot-group"><div class="dq-dot" data-day="5"></div></div>
     <div class="dq-dot-group"><div class="dq-dot" data-day="6"></div></div>
+  </div>
+  <div id="wqRow">
+    <span id="wqLabel">WEEKLY</span>
+    <div class="wq-tier-badge" id="wqBadge1" data-tier="1"><span class="wq-numeral">Ⅰ</span></div>
+    <div class="wq-tier-badge" id="wqBadge2" data-tier="2"><span class="wq-numeral">Ⅱ</span></div>
+    <div class="wq-tier-badge wq-t3" id="wqBadge3" data-tier="3"><span class="wq-numeral">Ⅲ</span></div>
+  </div>
+</div>
+
+<!-- ── REWARDS MODAL ── -->
+<div id="rewardsModal">
+  <div id="rewardsPanel">
+    <div id="rewardsHeader">
+      <div id="rewardsPanelTitle">REWARDS</div>
+      <button id="rewardsCloseBtn" onclick="closeRewardsModal()">✕ CLOSE</button>
+    </div>
+    <div id="rewardsTabs">
+      <button class="rw-tab active" id="rwTabDaily" onclick="switchRewardsTab('daily')">DAILY</button>
+      <button class="rw-tab" id="rwTabWeekly" onclick="switchRewardsTab('weekly')">WEEKLY</button>
+    </div>
+    <div id="rewardsBody">
+      <!-- DAILY TAB -->
+      <div id="rwDailyTab" class="rw-active">
+        <div id="rwDailySummary">
+          <div class="rwd-label">DAILY BATTLE REWARD</div>
+          <div class="rwd-dots-row" id="rwDailyDotsRow"></div>
+          <div class="rwd-note" id="rwDailyNote"></div>
+        </div>
+      </div>
+      <!-- WEEKLY TAB -->
+      <div id="rwWeeklyTab">
+        <div id="wqTierCardsWrap"></div>
+        <div id="wqResetNote"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -4252,6 +4659,7 @@ function defaultSave() {
            gamesCompleted:0,
            ocaTickets:{ standard:0, premium:0, elite:0 },
            dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
+           weeklyChallenge:{ weekId:'', runsCompleted:0, totalKO:0, breakSuccess:0, ak47Complete:0, claimed:{ tier1:false, tier2:false, tier3:false } },
            settings:normalizeSettings(gameSettings),
            cloudPlayerId:null,
            cardRuns:{} };
@@ -4278,6 +4686,21 @@ function normalizeSaveData(d) {
   ['standard','premium','elite'].forEach(t => { d.ocaTickets[t] = Math.max(0, Math.floor(Number(d.ocaTickets[t]) || 0)); });
   if (!d.dailyQuest || typeof d.dailyQuest !== 'object') d.dailyQuest = { weekKey:'', streak:0, lastClaimDate:'', claimed:[] };
   if (!Array.isArray(d.dailyQuest.claimed)) d.dailyQuest.claimed = [];
+  // ── weeklyChallenge: safe migration for old saves ──
+  if (!d.weeklyChallenge || typeof d.weeklyChallenge !== 'object') {
+    d.weeklyChallenge = { weekId:'', runsCompleted:0, totalKO:0, breakSuccess:0, ak47Complete:0, claimed:{ tier1:false, tier2:false, tier3:false } };
+  } else {
+    const wc = d.weeklyChallenge;
+    if (typeof wc.weekId !== 'string') wc.weekId = '';
+    wc.runsCompleted = Math.max(0, Math.floor(Number(wc.runsCompleted) || 0));
+    wc.totalKO       = Math.max(0, Math.floor(Number(wc.totalKO)       || 0));
+    wc.breakSuccess  = Math.max(0, Math.floor(Number(wc.breakSuccess)  || 0));
+    wc.ak47Complete  = Math.max(0, Math.floor(Number(wc.ak47Complete)  || 0));
+    if (!wc.claimed || typeof wc.claimed !== 'object') wc.claimed = { tier1:false, tier2:false, tier3:false };
+    wc.claimed.tier1 = !!wc.claimed.tier1;
+    wc.claimed.tier2 = !!wc.claimed.tier2;
+    wc.claimed.tier3 = !!wc.claimed.tier3;
+  }
   d.settings = normalizeSettings(d.settings || gameSettings);
   if (d.cloudPlayerId === undefined) d.cloudPlayerId = null;
   d.quitPenalty = false;
@@ -4639,6 +5062,17 @@ function computeStableSaveHash(d) {
   const dqClaimed = d.dailyQuest && d.dailyQuest.claimed
     ? [...d.dailyQuest.claimed].sort().join(',')
     : '';
+  // Weekly challenge: weekId + progress + claimed flags
+  const wqFingerprint = d.weeklyChallenge
+    ? [
+        d.weeklyChallenge.weekId || '',
+        d.weeklyChallenge.runsCompleted || 0,
+        d.weeklyChallenge.totalKO || 0,
+        d.weeklyChallenge.breakSuccess || 0,
+        d.weeklyChallenge.ak47Complete || 0,
+        d.weeklyChallenge.claimed ? (d.weeklyChallenge.claimed.tier1?1:0) + (d.weeklyChallenge.claimed.tier2?2:0) + (d.weeklyChallenge.claimed.tier3?4:0) : 0
+      ].join(',')
+    : '';
   // Settings: only values that affect gameplay or cloud identity
   const settingsKey = d.settings
     ? ['sfxVol','bgmVol','sfxMuted','bgmMuted','flashEffect']
@@ -4666,6 +5100,7 @@ function computeStableSaveHash(d) {
     dqStreak,
     dqClaimed,
     settingsKey,
+    wqFingerprint,
   ]);
   let h = 0;
   for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
@@ -4998,6 +5433,7 @@ function closeShop() {
 function showMainMenu() {
   checkDailyQuestReset();
   updateDailyQuestUI();
+  if (typeof updateWeeklyBadgesUI === 'function') updateWeeklyBadgesUI();
   $('mainMenu').style.display = 'flex';
   $('dailyQuestWidget').classList.add('visible');
   $('menuCoinNum').textContent = formatNum(save.coins);
@@ -5635,6 +6071,9 @@ function initState() {
   bossTapCount = 0; lastTapTime = 0;
   ko = 0; score = 0; maxCombo = 0; annihilationCount = 0; roundCoins = 0;
   waveKO = 0; timeLeft = 60;
+  // Weekly Challenge: per-run counters (committed to weekly state at endGame)
+  window._wqRunBreaks = 0;
+  window._wqRunAk47   = 0;
   window._bossesDefeated = 0;
   wpCollected = 0;
   wpRound = 1;
@@ -6066,6 +6505,8 @@ function triggerBombExplosion() {
 // Called ONLY when all 5 weak points have been collected (wp1–wp5 sounds play).
 // ONE OCA roll per completion. No partial-progress rolls.
 function onAk47Complete(x, y) {
+  // Weekly Challenge: count this AK47 completion
+  if (typeof window._wqRunAk47 === 'number') window._wqRunAk47++;
   tryOcaBombDrop(x, y);
 }
 
@@ -10379,6 +10820,8 @@ function pressureSuccess() {
   PRESSURE.bestStreak = Math.max(PRESSURE.bestStreak, PRESSURE.successStreak);
   PRESSURE.failAssist = Math.max(0, (PRESSURE.failAssist || 0) - 1);
   PRESSURE.failStreak = 0;
+  // Weekly Challenge: count this break
+  if (typeof window._wqRunBreaks === 'number') window._wqRunBreaks++;
   const _overloadBonus = (window._csState && window._csState.cs_overloadReduce) || 0;
   const relief = Math.round(pressureRandomRange(12, 18)) + _overloadBonus;
   PRESSURE.rage = Math.max(0, PRESSURE.rage - relief);
@@ -10737,6 +11180,10 @@ function endGame(opts = {}) {
   let _cmNewTier = null;
   if (activeCard && activeCard.id) _cmNewTier = cmRecordRun(activeCard.id);
   tryClaimDailyReward();
+  // Weekly Challenge: commit run progress
+  commitWeeklyProgress(ko, window._wqRunBreaks || 0, window._wqRunAk47 || 0);
+  window._wqRunBreaks = 0;
+  window._wqRunAk47   = 0;
   _csLastCards = null;
 
   // hide game elements
@@ -12441,6 +12888,7 @@ const _SYNC_REASON_DELAY = {
   // Daily/weekly state resets — silent background sync, low priority
   daily_reset:       10000,
   weekly_reset:      10000,
+  weekly_claim:      3000,
 };
 // Global minimum write interval: never auto-sync more often than every 30 seconds
 // Exceptions: manual_save, app_hide
@@ -13371,7 +13819,401 @@ function updateDailyQuestUI() {
   });
 }
 
-// FIX 1 — OCA Ticket double-tap guard
+// ══ END DAILY BATTLE REWARD SYSTEM ══
+
+// ══ WEEKLY CHALLENGE SYSTEM ══
+
+// Week ID: YYYY-WW, Monday-anchored (ISO week, same algorithm as getDailyWeekKey)
+function getCurrentWeekId() {
+  const now = new Date();
+  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const dayNum = d.getUTCDay() || 7; // Sun→7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum); // Thu of ISO week
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNum   = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return d.getUTCFullYear() + '-' + String(weekNum).padStart(2, '0');
+}
+
+function ensureWeeklyChallengeState() {
+  if (!save.weeklyChallenge || typeof save.weeklyChallenge !== 'object') {
+    save.weeklyChallenge = { weekId:'', runsCompleted:0, totalKO:0, breakSuccess:0, ak47Complete:0,
+      claimed:{ tier1:false, tier2:false, tier3:false } };
+  }
+  const currentId = getCurrentWeekId();
+  if (save.weeklyChallenge.weekId !== currentId) {
+    // New week: reset progress and claimed flags
+    save.weeklyChallenge = { weekId: currentId, runsCompleted:0, totalKO:0, breakSuccess:0, ak47Complete:0,
+      claimed:{ tier1:false, tier2:false, tier3:false } };
+    markSaveDirty('weekly_reset');
+    doSave();
+    scheduleCloudSync('weekly_reset', { silentToast: true });
+  }
+}
+
+// Called once per completed run from endGame
+function commitWeeklyProgress(runKO, runBreaks, runAk47) {
+  try {
+    ensureWeeklyChallengeState();
+    const wc = save.weeklyChallenge;
+    wc.runsCompleted = (wc.runsCompleted || 0) + 1;
+    wc.totalKO       = (wc.totalKO       || 0) + Math.max(0, Math.floor(Number(runKO)     || 0));
+    wc.breakSuccess  = (wc.breakSuccess  || 0) + Math.max(0, Math.floor(Number(runBreaks) || 0));
+    wc.ak47Complete  = (wc.ak47Complete  || 0) + Math.max(0, Math.floor(Number(runAk47)   || 0));
+    markSaveDirty('weekly_reset');
+    doSave();
+    scheduleCloudSync('weekly_reset', { silentToast: true });
+  } catch(e) { console.warn('[Weekly] commitWeeklyProgress error', e); }
+}
+
+// Tier completion checks
+const WQ_TIERS = {
+  tier1: {
+    label: 'TIER I',
+    numeral: 'Ⅰ',
+    check(wc) { return (wc.runsCompleted || 0) >= 5; },
+    progressVal(wc) { return Math.min(wc.runsCompleted || 0, 5); },
+    progressMax: 5,
+    objectives: [{ text: 'Runs completed', key: 'runsCompleted', target: 5 }],
+    rewardText: 'Premium OCA ×2  +  1,000 Zeny',
+    rewardItems: [{ type:'premium', count:2 }, { type:'zeny', count:1000 }],
+  },
+  tier2: {
+    label: 'TIER II',
+    numeral: 'Ⅱ',
+    check(wc) { return (wc.totalKO || 0) >= 3000; },
+    progressVal(wc) { return Math.min(wc.totalKO || 0, 3000); },
+    progressMax: 3000,
+    objectives: [{ text: 'Total KO', key: 'totalKO', target: 3000 }],
+    rewardText: 'Premium OCA ×3  +  3,000 Zeny',
+    rewardItems: [{ type:'premium', count:3 }, { type:'zeny', count:3000 }],
+  },
+  tier3: {
+    label: 'TIER III',
+    numeral: 'Ⅲ',
+    check(wc) { return (wc.breakSuccess || 0) >= 40 && (wc.ak47Complete || 0) >= 60; },
+    progressVal(wc) {
+      // Combined progress: average of both sub-objectives
+      const bp = Math.min(wc.breakSuccess || 0, 40) / 40;
+      const ap = Math.min(wc.ak47Complete || 0, 60) / 60;
+      return Math.round(((bp + ap) / 2) * 100);
+    },
+    progressMax: 100,
+    objectives: [
+      { text: 'BREAK success', key: 'breakSuccess', target: 40 },
+      { text: 'AK47 complete', key: 'ak47Complete', target: 60 },
+    ],
+    rewardText: 'Elite OCA ×2  +  Premium OCA ×3  +  5,000 Zeny',
+    rewardItems: [{ type:'elite', count:2 }, { type:'premium', count:3 }, { type:'zeny', count:5000 }],
+    isT3: true,
+  },
+};
+
+// Double-tap guard for claim buttons
+let _wqClaimInProgress = false;
+
+function claimWeeklyTier(tierId) {
+  if (_wqClaimInProgress) return;
+  _wqClaimInProgress = true;
+  try {
+    ensureWeeklyChallengeState();
+    const wc   = save.weeklyChallenge;
+    const tier = WQ_TIERS[tierId];
+    if (!tier) { _wqClaimInProgress = false; return; }
+    if (wc.claimed[tierId]) { _wqClaimInProgress = false; return; } // already claimed
+    if (!tier.check(wc))    { _wqClaimInProgress = false; return; } // objective not met
+
+    // Award rewards
+    if (!save.ocaTickets) save.ocaTickets = { standard:0, premium:0, elite:0 };
+    tier.rewardItems.forEach(item => {
+      if (item.type === 'zeny') {
+        save.coins = (save.coins || 0) + item.count;
+      } else {
+        // Only premium and elite — never standard
+        if (item.type === 'premium' || item.type === 'elite') {
+          save.ocaTickets[item.type] = (save.ocaTickets[item.type] || 0) + item.count;
+        }
+      }
+    });
+    wc.claimed[tierId] = true;
+
+    markSaveDirty('daily_reward');
+    doSave();
+    scheduleCloudSync('daily_reward');
+
+    // Update UI
+    updateOcaTicketUI();
+    if (typeof updateMenuCoinUI === 'function') updateMenuCoinUI();
+    else if (document.getElementById('menuCoinNum'))
+      document.getElementById('menuCoinNum').textContent = typeof formatNum === 'function' ? formatNum(save.coins) : save.coins;
+
+    _showWeeklyClaimToast(tierId, tier);
+    renderWeeklyTab();
+    updateWeeklyBadgesUI();
+  } catch(e) {
+    console.warn('[Weekly] claimWeeklyTier error', e);
+  } finally {
+    // Release guard after short delay to prevent accidental double-tap
+    setTimeout(function() { _wqClaimInProgress = false; }, 800);
+  }
+}
+
+function _showWeeklyClaimToast(tierId, tier) {
+  let container = document.getElementById('achievementToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'achievementToastContainer';
+    container.style.cssText =
+      'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+      'z-index:10000;display:flex;flex-direction:column-reverse;gap:8px;' +
+      'pointer-events:none;width:min(340px,90vw);';
+    document.body.appendChild(container);
+  }
+  const isT3 = (tierId === 'tier3');
+  const color = isT3 ? '#ffcc00' : '#00ffee';
+  const toast = document.createElement('div');
+  toast.className = 'dq-toast';
+  toast.style.borderLeftColor = color;
+  toast.innerHTML =
+    '<div style="font-family:\'Sarabun\',sans-serif;font-size:9px;letter-spacing:3px;color:#555;">WEEKLY CHALLENGE</div>' +
+    '<div style="font-family:\'Oswald\',sans-serif;font-size:14px;letter-spacing:2px;color:white;">' + tier.label + ' CLAIMED</div>' +
+    '<div style="font-family:\'Sarabun\',sans-serif;font-size:10px;letter-spacing:1px;color:' + color + ';">' + tier.rewardText + '</div>';
+  container.appendChild(toast);
+  setTimeout(function() { try { toast.remove(); } catch(e) {} }, 3500);
+}
+
+// ── Weekly Badges UI (hub widget) ──
+function updateWeeklyBadgesUI() {
+  try {
+    ensureWeeklyChallengeState();
+    const wc = save.weeklyChallenge;
+    ['tier1','tier2','tier3'].forEach(function(tierId, idx) {
+      const badge = document.getElementById('wqBadge' + (idx + 1));
+      if (!badge) return;
+      const tier = WQ_TIERS[tierId];
+      const claimed = wc.claimed[tierId];
+      const ready   = !claimed && tier.check(wc);
+      badge.classList.remove('wq-ready','wq-claimed');
+      if (claimed) badge.classList.add('wq-claimed');
+      else if (ready) badge.classList.add('wq-ready');
+    });
+  } catch(e) {}
+}
+
+// ── Rewards Modal ──
+let _rewardsActiveTab = 'daily';
+
+function openRewardsModal() {
+  try {
+    ensureWeeklyChallengeState();
+    checkDailyQuestReset();
+    const modal = document.getElementById('rewardsModal');
+    if (!modal) return;
+    switchRewardsTab(_rewardsActiveTab);
+    modal.classList.add('open');
+  } catch(e) { console.warn('[Weekly] openRewardsModal error', e); }
+}
+
+function closeRewardsModal() {
+  const modal = document.getElementById('rewardsModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function switchRewardsTab(tab) {
+  _rewardsActiveTab = tab;
+  const tabDaily   = document.getElementById('rwTabDaily');
+  const tabWeekly  = document.getElementById('rwTabWeekly');
+  const paneDaily  = document.getElementById('rwDailyTab');
+  const paneWeekly = document.getElementById('rwWeeklyTab');
+  if (!tabDaily || !tabWeekly || !paneDaily || !paneWeekly) return;
+
+  tabDaily.classList.toggle('active',  tab === 'daily');
+  tabWeekly.classList.toggle('active', tab === 'weekly');
+  paneDaily.classList.toggle('rw-active',  tab === 'daily');
+  paneWeekly.classList.toggle('rw-active', tab === 'weekly');
+
+  if (tab === 'daily')  renderDailyTab();
+  if (tab === 'weekly') renderWeeklyTab();
+}
+
+function renderDailyTab() {
+  const dotsRow = document.getElementById('rwDailyDotsRow');
+  const note    = document.getElementById('rwDailyNote');
+  if (!dotsRow || !save.dailyQuest) return;
+
+  checkDailyQuestReset();
+  const { streak, claimed } = save.dailyQuest;
+  const DQ_LABELS = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+
+  dotsRow.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const color = DQ_COLORS[i];
+    const isClaimed = claimed.includes(i);
+    const isNext    = (i === streak && streak < 7);
+
+    const item = document.createElement('div');
+    item.className = 'rwd-dot-item';
+
+    const dot = document.createElement('div');
+    dot.className = 'rwd-dot';
+    if (isClaimed) {
+      dot.style.background  = color;
+      dot.style.borderColor = color;
+      dot.style.boxShadow   = '0 0 8px ' + color;
+    } else if (isNext) {
+      dot.style.background  = 'transparent';
+      dot.style.borderColor = color;
+      dot.style.boxShadow   = '0 0 6px ' + color;
+      dot.style.animation   = 'dqNextPulse 1.2s ease-in-out infinite';
+    } else {
+      dot.style.background  = '#111';
+      dot.style.borderColor = '#2a2a2a';
+    }
+
+    const lbl = document.createElement('div');
+    lbl.className = 'rwd-day-label';
+    lbl.textContent = DQ_LABELS[i];
+    lbl.style.color = isClaimed ? color : (isNext ? color : '#333');
+
+    item.appendChild(dot);
+    item.appendChild(lbl);
+    dotsRow.appendChild(item);
+  }
+
+  if (note) {
+    const todayKey = getDailyTodayKey();
+    const alreadyClaimed = (save.dailyQuest.lastClaimDate === todayKey);
+    if (streak >= 7) {
+      note.textContent = 'WEEK COMPLETE — RESETS MONDAY';
+    } else if (alreadyClaimed) {
+      note.textContent = 'COME BACK TOMORROW FOR DAY ' + (streak + 1);
+    } else {
+      note.textContent = 'DAY ' + (streak + 1) + ' REWARD AVAILABLE';
+    }
+  }
+}
+
+function renderWeeklyTab() {
+  const wrap     = document.getElementById('wqTierCardsWrap');
+  const resetNote = document.getElementById('wqResetNote');
+  if (!wrap) return;
+
+  ensureWeeklyChallengeState();
+  const wc = save.weeklyChallenge;
+
+  wrap.innerHTML = '';
+
+  Object.keys(WQ_TIERS).forEach(function(tierId) {
+    const tier    = WQ_TIERS[tierId];
+    const claimed = wc.claimed[tierId];
+    const done    = tier.check(wc);
+    const ready   = done && !claimed;
+
+    const card = document.createElement('div');
+    card.className = 'wq-tier-card' + (tier.isT3 ? ' wq-t3card' : '');
+    if (claimed) card.classList.add('wq-card-claimed');
+    else if (ready) card.classList.add('wq-card-ready');
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'wq-tc-header';
+
+    const badge = document.createElement('div');
+    badge.className = 'wq-tc-badge';
+    const badgeNum = document.createElement('span');
+    badgeNum.className = 'wq-tc-numeral';
+    badgeNum.textContent = tier.numeral;
+    badge.appendChild(badgeNum);
+
+    const name = document.createElement('div');
+    name.className = 'wq-tc-name';
+    name.textContent = tier.label;
+
+    header.appendChild(badge);
+    header.appendChild(name);
+    card.appendChild(header);
+
+    // Objectives
+    const objWrap = document.createElement('div');
+    objWrap.className = 'wq-tc-objectives';
+    tier.objectives.forEach(function(obj) {
+      const line = document.createElement('div');
+      line.className = 'wq-tc-obj-line';
+      const txt = document.createElement('span');
+      txt.className = 'wq-tc-obj-text';
+      txt.textContent = obj.text;
+      const val = document.createElement('span');
+      val.className = 'wq-tc-obj-val';
+      const cur = Math.min(wc[obj.key] || 0, obj.target);
+      val.textContent = (typeof formatNum === 'function' ? formatNum(cur) : cur) + ' / ' + (typeof formatNum === 'function' ? formatNum(obj.target) : obj.target);
+      line.appendChild(txt);
+      line.appendChild(val);
+      objWrap.appendChild(line);
+    });
+    card.appendChild(objWrap);
+
+    // Progress bar
+    const progWrap = document.createElement('div');
+    progWrap.className = 'wq-tc-progress';
+    const progFill = document.createElement('div');
+    progFill.className = 'wq-tc-progress-fill';
+    const pct = Math.min(100, Math.round((tier.progressVal(wc) / tier.progressMax) * 100));
+    progFill.style.width = pct + '%';
+    progWrap.appendChild(progFill);
+    card.appendChild(progWrap);
+
+    // Reward text
+    const rewDiv = document.createElement('div');
+    rewDiv.className = 'wq-tc-rewards';
+    rewDiv.textContent = tier.rewardText;
+    card.appendChild(rewDiv);
+
+    // Action area
+    if (claimed) {
+      const tag = document.createElement('div');
+      tag.className = 'wq-claimed-tag';
+      tag.textContent = '✓ CLAIMED';
+      card.appendChild(tag);
+    } else if (ready) {
+      const btn = document.createElement('button');
+      btn.className = 'wq-claim-btn';
+      btn.textContent = 'CLAIM REWARD';
+      btn.onclick = (function(tid) { return function() { claimWeeklyTier(tid); }; })(tierId);
+      card.appendChild(btn);
+    } else {
+      const tag = document.createElement('div');
+      tag.className = 'wq-locked-tag';
+      tag.textContent = 'IN PROGRESS';
+      card.appendChild(tag);
+    }
+
+    wrap.appendChild(card);
+  });
+
+  // Reset countdown
+  if (resetNote) {
+    const now = new Date();
+    // Next Monday 00:00 local
+    const daysUntilMon = (8 - now.getDay()) % 7 || 7;
+    const nextMon = new Date(now);
+    nextMon.setDate(now.getDate() + daysUntilMon);
+    nextMon.setHours(0, 0, 0, 0);
+    const diffMs = nextMon - now;
+    const diffH  = Math.floor(diffMs / 3600000);
+    const diffM  = Math.floor((diffMs % 3600000) / 60000);
+    resetNote.textContent = 'RESETS IN ' + diffH + 'h ' + diffM + 'm';
+  }
+}
+
+// ── Close modal on backdrop tap ──
+(function() {
+  const modal = document.getElementById('rewardsModal');
+  if (!modal) return;
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeRewardsModal();
+  });
+})();
+
+// ══ END WEEKLY CHALLENGE SYSTEM ══
 let _ocaTicketInProgress = false;
 
 function useOcaTicket(type) {
