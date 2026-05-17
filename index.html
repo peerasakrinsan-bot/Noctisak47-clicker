@@ -2808,14 +2808,14 @@
   }
   #dailyQuestWidget {
     position: fixed;
-    top: max(env(safe-area-inset-top, 0px), 12px);
-    left: 12px;
+    top: max(env(safe-area-inset-top, 0px), 10px);
+    left: 10px;
     z-index: 1001;
     background: rgba(0,0,0,0.82);
     border: 1px solid #2a2a2a;
-    border-radius: 6px;
-    padding: 4px 8px 5px;
-    display: none; flex-direction: column; gap: 3px;
+    border-radius: 5px;
+    padding: 3px 7px 4px;
+    display: none; flex-direction: column; gap: 2px;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     box-sizing: border-box;
@@ -2835,22 +2835,22 @@
   #wqRow {
     display: flex;
     align-items: center;
-    gap: clamp(3px, 1.1vw, 5px);
-    margin-top: 2px;
+    gap: clamp(2px, 0.9vw, 4px);
+    margin-top: 0;
   }
   #wqLabel {
     font-family: Oswald;
-    font-size: clamp(7px, 1.8vw, 9px);
-    letter-spacing: 2px;
+    font-size: clamp(7px, 1.8vw, 8px);
+    letter-spacing: 1.5px;
     color: #00ffee;
-    opacity: 0.6;
+    opacity: 0.65;
   }
   .wq-tier-badge {
-    width:  clamp(15px, 4.4vw, 21px);
-    height: clamp(15px, 4.4vw, 21px);
+    width:  clamp(11px, 3.2vw, 15px);
+    height: clamp(11px, 3.2vw, 15px);
     border-radius: 50%;
-    border: 1.5px solid #1a3333;
-    background: #060e0e;
+    border: 1.5px solid #2a5555;
+    background: #0a1a1a;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2860,11 +2860,11 @@
   }
   .wq-tier-badge .wq-numeral {
     font-family: 'Oswald', sans-serif;
-    font-size: clamp(6px, 1.8vw, 9px);
+    font-size: clamp(5px, 1.5vw, 7px);
     font-weight: 700;
     letter-spacing: 0;
     line-height: 1;
-    color: #1a3333;
+    color: #2a5555;
     pointer-events: none;
     user-select: none;
     text-align: center;
@@ -2874,23 +2874,23 @@
   /* ready-to-claim state */
   .wq-tier-badge.wq-ready {
     border-color: #00ffee;
-    background: rgba(0,255,238,0.10);
-    box-shadow: 0 0 8px rgba(0,255,238,0.60), 0 0 14px rgba(0,255,238,0.20);
+    background: rgba(0,255,238,0.08);
+    box-shadow: 0 0 7px rgba(0,255,238,0.55);
     animation: wqBadgePulse 1.4s ease-in-out infinite;
   }
   .wq-tier-badge.wq-ready .wq-numeral { color: #00ffee; }
   /* tier 3 ready — gold accent */
   .wq-tier-badge.wq-ready.wq-t3 {
     border-color: #ffcc00;
-    background: rgba(255,204,0,0.10);
-    box-shadow: 0 0 8px rgba(255,204,0,0.60), 0 0 14px rgba(255,204,0,0.22);
+    background: rgba(255,204,0,0.08);
+    box-shadow: 0 0 7px rgba(255,204,0,0.55);
   }
   .wq-tier-badge.wq-ready.wq-t3 .wq-numeral { color: #ffcc00; }
   /* claimed state */
   .wq-tier-badge.wq-claimed {
     border-color: #00ffee;
     background: rgba(0,255,238,0.18);
-    box-shadow: 0 0 5px rgba(0,255,238,0.30);
+    box-shadow: 0 0 5px rgba(0,255,238,0.3);
     animation: none;
   }
   .wq-tier-badge.wq-claimed .wq-numeral { color: #00ffee; }
@@ -2908,63 +2908,47 @@
   /* ══ REWARDS MODAL ══ */
   #rewardsModal {
     position: fixed;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     z-index: 1500;
     background: rgba(0,0,0,0.88);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
     display: none;
     align-items: center;
     justify-content: center;
-    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 14px);
     box-sizing: border-box;
     touch-action: pan-y;
     -webkit-tap-highlight-color: transparent;
   }
   #rewardsModal.open { display: flex; }
   #rewardsPanel {
-    width: min(92vw, 520px);
-    max-height: min(82vh, 720px);
-    background: #090909;
-    border: 1px solid #2a3a3a;
-    border-radius: 6px;
-    box-shadow:
-      0 0 0 1px rgba(0,255,238,0.06),
-      0 0 36px rgba(0,0,0,0.85),
-      0 0 28px rgba(0,255,238,0.05),
-      inset 0 0 40px rgba(0,255,238,0.02);
+    width: min(92vw, 440px);
+    /* Fixed height so modal never shrinks between Daily and Weekly tabs */
+    height: min(72vh, 560px);
+    background: #0a0a0a;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    position: relative;
-  }
-  /* subtle top glow accent */
-  #rewardsPanel::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0,255,238,0.25), rgba(255,204,0,0.15), transparent);
-    pointer-events: none;
+    flex-shrink: 0;
   }
   #rewardsHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px 0;
+    padding: 12px 14px 0;
     flex-shrink: 0;
   }
   #rewardsPanelTitle {
     font-family: 'Oswald', sans-serif;
     font-size: 15px;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     color: var(--gold);
-    text-shadow: 0 0 16px rgba(255,204,0,0.35);
   }
   #rewardsCloseBtn {
     background: transparent;
-    border: 1px solid #2a2a2a;
-    color: #555;
+    border: 1px solid #333;
+    color: #666;
     font-family: 'Oswald', sans-serif;
     font-size: 11px;
     letter-spacing: 2px;
@@ -2972,79 +2956,82 @@
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    transition: border-color 0.12s, color 0.12s;
-    border-radius: 2px;
   }
-  #rewardsCloseBtn:active { background: #1a1a1a; color: #aaa; border-color: #555; }
+  #rewardsCloseBtn:active { background: #1a1a1a; color: #aaa; }
   /* Tabs */
   #rewardsTabs {
     display: flex;
-    border-bottom: 1px solid #1a2a2a;
-    margin-top: 12px;
+    border-bottom: 1px solid #1e1e1e;
+    margin-top: 10px;
     flex-shrink: 0;
-    background: rgba(0,0,0,0.3);
   }
   .rw-tab {
     flex: 1;
     font-family: 'Oswald', sans-serif;
-    font-size: 11px;
-    letter-spacing: 3px;
-    padding: 10px 0;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 8px 0;
     text-align: center;
-    color: #3a5555;
+    color: #444;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    transition: color 0.15s, border-color 0.15s;
   }
-  .rw-tab.active {
-    color: var(--gold);
-    border-bottom-color: var(--gold);
-    background: rgba(255,204,0,0.04);
-    text-shadow: 0 0 10px rgba(255,204,0,0.3);
-  }
+  .rw-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
   .rw-tab:active { opacity: 0.75; }
-  /* Tab body */
+  /* Tab body — flex:1 + min-height:0 ensures it fills remaining panel height */
   #rewardsBody {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    padding: 14px 14px 24px;
+    padding: 12px 14px 20px;
     box-sizing: border-box;
+    /* Tab panes are display:flex so body height is fully occupied */
+    display: flex;
+    flex-direction: column;
   }
-  /* Daily tab: reuse existing look, just re-render dots inline */
-  #rwDailyTab, #rwWeeklyTab { display: none; }
-  #rwDailyTab.rw-active, #rwWeeklyTab.rw-active { display: block; }
+  /* Tab panes fill the body so modal never collapses on short content */
+  #rwDailyTab, #rwWeeklyTab {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+  }
+  #rwDailyTab.rw-active, #rwWeeklyTab.rw-active { display: flex; }
 
-  /* Daily summary inside modal */
+  /* Daily summary — tight, intentional spacing */
   #rwDailySummary {
-    padding: 6px 0 14px;
+    padding: 0 0 10px;
   }
   .rwd-label {
     font-family: 'Oswald', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 3px;
     color: var(--gold);
     margin-bottom: 10px;
+    opacity: 0.8;
   }
   .rwd-dots-row {
     display: flex;
-    gap: 6px;
-    align-items: center;
-    flex-wrap: wrap;
+    gap: 7px;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    justify-content: space-between;
   }
   .rwd-dot-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    flex: 1;
   }
   .rwd-dot {
-    width: 18px; height: 18px;
+    width: 22px; height: 22px;
     border-radius: 50%;
     border: 1.5px solid #2a2a2a;
     background: #111;
@@ -3053,7 +3040,7 @@
   .rwd-day-label {
     font-family: 'Sarabun', sans-serif;
     font-size: 8px;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     color: #444;
     white-space: nowrap;
   }
@@ -3061,154 +3048,104 @@
     font-family: 'Sarabun', sans-serif;
     font-size: 10px;
     color: #555;
-    margin-top: 10px;
+    margin-top: 8px;
     letter-spacing: 1px;
   }
 
-  /* Weekly tier cards — polished */
+  /* Weekly tier cards */
   .wq-tier-card {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid #1a2828;
-    margin-bottom: 8px;
-    padding: 10px 12px 12px;
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    margin-bottom: 10px;
+    padding: 12px 14px 14px;
     position: relative;
-    border-radius: 3px;
   }
-  .wq-tier-card.wq-card-ready {
-    border-color: rgba(0,255,238,0.22);
-    background: rgba(0,255,238,0.025);
-    box-shadow: 0 0 12px rgba(0,255,238,0.05), inset 0 0 20px rgba(0,255,238,0.02);
-  }
-  .wq-tier-card.wq-card-claimed {
-    border-color: #0d2020;
-    opacity: 0.65;
-  }
+  .wq-tier-card.wq-card-ready { border-color: #1a3a3a; }
+  .wq-tier-card.wq-card-claimed { border-color: #112222; }
   .wq-tc-header {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 8px;
   }
-  /* Badge — medal style */
   .wq-tc-badge {
-    width: 30px; height: 30px;
+    width: 28px; height: 28px;
     border-radius: 50%;
-    border: 2px solid #1a3a3a;
-    background: radial-gradient(circle at 35% 35%, #0e2020, #060e0e);
+    border: 1.5px solid #2a5555;
+    background: #0a1a1a;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: inset 0 1px 2px rgba(0,255,238,0.06);
   }
   .wq-tc-badge .wq-tc-numeral {
     font-family: 'Oswald', sans-serif;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    color: #1e4444;
+    color: #2a5555;
     line-height: 1;
     user-select: none;
   }
-  /* incomplete */
-  /* ready */
-  .wq-card-ready .wq-tc-badge {
-    border-color: #00ffee;
-    background: radial-gradient(circle at 35% 35%, #082828, #040e0e);
-    box-shadow: 0 0 10px rgba(0,255,238,0.4), 0 0 22px rgba(0,255,238,0.15), inset 0 0 10px rgba(0,255,238,0.08);
-    animation: wqBadgeGlow 1.4s ease-in-out infinite;
-  }
-  .wq-card-ready .wq-tc-numeral { color: #00ffee; text-shadow: 0 0 8px rgba(0,255,238,0.7); }
-  /* claimed */
-  .wq-card-claimed .wq-tc-badge {
-    border-color: #007766;
-    background: radial-gradient(circle at 35% 35%, #051a18, #030e0c);
-    box-shadow: inset 0 0 8px rgba(0,255,238,0.05);
-    animation: none;
-  }
-  .wq-card-claimed .wq-tc-numeral { color: #007766; }
+  .wq-card-ready .wq-tc-badge { border-color: #00ffee; background: rgba(0,255,238,0.08); }
+  .wq-card-ready .wq-tc-numeral { color: #00ffee; }
+  .wq-card-claimed .wq-tc-badge { border-color: #00ffee; background: rgba(0,255,238,0.15); }
+  .wq-card-claimed .wq-tc-numeral { color: #00ffee; }
   /* tier3 gold */
-  .wq-t3card.wq-card-ready .wq-tc-badge {
-    border-color: #ffcc00;
-    background: radial-gradient(circle at 35% 35%, #1a1200, #0a0800);
-    box-shadow: 0 0 10px rgba(255,204,0,0.45), 0 0 22px rgba(255,204,0,0.18), inset 0 0 10px rgba(255,204,0,0.08);
-    animation: wqBadgeGlowGold 1.4s ease-in-out infinite;
-  }
-  .wq-t3card.wq-card-ready .wq-tc-numeral { color: #ffcc00; text-shadow: 0 0 8px rgba(255,204,0,0.7); }
-  .wq-t3card.wq-card-claimed .wq-tc-badge { border-color: #7a6000; }
-  .wq-t3card.wq-card-claimed .wq-tc-numeral { color: #7a6000; }
-  @keyframes wqBadgeGlow {
-    0%,100% { box-shadow: 0 0 8px rgba(0,255,238,0.30), inset 0 0 8px rgba(0,255,238,0.06); }
-    50%     { box-shadow: 0 0 16px rgba(0,255,238,0.65), 0 0 28px rgba(0,255,238,0.22), inset 0 0 14px rgba(0,255,238,0.12); }
-  }
-  @keyframes wqBadgeGlowGold {
-    0%,100% { box-shadow: 0 0 8px rgba(255,204,0,0.30), inset 0 0 8px rgba(255,204,0,0.06); }
-    50%     { box-shadow: 0 0 16px rgba(255,204,0,0.65), 0 0 28px rgba(255,204,0,0.22), inset 0 0 14px rgba(255,204,0,0.12); }
-  }
+  .wq-t3card.wq-card-ready .wq-tc-badge { border-color: #ffcc00; background: rgba(255,204,0,0.08); }
+  .wq-t3card.wq-card-ready .wq-tc-numeral { color: #ffcc00; }
+  .wq-t3card.wq-card-claimed .wq-tc-badge { border-color: #ffcc00; background: rgba(255,204,0,0.15); }
+  .wq-t3card.wq-card-claimed .wq-tc-numeral { color: #ffcc00; }
 
   .wq-tc-name {
     font-family: 'Oswald', sans-serif;
-    font-size: 12px;
-    letter-spacing: 3px;
-    color: #3a5555;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #888;
     flex: 1;
   }
-  .wq-card-ready .wq-tc-name   { color: #ccc; }
-  .wq-card-claimed .wq-tc-name { color: #2a3a3a; }
+  .wq-card-ready .wq-tc-name  { color: #ccc; }
+  .wq-card-claimed .wq-tc-name { color: #555; }
 
   .wq-tc-objectives {
     font-family: 'Sarabun', sans-serif;
     font-size: 11px;
-    color: #444;
-    line-height: 1.6;
-    margin-bottom: 7px;
+    color: #666;
+    line-height: 1.7;
+    margin-bottom: 8px;
   }
-  .wq-card-ready .wq-tc-objectives { color: #666; }
   .wq-tc-obj-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .wq-tc-obj-text { color: inherit; }
-  .wq-tc-obj-val  {
-    color: #999;
-    font-family: 'Oswald', sans-serif;
-    font-size: 11px;
-    letter-spacing: 1px;
-    white-space: nowrap;
-  }
-  .wq-card-ready .wq-tc-obj-val { color: #ddd; }
+  .wq-tc-obj-text { color: #888; }
+  .wq-tc-obj-val  { color: #aaa; font-family: 'Oswald', sans-serif; font-size: 11px; letter-spacing: 1px; white-space: nowrap; }
 
   /* Progress bar */
   .wq-tc-progress {
-    height: 4px;
-    background: #111;
+    height: 3px;
+    background: #1a1a1a;
     border-radius: 2px;
     overflow: hidden;
     margin-bottom: 8px;
-    border: 1px solid #1a1a1a;
   }
   .wq-tc-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #0a2a2a, #004444);
+    background: #1a4a4a;
     border-radius: 2px;
     transition: width 0.4s ease;
   }
-  .wq-card-ready .wq-tc-progress-fill  { background: linear-gradient(90deg, #00aa99, #00ffee); box-shadow: 0 0 6px rgba(0,255,238,0.5); }
-  .wq-card-claimed .wq-tc-progress-fill { background: #0d2a2a; }
-  .wq-t3card .wq-tc-progress-fill { background: linear-gradient(90deg, #2a1a00, #554400); }
-  .wq-t3card.wq-card-ready .wq-tc-progress-fill  { background: linear-gradient(90deg, #886600, #ffcc00); box-shadow: 0 0 6px rgba(255,204,0,0.45); }
-  .wq-t3card.wq-card-claimed .wq-tc-progress-fill { background: #2a1a00; }
+  .wq-card-ready .wq-tc-progress-fill  { background: #00ffee; }
+  .wq-card-claimed .wq-tc-progress-fill { background: #225555; }
+  .wq-t3card .wq-tc-progress-fill { background: #4a3a00; }
+  .wq-t3card.wq-card-ready .wq-tc-progress-fill  { background: #ffcc00; }
+  .wq-t3card.wq-card-claimed .wq-tc-progress-fill { background: #554400; }
 
   /* Rewards preview */
   .wq-tc-rewards {
     font-family: 'Sarabun', sans-serif;
     font-size: 10px;
-    color: #3a5a5a;
-    margin-bottom: 9px;
+    color: #555;
+    margin-bottom: 10px;
     letter-spacing: 0.5px;
-    line-height: 1.5;
+    line-height: 1.6;
   }
-  .wq-card-ready .wq-tc-rewards   { color: #00bbaa; }
-  .wq-card-claimed .wq-tc-rewards { color: #1a3030; }
-  .wq-t3card .wq-tc-rewards       { color: #5a4800; }
-  .wq-t3card.wq-card-ready .wq-tc-rewards   { color: #cc9900; }
-  .wq-t3card.wq-card-claimed .wq-tc-rewards { color: #2a1e00; }
   .wq-tc-rew-item { display: inline; }
   .wq-tc-rew-item.prm { color: #0066cc; }
   .wq-tc-rew-item.elt { color: #aa8800; }
@@ -3217,66 +3154,58 @@
   /* Claim button */
   .wq-claim-btn {
     font-family: 'Oswald', sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     letter-spacing: 3px;
-    padding: 9px 16px;
+    padding: 8px 20px;
     border: 1px solid #00ffee;
-    color: #000;
-    background: linear-gradient(135deg, #00ccbb, #00ffee);
+    color: #00ffee;
+    background: transparent;
     cursor: pointer;
     display: block;
     width: 100%;
     box-sizing: border-box;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    transition: filter 0.12s, box-shadow 0.12s;
-    box-shadow: 0 0 12px rgba(0,255,238,0.35);
-    border-radius: 2px;
-    font-weight: 700;
+    transition: background 0.12s;
   }
-  .wq-claim-btn:active { filter: brightness(0.85); box-shadow: 0 0 6px rgba(0,255,238,0.2); }
-  .wq-t3card .wq-claim-btn {
-    border-color: #ffcc00;
-    color: #000;
-    background: linear-gradient(135deg, #cc9900, #ffcc00);
-    box-shadow: 0 0 12px rgba(255,204,0,0.4);
-  }
-  .wq-t3card .wq-claim-btn:active { filter: brightness(0.85); }
+  .wq-claim-btn:active { background: rgba(0,255,238,0.08); }
+  .wq-t3card .wq-claim-btn { border-color: #ffcc00; color: #ffcc00; }
+  .wq-t3card .wq-claim-btn:active { background: rgba(255,204,0,0.08); }
   .wq-claimed-tag {
     font-family: 'Oswald', sans-serif;
     font-size: 10px;
     letter-spacing: 3px;
-    color: #0d3a3a;
+    color: #1a5555;
     text-align: center;
-    padding: 5px 0 0;
+    padding: 6px 0 0;
   }
-  .wq-t3card .wq-claimed-tag { color: #2a1a00; }
+  .wq-t3card .wq-claimed-tag { color: #554400; }
   .wq-locked-tag {
     font-family: 'Oswald', sans-serif;
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 2px;
-    color: #222;
+    color: #333;
     text-align: center;
-    padding: 5px 0 0;
+    padding: 6px 0 0;
   }
   /* Reset countdown */
   #wqResetNote {
     font-family: 'Sarabun', sans-serif;
     font-size: 9px;
     letter-spacing: 2px;
-    color: #2a3a3a;
+    color: #333;
     text-align: center;
-    margin-top: 6px;
+    margin-top: 8px;
   }
   #dqLabel {
     font-family: Oswald;
-    font-size: clamp(7px, 1.8vw, 9px);
-    letter-spacing: 2px;
+    font-size: clamp(7px, 1.8vw, 8px);
+    letter-spacing: 1.5px;
     color: var(--gold);
   }
   #dqDots {
     display: flex;
-    gap: clamp(2px, 0.9vw, 4px);
+    gap: clamp(2px, 0.7vw, 3px);
     align-items: center;
   }
   .dq-dot-group {
@@ -3284,8 +3213,8 @@
     align-items: center;
   }
   .dq-dot {
-    width:  clamp(8px, 2.5vw, 12px);
-    height: clamp(8px, 2.5vw, 12px);
+    width:  clamp(7px, 2.2vw, 10px);
+    height: clamp(7px, 2.2vw, 10px);
     border-radius: 50%;
     border: 1.5px solid #2a2a2a;
     background: #111;
@@ -3293,8 +3222,8 @@
     transition: all 0.25s ease;
   }
   .dq-dot[data-day="6"] {
-    width:  clamp(10px, 3vw, 14px);
-    height: clamp(10px, 3vw, 14px);
+    width:  clamp(9px, 2.6vw, 12px);
+    height: clamp(9px, 2.6vw, 12px);
     border-width: 2px;
   }
 
@@ -4330,7 +4259,7 @@ document.addEventListener('touchmove', e => {
 
 // FIX 1E — prevent full-page pan except inside scrollable screens
 document.addEventListener('touchmove', e => {
-  const scrollable = ['mainMenu','shopScreen','bossScreen','arenaScreen','cardCollectionScreen','rewardsBody'];
+  const scrollable = ['mainMenu','shopScreen','bossScreen','arenaScreen','cardCollectionScreen'];
   for (const id of scrollable) {
     const el = $(id);
     if (el && el.style.display === 'flex' && el.contains(e.target)) return;
@@ -13894,19 +13823,9 @@ function updateDailyQuestUI() {
 
 // ══ WEEKLY CHALLENGE SYSTEM ══
 
-// Week ID: YYYY-WW, Monday-anchored (ISO week).
-// Resets Monday at 06:00 local time — mirrors getDailyRewardDate() cutoff.
-// Before Monday 06:00 still belongs to the previous weekly cycle.
-function getWeeklyResetDate() {
-  const now = new Date();
-  // If it's Monday (day 1) and before 06:00, treat it as still last week.
-  if (now.getDay() === 1 && now.getHours() < 6) {
-    now.setDate(now.getDate() - 1); // shift back to Sunday — same week as before
-  }
-  return now;
-}
+// Week ID: YYYY-WW, Monday-anchored (ISO week, same algorithm as getDailyWeekKey)
 function getCurrentWeekId() {
-  const now = getWeeklyResetDate();
+  const now = new Date();
   const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const dayNum = d.getUTCDay() || 7; // Sun→7
   d.setUTCDate(d.getUTCDate() + 4 - dayNum); // Thu of ISO week
@@ -14270,23 +14189,18 @@ function renderWeeklyTab() {
     wrap.appendChild(card);
   });
 
-  // Reset countdown — targets Monday 06:00 local time
+  // Reset countdown
   if (resetNote) {
     const now = new Date();
-    // Find next Monday 06:00 local
+    // Next Monday 00:00 local
     const daysUntilMon = (8 - now.getDay()) % 7 || 7;
     const nextMon = new Date(now);
     nextMon.setDate(now.getDate() + daysUntilMon);
-    nextMon.setHours(6, 0, 0, 0);
-    // Edge case: if today IS Monday and it's still before 06:00, next reset is today at 06:00
-    if (now.getDay() === 1 && now.getHours() < 6) {
-      nextMon.setDate(now.getDate());
-      nextMon.setHours(6, 0, 0, 0);
-    }
+    nextMon.setHours(0, 0, 0, 0);
     const diffMs = nextMon - now;
     const diffH  = Math.floor(diffMs / 3600000);
     const diffM  = Math.floor((diffMs % 3600000) / 60000);
-    resetNote.textContent = 'RESETS MON 06:00 — ' + diffH + 'h ' + diffM + 'm';
+    resetNote.textContent = 'RESETS IN ' + diffH + 'h ' + diffM + 'm';
   }
 }
 
