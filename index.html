@@ -3075,53 +3075,98 @@
   body.reduce-flash #fighter.toei-enigma-aura::after  { filter: blur(18px) !important; }
   /* ══ END PERF R2 reduce-flash ══ */
 
-  /* ══ FLASH EFFECT: LOW — further reduction on top of reduce-flash baseline ══ */
+  /* ══ FLASH EFFECT: LOW ══
+     Sits on top of reduce-flash baseline. Goal: noticeable but gentle impact feedback.
+     Clearly different from OFF: shake is soft (not removed), particles dim (not gone),
+     aura pulses slowly (not frozen), flash is a brief faint flicker (not zero).
+  ══ */
+
+  /* Short soft flicker — visible but not strobe. Slightly longer than reduce-flash sfSoft
+     so it reads as "something happened" without eye strain. */
   body.flash-low .flash-punch,
   body.flash-low .flash-god,
   body.flash-low .flash-god2,
   body.flash-low .flash-god3,
-  body.flash-low .flash-boss { animation:sfLow 0.1s ease-out forwards !important; }
-  @keyframes sfLow { 0%{opacity:0.025;background:white;} 100%{opacity:0;} }
+  body.flash-low .flash-boss { animation:sfLow 0.22s ease-out forwards !important; }
+  @keyframes sfLow { 0%{opacity:0.04;background:white;} 100%{opacity:0;} }
 
-  body.flash-low #annihilationFlash.boom { animation:anniLow 0.5s ease-out forwards !important; }
-  @keyframes anniLow { 0%{opacity:0.07;background:#ffcc00;} 100%{opacity:0;} }
+  /* Annihilation/bomb: dim pulse instead of nothing — visible feedback, no full-screen white */
+  body.flash-low #annihilationFlash.boom { animation:anniLow 0.6s ease-out forwards !important; }
+  @keyframes anniLow { 0%{opacity:0.10;background:#ffcc00;} 100%{opacity:0;} }
 
-  body.flash-low #bombFlash.boom { animation:bombLow 0.5s ease-out forwards !important; }
-  @keyframes bombLow { 0%{opacity:0.06;background:#ffcc00;} 100%{opacity:0;} }
+  body.flash-low #bombFlash.boom { animation:bombLow 0.6s ease-out forwards !important; }
+  @keyframes bombLow { 0%{opacity:0.09;background:#ffcc00;} 100%{opacity:0;} }
 
-  body.flash-low #gameRoot.shake,
+  /* screenFlash: cap at very low opacity so JS-triggered flashes are felt, not blinding */
+  body.flash-low #screenFlash { opacity:0.10 !important; }
+
+  /* Shake: replace full shake with a gentler single-nudge version, not animation:none.
+     This is the key LOW vs OFF difference — OFF kills shake, LOW softens it. */
+  body.flash-low #gameRoot.shake { animation:screenShakeLow 0.45s ease-out !important; }
   body.flash-low #gameRoot.shake-wp,
-  body.flash-low #gameRoot.shake-wp2,
-  body.flash-low #gameRoot.pressure-impact-freeze,
-  body.flash-low #gameRoot.pressure-success-release #fighter,
-  body.flash-low #gameRoot.pressure-fail-backlash #fighter { animation:none !important; }
+  body.flash-low #gameRoot.shake-wp2 { animation:screenShakeLow 0.28s ease-out !important; }
+  body.flash-low #gameRoot.pressure-impact-freeze { animation:none !important; }
+  @keyframes screenShakeLow {
+    0%{transform:translate(0,0);}
+    20%{transform:translate(-2px,1px);}
+    45%{transform:translate(2px,-1px);}
+    70%{transform:translate(-1px,1px);}
+    100%{transform:translate(0,0);}
+  }
 
-  body.flash-low #pressureBossAura { opacity:.14 !important; animation:none !important; }
+  /* Pressure fighter animations: keep stagger/backlash but dial them back via a
+     shorter override. animation:none here would match OFF, so we keep them running. */
+  body.flash-low #gameRoot.pressure-success-release #fighter { animation:pressureBossStagger .18s cubic-bezier(.2,.95,.2,1) !important; }
+  body.flash-low #gameRoot.pressure-fail-backlash #fighter   { animation:pressureBossBacklash .20s cubic-bezier(.12,.9,.18,1) !important; }
+
+  /* Pressure aura: visible but dim and still — static glow, no pulse animation */
+  body.flash-low #pressureBossAura { opacity:.18 !important; animation:none !important; }
   body.flash-low #pressureBossAura::before,
   body.flash-low #pressureBossAura::after,
   body.flash-low #pressureBossAura .pressure-aura-core,
   body.flash-low #pressureBossAura .pressure-aura-smoke,
   body.flash-low #pressureBossAura .pressure-aura-ring { animation:none !important; }
 
-  body.flash-low .break-crack { opacity:.12 !important; }
-  body.flash-low .break-crack-burst { animation:breakImpact .18s ease-out forwards; opacity:.18; }
+  /* Break crack: faint but visible — player can see barrier HP */
+  body.flash-low .break-crack { opacity:.16 !important; }
+  body.flash-low .break-crack-burst { animation:breakImpact .20s ease-out forwards; opacity:.22; }
 
-  body.flash-low #gameRoot.pressure-streak-hot #fighter,
-  body.flash-low #gameRoot.pressure-streak-insane #fighter { filter:drop-shadow(0 0 5px rgba(120,0,18,.18)); }
+  /* Pressure streak: reduced glow, still present as gameplay state hint */
+  body.flash-low #gameRoot.pressure-streak-hot #fighter    { filter:drop-shadow(0 0 6px rgba(120,0,18,.22)); }
+  body.flash-low #gameRoot.pressure-streak-insane #fighter { filter:drop-shadow(0 0 8px rgba(120,0,18,.28)); }
 
+  /* Timer/combo: keep subtle static glow — readable, non-strobing */
   body.flash-low #timerDisplay.urgent,
-  body.flash-low .combo-max #bigCombo { animation:none !important; opacity:1; text-shadow:0 0 6px rgba(255,34,51,0.18); }
+  body.flash-low .combo-max #bigCombo { animation:none !important; opacity:1; text-shadow:0 0 8px rgba(255,34,51,0.22); }
 
-  body.flash-low .xuang-particle,
-  body.flash-low .xuang-aura-smoke,
-  body.flash-low .xuang-aura-core { animation:none !important; opacity:0 !important; filter:none !important; }
-  body.flash-low #xuangAura { opacity:.30 !important; }
-  body.flash-low .xuang-aura-ripple { animation:none !important; opacity:0 !important; }
-  body.flash-low #fighter.xuang-aura-hit #xuangAura { filter:none; }
+  /* Xuang particles: reduce opacity/scale but keep them alive — clear LOW vs OFF difference */
+  body.flash-low .xuang-particle     { opacity:0.28 !important; filter:none !important; }
+  body.flash-low .xuang-aura-smoke   { opacity:0.18 !important; filter:none !important; }
+  body.flash-low .xuang-aura-core    { opacity:0.22 !important; filter:none !important; }
+  body.flash-low .xuang-aura-ripple  { opacity:0.14 !important; animation:none !important; }
+  body.flash-low #xuangAura { opacity:.38 !important; }
+  body.flash-low #fighter.xuang-aura-hit #xuangAura { filter:drop-shadow(0 0 8px rgba(255,0,34,0.30)); }
 
-  body.flash-low .card-heavy-shimmer { animation:none !important; opacity:0 !important; filter:none !important; }
+  /* Heavy shimmer: kill animation but preserve a faint static glow */
+  body.flash-low .card-heavy-shimmer { animation:none !important; opacity:0.12 !important; filter:none !important; }
 
-  /* ══ FLASH EFFECT: OFF — disable strong flashes, preserve gameplay readability ══ */
+  /* OD Lv3 glitch: freeze animation, keep a warm red glow so Lv3 is still readable */
+  body.flash-low #godLevelWrap.od-lv3 #godLevelNum,
+  body.flash-low #godLevelWrap.od-lv3 #godLevelLabel {
+    animation: none !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 10px rgba(255,34,51,0.55) !important;
+  }
+
+
+  /* ══ FLASH EFFECT: OFF ══
+     Remove all strobe, full-screen flash, rapid flicker, shake.
+     Keep static non-flashing feedback: glows, borders, HP bars, hit numbers,
+     OD/BREAK/AK47 targets, xuang base glow, aura border.
+     Layout transforms: NEVER touched here.
+  ══ */
+
+  /* Full-screen flash layers: completely invisible */
   body.flash-off .flash-punch,
   body.flash-off .flash-god,
   body.flash-off .flash-god2,
@@ -3131,7 +3176,9 @@
   body.flash-off #annihilationFlash,
   body.flash-off #bombFlash { opacity:0 !important; animation:none !important; }
 
-  /* Cancel shake animations on #gameRoot — do NOT override its transform (base is translateZ(0)) */
+  body.flash-off #screenFlash { opacity:0 !important; animation:none !important; }
+
+  /* Shake: cancel all shake animations on #gameRoot — animation only, NO transform override */
   body.flash-off #gameRoot.shake,
   body.flash-off #gameRoot.shake-wp,
   body.flash-off #gameRoot.shake-wp2,
@@ -3139,13 +3186,14 @@
     animation: none !important;
   }
 
-  /* Cancel pressure animations on #fighter — safe to reset its transform (base is translate(-50%,-40%)) */
+  /* Fighter pressure animations: cancel on #fighter only — transform is their natural anchor */
   body.flash-off #gameRoot.pressure-success-release #fighter,
   body.flash-off #gameRoot.pressure-fail-backlash #fighter {
     animation: none !important;
     transform: translate(-50%,-40%) !important;
   }
 
+  /* Pressure aura: hide entirely — it pulses which reads as flicker */
   body.flash-off #pressureBossAura,
   body.flash-off #pressureBossAura::before,
   body.flash-off #pressureBossAura::after,
@@ -3153,31 +3201,31 @@
   body.flash-off #pressureBossAura .pressure-aura-smoke,
   body.flash-off #pressureBossAura .pressure-aura-ring { opacity:0 !important; animation:none !important; }
 
+  /* Pressure streak filter: remove in OFF — would appear as a glowing flash on hit */
+  body.flash-off #gameRoot.pressure-streak-hot #fighter,
+  body.flash-off #gameRoot.pressure-streak-insane #fighter { filter:none !important; }
+
+  /* Break crack: hidden — only the BREAK target itself (non-flashing) remains visible */
   body.flash-off .break-crack,
   body.flash-off .break-crack-burst { opacity:0 !important; animation:none !important; }
 
+  /* Timer/combo urgent: static, no pulse animation, no glow */
   body.flash-off #timerDisplay.urgent,
   body.flash-off .combo-max #bigCombo { animation:none !important; opacity:1; text-shadow:none; }
 
+  /* Xuang particles/smoke/ripple: fully hidden — they animate rapidly */
   body.flash-off .xuang-particle,
   body.flash-off .xuang-aura-smoke,
   body.flash-off .xuang-aura-core,
   body.flash-off .xuang-aura-ripple { animation:none !important; opacity:0 !important; filter:none !important; }
-  /* keep base xuang glow at very low opacity so equipped state is still visible */
-  body.flash-off #xuangAura { opacity:.12 !important; }
+  /* Keep faint static base glow so equipped state is readable — no animation */
+  body.flash-off #xuangAura { opacity:.10 !important; }
   body.flash-off #fighter.xuang-aura-hit #xuangAura { filter:none; }
 
+  /* Heavy shimmer: fully off */
   body.flash-off .card-heavy-shimmer { animation:none !important; opacity:0 !important; filter:none !important; }
 
-  body.flash-off #screenFlash { opacity:0 !important; animation:none !important; }
-
-  /* FIX 1 — OD Lv3 glitch flicker suppression */
-  body.flash-low #godLevelWrap.od-lv3 #godLevelNum,
-  body.flash-low #godLevelWrap.od-lv3 #godLevelLabel {
-    animation: none !important;
-    opacity: 1 !important;
-    text-shadow: 0 0 8px #ff2233 !important;
-  }
+  /* OD Lv3 glitch: freeze, plain red text, no glow, no flicker */
   body.flash-off #godLevelWrap.od-lv3 #godLevelNum,
   body.flash-off #godLevelWrap.od-lv3 #godLevelLabel {
     animation: none !important;
