@@ -1,5 +1,6 @@
-// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker v163
-const CACHE_NAME = 'noctisak47-v163';
+// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker 2026.05.18.1
+const APP_VERSION = '2026.05.18.1';
+const CACHE_NAME = 'noctisak47-' + APP_VERSION;
 
 const PRECACHE_ASSETS = [
   './',
@@ -177,9 +178,14 @@ self.addEventListener('fetch', event => {
                  url.pathname.endsWith('.html') ||
                  url.pathname === '/' ||
                  url.pathname === '';
+  const isCodeAsset = event.request.destination === 'script' ||
+                      event.request.destination === 'style' ||
+                      /\.(?:js|css|json)$/i.test(url.pathname) ||
+                      url.pathname.endsWith('/manifest.json') ||
+                      url.pathname.endsWith('/sw.js');
 
-  if (isHTML) {
-    // Network-first สำหรับ HTML — ได้ version ใหม่เสมอ ถ้า offline ใช้ cache
+  if (isHTML || isCodeAsset) {
+    // Network-first for HTML/code/manifest so deploys cannot be pinned forever by old cache.
     event.respondWith(
       fetch(event.request, { cache: 'no-store' }).then(response => {
         if (response && response.status === 200) {
@@ -187,12 +193,12 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
         return response;
-      }).catch(() => caches.match(event.request).then(c => c || caches.match('./index.html')))
+      }).catch(() => caches.match(event.request).then(c => c || (isHTML ? caches.match('./index.html') : undefined)))
     );
     return;
   }
 
-  // Cache-first สำหรับ assets อื่น (รูป เสียง ฯลฯ)
+  // Cache-first for heavy immutable-ish media assets (images/audio).
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
