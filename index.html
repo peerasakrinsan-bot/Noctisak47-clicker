@@ -2867,39 +2867,71 @@
     box-shadow:0 2px 12px rgba(0,0,0,0.6);
   }
 
-  /* ══ DAILY BATTLE REWARD WIDGET ══ */
+  /* ══ DAILY BATTLE REWARD WIDGET — COMPACT REWARD HUB ══ */
   @keyframes dqNextPulse {
     0%,100% { opacity: 0.5; }
     50%     { opacity: 1; }
   }
+  @keyframes wqBadgeReady {
+    0%,100% { box-shadow: 0 0 4px rgba(0,255,238,0.4); }
+    50%     { box-shadow: 0 0 10px rgba(0,255,238,0.9), 0 0 18px rgba(0,255,238,0.3); }
+  }
+
+  /* Reward Hub widget — compact, hugs content */
   #dailyQuestWidget {
     position: fixed;
     top: max(env(safe-area-inset-top, 0px), 12px);
     left: 12px;
     z-index: 1001;
-    background: rgba(0,0,0,0.82);
+    background: rgba(0,0,0,0.84);
     border: 1px solid #2a2a2a;
     border-radius: 6px;
-    padding: 4px 8px 5px;
-    display: none; flex-direction: column; gap: 3px;
+    padding: 6px 8px;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     box-sizing: border-box;
     overflow: hidden;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    /* no fixed width — hugs content */
+    width: fit-content;
+    max-width: 160px;
   }
   #dailyQuestWidget.visible {
     display: flex;
   }
-  #dqLabel {
-    font-family: Oswald;
+  #dailyQuestWidget:active {
+    background: rgba(20,20,20,0.92);
+  }
+
+  /* ── Row layout for each row ── */
+  .rh-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .rh-label {
+    font-family: Oswald, sans-serif;
     font-size: clamp(7px, 1.8vw, 9px);
     letter-spacing: 2px;
     color: var(--gold);
+    flex-shrink: 0;
+    line-height: 1;
+    min-width: 38px;
   }
+  .rh-label.weekly-lbl {
+    color: var(--cyan);
+  }
+
+  /* ── Daily dots (legacy .dqDots / .dq-dot kept for JS compat) ── */
   #dqDots {
     display: flex;
-    gap: clamp(2px, 0.9vw, 4px);
+    gap: clamp(3px, 0.9vw, 5px);
     align-items: center;
   }
   .dq-dot-group {
@@ -2907,8 +2939,8 @@
     align-items: center;
   }
   .dq-dot {
-    width:  clamp(8px, 2.5vw, 12px);
-    height: clamp(8px, 2.5vw, 12px);
+    width:  clamp(6px, 2vw, 8px);
+    height: clamp(6px, 2vw, 8px);
     border-radius: 50%;
     border: 1.5px solid #2a2a2a;
     background: #111;
@@ -2916,9 +2948,333 @@
     transition: all 0.25s ease;
   }
   .dq-dot[data-day="6"] {
-    width:  clamp(10px, 3vw, 14px);
-    height: clamp(10px, 3vw, 14px);
+    width:  clamp(8px, 2.4vw, 10px);
+    height: clamp(8px, 2.4vw, 10px);
     border-width: 2px;
+  }
+
+  /* ── Weekly tier badges ── */
+  #wqBadges {
+    display: flex;
+    gap: clamp(3px, 1vw, 5px);
+    align-items: center;
+  }
+  .wq-badge {
+    width:  clamp(13px, 3.5vw, 16px);
+    height: clamp(13px, 3.5vw, 16px);
+    border-radius: 50%;
+    border: 1.5px solid #2a3a3a;
+    background: #0a1010;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Oswald, sans-serif;
+    font-size: clamp(7px, 2vw, 9px);
+    color: #2a4a4a;
+    letter-spacing: 0;
+    line-height: 1;
+    transition: all 0.25s ease;
+    user-select: none;
+  }
+  .wq-badge.wq-incomplete {
+    border-color: #222;
+    background: #0a0a0a;
+    color: #333;
+  }
+  .wq-badge.wq-ready {
+    border-color: var(--cyan);
+    background: rgba(0,255,238,0.08);
+    color: var(--cyan);
+    animation: wqBadgeReady 1.4s ease-in-out infinite;
+  }
+  .wq-badge.wq-claimed {
+    border-color: var(--cyan);
+    background: var(--cyan);
+    color: #000;
+    box-shadow: 0 0 6px rgba(0,255,238,0.6);
+  }
+  /* Tier 3 slightly bolder when ready/claimed */
+  .wq-badge[data-tier="3"].wq-ready  { border-color: var(--gold); color: var(--gold); background: rgba(255,204,0,0.1); animation: none; box-shadow: 0 0 8px rgba(255,204,0,0.55); }
+  .wq-badge[data-tier="3"].wq-claimed { border-color: var(--gold); background: var(--gold); color: #000; box-shadow: 0 0 8px rgba(255,204,0,0.8); }
+
+  /* ══ REWARDS MODAL ══ */
+  #rewardsModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    padding-top: max(env(safe-area-inset-top,0px), 16px);
+    padding-bottom: max(env(safe-area-inset-bottom,0px), 16px);
+    background: rgba(0,0,0,0.86);
+    backdrop-filter: blur(4px);
+  }
+  #rewardsModal.open { display: flex; }
+
+  .rm-box {
+    background: #0d0d0d;
+    border: 1.5px solid #222;
+    border-radius: 12px;
+    width: min(380px, 96vw);
+    max-height: min(620px, 88vh);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0,0,0,0.9);
+    position: relative;
+  }
+
+  /* fixed header */
+  .rm-header {
+    flex-shrink: 0;
+    padding: 14px 16px 0;
+    background: #0d0d0d;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .rm-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .rm-title {
+    font-family: Oswald, sans-serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: #fff;
+  }
+  .rm-close {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+    touch-action: manipulation;
+  }
+  .rm-close:active { color: #fff; }
+
+  /* tabs */
+  .rm-tabs {
+    display: flex;
+    gap: 6px;
+    padding-bottom: 12px;
+  }
+  .rm-tab {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: 6px;
+    font-family: Oswald, sans-serif;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    border: 1.5px solid #333;
+    background: #1a1a1a;
+    color: #666;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: all 0.15s;
+  }
+  .rm-tab.active-daily  { border-color: var(--gold);  color: var(--gold);  background: rgba(255,204,0,0.08); }
+  .rm-tab.active-weekly { border-color: var(--cyan);  color: var(--cyan);  background: rgba(0,255,238,0.06); }
+
+  /* scrollable content */
+  .rm-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+  .rm-panel { display: none; padding: 12px 14px 20px; }
+  .rm-panel.active { display: block; }
+
+  /* ── Daily panel ── */
+  .rm-daily-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .rm-day-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    background: #111;
+  }
+  .rm-day-cell.day-claimed   { border-color: #222; background: #0d1a0d; }
+  .rm-day-cell.day-next      { border-color: var(--gold); background: rgba(255,204,0,0.05); }
+  .rm-day-num {
+    font-family: Oswald, sans-serif;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #444;
+  }
+  .rm-day-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #222;
+    background: #0a0a0a;
+  }
+  .rm-day-cell.day-claimed  .rm-day-dot { background: var(--color,#aaa); border-color: var(--color,#aaa); box-shadow: 0 0 6px var(--color,#aaa); }
+  .rm-day-cell.day-next     .rm-day-dot { background: transparent; border-color: var(--color,var(--gold)); box-shadow: 0 0 5px var(--color,var(--gold)); animation: dqNextPulse 1.2s ease-in-out infinite; }
+  .rm-day-tier {
+    font-family: Oswald, sans-serif;
+    font-size: 7px;
+    letter-spacing: 1px;
+    color: #333;
+    text-align: center;
+  }
+  .rm-day-cell.day-claimed .rm-day-tier { color: var(--color, #aaa); }
+  .rm-day-cell.day-next    .rm-day-tier { color: var(--color, var(--gold)); }
+
+  .rm-daily-info {
+    font-family: Sarabun, sans-serif;
+    font-size: 11px;
+    color: #555;
+    text-align: center;
+    padding: 8px 0;
+    border-top: 1px solid #1a1a1a;
+    letter-spacing: 1px;
+  }
+
+  /* ── Weekly tier cards ── */
+  .wq-tier-card {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 12px 12px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .wq-tier-card.tier-complete  { border-color: rgba(0,255,238,0.3); background: rgba(0,255,238,0.03); }
+  .wq-tier-card.tier-claimed   { border-color: #1a2a2a; opacity: 0.65; }
+  .wq-tier-card.tier-3.tier-complete { border-color: rgba(255,204,0,0.35); background: rgba(255,204,0,0.03); }
+
+  .wq-tier-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wq-tier-name {
+    font-family: Oswald, sans-serif;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #aaa;
+  }
+  .wq-tier-card.tier-complete  .wq-tier-name { color: var(--cyan); }
+  .wq-tier-card.tier-3.tier-complete .wq-tier-name { color: var(--gold); }
+  .wq-tier-card.tier-claimed   .wq-tier-name { color: #444; }
+
+  .wq-tier-status {
+    font-family: Oswald, sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #444;
+  }
+  .wq-tier-card.tier-complete  .wq-tier-status { color: var(--cyan); }
+  .wq-tier-card.tier-3.tier-complete .wq-tier-status { color: var(--gold); }
+  .wq-tier-card.tier-claimed   .wq-tier-status { color: #336655; }
+
+  .wq-objective {
+    font-family: Sarabun, sans-serif;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.5;
+  }
+  .wq-objective strong { color: #aaa; font-family: Oswald, sans-serif; font-size: 12px; letter-spacing: 1px; }
+
+  /* progress bar */
+  .wq-progress-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .wq-progress-bar-bg {
+    height: 6px;
+    background: #0a0a0a;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #1a1a1a;
+  }
+  .wq-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #003a44, var(--cyan));
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    min-width: 0;
+  }
+  .wq-tier-card.tier-3 .wq-progress-bar-fill { background: linear-gradient(90deg, #2a1a00, var(--gold)); }
+  .wq-tier-card.tier-claimed .wq-progress-bar-fill { background: #1a3030; }
+  .wq-progress-nums {
+    display: flex;
+    justify-content: space-between;
+    font-family: Oswald, sans-serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #444;
+  }
+  .wq-progress-nums span.done { color: var(--cyan); }
+  .wq-tier-card.tier-3 .wq-progress-nums span.done { color: var(--gold); }
+
+  /* rewards preview */
+  .wq-rewards {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .wq-reward-chip {
+    font-family: Oswald, sans-serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid #222;
+    color: #555;
+    background: #0a0a0a;
+  }
+  .wq-reward-chip.prm { border-color: rgba(0,136,255,0.5); color: #0088ff; background: rgba(0,136,255,0.06); }
+  .wq-reward-chip.elt { border-color: rgba(255,204,0,0.5);  color: var(--gold); background: rgba(255,204,0,0.06); }
+  .wq-reward-chip.zen { border-color: rgba(255,204,0,0.25); color: #aa8800; background: transparent; }
+
+  /* claim button */
+  .wq-claim-btn {
+    font-family: Oswald, sans-serif;
+    font-size: 12px;
+    letter-spacing: 3px;
+    padding: 10px 0;
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 6px;
+    transition: filter 0.15s;
+  }
+  .wq-claim-btn.btn-claim   { background: var(--cyan); color: #000; }
+  .wq-claim-btn.btn-claim:active { filter: brightness(0.85); }
+  .wq-claim-btn.btn-tier3   { background: var(--gold); color: #000; }
+  .wq-claim-btn.btn-tier3:active { filter: brightness(0.85); }
+  .wq-claim-btn.btn-inprog  { background: #111; color: #333; border: 1px solid #1a1a1a; cursor: default; pointer-events: none; }
+  .wq-claim-btn.btn-claimed { background: #0a1a1a; color: #226655; border: 1px solid #0a2020; cursor: default; font-size: 10px; }
+
+  /* weekly reset note */
+  .wq-reset-note {
+    font-family: Sarabun, sans-serif;
+    font-size: 10px;
+    color: #333;
+    text-align: center;
+    padding: 6px 0 0;
+    letter-spacing: 1px;
   }
 
   /* ══ OCA TICKET UI ══ */
@@ -3378,17 +3734,117 @@
   <div id="tapToStart" style="display:none;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:4px;color:#ff2233;animation:pulse-btn 1.2s ease-in-out infinite;cursor:pointer;">TAP TO START</div>
 </div>
 
-<!-- ── DAILY BATTLE REWARD WIDGET ── -->
-<div id="dailyQuestWidget">
-  <div id="dqLabel">DAILY</div>
-  <div id="dqDots">
-    <div class="dq-dot-group"><div class="dq-dot" data-day="0"></div></div>
-    <div class="dq-dot-group"><div class="dq-dot" data-day="1"></div></div>
-    <div class="dq-dot-group"><div class="dq-dot" data-day="2"></div></div>
-    <div class="dq-dot-group"><div class="dq-dot" data-day="3"></div></div>
-    <div class="dq-dot-group"><div class="dq-dot" data-day="4"></div></div>
-    <div class="dq-dot-group"><div class="dq-dot" data-day="5"></div></div>
-    <div class="dq-dot-group"><div class="dq-dot" data-day="6"></div></div>
+<!-- ── REWARD HUB WIDGET (Daily + Weekly compact) ── -->
+<div id="dailyQuestWidget" onclick="openRewardsModal()" role="button" aria-label="Rewards">
+  <!-- Daily row -->
+  <div class="rh-row">
+    <span class="rh-label">DAILY</span>
+    <div id="dqDots">
+      <div class="dq-dot-group"><div class="dq-dot" data-day="0"></div></div>
+      <div class="dq-dot-group"><div class="dq-dot" data-day="1"></div></div>
+      <div class="dq-dot-group"><div class="dq-dot" data-day="2"></div></div>
+      <div class="dq-dot-group"><div class="dq-dot" data-day="3"></div></div>
+      <div class="dq-dot-group"><div class="dq-dot" data-day="4"></div></div>
+      <div class="dq-dot-group"><div class="dq-dot" data-day="5"></div></div>
+      <div class="dq-dot-group"><div class="dq-dot" data-day="6"></div></div>
+    </div>
+  </div>
+  <!-- Weekly row -->
+  <div class="rh-row">
+    <span class="rh-label weekly-lbl">WEEKLY</span>
+    <div id="wqBadges">
+      <div class="wq-badge wq-incomplete" data-tier="1">Ⅰ</div>
+      <div class="wq-badge wq-incomplete" data-tier="2">Ⅱ</div>
+      <div class="wq-badge wq-incomplete" data-tier="3">Ⅲ</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── REWARDS MODAL ── -->
+<div id="rewardsModal">
+  <div class="rm-box">
+    <!-- Fixed header + tabs -->
+    <div class="rm-header">
+      <div class="rm-title-row">
+        <span class="rm-title">REWARDS</span>
+        <button class="rm-close" onclick="closeRewardsModal()">✕</button>
+      </div>
+      <div class="rm-tabs">
+        <button class="rm-tab active-daily"  id="rmTabDaily"  onclick="rmSwitchTab('daily')">DAILY</button>
+        <button class="rm-tab"               id="rmTabWeekly" onclick="rmSwitchTab('weekly')">WEEKLY</button>
+      </div>
+    </div>
+    <!-- Scrollable content -->
+    <div class="rm-content">
+      <!-- Daily panel -->
+      <div class="rm-panel active" id="rmPanelDaily">
+        <div class="rm-daily-grid" id="rmDailyGrid"><!-- populated by JS --></div>
+        <div class="rm-daily-info" id="rmDailyInfo"></div>
+      </div>
+      <!-- Weekly panel -->
+      <div class="rm-panel" id="rmPanelWeekly">
+        <!-- Tier 1 -->
+        <div class="wq-tier-card" id="wqCard1">
+          <div class="wq-tier-header">
+            <span class="wq-tier-name">TIER Ⅰ</span>
+            <span class="wq-tier-status" id="wqStatus1">IN PROGRESS</span>
+          </div>
+          <div class="wq-objective"><strong>Complete 5 Runs</strong></div>
+          <div class="wq-progress-wrap">
+            <div class="wq-progress-bar-bg"><div class="wq-progress-bar-fill" id="wqBar1" style="width:0%"></div></div>
+            <div class="wq-progress-nums"><span id="wqProg1">0 / 5</span><span id="wqPct1">0%</span></div>
+          </div>
+          <div class="wq-rewards">
+            <span class="wq-reward-chip prm">PREMIUM OCA ×2</span>
+            <span class="wq-reward-chip zen">1,000 ZENY</span>
+          </div>
+          <button class="wq-claim-btn btn-inprog" id="wqClaimBtn1" onclick="wqClaimTier(1)" disabled>IN PROGRESS</button>
+        </div>
+        <!-- Tier 2 -->
+        <div class="wq-tier-card" id="wqCard2">
+          <div class="wq-tier-header">
+            <span class="wq-tier-name">TIER Ⅱ</span>
+            <span class="wq-tier-status" id="wqStatus2">IN PROGRESS</span>
+          </div>
+          <div class="wq-objective"><strong>Total KO 3,000</strong></div>
+          <div class="wq-progress-wrap">
+            <div class="wq-progress-bar-bg"><div class="wq-progress-bar-fill" id="wqBar2" style="width:0%"></div></div>
+            <div class="wq-progress-nums"><span id="wqProg2">0 / 3,000</span><span id="wqPct2">0%</span></div>
+          </div>
+          <div class="wq-rewards">
+            <span class="wq-reward-chip prm">PREMIUM OCA ×3</span>
+            <span class="wq-reward-chip zen">3,000 ZENY</span>
+          </div>
+          <button class="wq-claim-btn btn-inprog" id="wqClaimBtn2" onclick="wqClaimTier(2)" disabled>IN PROGRESS</button>
+        </div>
+        <!-- Tier 3 -->
+        <div class="wq-tier-card tier-3" id="wqCard3">
+          <div class="wq-tier-header">
+            <span class="wq-tier-name">TIER Ⅲ</span>
+            <span class="wq-tier-status" id="wqStatus3">IN PROGRESS</span>
+          </div>
+          <div class="wq-objective">
+            <strong>BREAK Success 40</strong><br>
+            <strong>AK47 Complete 60</strong>
+          </div>
+          <div class="wq-progress-wrap">
+            <div class="wq-progress-bar-bg"><div class="wq-progress-bar-fill" id="wqBar3a" style="width:0%"></div></div>
+            <div class="wq-progress-nums"><span>BREAK</span><span id="wqProg3a">0 / 40</span></div>
+          </div>
+          <div class="wq-progress-wrap" style="margin-top:2px;">
+            <div class="wq-progress-bar-bg"><div class="wq-progress-bar-fill" id="wqBar3b" style="width:0%"></div></div>
+            <div class="wq-progress-nums"><span>AK47</span><span id="wqProg3b">0 / 60</span></div>
+          </div>
+          <div class="wq-rewards">
+            <span class="wq-reward-chip elt">ELITE OCA ×1</span>
+            <span class="wq-reward-chip prm">PREMIUM OCA ×3</span>
+            <span class="wq-reward-chip zen">5,000 ZENY</span>
+          </div>
+          <button class="wq-claim-btn btn-inprog btn-tier3" id="wqClaimBtn3" onclick="wqClaimTier(3)" disabled>IN PROGRESS</button>
+        </div>
+        <div class="wq-reset-note" id="wqResetNote">Resets Monday 06:00</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -4318,6 +4774,7 @@ function defaultSave() {
            gamesCompleted:0,
            ocaTickets:{ standard:0, premium:0, elite:0 },
            dailyQuest:{ weekKey:'', streak:0, lastClaimDate:'', claimed:[] },
+           weeklyChallenge:{ weekId:'', runsCompleted:0, totalKO:0, breakSuccess:0, ak47Complete:0, claimed:{ tier1:false, tier2:false, tier3:false } },
            settings:normalizeSettings(gameSettings),
            cloudPlayerId:null,
            cardRuns:{} };
@@ -4344,6 +4801,15 @@ function normalizeSaveData(d) {
   ['standard','premium','elite'].forEach(t => { d.ocaTickets[t] = Math.max(0, Math.floor(Number(d.ocaTickets[t]) || 0)); });
   if (!d.dailyQuest || typeof d.dailyQuest !== 'object') d.dailyQuest = { weekKey:'', streak:0, lastClaimDate:'', claimed:[] };
   if (!Array.isArray(d.dailyQuest.claimed)) d.dailyQuest.claimed = [];
+  // ── weeklyChallenge: default + normalize for old saves ──
+  if (!d.weeklyChallenge || typeof d.weeklyChallenge !== 'object') d.weeklyChallenge = { weekId:'', runsCompleted:0, totalKO:0, breakSuccess:0, ak47Complete:0, claimed:{ tier1:false, tier2:false, tier3:false } };
+  d.weeklyChallenge.weekId        = typeof d.weeklyChallenge.weekId === 'string'          ? d.weeklyChallenge.weekId : '';
+  d.weeklyChallenge.runsCompleted = Math.max(0, Math.floor(Number(d.weeklyChallenge.runsCompleted) || 0));
+  d.weeklyChallenge.totalKO       = Math.max(0, Math.floor(Number(d.weeklyChallenge.totalKO)       || 0));
+  d.weeklyChallenge.breakSuccess  = Math.max(0, Math.floor(Number(d.weeklyChallenge.breakSuccess)  || 0));
+  d.weeklyChallenge.ak47Complete  = Math.max(0, Math.floor(Number(d.weeklyChallenge.ak47Complete)  || 0));
+  if (!d.weeklyChallenge.claimed || typeof d.weeklyChallenge.claimed !== 'object') d.weeklyChallenge.claimed = { tier1:false, tier2:false, tier3:false };
+  ['tier1','tier2','tier3'].forEach(t => { d.weeklyChallenge.claimed[t] = !!d.weeklyChallenge.claimed[t]; });
   d.settings = normalizeSettings(d.settings || gameSettings);
   if (d.cloudPlayerId === undefined) d.cloudPlayerId = null;
   d.quitPenalty = false;
@@ -4705,6 +5171,16 @@ function computeStableSaveHash(d) {
   const dqClaimed = d.dailyQuest && d.dailyQuest.claimed
     ? [...d.dailyQuest.claimed].sort().join(',')
     : '';
+  // Weekly challenge hash
+  const wqHash = d.weeklyChallenge
+    ? [d.weeklyChallenge.weekId||'', d.weeklyChallenge.runsCompleted||0,
+       d.weeklyChallenge.totalKO||0, d.weeklyChallenge.breakSuccess||0,
+       d.weeklyChallenge.ak47Complete||0,
+       (d.weeklyChallenge.claimed&&d.weeklyChallenge.claimed.tier1)?1:0,
+       (d.weeklyChallenge.claimed&&d.weeklyChallenge.claimed.tier2)?1:0,
+       (d.weeklyChallenge.claimed&&d.weeklyChallenge.claimed.tier3)?1:0,
+      ].join(',')
+    : '';
   // Settings: only values that affect gameplay or cloud identity
   const settingsKey = d.settings
     ? ['sfxVol','bgmVol','sfxMuted','bgmMuted','flashEffect']
@@ -4731,6 +5207,7 @@ function computeStableSaveHash(d) {
     dqKey,
     dqStreak,
     dqClaimed,
+    wqHash,
     settingsKey,
   ]);
   let h = 0;
@@ -5064,6 +5541,7 @@ function closeShop() {
 function showMainMenu() {
   checkDailyQuestReset();
   updateDailyQuestUI();
+  if (typeof updateWeeklyBadgesUI === 'function') updateWeeklyBadgesUI();
   $('mainMenu').style.display = 'flex';
   $('dailyQuestWidget').classList.add('visible');
   $('menuCoinNum').textContent = formatNum(save.coins);
@@ -5708,6 +6186,10 @@ function initState() {
   wp5FirstDone = false;
   _lastWpPos = null; // AK47 Safe Spawn: clear previous position on new round
   _ocaDropCount = 0; // OCA Drop System — reset per-round cap
+  // ── Weekly Challenge: reset per-run counters ──
+  window._wqRunBreakSuccess = 0;
+  window._wqRunAk47Complete = 0;
+  window._wqRunKO           = 0;
   pressureReset();
   updateWpCounter();
   gun.style.display = 'none';
@@ -6048,6 +6530,8 @@ function triggerBombExplosion() {
 
   // bonus coin เมื่อครบ 5 ลูก — เพิ่มตามจำนวนครั้งที่ครบ
   wpCompletions++;
+  // ── Weekly Challenge: per-run AK47 complete counter ──
+  window._wqRunAk47Complete = (window._wqRunAk47Complete || 0) + 1;
   const wpBonusTable = [10, 20, 35, 50, 75]; // ครั้งที่ 1-5
   const wpBonus = wpCompletions <= 5
     ? wpBonusTable[wpCompletions - 1]
@@ -10459,6 +10943,8 @@ function pressureSuccess() {
   PRESSURE.lastAfkAt = Date.now();
   if(typeof csOnBreakSuccess === 'function') csOnBreakSuccess();
   if(typeof csOnBreakEnd === 'function') csOnBreakEnd();
+  // ── Weekly Challenge: per-run BREAK success counter ──
+  window._wqRunBreakSuccess = (window._wqRunBreakSuccess || 0) + 1;
   // ── OCA Drop: BREAK success ──
   const _brx = (PRESSURE.resolvePoint && PRESSURE.resolvePoint.x) || vvW() / 2;
   const _bry = (PRESSURE.resolvePoint && PRESSURE.resolvePoint.y) || vvH() * 0.42;
@@ -10803,6 +11289,7 @@ function endGame(opts = {}) {
   let _cmNewTier = null;
   if (activeCard && activeCard.id) _cmNewTier = cmRecordRun(activeCard.id);
   tryClaimDailyReward();
+  commitWeeklyProgress(); // ── Weekly Challenge: commit run stats once ──
   _csLastCards = null;
 
   // hide game elements
@@ -11583,6 +12070,7 @@ function applyDamage(dmg,e,isCrit) {
 // ══════════════════════════════════════════
 function normalKO() {
   ko++; waveKO++;
+  window._wqRunKO = (window._wqRunKO || 0) + 1; // weekly per-run KO counter
   let baseCoins = Math.round((1 + Math.floor(combo * 0.05)) * (1.25 + (_sc.coinMult||0)));
   // Turtle Shogun: KO Zeny -15%
   if(window._csState && (window._csState.cs_turtleShogun || window._csState.cs_dorkLord)) baseCoins = Math.round(baseCoins * 0.85);
@@ -11640,6 +12128,7 @@ function csOnBossKO() {
 function bossKO() {
   csOnBossKO();
   isBoss=false; ko++;
+  window._wqRunKO = (window._wqRunKO || 0) + 1; // weekly per-run KO counter
   bossTapCount = 0; lastTapTime = 0; // reset tap ramp on boss KO
   window._bossesDefeated = (window._bossesDefeated||0) + 1;
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
@@ -12699,6 +13188,8 @@ async function startupCloudRestore() {
       try { if ($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins); } catch(e) {}
       try { if (typeof checkDailyQuestReset === 'function') checkDailyQuestReset(); } catch(e) {}
       try { if (typeof updateDailyQuestUI  === 'function') updateDailyQuestUI();    } catch(e) {}
+      try { if (typeof checkWeeklyChallengeReset === 'function') checkWeeklyChallengeReset(); } catch(e) {}
+      try { if (typeof updateWeeklyBadgesUI      === 'function') updateWeeklyBadgesUI();      } catch(e) {}
       saveState.lastSyncHash = _saveHash(save);
       showSaveToast('loaded');
       DEV_LOG('[restore] applied — coins:', save.coins, 'hs:', save.stats && save.stats.highScore);
@@ -13210,7 +13701,18 @@ async function svCloudDownload() {
     }
 
     cloudSave.cloudPlayerId = id;
+    const _localWeekly = (save.weeklyChallenge && save.weeklyChallenge.weekId)
+      ? { weekId: save.weeklyChallenge.weekId, claimed: Object.assign({}, save.weeklyChallenge.claimed) }
+      : null;
     Object.assign(save, normalizeSaveData(cloudSave));
+    // If cloud save is from the same week, carry forward any claims already made locally
+    // to prevent a stale cloud load from re-enabling already-claimed tiers.
+    if (_localWeekly && save.weeklyChallenge &&
+        _localWeekly.weekId === save.weeklyChallenge.weekId) {
+      ['tier1', 'tier2', 'tier3'].forEach(t => {
+        if (_localWeekly.claimed[t]) save.weeklyChallenge.claimed[t] = true;
+      });
+    }
     gameSettings = normalizeSettings(save.settings || gameSettings);
     save.settings = gameSettings;
     applyAudioSettings();
@@ -13747,7 +14249,292 @@ function showOcaDropToast(tier) {
 
   setTimeout(() => { try { toast.remove(); } catch(e) {} }, 3000);
 }
-// ══ END OCA DROP SYSTEM ══
+// ══ WEEKLY CHALLENGE SYSTEM ══
+
+// ── Week ID: resets every Monday at 06:00 local time ──
+function getWeeklyId() {
+  const now = new Date();
+  // If Monday before 06:00 → still previous week
+  const day = now.getDay(); // 0=Sun, 1=Mon
+  let adj = new Date(now);
+  if (day === 1 && now.getHours() < 6) {
+    adj.setDate(adj.getDate() - 1); // treat as previous day (Sunday)
+  }
+  // Get ISO week for adj
+  const d = new Date(Date.UTC(adj.getFullYear(), adj.getMonth(), adj.getDate()));
+  const dayNum = d.getUTCDay() || 7; // Sun=7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return d.getUTCFullYear() + '-W' + String(weekNum).padStart(2, '0');
+}
+
+// ── Reset weekly challenge if week changed ──
+function checkWeeklyChallengeReset() {
+  const currentWeekId = getWeeklyId();
+  if (!save.weeklyChallenge || save.weeklyChallenge.weekId !== currentWeekId) {
+    save.weeklyChallenge = {
+      weekId: currentWeekId,
+      runsCompleted: 0,
+      totalKO: 0,
+      breakSuccess: 0,
+      ak47Complete: 0,
+      claimed: { tier1: false, tier2: false, tier3: false }
+    };
+    markSaveDirty('weekly_reset');
+    doSave();
+    scheduleCloudSync('weekly_reset', { silentToast: true });
+  }
+}
+
+// ── Commit per-run counters to weekly save (called once per run at endGame) ──
+function commitWeeklyProgress() {
+  checkWeeklyChallengeReset();
+  const wq = save.weeklyChallenge;
+  wq.runsCompleted = (wq.runsCompleted || 0) + 1;
+  wq.totalKO       = (wq.totalKO       || 0) + Math.max(0, Math.floor(window._wqRunKO           || 0));
+  wq.breakSuccess  = (wq.breakSuccess  || 0) + Math.max(0, Math.floor(window._wqRunBreakSuccess || 0));
+  wq.ak47Complete  = (wq.ak47Complete  || 0) + Math.max(0, Math.floor(window._wqRunAk47Complete || 0));
+  // reset per-run counters
+  window._wqRunKO           = 0;
+  window._wqRunBreakSuccess = 0;
+  window._wqRunAk47Complete = 0;
+  markSaveDirty('weekly_reset');
+  // save happens in endGame's doSave()
+}
+
+// ── Claim a weekly tier reward (double-tap guarded) ──
+let _wqClaimInProgress = false;
+function wqClaimTier(tier) {
+  if (_wqClaimInProgress) return;
+  _wqClaimInProgress = true;
+  try {
+    checkWeeklyChallengeReset();
+    const wq = save.weeklyChallenge;
+    const key = 'tier' + tier;
+    if (wq.claimed[key]) { _wqClaimInProgress = false; return; } // already claimed
+    if (!wqTierIsComplete(tier)) { _wqClaimInProgress = false; return; } // not complete
+
+    // Grant rewards — Premium OCA or Elite OCA only (no Standard)
+    if (!save.ocaTickets) save.ocaTickets = { standard: 0, premium: 0, elite: 0 };
+    if (tier === 1) {
+      save.ocaTickets.premium = (save.ocaTickets.premium || 0) + 2;
+      save.coins = (save.coins || 0) + 1000;
+    } else if (tier === 2) {
+      save.ocaTickets.premium = (save.ocaTickets.premium || 0) + 3;
+      save.coins = (save.coins || 0) + 3000;
+    } else if (tier === 3) {
+      save.ocaTickets.elite   = (save.ocaTickets.elite   || 0) + 1;
+      save.ocaTickets.premium = (save.ocaTickets.premium || 0) + 3;
+      save.coins = (save.coins || 0) + 5000;
+    }
+    wq.claimed[key] = true;
+    markSaveDirty('weekly_reset');
+    doSave();
+    scheduleCloudSync('weekly_reset'); // background, non-blocking
+
+    updateWeeklyBadgesUI();
+    renderWeeklyPanel();
+    updateShopCoinUI();
+    showWeeklyClaimToast(tier);
+  } finally {
+    setTimeout(() => { _wqClaimInProgress = false; }, 600); // double-tap guard
+  }
+}
+
+// ── Check if a tier's objectives are met ──
+function wqTierIsComplete(tier) {
+  const wq = save.weeklyChallenge;
+  if (!wq) return false;
+  if (tier === 1) return (wq.runsCompleted || 0) >= 5;
+  if (tier === 2) return (wq.totalKO       || 0) >= 3000;
+  if (tier === 3) return (wq.breakSuccess  || 0) >= 40 && (wq.ak47Complete || 0) >= 60;
+  return false;
+}
+
+// ── Update the 3 weekly badge dots on the widget ──
+function updateWeeklyBadgesUI() {
+  checkWeeklyChallengeReset();
+  const wq = save.weeklyChallenge;
+  [1, 2, 3].forEach(t => {
+    const badge = document.querySelector('.wq-badge[data-tier="' + t + '"]');
+    if (!badge) return;
+    const claimed = wq.claimed['tier' + t];
+    const complete = wqTierIsComplete(t);
+    badge.className = 'wq-badge ' + (claimed ? 'wq-claimed' : complete ? 'wq-ready' : 'wq-incomplete');
+  });
+}
+
+// ── Render the weekly panel inside the modal ──
+function renderWeeklyPanel() {
+  checkWeeklyChallengeReset();
+  const wq = save.weeklyChallenge;
+
+  const TIERS = [
+    { n: 1, goal1: wq.runsCompleted, max1: 5,    goal2: null, max2: null,    key: 'tier1' },
+    { n: 2, goal1: wq.totalKO,       max1: 3000,  goal2: null, max2: null,    key: 'tier2' },
+    { n: 3, goal1: wq.breakSuccess,  max1: 40,    goal2: wq.ak47Complete, max2: 60, key: 'tier3' },
+  ];
+
+  TIERS.forEach(t => {
+    const claimed  = wq.claimed[t.key];
+    const complete = wqTierIsComplete(t.n);
+    const card = $('wqCard' + t.n);
+    if (!card) return;
+
+    // card class
+    card.className = 'wq-tier-card' + (t.n === 3 ? ' tier-3' : '') +
+      (claimed ? ' tier-claimed' : complete ? ' tier-complete' : '');
+
+    // status label
+    const statusEl = $('wqStatus' + t.n);
+    if (statusEl) statusEl.textContent = claimed ? 'CLAIMED' : complete ? 'READY' : 'IN PROGRESS';
+
+    // bars + nums for tier 1 and tier 2
+    if (t.n <= 2) {
+      const bar  = $('wqBar' + t.n);
+      const prog = $('wqProg' + t.n);
+      const pct  = $('wqPct' + t.n);
+      const ratio = Math.min(1, (t.goal1 || 0) / t.max1);
+      if (bar)  bar.style.width  = (ratio * 100).toFixed(1) + '%';
+      if (prog) prog.textContent = (t.goal1 || 0).toLocaleString() + ' / ' + t.max1.toLocaleString();
+      if (prog) prog.className   = ratio >= 1 ? 'done' : '';
+      if (pct)  pct.textContent  = Math.round(ratio * 100) + '%';
+    }
+
+    // tier 3: two bars
+    if (t.n === 3) {
+      const ra = Math.min(1, (wq.breakSuccess || 0) / 40);
+      const rb = Math.min(1, (wq.ak47Complete || 0) / 60);
+      const bar3a = $('wqBar3a'); const bar3b = $('wqBar3b');
+      const prog3a = $('wqProg3a'); const prog3b = $('wqProg3b');
+      if (bar3a)  bar3a.style.width  = (ra * 100).toFixed(1) + '%';
+      if (bar3b)  bar3b.style.width  = (rb * 100).toFixed(1) + '%';
+      if (prog3a) { prog3a.textContent = (wq.breakSuccess || 0) + ' / 40'; prog3a.className = ra >= 1 ? 'done' : ''; }
+      if (prog3b) { prog3b.textContent = (wq.ak47Complete || 0) + ' / 60'; prog3b.className = rb >= 1 ? 'done' : ''; }
+    }
+
+    // claim button
+    const btn = $('wqClaimBtn' + t.n);
+    if (!btn) return;
+    btn.onclick = () => wqClaimTier(t.n);
+    if (claimed) {
+      btn.disabled   = true;
+      btn.className  = 'wq-claim-btn btn-claimed';
+      btn.textContent = '✓ CLAIMED';
+      btn.onclick = null;
+    } else if (complete) {
+      btn.disabled   = false;
+      btn.className  = 'wq-claim-btn btn-claim' + (t.n === 3 ? ' btn-tier3' : '');
+      btn.textContent = 'CLAIM REWARD';
+    } else {
+      btn.disabled   = true;
+      btn.className  = 'wq-claim-btn btn-inprog';
+      btn.textContent = 'IN PROGRESS';
+    }
+  });
+
+  // reset note
+  const note = $('wqResetNote');
+  if (note) note.textContent = 'Week: ' + (wq.weekId || '—') + ' · Resets Monday 06:00';
+}
+
+// ── Render the daily panel inside the modal ──
+function renderDailyPanel() {
+  checkDailyQuestReset();
+  const dq = save.dailyQuest;
+  const grid = $('rmDailyGrid');
+  const info = $('rmDailyInfo');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const DAY_LABELS = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  const TIER_LABEL = { standard: 'STD', premium: 'PRE', elite: 'ELT' };
+  for (let i = 0; i < 7; i++) {
+    const claimed  = dq.claimed && dq.claimed.includes(i);
+    const isNext   = !claimed && i === (dq.streak || 0) && (dq.streak || 0) < 7;
+    const color    = DQ_COLORS[i] || '#aaa';
+    const tierName = TIER_LABEL[DQ_REWARDS[i]] || 'STD';
+    const cell = document.createElement('div');
+    cell.className = 'rm-day-cell' + (claimed ? ' day-claimed' : isNext ? ' day-next' : '');
+    cell.style.setProperty('--color', color);
+    cell.innerHTML =
+      '<div class="rm-day-num">' + (i + 1) + '</div>' +
+      '<div class="rm-day-dot"></div>' +
+      '<div class="rm-day-tier">' + tierName + '</div>';
+    grid.appendChild(cell);
+  }
+  if (info) {
+    if (dq.streak >= 7) {
+      info.textContent = 'Week complete! Resets next Monday 06:00';
+    } else {
+      const todayKey = getDailyTodayKey();
+      const claimed  = dq.lastClaimDate === todayKey;
+      info.textContent = claimed
+        ? 'Today\'s reward claimed — Day ' + dq.streak + ' / 7'
+        : 'Day ' + ((dq.streak || 0) + 1) + ' reward available — play a run!';
+    }
+  }
+}
+
+// ── Open / close rewards modal ──
+let _rmCurrentTab = 'daily';
+function openRewardsModal() {
+  checkDailyQuestReset();
+  checkWeeklyChallengeReset();
+  renderDailyPanel();
+  renderWeeklyPanel();
+  rmSwitchTab(_rmCurrentTab);
+  $('rewardsModal').classList.add('open');
+}
+function closeRewardsModal() {
+  $('rewardsModal').classList.remove('open');
+}
+// Close on backdrop click
+$('rewardsModal').addEventListener('click', e => { if (e.target === $('rewardsModal')) closeRewardsModal(); });
+
+function rmSwitchTab(tab) {
+  _rmCurrentTab = tab;
+  const tabDaily  = $('rmTabDaily');
+  const tabWeekly = $('rmTabWeekly');
+  const panelD    = $('rmPanelDaily');
+  const panelW    = $('rmPanelWeekly');
+  if (!tabDaily || !panelD) return;
+  tabDaily.className  = 'rm-tab' + (tab === 'daily'  ? ' active-daily'  : '');
+  tabWeekly.className = 'rm-tab' + (tab === 'weekly' ? ' active-weekly' : '');
+  panelD.className  = 'rm-panel' + (tab === 'daily'  ? ' active' : '');
+  panelW.className  = 'rm-panel' + (tab === 'weekly' ? ' active' : '');
+}
+
+// ── Small toast after weekly claim ──
+function showWeeklyClaimToast(tier) {
+  let container = document.getElementById('achievementToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'achievementToastContainer';
+    container.style.cssText =
+      'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+      'z-index:10000;display:flex;flex-direction:column-reverse;gap:8px;' +
+      'pointer-events:none;width:min(340px,90vw);';
+    document.body.appendChild(container);
+  }
+  const REWARD_TEXT = {
+    1: 'PREMIUM OCA ×2 + 1,000 ZENY',
+    2: 'PREMIUM OCA ×3 + 3,000 ZENY',
+    3: 'ELITE OCA ×1 + PREMIUM OCA ×3 + 5,000 ZENY',
+  };
+  const color = tier === 3 ? 'var(--gold)' : 'var(--cyan)';
+  const toast = document.createElement('div');
+  toast.className = 'dq-toast';
+  toast.style.borderLeftColor = color;
+  toast.innerHTML =
+    '<div style="font-family:\'Sarabun\',sans-serif;font-size:9px;letter-spacing:3px;color:#555;">WEEKLY TIER ' + ['Ⅰ','Ⅱ','Ⅲ'][tier-1] + ' REWARD</div>' +
+    '<div style="font-family:\'Oswald\',sans-serif;font-size:13px;letter-spacing:2px;color:white;">WEEKLY CHALLENGE</div>' +
+    '<div style="font-family:\'Sarabun\',sans-serif;font-size:10px;letter-spacing:1px;color:' + color + ';">' + (REWARD_TEXT[tier]||'') + '</div>';
+  container.appendChild(toast);
+  setTimeout(() => { try { toast.remove(); } catch(e) {} }, 3500);
+}
+
+// ══ END WEEKLY CHALLENGE SYSTEM ══
 </script>
 
 <script>
