@@ -3006,9 +3006,9 @@
     z-index: 3000;
     align-items: center;
     justify-content: center;
-    padding: 16px;
-    padding-top: max(env(safe-area-inset-top,0px), 16px);
-    padding-bottom: max(env(safe-area-inset-bottom,0px), 16px);
+    padding: 14px;
+    padding-top: max(env(safe-area-inset-top,0px), 14px);
+    padding-bottom: max(env(safe-area-inset-bottom,0px), 14px);
     background: rgba(0,0,0,0.86);
     backdrop-filter: blur(4px);
   }
@@ -3018,8 +3018,11 @@
     background: #0d0d0d;
     border: 1.5px solid #222;
     border-radius: 12px;
-    width: min(380px, 96vw);
-    max-height: min(620px, 88vh);
+    width: min(92vw, 520px);
+    height: min(72vh, 640px);
+    max-height: calc(100vh - 48px);
+    height: min(72dvh, 640px);
+    max-height: calc(100dvh - 48px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -3083,13 +3086,14 @@
 
   /* scrollable content */
   .rm-content {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     touch-action: pan-y;
   }
-  .rm-panel { display: none; padding: 12px 14px 20px; }
+  .rm-panel { display: none; padding: 12px 14px 32px; }
   .rm-panel.active { display: block; }
 
   /* ── Daily panel ── */
