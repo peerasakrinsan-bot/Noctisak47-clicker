@@ -1,15 +1,17 @@
 // ── NOCTISAK47: OVERDRIVE RAMPAGE — module entry ──────────────────────────
 //
-// Phase 1 ของการย้ายมาใช้ Vite: ไฟล์นี้คือ "จุดเข้า" (entry) ของ ES module
-// graph สำหรับเกม. ตอนนี้ตัวเกมทั้งหมดยังทำงานเป็น classic inline <script>
-// ใน index.html เหมือนเดิม (global scope + inline onclick handlers) เพื่อ
-// คงพฤติกรรมเกมไว้ 100% ระหว่างการย้าย.
+// จุดเข้า (entry) ของ ES module graph สำหรับเกม โหลดผ่าน
+// <script type="module" src="/src/main.js"> ใน index.html.
 //
-// Phase ถัดไป (ทำทีละส่วนพร้อมทดสอบบนเบราว์เซอร์): ค่อย ๆ ย้ายโค้ดเกมเข้ามา
-// เป็น native modules ที่ import จากไฟล์นี้ — constants, state/save, gameLoop,
-// ui, events, audio, effects, cards, breakSystem, overdrive, weakPoints,
-// shop, skins. ระหว่างย้ายให้ผูกฟังก์ชันที่ inline handler เรียกใช้ไว้บน
-// window (temporary globals) จนกว่าจะแปลง handler เป็น addEventListener ครบ.
+// Stage 2A: ยกโค้ดเกมทั้งหมด (เดิมเป็น classic inline <script>) มาเป็น ES module
+// เดียวที่ src/game.js แบบ verbatim แล้ว import ที่นี่. inline onclick= ใน
+// index.html ยังทำงานได้ผ่าน window bridge ท้าย game.js.
 //
-// CSS ถูกย้ายไป src/styles.css แล้ว และโหลดผ่าน <link> ใน index.html
-// (render-blocking, ไม่เกิด FOUC) — ไม่ import ที่นี่เพื่อเลี่ยงการโหลดซ้ำ.
+// Phase 2B (ทำทีละส่วนพร้อมทดสอบบนเบราว์เซอร์): ค่อย ๆ แตก game.js เป็นโมดูลตาม
+// หน้าที่ (constants, state/save, audio, effects, cards, breakSystem, overdrive,
+// weakPoints, shop, skins, gameLoop, ui, events) ด้วย import/export — เป็นการ
+// refactor ภายใน module graph ไม่กระทบ inline handler อีกต่อไป.
+//
+// CSS อยู่ที่ src/styles.css โหลดผ่าน <link> ใน index.html (render-blocking,
+// ไม่เกิด FOUC) — ไม่ import ที่นี่เพื่อเลี่ยงการโหลดซ้ำ.
+import './game.js';
