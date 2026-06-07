@@ -13,5 +13,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // ปิด minify ชั่วคราวระหว่างย้ายโค้ด (Stage 2A/2B) เพื่อให้ production รันโค้ดเกม
+    // verbatim เหมือนเดิมเป๊ะ ๆ — ตัด minifier ออกจากตัวแปรเสี่ยงจนกว่าจะมี regression
+    // test บนเบราว์เซอร์ครบ แล้วค่อยเปิด minify เพื่อลดขนาด.
+    minify: false,
   },
 });
