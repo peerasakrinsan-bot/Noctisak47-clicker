@@ -674,7 +674,7 @@
 
   .cs-footer {
     font-family:'Sarabun',sans-serif; font-size:10px;
-    letter-spacing:3px; color:#333;
+    letter-spacing:3px; color:#444;
     position:relative; z-index:1; flex-shrink:0;
     animation: csFooterBlink 1.4s ease-in-out infinite;
     visibility:visible;
@@ -1068,7 +1068,7 @@
   .dupe-amount { font-size:clamp(20px,6vw,28px); color:var(--gold); text-shadow:0 0 16px rgba(255,204,0,0.8); }
   #cardDrawHint {
     position:relative; z-index:2;
-    font-family:'Sarabun',sans-serif; font-size:10px; letter-spacing:3px; color:#555;
+    font-family:'Sarabun',sans-serif; font-size:10px; letter-spacing:3px; color:#666;
     margin-top:16px; animation:csFooterBlink 1.4s ease-in-out infinite;
     pointer-events:none;
   }
@@ -1307,7 +1307,7 @@
     margin-bottom:10px;
     gap:6px;
   }
-  #koDisplay { font-size:10px; color:#555; letter-spacing:2px; }
+  #koDisplay { font-size:10px; color:#666; letter-spacing:2px; }
   #koDisplay span { color:var(--red); font-size:24px; display:block; line-height:1; margin-top:2px; }
   #timerDisplay {
     font-size:34px; color:white; letter-spacing:0; text-align:center;
@@ -1315,13 +1315,13 @@
   }
   #timerDisplay.urgent { color:var(--red); animation:flash 0.4s infinite alternate; text-shadow:0 0 20px rgba(255,34,51,0.7); }
   .ui-right { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
-  #scoreDisplay { font-size:10px; color:#555; letter-spacing:1px; text-align:right; }
+  #scoreDisplay { font-size:10px; color:#666; letter-spacing:1px; text-align:right; }
   #scoreDisplay span { color:var(--gold); font-size:18px; display:block; line-height:1; margin-top:2px; }
 
   /* ── BAR LAYOUT ── */
   .bars-wrap { display:flex; flex-direction:column; gap:6px; }
   .bar-row   { display:flex; align-items:center; gap:8px; }
-  .bar-label { font-size:8px; letter-spacing:2px; color:#444; width:16px; flex-shrink:0; text-align:right; }
+  .bar-label { font-size:8px; letter-spacing:2px; color:#555; width:16px; flex-shrink:0; text-align:right; }
 
   /* HP track — slightly thicker */
   .bar-row:first-child .bar-wrap {
@@ -1642,7 +1642,7 @@
     z-index:10; pointer-events:none;
   }
   #bigCombo { font-size:clamp(58px,20vw,110px); line-height:1; color:rgba(255,255,255,0.85); text-shadow:2px 2px 0 rgba(0,0,0,0.6); transition:color 0.1s; }
-  #comboLabel { font-size:9px; letter-spacing:3px; color:#333; margin-top:-4px; }
+  #comboLabel { font-size:9px; letter-spacing:3px; color:#444; margin-top:-4px; }
   .combo-hot #bigCombo { color:var(--gold); text-shadow:0 0 20px rgba(255,204,0,0.4); }
   .combo-max #bigCombo { color:var(--red); animation:flash 0.25s infinite alternate; text-shadow:0 0 30px rgba(255,0,0,0.8); }
 
@@ -2176,7 +2176,7 @@
     -webkit-tap-highlight-color:transparent;
     -webkit-touch-callout:none;
   }
-  #streakLabel { position:absolute; bottom:28px; left:50%; transform:translateX(-50%); font-size:10px; letter-spacing:3px; color:#333; z-index:10; pointer-events:none; display:none; }
+  #streakLabel { position:absolute; bottom:28px; left:50%; transform:translateX(-50%); font-size:10px; letter-spacing:3px; color:#444; z-index:10; pointer-events:none; display:none; }
 
   /* ══ COIN POPUP ══ */
   .coin-popup {
@@ -2550,7 +2550,7 @@
   }
   #pauseScreen .pause-title span { color:var(--red); }
   #pauseScreen .pause-sub {
-    font-size:10px; letter-spacing:5px; color:#444; margin-bottom:24px;
+    font-size:10px; letter-spacing:5px; color:#555; margin-bottom:24px;
   }
   /* card info in pause */
   #pauseCardInfo {
@@ -3580,3 +3580,56 @@
   .oca-toast-tier {
     font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 2px;
   }
+
+  /* ══ INTERACTION HARDENING ══
+     Prevents: blue tap highlight, long-press image-save callout, drag ghost images.
+     Keeps form inputs/textareas fully selectable and editable.
+  ══════════════════════════════════════════════════════════════════════════════ */
+
+  /* Global: no blue tap flash, no iOS long-press callout */
+  html,
+  body,
+  #gameRoot {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* All images, canvas, svg — no drag ghost, no callout, no tap flash */
+  img,
+  canvas,
+  svg {
+    -webkit-user-drag: none;
+    user-drag: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Interactive game UI elements — ensure no tap highlight leaks through */
+  button,
+  [role="button"],
+  .cs-card,
+  .cc-card,
+  .boss-skin-card,
+  .arena-skin-card,
+  .shop-card,
+  .shop-level-row,
+  .oca-ticket-card,
+  .break-target,
+  #weakPoint,
+  #dailyQuestWidget,
+  .wq-claim-btn,
+  .wq-tier-card {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  /* Restore full text selection and callout inside form controls */
+  input,
+  textarea,
+  select {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    -webkit-touch-callout: default !important;
+  }
+
+  /* ══ END INTERACTION HARDENING ══ */
