@@ -1,0 +1,12 @@
+{
+  "extraKnownMarketplaces": {
+    "impeccable": {
+      "source": "github",
+      "repo": "pbakaus/impeccable",
+      "sparsePaths": [".claude-plugin", "plugin"]
+    }
+  },
+  "enabledPlugins": {
+    "impeccable@impeccable": true
+  }
+}
