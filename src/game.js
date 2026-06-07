@@ -8469,6 +8469,13 @@ async function _cloudUploadCore(payload, opts) {
   const key = cloudProfile.secret    || (_cloudLoadCreds().key);
   if (!id || !key) { DEV_LOG('[upload] no credentials — skip'); return false; }
 
+  // Validate payload shape before any write — never push an empty/corrupt object
+  // over good cloud data. A valid save always carries a stats object.
+  if (!payload || typeof payload !== 'object' || !payload.stats || typeof payload.stats !== 'object') {
+    console.warn('[upload] refusing to upload invalid payload — keeping cloud untouched');
+    return false;
+  }
+
   // Hash-based skip: if payload is identical to last synced hash, skip write entirely
   const hash = _saveHash(payload);
   if (hash === saveState.lastSyncHash) {
@@ -8517,15 +8524,44 @@ async function _cloudUploadCore(payload, opts) {
     }
   }
 
-  const body = JSON.stringify({ save_data: payload, uploaded_at: new Date().toISOString() });
+  const uploadedAt = new Date().toISOString();
+  const body = JSON.stringify({ save_data: payload, uploaded_at: uploadedAt });
+  // return=representation + select=player_id lets us confirm the PATCH actually
+  // matched a row. A PATCH that matches 0 rows returns 200/204 with an empty body,
+  // so without this we cannot tell "wrote nothing" apart from "wrote successfully" —
+  // which silently drops the cloud backup when no row exists yet for this player.
   const res = await _fetchWithTimeout(
-    `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}`,
-    { method: 'PATCH', headers: _cloudHeaders({ 'Content-Type': 'application/json' }), body },
+    `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=player_id`,
+    { method: 'PATCH', headers: _cloudHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }), body },
     10000
   );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(`HTTP ${res.status}: ${JSON.stringify(err)}`);
+  }
+  const patched = await res.json().catch(() => []);
+  if (!Array.isArray(patched) || patched.length === 0) {
+    // PATCH matched no row: either the row does not exist yet, or the player_id is
+    // owned by a different secret_key. Try to INSERT it. POST will 409 if the
+    // player_id already exists (different owner) — in that case we MUST NOT claim
+    // success, so the error propagates to the caller (toast + retry).
+    DEV_LOG('[upload] PATCH matched 0 rows — attempting insert for', id);
+    const insertRes = await _fetchWithTimeout(
+      `${_SUPA_URL}/rest/v1/cloud_saves`,
+      { method: 'POST',
+        headers: _cloudHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+        body: JSON.stringify({ player_id: id, secret_key: key, save_data: payload, uploaded_at: uploadedAt }) },
+      10000
+    );
+    if (!insertRes.ok) {
+      const err = await insertRes.json().catch(() => ({}));
+      throw new Error(`HTTP ${insertRes.status} (insert): ${JSON.stringify(err)}`);
+    }
+    const inserted = await insertRes.json().catch(() => []);
+    if (!Array.isArray(inserted) || inserted.length === 0) {
+      throw new Error('cloud insert returned no row — not confirming success');
+    }
+    DEV_LOG('[upload] inserted new cloud row for', id);
   }
   saveState.lastSyncHash    = hash;
   saveState.lastCloudSyncAt = Date.now();
@@ -9339,6 +9375,11 @@ async function svCloudDownload() {
 
     const cloudSave = rows[0].save_data;
     if (!cloudSave) { svShowMsg(msg, '❌ ข้อมูล Save ว่างเปล่า', 'err'); return; }
+    // Reject structurally-invalid cloud payloads before they can overwrite local data.
+    // A valid save always carries a stats object; a corrupt/partial blob must NOT be applied.
+    if (typeof cloudSave !== 'object' || !cloudSave.stats || typeof cloudSave.stats !== 'object') {
+      svShowMsg(msg, '❌ ข้อมูล Save เสียหาย — ไม่นำมาใช้', 'err'); return;
+    }
     if (cloudSave.cloudPlayerId && cloudSave.cloudPlayerId !== id) {
       svShowMsg(msg, '❌ Save นี้ผูกกับ ID อื่น', 'err'); return;
     }
