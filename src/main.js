@@ -15,3 +15,23 @@
 // CSS อยู่ที่ src/styles.css โหลดผ่าน <link> ใน index.html (render-blocking,
 // ไม่เกิด FOUC) — ไม่ import ที่นี่เพื่อเลี่ยงการโหลดซ้ำ.
 import './game.js';
+
+// ── INTERACTION HARDENING ──────────────────────────────────────────────────
+// Prevent drag-ghost images on game assets (desktop + Android).
+document.addEventListener('dragstart', (e) => {
+  if (e.target.closest('img, canvas, svg, #gameRoot')) {
+    e.preventDefault();
+  }
+});
+
+// Prevent long-press context menu / save-image dialog on game visuals.
+// Dev-tools right-click on non-game elements (e.g. the page chrome) is unaffected.
+document.addEventListener('contextmenu', (e) => {
+  if (e.target.closest(
+    'img, canvas, #weakPoint, #fighter, #tapZone, ' +
+    '.cs-card, .cc-card, .break-target, ' +
+    '#boxer, #gun, #cardDrawArea, #bossSkinModal, #cardModal'
+  )) {
+    e.preventDefault();
+  }
+});
