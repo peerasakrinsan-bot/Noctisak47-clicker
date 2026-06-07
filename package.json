@@ -1,0 +1,15 @@
+{
+  "name": "noctisak47-overdrive-rampage",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "NOCTISAK47: OVERDRIVE RAMPAGE — action clicker PWA (Vite + vanilla JS)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/postbuild-sw.js",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^8.0.16"
+  }
+}
