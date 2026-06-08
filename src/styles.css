@@ -2132,13 +2132,17 @@
   #fxLayer { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:15; -webkit-transform:translateZ(0); transform:translateZ(0); will-change:contents; }
   .impact {
     position:absolute; border-radius:50%;
-    transform:translate(-50%,-50%);
+    width:20px; height:20px;
+    border:3px solid white;
+    transform:translate(-50%,-50%) scale(1);
     will-change:transform,opacity;
     animation:impact 0.22s forwards;
   }
+  /* ใช้ transform:scale แทนการอนิเมต width/height เพื่อเลี่ยง layout reflow ทุกเฟรม
+     (ring นี้เกิดทุกครั้งที่แตะ — เป็น hot path บนมือถือ) */
   @keyframes impact {
-    0%  {width:20px;height:20px;opacity:1;border:3px solid white;}
-    100%{width:80px;height:80px;opacity:0;border:3px solid white;}
+    0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0; transform:translate(-50%,-50%) scale(4);}
   }
   .particle {
     position:absolute; border-radius:50%;
@@ -3633,3 +3637,16 @@
   }
 
   /* ══ END INTERACTION HARDENING ══ */
+
+  /* ══ REDUCED MOTION ══
+     เคารพการตั้งค่าระดับ OS (prefers-reduced-motion). คงฟีดแบ็กการตี/เลขดาเมจไว้
+     แต่ตัด motion ที่ทำให้เวียนหัว: การเขย่าจอทั้งหน้า, การเต้นวนของ aura,
+     และ transition ของ box-shadow/filter ที่หนักบน mobile WebView */
+  @media (prefers-reduced-motion: reduce) {
+    #gameRoot.shake,
+    #gameRoot.shake-wp,
+    #gameRoot.shake-wp2 { animation: none !important; }
+    #odScreenAura { transition: opacity .18s ease !important; }
+    #weakPoint { animation: none !important; }
+    .wp-slot.ready { animation: none !important; }
+  }
