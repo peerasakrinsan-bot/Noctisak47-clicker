@@ -161,21 +161,21 @@ const STAGES = [
 // ── map / terrain cards (รวม 9 ใบ: 3 Road / 3 Adjacent / 3 Terrain) ──────────
 // terrain ใช้ new assets → ใช้ emoji placeholder ชั่วคราว (ASSET RULES อนุญาต)
 const MAP_CARDS = [
-  // ── ROAD (เพิ่มความอันตราย/ของรางวัลบนถนน) ──
+  // ── ROAD (วางบนช่องถนน — ผลเฉพาะช่องนั้น) ──
   { id: 'spawn_rift',  name: 'รอยแยกศัตรู', kind: 'road', icon: '🌀', accent: '#ff5577',
-    desc: 'เสกศัตรูลงช่องถนนว่าง 1 ตัวทันที + ลูทดีขึ้นรอบนั้น' },
+    desc: 'เสกศัตรูลงช่องถนนที่เลือกทันที + ลูทดีขึ้นบนช่องนั้น' },
   { id: 'pack_howl',   name: 'เสียงหอนฝูง', kind: 'road', icon: '🐺', accent: '#ff5577',
-    desc: 'ศัตรูบนถนนทุกตัวแกร่งขึ้น +20% แต่ดรอป Loop Zeny มากขึ้น' },
+    desc: 'ศัตรูบนช่องถนนนี้แรงขึ้น แต่ดรอป Loop Zeny มากขึ้นเมื่อชนะบนช่องนี้' },
   { id: 'blood_track', name: 'รอยเลือด',    kind: 'road', icon: '🩸', accent: '#ff5577',
-    desc: 'เพิ่มโอกาสดรอป Boss Signal บนถนนนี้' },
-  // ── ADJACENT (วางข้างถนน เสริมบัฟ/รีวอร์ด) ──
+    desc: 'เพิ่มโอกาสดรอป Boss Signal เมื่อสู้บนช่องถนนนี้' },
+  // ── ADJACENT (วางบนช่องเทอเรนติดถนน — ส่งผลเฉพาะช่องถนนข้างเคียง) ──
   { id: 'campfire',    name: 'กองไฟ',       kind: 'adjacent', icon: '🔥', accent: '#ffcc44',
-    desc: 'ฟื้น HP ฮีโร่ +6 ทุกครั้งที่เดินผ่านช่องติดกัน' },
+    desc: 'ฟื้น HP +6 เมื่อเดินผ่านช่องถนนที่อยู่ติดกองไฟ' },
   { id: 'shrine',      name: 'ศาลเจ้า',     kind: 'adjacent', icon: '⛩️', accent: '#ffcc44',
-    desc: 'ATK +2 ถาวรตลอดรอบรัน' },
+    desc: 'ATK +2 ระหว่างสู้บนช่องถนนที่อยู่ติดศาลเจ้า' },
   { id: 'lucky_totem', name: 'โทเทมนำโชค',  kind: 'adjacent', icon: '🍀', accent: '#ffcc44',
-    desc: 'โอกาสดรอปลูท +12% ตลอดรอบรัน' },
-  // ── TERRAIN (วางช่องเทอเรน เปลี่ยนสนาม) ──
+    desc: 'โอกาสดรอปลูท +12% บนช่องถนนที่อยู่ติดโทเทม' },
+  // ── TERRAIN (วางบนช่องเทอเรน — บัฟทั้งรอบรัน) ──
   { id: 'rock',        name: 'หินผา',       kind: 'terrain', icon: '🪨', accent: '#88ddaa',
     desc: 'DEF +3 ถาวรตลอดรอบรัน' },
   { id: 'thornfield',  name: 'ทุ่งหนาม',    kind: 'terrain', icon: '🌵', accent: '#88ddaa',
@@ -184,6 +184,117 @@ const MAP_CARDS = [
     desc: 'อัปเกรด tier ลูทขึ้น 1 ขั้นตลอดรอบรัน' },
 ];
 const MAP_CARD_BY_ID = Object.fromEntries(MAP_CARDS.map(c => [c.id, c]));
+
+// ════════════════════════════════════════════════════════════════════════════
+// GRID MAP MODEL (data-driven, locked spec 7×9) — เส้นทางลูป + ช่องเทอเรนเป็น
+// grid cell ที่ชัดเจน (source of truth = cell id)
+// ────────────────────────────────────────────────────────────────────────────
+// • grid 7 คอลัมน์ × 9 แถว, cells อ้างด้วย { row, col }
+// • route = Camp + Road 12 = 13 ช่อง (วงรีแนวตั้ง, camp อยู่ล่างกลาง)
+// • terrain cells = 12 (inside กลางวง / outside ปีกซ้าย-ขวา) ทุกใบติดถนนแบบ
+//   orthogonal เพื่อให้ adjacent card ส่งผลเฉพาะช่องถนนใกล้เคียง
+// • ช่องที่ไม่อยู่ในลิสต์ = ว่าง (ระยะขอบของ grid) — ไม่ต้องประกาศ blocked
+// ────────────────────────────────────────────────────────────────────────────
+const BLH_MAP = {
+  gridWidth: 7,
+  gridHeight: 9,
+  cells: [
+    // ── loop route: Camp + 12 Road (วงรีแนวตั้ง คอลัมน์ 1/3/5, แถว 2–7) ──
+    { id: 'camp', row: 7, col: 3, type: 'camp', routeIndex: 0 },
+    { id: 'r01',  row: 6, col: 1, type: 'road', routeIndex: 1 },
+    { id: 'r02',  row: 5, col: 1, type: 'road', routeIndex: 2 },
+    { id: 'r03',  row: 4, col: 1, type: 'road', routeIndex: 3 },
+    { id: 'r04',  row: 3, col: 1, type: 'road', routeIndex: 4 },
+    { id: 'r05',  row: 2, col: 1, type: 'road', routeIndex: 5 },
+    { id: 'r06',  row: 2, col: 3, type: 'road', routeIndex: 6 },   // บนกลาง
+    { id: 'r07',  row: 2, col: 5, type: 'road', routeIndex: 7 },
+    { id: 'r08',  row: 3, col: 5, type: 'road', routeIndex: 8 },
+    { id: 'r09',  row: 4, col: 5, type: 'road', routeIndex: 9 },
+    { id: 'r10',  row: 5, col: 5, type: 'road', routeIndex: 10 },
+    { id: 'r11',  row: 6, col: 5, type: 'road', routeIndex: 11 },
+    { id: 'r12',  row: 6, col: 3, type: 'road', routeIndex: 12 },  // ล่างกลาง
+    // ── terrain slots — inside (คอลัมน์กลาง/ติดถนน) ──
+    { id: 't01',  row: 3, col: 2, type: 'terrain' }, // ↔ r04
+    { id: 't02',  row: 4, col: 2, type: 'terrain' }, // ↔ r03
+    { id: 't03',  row: 5, col: 2, type: 'terrain' }, // ↔ r02
+    { id: 't04',  row: 3, col: 4, type: 'terrain' }, // ↔ r08
+    { id: 't05',  row: 4, col: 4, type: 'terrain' }, // ↔ r09
+    { id: 't06',  row: 5, col: 4, type: 'terrain' }, // ↔ r10
+    { id: 't07',  row: 3, col: 3, type: 'terrain' }, // ↔ r06 (บน)
+    { id: 't08',  row: 5, col: 3, type: 'terrain' }, // ↔ r12 (ล่าง)
+    // ── terrain slots — outside (ปีกซ้าย/ขวา) ──
+    { id: 't09',  row: 3, col: 0, type: 'terrain' }, // ↔ r04
+    { id: 't10',  row: 5, col: 0, type: 'terrain' }, // ↔ r02
+    { id: 't11',  row: 3, col: 6, type: 'terrain' }, // ↔ r08
+    { id: 't12',  row: 5, col: 6, type: 'terrain' }, // ↔ r10
+  ],
+  // ลำดับเดินของฮีโร่ (route ID) — 13 ช่อง (Camp + Road 12), camp อยู่ใน route
+  route: ['camp', 'r01', 'r02', 'r03', 'r04', 'r05', 'r06', 'r07', 'r08', 'r09', 'r10', 'r11', 'r12'],
+};
+const BLH_CELL_BY_ID = Object.fromEntries(BLH_MAP.cells.map(c => [c.id, c]));
+
+// ── adjacency helpers (อิง grid row/col; static ไม่ขึ้นกับ run) ──────────────
+// orthogonal neighbors: บน/ล่าง/ซ้าย/ขวา
+function getNeighborCells(cellId) {
+  const c = BLH_CELL_BY_ID[cellId];
+  if (!c) return [];
+  const deltas = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  const out = [];
+  for (const [dr, dc] of deltas) {
+    const n = BLH_MAP.cells.find(x => x.row === c.row + dr && x.col === c.col + dc);
+    if (n) out.push(n);
+  }
+  return out;
+}
+// ช่องถนน/camp ที่อยู่ติดกับ cell หนึ่ง (ใช้กับ adjacent card)
+function getAdjacentRoadCells(cellId) {
+  return getNeighborCells(cellId).filter(n => n.type === 'road' || n.type === 'camp');
+}
+
+// fx ว่าง (ใช้กับ boss fight / cell ที่ไม่มีผล)
+const EMPTY_CELL_FX = Object.freeze({
+  atkBonus: 0, lootBonus: 0, enemyDmgBonus: 0, zenyBonus: 0, bossSignalDropBonus: 0, stepHeal: 0,
+});
+
+// ผลรวมเอฟเฟกต์ "เฉพาะที่" สำหรับช่องถนนหนึ่ง:
+//   1) road card ที่วางบนช่องถนนนั้นเอง
+//   2) adjacent card บนช่องเทอเรนที่ติดกัน (orthogonal)
+// terrain card เป็นบัฟทั้งรัน (run.mods) จึงไม่นับที่นี่
+function getCellEffectsForRoad(roadCellId) {
+  const run = BLH.run;
+  const fx = { atkBonus: 0, lootBonus: 0, enemyDmgBonus: 0, zenyBonus: 0, bossSignalDropBonus: 0, stepHeal: 0 };
+  if (!run || !run.cells) return fx;
+  const self = run.cells[roadCellId];
+  if (self && self.placedCardId) applyRoadCardFx(self.placedCardId, fx);
+  for (const n of getNeighborCells(roadCellId)) {
+    if (n.type !== 'terrain') continue;
+    const tc = run.cells[n.id];
+    if (tc && tc.placedCardId) applyAdjacentCardFx(tc.placedCardId, fx);
+  }
+  return fx;
+}
+function applyRoadCardFx(id, fx) {
+  switch (id) {
+    case 'spawn_rift':  fx.lootBonus += 0.08; break;           // ลูทดีขึ้นบนช่องนี้
+    case 'pack_howl':   fx.enemyDmgBonus += 2; fx.zenyBonus += 40; break; // ศัตรูแรงขึ้น/ซีนี่มากขึ้น (ต่อชัยชนะบนช่องนี้)
+    case 'blood_track': fx.bossSignalDropBonus += 0.20; break; // โอกาส Boss Signal บนช่องนี้
+  }
+}
+function applyAdjacentCardFx(id, fx) {
+  switch (id) {
+    case 'campfire':    fx.stepHeal += 6; break;   // ฟื้นเมื่อเดินผ่านช่องถนนข้างๆ
+    case 'shrine':      fx.atkBonus += 2; break;   // ATK ระหว่างสู้บนช่องถนนข้างๆ
+    case 'lucky_totem': fx.lootBonus += 0.12; break; // โอกาสลูทบนช่องถนนข้างๆ
+  }
+}
+
+// ── จุดกึ่งกลาง (%) ของ cell บน CSS grid (ใช้วาง hero token แบบ absolute) ──
+function cellCenterPct(cell) {
+  return {
+    x: ((cell.col + 0.5) / BLH_MAP.gridWidth) * 100,
+    y: ((cell.row + 0.5) / BLH_MAP.gridHeight) * 100,
+  };
+}
 
 // ── boss signal (การ์ดเป้าหมายรัน) ──────────────────────────────────────────
 const BOSS_SIGNAL = { id: 'boss_signal', name: 'BOSS SIGNAL', icon: '📡', accent: '#ff2233' };
@@ -236,7 +347,7 @@ const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map(u => [u.id, u]));
 
 // ── balance constants ────────────────────────────────────────────────────────
 const BAL = {
-  TILES: 12,                 // ช่องถนนรวม (วงรี)
+  // หมายเหตุ: ความยาวลูป = BLH_MAP.route.length (Camp + Road 12 = 13 ช่อง)
   TARGET_LOOPS: [6, 8],      // เป้าหมายความยาวรันโดยเฉลี่ย
   BASE_LOOT_CHANCE: 0.45,
   BASE_SPAWN_CHANCE: 0.30,   // โอกาสเสกศัตรูในช่องว่างต่อ loop
@@ -595,11 +706,6 @@ window.blhOpenModeSelect = blhOpenModeSelect;
 // ════════════════════════════════════════════════════════════════════════════
 
 // ── board geometry (วงรี 12 ช่อง, camp = index 0 ด้านบน) ─────────────────────
-function tilePos(i) {
-  const a = -Math.PI / 2 + (i / BAL.TILES) * Math.PI * 2;
-  return { x: 50 + 40 * Math.cos(a), y: 52 + 36 * Math.sin(a) };
-}
-
 // ── สร้าง run state ──────────────────────────────────────────────────────────
 function startRun() {
   const hero  = HEROES.find(h => h.id === BLH.sel.heroId) || HEROES[0];
@@ -607,24 +713,28 @@ function startRun() {
   const boss  = BOSSES[BLH.sel.bossId] || BOSSES.suang;
   const ss = computeStartStats(hero);
 
-  const tiles = [];
-  for (let i = 0; i < BAL.TILES; i++) {
-    tiles.push({ kind: i === 0 ? 'camp' : 'road', enemy: null, terrain: null });
+  // runtime cell state ต่อ run — อ้างด้วย cell id (source of truth = grid config)
+  const cells = {};
+  for (const def of BLH_MAP.cells) {
+    cells[def.id] = { id: def.id, type: def.type, enemy: null, placedCardId: null };
   }
 
   // เริ่มเกียร์/มอดิฟายเออร์
   const run = {
     hero, stage, boss,
     loop: 1,
-    tileIndex: 0,
+    route: BLH_MAP.route,   // ลำดับ cell id ที่ฮีโร่เดิน (source of truth ของการเดิน)
+    routePos: 0,            // index ใน route (0 = camp เริ่มต้น)
     phase: 'idle',
     base: { maxhp: ss.maxhp, atk: ss.atk, def: ss.def },
     stats: { hp: ss.maxhp, maxhp: ss.maxhp, atk: ss.atk, def: ss.def },
     gear: { glove: null, jacket: null, boots: null, charm: null },
     lootBag: [],
     hand: [],
-    tiles,
+    cells,                  // { [cellId]: { id, type, enemy, placedCardId } }
+    placedCells: {},        // { [cellId]: { cardId, cardType, placedLoop } } — บันทึกการวาง
     mods: {
+      // global run buffs (เฉพาะ terrain card + upgrade) — adjacent/road card เป็น cell-based
       atk: 0, def: 0, maxhp: 0,
       lootBonus: 0, enemyHpMult: 1, enemyDmgBonus: 0,
       lootTierBump: 0, stepHeal: 0, thornSelf: 0,
@@ -656,36 +766,41 @@ function startRun() {
   scheduleStep(700);
 }
 
-// ── เสกศัตรูพื้นฐานในช่องว่างของ loop ปัจจุบัน ──────────────────────────────
+// ── road cell ids (helper) ──
+function roadCellIds() { return BLH_MAP.cells.filter(c => c.type === 'road').map(c => c.id); }
+
+// ── เสกศัตรูพื้นฐานในช่องถนนว่างของ loop ปัจจุบัน ──────────────────────────────
 function spawnForLoop(run) {
   const chance = BAL.BASE_SPAWN_CHANCE + Math.min(0.2, (run.loop - 1) * 0.03);
-  for (let i = 1; i < BAL.TILES; i++) {
-    const t = run.tiles[i];
-    if (t.enemy) continue;
-    if (Math.random() < chance) t.enemy = makeEnemy(pick(ENEMIES), run);
+  const roads = roadCellIds();
+  for (const id of roads) {
+    const rc = run.cells[id];
+    if (rc.enemy) continue;
+    if (Math.random() < chance) rc.enemy = makeEnemy(pick(ENEMIES), run);
   }
   // กันลูปไม่มีอะไรเลย — การันตีอย่างน้อย 1 ตัว
-  if (!run.tiles.some(t => t.enemy)) {
-    const empties = run.tiles.map((t, i) => i).filter(i => i > 0 && !run.tiles[i].enemy);
-    if (empties.length) run.tiles[pick(empties)].enemy = makeEnemy(pick(ENEMIES), run);
+  if (!roads.some(id => run.cells[id].enemy)) {
+    const empties = roads.filter(id => !run.cells[id].enemy);
+    if (empties.length) run.cells[pick(empties)].enemy = makeEnemy(pick(ENEMIES), run);
   }
 }
 
-// ── สร้าง enemy instance (scale ตาม loop + mods) ─────────────────────────────
+// ── สร้าง enemy instance (scale ตาม loop + terrain hp mult) ──────────────────
+// หมายเหตุ: enemyDmgBonus (pack_howl) เป็น cell-based แล้ว จึงไม่บวกตอน spawn
 function makeEnemy(def, run, opts = {}) {
   const mult = (1 + BAL.ENEMY_LOOP_SCALE * (run.loop - 1)) * (opts.power || 1);
   const maxhp = Math.max(1, Math.round(def.base.hp * mult * run.mods.enemyHpMult));
   return {
     id: def.id, name: def.name, img: def.img, role: def.role,
     maxhp, hp: maxhp,
-    atk: Math.round(def.base.atk * mult) + run.mods.enemyDmgBonus,
+    atk: Math.round(def.base.atk * mult),
     def: def.base.def,
   };
 }
 
-// ── apply mods (terrain/adjacent ผลถาวรในรัน) → recompute hero stats ─────────
+// ── recompute hero stats (terrain card → run.mods global; adjacent/road → cell-based) ──
 function applyMods(run) {
-  // shrine/rock ฯลฯ ถูกบวกเข้า mods ตอนวางแล้ว — ที่นี่แค่ recompute
+  // terrain card (rock/thornfield/treasure) บวกเข้า run.mods ตอนวางแล้ว — ที่นี่แค่ recompute
   recomputeStats(run);
 }
 
@@ -763,30 +878,35 @@ function renderRunBar() {
   }
 }
 
-// ── วาด board ──
+// ── วาด board จาก grid config (CSS grid 7×9) ──
 function renderBoard() {
   const run = BLH.run; if (!run) return;
   const el = q('blh-board'); if (!el) return;
+  el.style.gridTemplateColumns = `repeat(${BLH_MAP.gridWidth}, 1fr)`;
+  el.style.gridTemplateRows = `repeat(${BLH_MAP.gridHeight}, 1fr)`;
   let html = '';
-  for (let i = 0; i < BAL.TILES; i++) {
-    const p = tilePos(i);
-    const t = run.tiles[i];
-    const isCamp = t.kind === 'camp';
-    const placeable = run._placing != null && isPlaceable(i, run._placing);
+  for (const def of BLH_MAP.cells) {
+    const rc = run.cells[def.id];
+    const isCamp = def.type === 'camp';
+    const isTerrain = def.type === 'terrain';
+    const placeable = run._placing != null && isPlaceable(def.id, run._placing);
     let badge = '';
     if (isCamp) badge = '<div class="blh-tile-camp">⛺</div>';
-    else if (t.enemy) badge = `<div class="blh-tile-enemy"><img src="${t.enemy.img}" onerror="this.style.display='none'"></div>`;
-    if (t.terrain) {
-      const c = MAP_CARD_BY_ID[t.terrain];
+    else if (rc.enemy) badge = `<div class="blh-tile-enemy"><img src="${rc.enemy.img}" onerror="this.style.display='none'"></div>`;
+    if (rc.placedCardId) {
+      const c = MAP_CARD_BY_ID[rc.placedCardId];
       badge += `<div class="blh-tile-terrain" title="${esc(c.name)}">${c.icon}</div>`;
     }
-    html += `<div class="blh-tile ${isCamp ? 'camp' : ''} ${placeable ? 'placeable' : ''}"
-      style="left:${p.x}%;top:${p.y}%" ${placeable ? `onclick="blh.placeAt(${i})"` : ''}>
-      ${badge}</div>`;
+    const cls = ['blh-tile', def.type];     // เช่น "blh-tile road" / "blh-tile terrain"
+    if (placeable) cls.push('placeable');
+    if (isTerrain) cls.push('terrain-slot');
+    html += `<div class="${cls.join(' ')}" data-celltype="${def.type}" data-cellid="${def.id}"
+      style="grid-column:${def.col + 1};grid-row:${def.row + 1}"
+      ${placeable ? `onclick="blh.placeAt('${def.id}')"` : ''}>${badge}</div>`;
   }
-  // hero token
-  const hp = tilePos(run.tileIndex);
-  html += `<div class="blh-token" id="blh-token" style="left:${hp.x}%;top:${hp.y}%">
+  // hero token (absolute overlay บนพิกัดกึ่งกลาง cell)
+  const tp = cellCenterPct(BLH_CELL_BY_ID[run.route[run.routePos]]);
+  html += `<div class="blh-token" id="blh-token" style="left:${tp.x}%;top:${tp.y}%">
     <img src="${run.hero.img}" onerror="this.style.opacity=0"></div>`;
   el.innerHTML = html;
 }
@@ -794,7 +914,7 @@ function renderBoard() {
 function moveToken() {
   const run = BLH.run;
   const tok = q('blh-token'); if (!tok || !run) return;
-  const p = tilePos(run.tileIndex);
+  const p = cellCenterPct(BLH_CELL_BY_ID[run.route[run.routePos]]);
   tok.style.left = p.x + '%';
   tok.style.top = p.y + '%';
 }
@@ -808,20 +928,23 @@ function scheduleStep(ms) {
 function stepWalk() {
   const run = BLH.run;
   if (!run || run.ended || run.phase !== 'walking') return;
-  run.tileIndex = (run.tileIndex + 1) % BAL.TILES;
+  run.routePos = (run.routePos + 1) % run.route.length;
+  const cellId = run.route[run.routePos];
   moveToken();
 
-  // step heal (campfire ฯลฯ)
-  if (run.mods.stepHeal > 0 && run.stats.hp < run.stats.maxhp) {
-    run.stats.hp = clamp(run.stats.hp + run.mods.stepHeal, 0, run.stats.maxhp);
+  // ถึง Camp → auto-pause ทุก loop
+  if (cellId === 'camp' || run.cells[cellId].type === 'camp') { arriveCamp(); return; }
+
+  // step heal เฉพาะที่ (campfire ที่ติดช่องถนนนี้)
+  const fx = getCellEffectsForRoad(cellId);
+  if (fx.stepHeal > 0 && run.stats.hp < run.stats.maxhp) {
+    run.stats.hp = clamp(run.stats.hp + fx.stepHeal, 0, run.stats.maxhp);
     updateHUD();
   }
 
-  if (run.tileIndex === 0) { arriveCamp(); return; }
-
-  const t = run.tiles[run.tileIndex];
-  if (t.enemy) {
-    startBattle({ kind: 'normal', enemies: [t.enemy], tile: run.tileIndex });
+  const rc = run.cells[cellId];
+  if (rc.enemy) {
+    startBattle({ kind: 'normal', enemies: [rc.enemy], cellId });
   } else {
     scheduleStep();
   }
@@ -1030,13 +1153,14 @@ function planCards(run) {
 }
 
 function planMap(run) {
-  const enemies = run.tiles.filter(t => t.enemy).length;
-  const terr = run.tiles.filter(t => t.terrain).length;
+  const roadCount = BLH_MAP.cells.filter(c => c.type === 'road').length;
+  const enemies = BLH_MAP.cells.filter(c => c.type === 'road' && run.cells[c.id].enemy).length;
+  const placed = Object.keys(run.placedCells).length;
   return `<div class="blh-mapinfo">
-      <div>🗺️ ช่องถนน: <b>${BAL.TILES - 1}</b> + Camp</div>
+      <div>🗺️ ช่องถนน: <b>${roadCount}</b> + Camp</div>
       <div>👾 ศัตรูบนแผนที่: <b>${enemies}</b></div>
-      <div>🌵 เทอเรนที่วาง: <b>${terr}</b></div>
-      <div class="dim">ปิดแผงนี้เพื่อดูแผนที่เต็ม แล้วแตะช่องเพื่อวางการ์ด</div>
+      <div>🌵 การ์ดที่วางแล้ว: <b>${placed}</b></div>
+      <div class="dim">ปิดแผงนี้เพื่อดูแผนที่เต็ม แล้วแตะช่องที่ไฮไลต์เพื่อวางการ์ด</div>
     </div>`;
 }
 
@@ -1075,15 +1199,29 @@ function unequip(slot) {
   renderPlan();
 }
 
-// ── terrain/map card placement ──
+// ── map card placement (grid-cell based) ──
+// คืน cell id ที่วางการ์ดใบนี้ได้ (ใช้ทั้ง highlight และ validation)
+function validPlacementTargets(cardId) {
+  return BLH_MAP.cells.filter(c => isPlaceable(c.id, cardId)).map(c => c.id);
+}
 function startPlace(handIdx) {
   const run = BLH.run;
   const id = run.hand[handIdx];
   if (id == null) return;
+  const targets = validPlacementTargets(id);
+  if (!targets.length) {
+    // feedback ชัดเจนเมื่อไม่มีช่องที่วางได้
+    const c = MAP_CARD_BY_ID[id];
+    const where = c.kind === 'road' ? 'ช่องถนนว่าง'
+                : c.kind === 'adjacent' ? 'ช่องเทอเรนที่ติดถนนและยังว่าง'
+                : 'ช่องเทอเรนที่ว่าง';
+    blhToast(`ไม่มี${where}ให้วาง ${c.name}`);
+    return;
+  }
   run._placing = id;
   run._placingHand = handIdx;
   closePlan();
-  blhToast('แตะช่องบนแผนที่ที่ไฮไลต์เพื่อวาง');
+  blhToast('แตะช่องที่ไฮไลต์เพื่อวาง');
   renderBoard();
 }
 function cancelPlace() {
@@ -1099,21 +1237,34 @@ function reopenPlanContext() {
   _planTab = 'cards';
   renderPlan();          // renderPlan แสดงปุ่ม “กลับ Camp” หรือ “เดินต่อ” ตาม phase
 }
-function isPlaceable(i, cardId) {
+// กฎการวาง (locked spec):
+//   road card     → ช่อง road เท่านั้น (วางบนช่องที่มีศัตรูได้ = แทนที่ encounter)
+//   adjacent card → ช่อง terrain ที่ติด road (orthogonal) อย่างน้อย 1 ช่อง
+//   terrain card  → ช่อง terrain ใดก็ได้
+//   ช่องที่วางการ์ดแล้ว = occupied → วางซ้ำไม่ได้ (placement ถาวรจนจบรัน)
+//   camp/blocked  → วางการ์ดไม่ได้ (Boss Signal วางที่ Camp ผ่านปุ่มแยก)
+function isPlaceable(cellId, cardId) {
   const run = BLH.run;
-  if (i === 0) return false;             // ไม่วางบน camp
-  const t = run.tiles[i];
-  if (t.terrain) return false;
+  const def = BLH_CELL_BY_ID[cellId];
+  if (!run || !def) return false;
+  const rc = run.cells[cellId];
+  if (rc.placedCardId) return false;               // occupied แล้ว
   const c = MAP_CARD_BY_ID[cardId];
-  if (c.kind === 'road') return !t.enemy; // road card เสกศัตรู → ต้องช่องว่าง
-  return true;                            // adjacent/terrain วางช่องว่างจากเทอเรน
+  if (!c) return false;
+  if (c.kind === 'road')     return def.type === 'road';
+  if (c.kind === 'adjacent') return def.type === 'terrain' && getAdjacentRoadCells(cellId).length > 0;
+  if (c.kind === 'terrain')  return def.type === 'terrain';
+  return false;
 }
-function placeAt(i) {
+function placeAt(cellId) {
   const run = BLH.run;
   const cardId = run._placing;
-  if (cardId == null || !isPlaceable(i, cardId)) return;
+  if (cardId == null || !isPlaceable(cellId, cardId)) return;
   const c = MAP_CARD_BY_ID[cardId];
-  applyCardEffect(c, run, i);
+  applyCardEffect(c, run, cellId);
+  // บันทึกการวาง (source of truth ตาม cell id)
+  run.cells[cellId].placedCardId = c.id;
+  run.placedCells[cellId] = { cardId: c.id, cardType: c.kind, placedLoop: run.loop };
   // เอาการ์ดออกจากมือ
   const hi = run.hand.indexOf(cardId);
   if (hi >= 0) run.hand.splice(hi, 1);
@@ -1125,32 +1276,29 @@ function placeAt(i) {
   reopenPlanContext();   // กลับเข้าแผงวางแผน (cards) เพื่อวางต่อ หรือเดินต่อ/กลับ Camp
 }
 
-function applyCardEffect(c, run, tileIdx) {
-  const t = run.tiles[tileIdx];
+// ผลของการ์ด:
+//   • terrain card → global run buff (run.mods) — คงค่าตัวเลขเดิม
+//   • road / adjacent card → cell-based (เก็บที่ placedCardId, ผลคิดใน
+//     getCellEffectsForRoad ตอนสู้/เดิน) ยกเว้น spawn_rift ที่เสกศัตรูทันที
+function applyCardEffect(c, run, cellId) {
+  const rc = run.cells[cellId];
   switch (c.id) {
-    // ROAD
+    // ROAD (cell-based) — spawn_rift แทนที่ encounter ด้วยศัตรูที่แรงขึ้น
     case 'spawn_rift':
-      t.enemy = makeEnemy(pick(ENEMIES), run, { power: 1.15 });
-      run.mods.lootBonus += 0.08;
+      rc.enemy = makeEnemy(pick(ENEMIES), run, { power: 1.15 });
       break;
     case 'pack_howl':
-      run.mods.enemyDmgBonus += 2;
-      run.mods.zenyBonus += 80;
-      t.terrain = c.id;
-      break;
     case 'blood_track':
-      run.mods.bossSignalDropBonus += 0.20;
-      t.terrain = c.id;
+      break; // ผลคิดแบบ cell-based ใน getCellEffectsForRoad
+    // ADJACENT (cell-based) — ส่งผลเฉพาะช่องถนนข้างเคียง
+    case 'campfire':
+    case 'shrine':
+    case 'lucky_totem':
       break;
-    // ADJACENT
-    case 'campfire':  run.mods.stepHeal += 6; t.terrain = c.id; break;
-    case 'shrine':    run.mods.atk += 2; t.terrain = c.id; break;
-    case 'lucky_totem': run.mods.lootBonus += 0.12; t.terrain = c.id; break;
-    // TERRAIN
-    case 'rock':      run.mods.def += 3; t.terrain = c.id; break;
-    case 'thornfield': run.mods.enemyHpMult *= 0.85; run.mods.thornSelf += 1; t.terrain = c.id; break;
-    case 'treasure':  run.mods.lootTierBump += 1; t.terrain = c.id; break;
-    default: t.terrain = c.id;
+    // TERRAIN (global run buff) — คงตัวเลขเดิม
+    case 'rock':       run.mods.def += 3; break;
+    case 'thornfield': run.mods.enemyHpMult *= 0.85; run.mods.thornSelf += 1; break;
+    case 'treasure':   run.mods.lootTierBump += 1; break;
   }
 }
 
@@ -1160,9 +1308,12 @@ function applyCardEffect(c, run, tileIdx) {
 function startBattle(ctx) {
   const run = BLH.run;
   setPhase('battle');
+  // เอฟเฟกต์เฉพาะช่อง (road/adjacent card) — boss ไม่มี cell จึงใช้ EMPTY
+  const cellFx = ctx.cellId ? getCellEffectsForRoad(ctx.cellId) : EMPTY_CELL_FX;
   const battle = {
     kind: ctx.kind,            // 'normal' | 'boss'
-    tile: ctx.tile,
+    cellId: ctx.cellId || null,
+    cellFx,
     enemies: ctx.enemies,      // [{...}] alive list (boss: [minionL, minionR, boss])
     log: [],
     round: 0,
@@ -1170,6 +1321,8 @@ function startBattle(ctx) {
     paused: false,
     done: false,
   };
+  // pack_howl: ศัตรูบนช่องนี้แรงขึ้น (apply ครั้งเดียวตอนเริ่มสู้)
+  if (cellFx.enemyDmgBonus) ctx.enemies.forEach(e => { e.atk += cellFx.enemyDmgBonus; });
   BLH._battle = battle;
   const title = ctx.kind === 'boss' ? `BOSS FIGHT — ${run.boss.name}` : 'BATTLE';
   q('blh-battle').style.display = 'flex';
@@ -1229,8 +1382,8 @@ function battleTick() {
   if (!battle || battle.done || battle.paused) return;
   battle.round++;
 
-  // ── hero turn ──
-  const hero = { isHero: true, atk: run.stats.atk };
+  // ── hero turn ── (+ATK เฉพาะช่อง เช่น shrine ที่ติดช่องถนนนี้)
+  const hero = { isHero: true, atk: run.stats.atk + (battle.cellFx ? battle.cellFx.atkBonus : 0) };
   const target = chooseTarget(battle);
   if (target) {
     const r = dealDamage(hero, target);
@@ -1307,9 +1460,9 @@ function endBattle(result) {
     return;
   }
 
-  // normal win — เคลียร์ศัตรูบนช่อง + ดรอป
-  if (battle.tile != null) run.tiles[battle.tile].enemy = null;
-  const drops = rollDrops(run);
+  // normal win — เคลียร์ศัตรูบนช่อง + ดรอป (รวมเอฟเฟกต์เฉพาะช่อง)
+  if (battle.cellId && run.cells[battle.cellId]) run.cells[battle.cellId].enemy = null;
+  const drops = rollDrops(run, battle.cellFx);
   drops.forEach(d => battleLog(d));
   renderBattle('WIN', true, drops);
   setTimeout(() => {
@@ -1321,10 +1474,12 @@ function endBattle(result) {
   }, drops.length ? 1100 : 700);
 }
 
-function rollDrops(run) {
+function rollDrops(run, fx = EMPTY_CELL_FX) {
   const out = [];
-  // gear
-  const chance = BAL.BASE_LOOT_CHANCE + upgValue('lootChance') + run.mods.lootBonus;
+  // pack_howl: ซีนี่โบนัสเมื่อชนะบนช่องนี้ (สะสมเข้า run.mods.zenyBonus)
+  if (fx.zenyBonus) run.mods.zenyBonus += fx.zenyBonus;
+  // gear (+lootBonus เฉพาะช่อง เช่น lucky_totem ข้างเคียง / spawn_rift บนช่อง)
+  const chance = BAL.BASE_LOOT_CHANCE + upgValue('lootChance') + run.mods.lootBonus + (fx.lootBonus || 0);
   if (Math.random() < chance) {
     const g = makeGear(run);
     run.lootBag.push(g);
@@ -1337,9 +1492,9 @@ function rollDrops(run) {
     run.hand.push(id);
     out.push(`🃏 ได้การ์ดแผนที่: ${MAP_CARD_BY_ID[id].name}`);
   }
-  // boss signal
+  // boss signal (+bossSignalDropBonus เฉพาะช่อง เช่น blood_track)
   if (!run.bossSignalObtained && run.loop >= BAL.BOSS_SIGNAL_MIN_LOOP) {
-    const sigChance = 0.32 + run.mods.bossSignalDropBonus + (run.loop >= 7 ? 1 : 0);
+    const sigChance = 0.32 + run.mods.bossSignalDropBonus + (fx.bossSignalDropBonus || 0) + (run.loop >= 7 ? 1 : 0);
     if (Math.random() < sigChance) {
       run.bossSignalObtained = true;
       out.push(`📡 ได้ BOSS SIGNAL! ไปวางที่ Camp เพื่อเรียกบอส`);
@@ -1396,7 +1551,7 @@ function startBossFight() {
     mk(boss, 'boss', 2),
   ];
   closeCamp();
-  startBattle({ kind: 'boss', enemies, tile: null });
+  startBattle({ kind: 'boss', enemies, cellId: null });
 }
 
 // ── battle render ──
@@ -1583,3 +1738,11 @@ Object.assign(blh, {
   startPlace, cancelPlace, placeAt,
   toggleFast, battleInspect, dismissBattle,
 });
+
+// ── debug/test hooks (read-only; ใช้โดย scripts/smoke-blh.mjs — ไม่กระทบเกมเพลย์) ──
+blh.__test = {
+  BLH, BLH_MAP, BLH_CELL_BY_ID,
+  getNeighborCells, getAdjacentRoadCells, getCellEffectsForRoad,
+  isPlaceable, validPlacementTargets, startBossFight, stepWalk,
+  roadCellIds,
+};

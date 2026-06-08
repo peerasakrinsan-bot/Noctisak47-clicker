@@ -3812,21 +3812,28 @@
   font-size: 12px; letter-spacing: 1px; color: #fff; text-shadow: 0 1px 2px #000; }
 .blh-hud-stats { display: flex; gap: 14px; font-size: 14px; color: #d7dae2; }
 
-.blh-board { position: relative; width: 100%; height: min(54vh, 380px); flex-shrink: 0; margin: 4px 0; }
-.blh-tile { position: absolute; width: 30px; height: 30px; transform: translate(-50%, -50%);
-  border-radius: 50%; background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.18);
-  display: flex; align-items: center; justify-content: center; }
-.blh-tile.camp { width: 40px; height: 40px; background: rgba(255,204,0,.12); border-color: var(--gold); }
-.blh-tile.placeable { border-color: var(--cyan); box-shadow: 0 0 14px var(--cyan); cursor: pointer;
-  animation: blhPulse 1s infinite; }
-.blh-tile-camp { font-size: 20px; }
-.blh-tile-enemy { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; }
+/* CSS grid map (7×9) — แต่ละ cell เป็น grid item, token เป็น absolute overlay */
+.blh-board { position: relative; width: 100%; max-width: 440px; margin: 4px auto; flex-shrink: 0;
+  height: min(56vh, 430px); display: grid; gap: 0; }
+.blh-tile { justify-self: center; align-self: center; position: relative; box-sizing: border-box;
+  width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.06); border: 2px solid rgba(255,255,255,.16); }
+/* ขยาย touch target ให้ ≥44px โดยไม่เปลี่ยนขนาดภาพ */
+.blh-tile::before { content: ''; position: absolute; inset: -9px; border-radius: 12px; }
+.blh-tile.road { border-color: rgba(120,160,255,.45); background: rgba(80,120,200,.14); }
+.blh-tile.camp { width: 42px; height: 42px; background: rgba(255,204,0,.14); border-color: var(--gold); }
+.blh-tile.terrain-slot { width: 28px; height: 28px; border-radius: 8px; border-style: dashed;
+  border-color: rgba(136,221,170,.5); background: rgba(136,221,170,.09); }
+.blh-tile.placeable { border-color: var(--cyan); border-style: solid; box-shadow: 0 0 14px var(--cyan);
+  cursor: pointer; animation: blhPulse 1s infinite; }
+.blh-tile-camp { font-size: 22px; }
+.blh-tile-enemy { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
 .blh-tile-enemy img { width: 100%; height: 100%; object-fit: cover; }
-.blh-tile-terrain { position: absolute; top: -8px; right: -8px; font-size: 15px;
-  filter: drop-shadow(0 1px 2px #000); }
-.blh-token { position: absolute; width: 46px; height: 46px; transform: translate(-50%, -50%); z-index: 5;
+.blh-tile-terrain { position: absolute; top: -10px; right: -10px; font-size: 15px;
+  filter: drop-shadow(0 1px 2px #000); pointer-events: none; }
+.blh-token { position: absolute; width: 40px; height: 40px; transform: translate(-50%, -50%); z-index: 5;
   border-radius: 50%; overflow: hidden; border: 2.5px solid var(--cyan);
-  box-shadow: 0 0 16px var(--cyan); background: #0c0d12;
+  box-shadow: 0 0 16px var(--cyan); background: #0c0d12; pointer-events: none;
   transition: left .35s ease, top .35s ease; }
 .blh-token img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
 .blh-run-bar { margin-top: auto; padding-top: 6px; }

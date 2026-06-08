@@ -103,15 +103,75 @@ ok('Lobby has START RUN', blhHtml().includes('START RUN'));
 ok('Lobby exposes Arena Training', blhHtml().includes('ARENA TRAINING'));
 
 window.blh.startRun();
-// the run screen template lives on #blhRoot; tiles/token render into #blh-board
+// the run screen template lives on #blhRoot; cells/token render into #blh-board
 const boardHtml = document.getElementById('blh-board').innerHTML;
-const tileCount = (boardHtml.match(/class="blh-tile /g) || []).length;
 ok('Run renders the loop board', blhHtml().includes('blh-board'));
-ok('Loop map has 12 tiles', tileCount === 12, 'tiles=' + tileCount);
 ok('Hero token placed on board', boardHtml.includes('blh-token'));
 ok('classic startGame NOT called by run start', startGameCalls === 1);
 
-// 4) separate economy: Loop Zeny persisted under its own key
+// 4) GRID MAP MODEL (locked spec 7×9) ────────────────────────────────────────
+const T = window.blh.__test;
+const MAP = T.BLH_MAP;
+const cells = MAP.cells;
+const roadCells = cells.filter(c => c.type === 'road');
+const terrainCells = cells.filter(c => c.type === 'terrain');
+ok('gridWidth === 7', MAP.gridWidth === 7, 'w=' + MAP.gridWidth);
+ok('gridHeight === 9', MAP.gridHeight === 9, 'h=' + MAP.gridHeight);
+ok('route length === 13 (Camp + 12 Road)', MAP.route.length === 13, 'route=' + MAP.route.length);
+ok('Camp cell exists', cells.some(c => c.type === 'camp') && MAP.route[0] === 'camp');
+ok('12 road cells exist', roadCells.length === 12, 'road=' + roadCells.length);
+ok('12 terrain cells exist', terrainCells.length === 12, 'terrain=' + terrainCells.length);
+
+// board renders every cell (13 route + 12 terrain = 25) from grid config
+const nRoadDom = (boardHtml.match(/data-celltype="road"/g) || []).length;
+const nCampDom = (boardHtml.match(/data-celltype="camp"/g) || []).length;
+const nTerrDom = (boardHtml.match(/data-celltype="terrain"/g) || []).length;
+ok('board draws 12 road + 1 camp = 13 route cells', nRoadDom + nCampDom === 13, `${nRoadDom}road+${nCampDom}camp`);
+ok('board draws 12 terrain cells', nTerrDom === 12, 'terrainDom=' + nTerrDom);
+
+// every terrain cell is orthogonally adjacent to ≥1 road (so adjacent cards are placeable)
+const allTerrainTouchRoad = terrainCells.every(c => T.getAdjacentRoadCells(c.id).length > 0);
+ok('all terrain cells touch ≥1 road cell', allTerrainTouchRoad);
+// getAdjacentRoadCells returns only road/camp cells
+const adjSample = T.getAdjacentRoadCells('t01');
+ok('getAdjacentRoadCells returns only road/camp', adjSample.length > 0 && adjSample.every(n => n.type === 'road' || n.type === 'camp'));
+
+// 5) PLACEMENT RULES ─────────────────────────────────────────────────────────
+const roadTargets = T.validPlacementTargets('spawn_rift'); // road card
+const adjTargets  = T.validPlacementTargets('shrine');     // adjacent card
+const terrTargets = T.validPlacementTargets('rock');       // terrain card
+ok('Road card → only road cells', roadTargets.length === 12 &&
+  roadTargets.every(id => T.BLH_CELL_BY_ID[id].type === 'road'), 'n=' + roadTargets.length);
+ok('Adjacent card → only terrain cells adjacent to road', adjTargets.length === 12 &&
+  adjTargets.every(id => T.BLH_CELL_BY_ID[id].type === 'terrain' && T.getAdjacentRoadCells(id).length > 0), 'n=' + adjTargets.length);
+ok('Terrain card → only terrain cells', terrTargets.length === 12 &&
+  terrTargets.every(id => T.BLH_CELL_BY_ID[id].type === 'terrain'), 'n=' + terrTargets.length);
+ok('Road/Adjacent/Terrain never target Camp', ![...roadTargets, ...adjTargets, ...terrTargets].includes('camp'));
+
+// 6) ADJACENT EFFECT is cell-local (only adjacent road cells) ─────────────────
+const run = T.BLH.run;
+const terrId = 't01';
+const adjRoad = T.getAdjacentRoadCells(terrId)[0].id;        // road touching t01
+const farRoad = roadCells.find(c => !T.getAdjacentRoadCells(terrId).some(a => a.id === c.id)).id;
+run.cells[terrId].placedCardId = 'shrine';                    // simulate placing shrine
+ok('shrine buffs ADJACENT road cell only', T.getCellEffectsForRoad(adjRoad).atkBonus === 2, 'adj=' + T.getCellEffectsForRoad(adjRoad).atkBonus);
+ok('shrine does NOT buff a far road cell', T.getCellEffectsForRoad(farRoad).atkBonus === 0, 'far=' + T.getCellEffectsForRoad(farRoad).atkBonus);
+run.cells[terrId].placedCardId = null;                        // reset
+
+// 7) BOSS SIGNAL still summons SUANG at Camp ──────────────────────────────────
+for (const id of T.roadCellIds()) run.cells[id].enemy = null; // clear encounters so loop is unobstructed
+run.bossSignalObtained = true;
+run.bossSignalPlaced = true;                                  // simulate signal placed at camp
+run.phase = 'walking';
+let guard = 0;
+while ((!window.blh.__test.BLH._battle || window.blh.__test.BLH._battle.kind !== 'boss') && guard++ < 40) {
+  T.stepWalk(); // route order; arriving Camp with signal placed triggers the boss fight
+}
+const bt = T.BLH._battle;
+ok('Boss Signal summons a boss fight', bt && bt.kind === 'boss');
+ok('Boss is SUANG with 2 minions', bt && run.boss.id === 'suang' && bt.enemies.filter(e => e.role === 'minion').length === 2);
+
+// 8) separate economy: Loop Zeny persisted under its own key
 const blhSave = localStorage.getItem('noctisak47_blh');
 ok('Loop Zeny save uses separate key', blhSave !== null);
 ok('save has loopZeny field', blhSave && JSON.parse(blhSave).loopZeny !== undefined);
