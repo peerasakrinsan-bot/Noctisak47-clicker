@@ -7178,9 +7178,10 @@ function _tickVisualAccum(x, y, dmg, isGun, isCrit, recoilCls, flashCls, bossHit
 function _flushTickVisuals() {
   if(_tv.hitCount === 0) return;
 
-  // FX — spawn ครั้งเดียวต่อ tick (ตำแหน่งล่าสุด)
-  spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false);
-  showHitNum(_tv.lastX, _tv.lastY, _tv.lastDmg, _tv.lastIsGun, _tv.lastIsCrit);
+  // หมายเหตุ: particle FX (spawnFX) และเลขดาเมจ (showHitNum) ถูกยิงแล้ว
+  // ต่อ hit ภายใน processHit/applyDamage โดยใช้ตำแหน่ง+ค่าดาเมจที่ถูกต้อง
+  // (showHitNum มี aggregation window ของตัวเองอยู่แล้ว) — ไม่ยิงซ้ำที่นี่
+  // เพื่อลด DOM churn ต่อ tick และตัดการนับเลขเกิน (เดิม flush ส่ง bossHP มาเป็นดาเมจ)
 
   // recoil — set once, remove once
   if(_tv.doRecoil) {
