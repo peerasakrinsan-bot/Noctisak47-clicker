@@ -4916,7 +4916,7 @@ function csOnBreakSuccess() {
       cs._baphometSinStack = (cs._baphometSinStacks || 0) * 0.08;
       showBigSplash('DEVIL BET', 'SIN +' + (cs._baphometSinStacks||0) + '/5', '#cc0000', false);
     } else {
-      timer = Math.max(1, timer - 1);
+      timeLeft = Math.max(1, timeLeft - 1);
       _spawnOne();
       showBigSplash('DEVIL BET', 'TIME -1s • AK47 CURSE', '#ff3300', false);
     }
@@ -7572,12 +7572,12 @@ function processHit(e, now) {
     let _totalDmg = _sanitizeDamage(Math.round(dmg * _odHits * _methHits), 'normalTapTotal');
     if(baphTriple){
       const _baseMain = Math.round(dmg * _odHits);
-      const _secCritChance = Math.max(0, Math.min(1, (critChance || 0) * 0.45));
+      const _secCritChance = Math.max(0, Math.min(1, (_critChance || 0) * 0.45));
       const _sec1Crit = Math.random() < _secCritChance;
       const _sec2Crit = Math.random() < _secCritChance;
       const _secBase = Math.max(1, Math.round(_baseMain * 0.40));
-      const _sec1 = Math.round(_secBase * (_sec1Crit ? (critMult || 2) : 1));
-      const _sec2 = Math.round(_secBase * (_sec2Crit ? (critMult || 2) : 1));
+      const _sec1 = Math.round(_secBase * (_sec1Crit ? (_sc.critMult || 2) : 1));
+      const _sec2 = Math.round(_secBase * (_sec2Crit ? (_sc.critMult || 2) : 1));
       _totalDmg = _sanitizeDamage(_baseMain + _sec1 + _sec2, 'baphTripleTotal');
     }
 
