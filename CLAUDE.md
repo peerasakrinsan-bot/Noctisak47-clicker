@@ -29,8 +29,8 @@ There are no automated tests or linters. All verification is manual.
 index.html              # HTML shell; loads src/styles.css and src/main.js
 src/
   main.js               # ES module entry point; imports game.js
-  game.js               # All game logic (~10,310 lines) — Stage 2A verbatim lift
-  styles.css            # All game styles (~6,000 lines)
+  game.js               # All game logic (~10,352 lines) — Stage 2A verbatim lift
+  styles.css            # All game styles (~3,650 lines)
 public/
   sw.js                 # Service Worker (copied verbatim to dist/)
   manifest.json         # PWA manifest
@@ -55,7 +55,7 @@ npm run build
   2. node scripts/postbuild-sw.js
        reads dist/assets/*.js and *.css
        injects their hashed filenames into PRECACHE_ASSETS in dist/sw.js
-       appends a build tag to CACHE_NAME (e.g. noctisak47-2026.05.18.1-abc123)
+       appends a build tag to CACHE_NAME (e.g. noctisak47-2026.06.08.2-abc123)
 ```
 
 The post-build step is required for the service worker to cache the hashed Vite bundles correctly; skipping it breaks offline mode.
@@ -74,11 +74,16 @@ The post-build step is required for the service worker to cache the hashed Vite 
 | Area | Description |
 |------|-------------|
 | `SHOP_DEF` | 7 shop items (OCA, RNGESUS, DE-SO-LATER, METH SHARD, BUFF STICK, TIME SKIP CORE, STONKS HAND), each with 5 upgrade levels |
+| `GOD_LEVELS` | 3 overdrive tiers: NOCTIS OVERDRIVE (5× dmg, 10 s), OVERDRIVE BURST (8× dmg, 6 s), ANNIHILATION MODE (12× dmg, 4 s) |
 | Sound system | Web Audio API (`AudioContext`) for SFX; `<audio>` elements for BGM (`fight1-4.mp3`) |
-| `save` object | All player state — coins, cards, items, mastery, skins, arenas — persisted to `localStorage` and synced to cloud (Vercel KV) |
+| `save` object | All player state — coins, cards, items, skins, arenas — persisted to `localStorage` and synced to cloud (Supabase) |
 | Hit/damage loop | Tap zones, weak-point detection, crit/overdrive multipliers, card bonuses |
-| Card system | 90 cards across 4 rarities. Mastery tier 0–3 tracked per card. |
+| Card system | 90 cards across 4 rarities. Mastery tracked via `save.cardRuns` (run count per card). |
 | Particle system | Object-pooled particles, rings, and break impacts — do not increase per-hit particle counts |
+| PRESSURE/BREAK | Rage-meter survival system: buildup → BREAK target mini-game → rewards/fail-rage |
+| AK47 system | Sequential 5-round weak-point chain with safe-spawn layout algorithm |
+| Daily reward system | 7-day streak with 06:00 rollover; state in `save.dailyQuest` |
+| Weekly challenge | 3 progressive tiers reset every Monday 06:00; state in `save.weeklyChallenge` |
 
 ### Game screen IDs
 
@@ -88,17 +93,18 @@ All screens are children of `#gameRoot` (position: fixed, 100vw/100vh):
 |----|---------|
 | `mainMenu` | Title / main menu |
 | `shopScreen` | Shop / upgrades |
-| `bossScreen` | Boss fight |
-| `arenaScreen` | Arena / multi-enemy mode |
-| `cardCollectionScreen` | Card collection / dex |
-| `cardSlotScreen` | Active card slot selection |
+| `bossScreen` | Boss skin shop |
+| `arenaScreen` | Arena skin shop |
+| `cardCollectionScreen` | Card collection / dex + OCA tickets |
+| `cardSlotScreen` | Active card slot selection (pre-run) |
 | `cardDrawScreen` | Card draw / gacha animation |
 | `resultScreen` | Round-end results |
-| `pauseScreen` | Pause menu |
-| `rewardsModal` | End-of-round rewards |
-| `saveModal` | Save / cloud sync UI |
-| `bossSkinModal` | Boss skin purchase / select |
-| `cardModal` | Card detail / mastery popup |
+| `pauseScreen` | Pause menu + settings |
+| `rewardsModal` | Daily + weekly rewards hub |
+| `dailyQuestWidget` | Persistent HUD widget (opens rewardsModal) |
+| `saveModal` | Cloud save / load / reset |
+| `bossSkinModal` | Boss skin preview popup |
+| `cardModal` | Card detail popup |
 | `ocaConfirmModal` | Confirm card draw |
 | `rerollConfirmModal` | Confirm card slot reroll |
 
@@ -106,9 +112,9 @@ All screens are children of `#gameRoot` (position: fixed, 100vw/100vh):
 
 When making any change that players will receive, update the version string in **three places** to bust the Service Worker cache:
 
-1. `index.html` (~line 19): `window.NOCTISAK47_APP_VERSION = '2026.05.18.1'`
-2. `index.html` manifest link: `<link rel="manifest" href="/manifest.json?v=2026.05.18.1">`
-3. `public/sw.js` (~line 2): `const APP_VERSION = '2026.05.18.1'`
+1. `index.html` (~line 19): `window.NOCTISAK47_APP_VERSION = '2026.06.08.2'`
+2. `index.html` manifest link: `<link rel="manifest" href="/manifest.json?v=2026.06.08.2">`
+3. `public/sw.js` (~line 2): `const APP_VERSION = '2026.06.08.2'`
 
 Version format: `YYYY.MM.DD.n` (n = daily increment, starting at 1).
 
@@ -117,7 +123,7 @@ Version format: `YYYY.MM.DD.n` (n = daily increment, starting at 1).
 | Key | Purpose |
 |-----|---------|
 | `noctisak47_v3` | Main save data (coins, stats, cards, items, mastery) |
-| `noctis_settings` | Settings: music/SFX on/off, volumes, reduceFlash, flashEffect |
+| `noctis_settings` | Settings: music/SFX on/off, volumes, flashEffect |
 | `noctisak47_device_id` | Unique device UUID |
 | `noctisak47_pending_sync` | Cloud sync payload queued for upload |
 | `noctisak47_cloud` | Cloud player `{id, key}` |
@@ -131,17 +137,34 @@ Schema changes to the save object require a migration guard on load to avoid wip
 
 ```
 save.coins                    current currency
-save.stats                    {highScore, totalKO, maxCombo, ...}
+save.stats                    {highScore, totalKO, maxCombo}
 save.gamesCompleted           total run count
 save.ownedSkins / activeSkin  unlocked + selected boss skin IDs
 save.ownedArenas / activeArena
 save.items                    {oca, daedalus, desolator, moonshard, aghanims, octarine, midas}
-save.cardSlots                active card IDs [slot0, slot1, slot2]
-save.cardCollection           ownership/rarity per card ID
-save.cardMastery              {cardId: {tier, runs, maxCombo, ...}}
-save.ocaTickets               {standard, premium, elite} free pull counts
+save.unlockedCards            array of owned card IDs
+save.savedCards               persisted pre-run card slot selection [id, id, id] | null
+save.cardRuns                 {[cardId]: runCount} — drives card mastery tier
+save.ocaTickets               {standard, premium, elite} free pull ticket counts
+save.dailyQuest               {weekKey, streak, lastClaimDate, claimed:[]} — daily reward state
+save.weeklyChallenge          {weekId, runsCompleted, totalKO, breakSuccess, ak47Complete, claimed:{tier1,tier2,tier3}}
+save.preRunState              {sessionId, rerollCount} | null — persists reroll cost between screens
 save.cloudPlayerId
+save.saveVersion              schema version integer
+save.updatedAt / deviceId / lastRunId   metadata for cloud sync conflict resolution
 ```
+
+## Card Mastery System
+
+Mastery is tracked via `save.cardRuns[cardId]` (integer run count, incremented by `cmRecordRun` at end of each run).
+
+| Tier | Constant | Threshold | Visual |
+|------|----------|-----------|--------|
+| Normal | `CM_TIER.NORMAL` | < 10 runs | no effect |
+| Glossy | `CM_TIER.GLOSSY` | ≥ 10 runs | `.cm-glossy-wrap` CSS class |
+| Prismatic | `CM_TIER.PRISMATIC` | ≥ 30 runs | `.cm-prismatic-wrap` CSS class |
+
+`cmShowEvolutionReveal()` fires a toast overlay when a card evolves tier at the end of a run.
 
 ## Shop Items (`SHOP_DEF`)
 
@@ -168,7 +191,78 @@ Economy target: ~250 coins per 60-second round. Lv1 ≈ 15–20 rounds to afford
 | Elite | 22 | 13% |
 | Mythic | 19 | 2% |
 
-**Mastery tiers:** 0 (base) → 1 → 2 → 3 (max), tracked in `save.cardMastery[cardId].tier`. Advancement is based on runs completed and max combo achieved with that card.
+Card IDs use a short 2-letter abbreviation (e.g. `po`, `lu`). A legacy `_MIGRATE_ID` map converts old long IDs to the short form on save load.
+
+## Boss Skins (`BOSS_SKINS`)
+
+10 purchasable skins — each has `id`, `name`, `icon`, `cost`, and `files: {idle, hits[]}`:
+
+| ID | Name | Cost |
+|----|------|------|
+| `default` | NOCTISAK47 | 0 |
+| `toei_boxer` | TOEI | 1,500 |
+| `apologize` | APOLOGIZE | 1,500 |
+| `xuang` | XUANG | 3,000 |
+| `jakkadun` | JAKKADUN | varies |
+| `sornsit_spirit` | SORNSIT SPIRIT | varies |
+| `rukawa` | RUKAWA | varies |
+| `suang` | SUANG | varies |
+| `morgan` | ARTHUR MORGAN | varies |
+| `toei` | TOEI (ENIGMA) | varies |
+
+## Arena Skins (`ARENA_SKINS`)
+
+3 purchasable arenas — each has `id`, `name`, `preview`, `bg`, `cost`:
+
+| ID | Name | Cost |
+|----|------|------|
+| `default` | RAJADAMNERN STADIUM | 0 |
+| `one_championship` | ONE CHAMPIONSHIP | 500 |
+| `colosseum` | COLOSSEUM | 500 |
+
+## Overdrive (`GOD_LEVELS`)
+
+3 overdrive tiers triggered by filling the OD bar:
+
+| Level | Name | Damage Mult | Duration |
+|-------|------|-------------|----------|
+| 1 | NOCTIS OVERDRIVE | 5× | 10 s |
+| 2 | OVERDRIVE BURST | 8× | 6 s |
+| 3 | ANNIHILATION MODE | 12× | 4 s |
+
+## PRESSURE / BREAK System
+
+Rage-meter mini-game that activates during combat (`PRESSURE` object, `src/game.js:5946`):
+
+- **Buildup phase**: rage meter fills over time; escalating aura FX
+- **BREAK phase**: a tappable `#breakTarget` appears with a short window (2.75–3.1 s scaled by `PRESSURE_BREAK_TABLE`); player must hit it to succeed
+- **Success**: grants score/coin rewards + clears rage; `save.weeklyChallenge.breakSuccess` incremented
+- **Fail**: rage spikes via `PRESSURE_FAIL_RAGE_TABLE`; subsequent BREAKs harder
+
+## AK47 System
+
+Sequential 5-round weak-point chain (`src/game.js:1883`):
+
+- Rounds spawn in order WP 1 → 5; position chosen by a safe-spawn algorithm that avoids overlapping the previous position
+- Collecting all 5 triggers **AK47 BOMB** with coin/score bonuses; `save.weeklyChallenge.ak47Complete` incremented
+- Several cards modify spawn speed, visible time, duplicate chance, and reward size
+
+## Daily & Weekly Rewards
+
+- **Daily**: 7-day streak; day rolls over at 06:00 (not midnight). State in `save.dailyQuest`. Widget: `#dailyQuestWidget` → opens `#rewardsModal`.
+- **Weekly challenge** (3 tiers, resets Monday 06:00):
+  - Tier I: 5 runs → PREMIUM OCA ×2 + 1,000 ZENY
+  - Tier II: 3,000 total KO → PREMIUM OCA ×3 + 3,000 ZENY
+  - Tier III: 40 BREAK successes + 60 AK47 completes → ELITE OCA ×1 + PREMIUM OCA ×3 + 5,000 ZENY
+
+## Cloud Save (Supabase)
+
+The cloud save backend is **Supabase** (table `cloud_saves`, columns `player_id`, `secret_key`, `save_data`, `uploaded_at`). The anon key and URL are embedded in `src/game.js:406`. Save/load flow:
+
+- Player sets a custom `PLAYER_ID` (A-Z, 0-9, `_`); system auto-generates an 8-char alphanumeric `secret_key`
+- Upload: upsert to Supabase; lock via `noctisak47_cloud_lock` to prevent concurrent writes
+- Download: match `player_id` + `secret_key`; overwrites local save after confirmation
+- Pending uploads are queued in `noctisak47_pending_sync` and retried on next `window.online` event
 
 ## Key Conventions
 
@@ -177,5 +271,7 @@ Economy target: ~250 coins per 60-second round. Lv1 ≈ 15–20 rounds to afford
 - **Performance-sensitive paths**: The tap/hit handler runs on every touch event. Avoid DOM queries, allocations, or layout-triggering reads inside it. Use the existing object pools for particles.
 - **Shop balancing**: Keep new items within the ~250 coins/round economy described above.
 - **CSS**: Lives in `src/styles.css`. Use CSS custom properties and `transform`/`opacity` for animations. The layout uses `contain: layout paint` and `will-change` on animated elements.
-- **window bridge**: During Stage 2A/2B, globals that inline `onclick` attributes reference must remain on `window`. Do not remove `window.X = X` exports without updating all callers in `index.html`.
+- **window bridge**: During Stage 2A/2B, globals that inline `onclick` attributes reference must remain on `window`. The bridge is the `Object.assign(window, {...})` block at the end of `src/game.js`. Do not remove entries without updating all callers in `index.html`.
 - **Vite base path**: `vite.config.js` sets `base: './'` for GitHub Pages subpath compatibility. All asset references in code must be relative or use the Vite asset import system.
+- **Save schema migrations**: Any new field added to the save object must be seeded in both `defaultSave()` and `normalizeSaveData()` with a safe default, so existing saves load without breakage.
+- **Version bumps required**: Every deploy that changes game behavior must update the version string in all three locations (see Releasing section above).
