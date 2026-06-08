@@ -353,9 +353,10 @@ const BAL = {
   BASE_SPAWN_CHANCE: 0.30,   // โอกาสเสกศัตรูในช่องว่างต่อ loop
   ENEMY_LOOP_SCALE: 0.17,    // ศัตรูแกร่งขึ้นต่อ loop
   BOSS_SIGNAL_MIN_LOOP: 4,   // เริ่มดรอปได้จริงราว loop 4+
-  WALK_MS: 820,
-  BATTLE_MS: 620,
-  BATTLE_MS_FAST: 120,
+  // pacing (1x = ช้า อ่านง่าย); 2x หาร 2; Pause = ไม่เดิน. ดู speedFactor()
+  WALK_MS: 1150,             // ก้าวเดินต่อช่องที่ 1x (ช้าให้วางแผนทัน)
+  BATTLE_MS: 950,            // จังหวะต่อรอบการสู้ที่ 1x (log อ่านทัน)
+  BATTLE_OPEN_MS: 700,       // หน่วงก่อนรอบแรกหลังเปิด popup
   CASHOUT_PER_LOOP: 40,
   BOSS_BONUS: 350,
 };
@@ -744,7 +745,7 @@ function startRun() {
     bossSignalPlaced: false,
     bossFought: false,
     reviveUsed: false,
-    fastBattle: false,
+    speed: 1,               // 0 = Pause, 1 = 1x (ช้า, default), 2 = 2x
     ended: false,
     _placing: null,
   };
@@ -832,19 +833,17 @@ function renderRunScreen() {
   setScreen('run', `
     <div class="blh-run-hud" id="blh-hud"></div>
     <div class="blh-board" id="blh-board"></div>
-    <div class="blh-run-bar" id="blh-runbar"></div>
-    <div class="blh-overlay" id="blh-plan" style="display:none"></div>
-    <div class="blh-overlay" id="blh-camp" style="display:none"></div>
+    <div class="blh-panel" id="blh-panel"></div>
     <div class="blh-overlay blh-battle-overlay" id="blh-battle" style="display:none"></div>
     <div class="blh-toast" id="blh-toast"></div>
   `);
   renderBoard();
-  renderRunBar();
+  renderPanel();
 }
 
 function setPhase(p) {
   if (BLH.run) BLH.run.phase = p;
-  renderRunBar();
+  renderPanel();
 }
 
 function updateHUD() {
@@ -868,17 +867,140 @@ function updateHUD() {
     </div>`;
 }
 
-function renderRunBar() {
+// ── speed control (Pause / 1x / 2x) ──
+function speedLabel() {
+  const s = BLH.run ? BLH.run.speed : 1;
+  return s === 0 ? '⏸ PAUSED' : s === 1 ? '▶ 1x' : '⏩ 2x';
+}
+function speedBtnHtml(extraClass = '') {
+  const s = BLH.run ? BLH.run.speed : 1;
+  const cls = s === 0 ? 'paused' : '';
+  return `<button class="blh-speed-btn ${cls} ${extraClass}" onclick="blh.cycleSpeed()">${speedLabel()}</button>`;
+}
+// วน 1x → 2x → Pause → 1x
+function cycleSpeed() {
   const run = BLH.run; if (!run) return;
-  const el = q('blh-runbar'); if (!el) return;
-  if (run.phase === 'walking') {
-    el.innerHTML = `<button class="blh-primary" onclick="blh.pausePlan()">⏸ PAUSE / PLAN</button>`;
+  run.speed = run.speed === 1 ? 2 : run.speed === 2 ? 0 : 1;
+  applySpeedChange();
+  renderPanel();
+  setBattleFooter();
+}
+function setSpeed(s) {
+  const run = BLH.run; if (!run) return;
+  run.speed = s;
+  applySpeedChange();
+  renderPanel();
+  setBattleFooter();
+}
+// ปรับ timer ให้ตรงกับความเร็วปัจจุบัน (resume/freeze ทั้ง walking และ battle)
+function applySpeedChange() {
+  const run = BLH.run; if (!run) return;
+  const battle = BLH._battle;
+  if (run.speed === 0) {
+    // Pause: หยุดทั้ง walking + battle
+    if (BLH._walkTimer) { clearTimeout(BLH._walkTimer); BLH._walkTimer = null; BLH._walkPendingMs = BLH._walkPendingMs ?? BAL.WALK_MS; }
+    if (battle && battle.timer) { clearTimeout(battle.timer); battle.timer = null; battle._pending = !battle.done; }
   } else {
-    el.innerHTML = '';
+    // resume เฉพาะลูปที่กำลัง active
+    if (battle && !battle.done && battle._pending) { battle._pending = false; scheduleBattleTick(60); }
+    else if (run.phase === 'walking' && BLH._walkPendingMs != null) { const ms = BLH._walkPendingMs; BLH._walkPendingMs = null; scheduleStep(ms); }
   }
 }
 
-// ── วาด board จาก grid config (CSS grid 7×9) ──
+// ════════════════════════════════════════════════════════════════════════════
+// PERSISTENT BOTTOM PANEL (Stats / Gear / Loot / Map / Plan) — มองเห็นตลอดรัน
+// ════════════════════════════════════════════════════════════════════════════
+let _panelTab = 'stats';
+const PANEL_TABS = [
+  ['stats', '📊', 'STATS'], ['gear', '🧤', 'GEAR'], ['loot', '🎒', 'LOOT'],
+  ['map', '🗺️', 'MAP'], ['plan', '📋', 'PLAN'],
+];
+function panelTab(tab) { _panelTab = tab || 'stats'; renderPanel(); }
+function renderPanel() {
+  const run = BLH.run; if (!run) return;
+  const el = q('blh-panel'); if (!el) return;
+  const tabBtns = PANEL_TABS.map(([id, icon, label]) =>
+    `<button class="blh-ptab ${id === _panelTab ? 'on' : ''}" onclick="blh.panelTab('${id}')">
+      <span class="blh-ptab-icon">${icon}</span><span class="blh-ptab-label">${label}</span></button>`).join('');
+  el.innerHTML = `
+    <div class="blh-panel-tabs">${tabBtns}</div>
+    <div class="blh-panel-body" id="blh-panel-body">${renderPanelBody()}</div>`;
+}
+function renderPanelBody() {
+  const run = BLH.run;
+  const locked = run.phase === 'battle';   // gear/terrain ใช้ไม่ได้ระหว่างสู้
+  switch (_panelTab) {
+    case 'stats': return panelStats(run);
+    case 'gear':  return planGear(run, locked);
+    case 'loot':  return planLoot(run, locked);
+    case 'map':   return panelMap(run, locked);
+    case 'plan':  return panelPlan(run);
+  }
+  return '';
+}
+
+// แผง STATS — สรุปฮีโร่ + เกียร์ย่อ + traits + speed/loop
+function panelStats(run) {
+  const traits = ['crit', 'lifesteal', 'thorns', 'guard'].map(t => ({ t, n: heroTraitValue(t) })).filter(x => x.n > 0);
+  const traitLabel = { crit: 'คริต', lifesteal: 'ดูดเลือด', thorns: 'สะท้อน', guard: 'การ์ด' };
+  const traitLine = traits.length
+    ? `<div class="blh-statline dim">${traits.map(x => `${traitLabel[x.t]}×${x.n}`).join(' • ')}</div>` : '';
+  return `
+    <div class="blh-statbox">
+      <div class="blh-statbox-portrait"><img src="${run.hero.img}" onerror="this.style.opacity=0"></div>
+      <div class="blh-statbox-info">
+        <div class="blh-statbox-name">${esc(run.hero.name)} <span class="blh-statbox-role">${esc(run.hero.role)}</span></div>
+        <div class="blh-statline">❤️ HP <b>${Math.round(run.stats.hp)}/${run.stats.maxhp}</b> &nbsp; ⚔️ ATK <b>${run.stats.atk}</b> &nbsp; 🛡️ DEF <b>${run.stats.def}</b></div>
+        <div class="blh-statline">🔄 LOOP <b>${run.loop}</b> • 🎒 <b>${run.lootBag.length}</b> • 🃏 <b>${run.hand.length}</b> • ${speedLabel()}</div>
+        ${traitLine}
+      </div>
+    </div>
+    <div class="blh-equip-strip">${GEAR_SLOTS.map(s => {
+      const g = run.gear[s.id];
+      return `<div class="blh-equip-mini">
+        <div class="blh-equip-mini-icon">${s.icon}</div>
+        <div class="blh-equip-mini-name">${g ? gearLabel(g) : '<span class="dim">ว่าง</span>'}</div>
+      </div>`;
+    }).join('')}</div>`;
+}
+
+// แผง MAP — การ์ดแผนที่/เทอเรน + สถานะการวาง + ข้อมูลแผนที่
+function panelMap(run, locked) {
+  const placing = run._placing != null;
+  const head = placing
+    ? `<div class="blh-cards-note hi">เลือกช่องที่ไฮไลต์บนแผนที่ • <button class="blh-mini-btn ghost" onclick="blh.cancelPlace()">✖ ยกเลิก</button></div>`
+    : locked
+      ? `<div class="blh-cards-note dim">🔒 วางการ์ดไม่ได้ระหว่างสู้</div>`
+      : `<div class="blh-cards-note">แตะ “วาง” แล้วเลือกช่องที่ไฮไลต์ — เทอเรนคือหัวใจเสี่ยง/รางวัล</div>`;
+  return head + planCards(run, locked) + planMap(run);
+}
+
+// แผง PLAN — speed control + camp actions (Continue/CashOut/Signal) + abandon
+function panelPlan(run) {
+  const atCamp = run.phase === 'camp';
+  const canSignal = run.bossSignalObtained && !run.bossSignalPlaced;
+  const seg = [[1, '▶ 1x'], [2, '⏩ 2x'], [0, '⏸ Pause']].map(([s, l]) =>
+    `<button class="blh-seg ${run.speed === s ? 'on' : ''}" onclick="blh.setSpeed(${s})">${l}</button>`).join('');
+  let actions;
+  if (atCamp) {
+    actions = `
+      <button class="blh-primary" onclick="blh.continueLoop()">▶ CONTINUE LOOP</button>
+      <button class="blh-secondary" onclick="blh.cashOut()">💰 CASH OUT (~🔷 ${fmt(estCashOut(run))})</button>
+      ${canSignal ? `<button class="blh-signal" onclick="blh.placeSignal()">📡 PLACE BOSS SIGNAL</button>` : ''}
+      ${run.bossSignalPlaced ? `<div class="blh-signal-note">📡 รอบหน้าที่ถึง Camp เจอ ${esc(run.boss.name)}!</div>` : ''}`;
+  } else {
+    actions = `<div class="blh-plan-hint">${canSignal
+      ? '📡 มี Boss Signal — กลับ Camp เพื่อวาง แล้วเรียกบอส'
+      : 'เดินวนเก็บลูท/วางเทอเรน แล้วกลับ Camp เพื่อ Cash Out หรือเรียกบอส'}</div>`;
+  }
+  return `
+    <div class="blh-plan-row"><div class="blh-plan-label">ความเร็ว</div><div class="blh-seg-wrap">${seg}</div></div>
+    <div class="blh-plan-status">LOOP <b>${run.loop}</b> • ${atCamp ? '⛺ ที่ Camp' : '🚶 กำลังเดิน'} • รางวัลถ้า Cash Out ~🔷 ${fmt(estCashOut(run))}</div>
+    <div class="blh-plan-actions">${actions}</div>
+    <button class="blh-danger-link" onclick="blh.abandonRun()">ยอมแพ้ / ออกจากรัน</button>`;
+}
+
+// ── วาด board จาก grid config (CSS grid 7×9) — full-cell map tiles ──
 function renderBoard() {
   const run = BLH.run; if (!run) return;
   const el = q('blh-board'); if (!el) return;
@@ -887,24 +1009,25 @@ function renderBoard() {
   let html = '';
   for (const def of BLH_MAP.cells) {
     const rc = run.cells[def.id];
-    const isCamp = def.type === 'camp';
-    const isTerrain = def.type === 'terrain';
+    const occupied = !!rc.placedCardId;
     const placeable = run._placing != null && isPlaceable(def.id, run._placing);
-    let badge = '';
-    if (isCamp) badge = '<div class="blh-tile-camp">⛺</div>';
-    else if (rc.enemy) badge = `<div class="blh-tile-enemy"><img src="${rc.enemy.img}" onerror="this.style.display='none'"></div>`;
-    if (rc.placedCardId) {
+    // เนื้อหาในไทล์ (เต็มช่อง) — camp / enemy / marker
+    let inner = '';
+    if (def.type === 'camp') inner = '<div class="blh-cell-icon">⛺</div>';
+    else if (rc.enemy) inner = `<div class="blh-cell-enemy"><img src="${rc.enemy.img}" onerror="this.style.display='none'"></div>`;
+    if (occupied) {
       const c = MAP_CARD_BY_ID[rc.placedCardId];
-      badge += `<div class="blh-tile-terrain" title="${esc(c.name)}">${c.icon}</div>`;
+      inner += `<div class="blh-cell-marker" title="${esc(c.name)}">${c.icon}</div>`;
     }
     const cls = ['blh-tile', def.type];     // เช่น "blh-tile road" / "blh-tile terrain"
     if (placeable) cls.push('placeable');
-    if (isTerrain) cls.push('terrain-slot');
+    if (occupied) cls.push('occupied');
+    if (def.type === 'terrain' && !occupied) cls.push('empty');
     html += `<div class="${cls.join(' ')}" data-celltype="${def.type}" data-cellid="${def.id}"
       style="grid-column:${def.col + 1};grid-row:${def.row + 1}"
-      ${placeable ? `onclick="blh.placeAt('${def.id}')"` : ''}>${badge}</div>`;
+      ${placeable ? `onclick="blh.placeAt('${def.id}')"` : ''}>${inner}</div>`;
   }
-  // hero token (absolute overlay บนพิกัดกึ่งกลาง cell)
+  // hero token (absolute overlay บนกึ่งกลาง cell — ไม่ทับ visual ของไทล์)
   const tp = cellCenterPct(BLH_CELL_BY_ID[run.route[run.routePos]]);
   html += `<div class="blh-token" id="blh-token" style="left:${tp.x}%;top:${tp.y}%">
     <img src="${run.hero.img}" onerror="this.style.opacity=0"></div>`;
@@ -919,10 +1042,14 @@ function moveToken() {
   tok.style.top = p.y + '%';
 }
 
-// ── การเดินอัตโนมัติ ──
+// ── การเดินอัตโนมัติ (speed-aware: Pause = ค้างไว้, 2x = หาร 2) ──
 function scheduleStep(ms) {
-  if (BLH._walkTimer) clearTimeout(BLH._walkTimer);
-  BLH._walkTimer = setTimeout(stepWalk, ms == null ? BAL.WALK_MS : ms);
+  if (BLH._walkTimer) { clearTimeout(BLH._walkTimer); BLH._walkTimer = null; }
+  const run = BLH.run; if (!run || run.ended) return;
+  const base = ms == null ? BAL.WALK_MS : ms;
+  if (run.speed === 0) { BLH._walkPendingMs = base; return; }   // Pause: รอ resume
+  BLH._walkPendingMs = null;
+  BLH._walkTimer = setTimeout(stepWalk, Math.round(base / run.speed));
 }
 
 function stepWalk() {
@@ -968,39 +1095,16 @@ function arriveCamp() {
   spawnForLoop(run);   // เสกศัตรูสำหรับ loop ใหม่ (ผู้เล่นได้วางแผนก่อน)
   renderBoard();
   updateHUD();
-  setPhase('camp');
-  openCamp();
+  _panelTab = 'plan';  // ถึง Camp → เด้งไปแท็บ PLAN (Continue/CashOut/Signal)
+  setPhase('camp');    // setPhase → renderPanel (auto-pause: ไม่ scheduleStep จนกด Continue)
+  blhToast(`⛺ ถึง Camp — LOOP ${run.loop}`);
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// CAMP
-// ════════════════════════════════════════════════════════════════════════════
-function openCamp() {
-  const run = BLH.run;
-  const el = q('blh-camp');
-  const canPlace = run.bossSignalObtained && !run.bossSignalPlaced;
-  const estZeny = estCashOut(run);
-  el.innerHTML = `
-    <div class="blh-sheet">
-      <div class="blh-sheet-title">⛺ CAMP — LOOP ${run.loop}</div>
-      <div class="blh-sheet-sub">พักเพื่อวางแผน • เดินต่อหรือถอนเงิน</div>
-      <div class="blh-camp-grid">
-        <button class="blh-primary" onclick="blh.continueLoop()">▶ CONTINUE LOOP</button>
-        <button class="blh-secondary" onclick="blh.cashOut()">💰 CASH OUT (~🔷 ${fmt(estZeny)})</button>
-        <button class="blh-secondary" onclick="blh.openPlanTab('gear')">🧤 MANAGE GEAR</button>
-        <button class="blh-secondary" onclick="blh.openPlanTab('cards')">🗺️ VIEW / PLAN MAP</button>
-        ${canPlace ? `<button class="blh-signal" onclick="blh.placeSignal()">📡 PLACE BOSS SIGNAL</button>` : ''}
-        ${run.bossSignalPlaced ? `<div class="blh-signal-note">📡 Boss Signal พร้อม — กลับมา Camp รอบหน้าเจอ ${esc(run.boss.name)}!</div>` : ''}
-      </div>
-      <button class="blh-danger-link" onclick="blh.abandonRun()">ยอมแพ้ / ออกจากรัน</button>
-    </div>`;
-  el.style.display = 'flex';
-}
-function closeCamp() { const el = q('blh-camp'); if (el) el.style.display = 'none'; }
 
 function continueLoop() {
-  closeCamp();
-  setPhase('walking');
+  const run = BLH.run; if (!run) return;
+  if (run.speed === 0) run.speed = 1;        // ถ้าค้าง Pause ไว้ ให้กลับมาเดิน
+  _panelTab = 'map';
+  setPhase('walking');                        // renderPanel
   scheduleStep(450);
 }
 
@@ -1008,83 +1112,8 @@ function placeSignal() {
   const run = BLH.run;
   run.bossSignalPlaced = true;
   blhToast('📡 วาง Boss Signal แล้ว — รอบหน้าที่ถึง Camp บอสจะปรากฏ!');
-  openCamp(); // refresh
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// PLANNING / PAUSE  (manage gear / loot / cards / map / stats)
-// ════════════════════════════════════════════════════════════════════════════
-function pausePlan() {
-  const run = BLH.run;
-  if (!run || run.phase !== 'walking') return;
-  if (BLH._walkTimer) { clearTimeout(BLH._walkTimer); BLH._walkTimer = null; }
-  setPhase('paused');
-  openPlanTab('stats');
-}
-
-let _planTab = 'stats';
-function openPlanTab(tab) {
-  _planTab = tab || 'stats';
-  // ถ้าเรียกจาก camp ให้ซ่อน camp ชั่วคราว
-  closeCamp();
-  renderPlan();
-}
-
-function renderPlan() {
-  const run = BLH.run; if (!run) return;
-  const el = q('blh-plan');
-  const fromCamp = run.phase === 'camp' || run.phase === 'idle';
-  const tabs = ['stats', 'gear', 'loot', 'cards', 'map'];
-  const tabLabel = { stats: '📊 STATS', gear: '🧤 GEAR', loot: '🎒 LOOT', cards: '🃏 CARDS', map: '🗺️ MAP' };
-  const tabBtns = tabs.map(t =>
-    `<button class="blh-tab ${t === _planTab ? 'on' : ''}" onclick="blh.openPlanTab('${t}')">${tabLabel[t]}</button>`).join('');
-  el.innerHTML = `
-    <div class="blh-sheet tall">
-      <div class="blh-sheet-title">⏸ PLANNING</div>
-      <div class="blh-tabs">${tabBtns}</div>
-      <div class="blh-tabbody" id="blh-tabbody">${renderPlanBody()}</div>
-      <div class="blh-plan-foot">
-        ${run._placing ? `<button class="blh-ghost" onclick="blh.cancelPlace()">✖ ยกเลิกการวาง</button>` : ''}
-        ${fromCamp
-          ? `<button class="blh-ghost" onclick="blh.backToCamp()">‹ กลับ Camp</button>`
-          : `<button class="blh-primary" onclick="blh.resumeWalk()">▶ เดินต่อ</button>`}
-        <button class="blh-danger-link" onclick="blh.abandonRun()">ยอมแพ้</button>
-      </div>
-    </div>`;
-  el.style.display = 'flex';
-}
-
-function renderPlanBody() {
-  const run = BLH.run;
-  switch (_planTab) {
-    case 'stats': return planStats(run);
-    case 'gear':  return planGear(run);
-    case 'loot':  return planLoot(run);
-    case 'cards': return planCards(run);
-    case 'map':   return planMap(run);
-  }
-  return '';
-}
-
-function planStats(run) {
-  return `
-    <div class="blh-statbox">
-      <div class="blh-statbox-portrait"><img src="${run.hero.img}" onerror="this.style.opacity=0"></div>
-      <div class="blh-statbox-info">
-        <div class="blh-statbox-name">${esc(run.hero.name)} <span class="blh-statbox-role">${esc(run.hero.role)}</span></div>
-        <div class="blh-statline">❤️ HP <b>${Math.round(run.stats.hp)}/${run.stats.maxhp}</b></div>
-        <div class="blh-statline">⚔️ ATK <b>${run.stats.atk}</b></div>
-        <div class="blh-statline">🛡️ DEF <b>${run.stats.def}</b></div>
-        <div class="blh-statline">🔄 LOOP <b>${run.loop}</b> • 🎒 ลูท <b>${run.lootBag.length}</b> • 🃏 การ์ด <b>${run.hand.length}</b></div>
-      </div>
-    </div>
-    <div class="blh-equip-strip">${GEAR_SLOTS.map(s => {
-      const g = run.gear[s.id];
-      return `<div class="blh-equip-mini">
-        <div class="blh-equip-mini-icon">${s.icon}</div>
-        <div class="blh-equip-mini-name">${g ? gearLabel(g) : '<span class="dim">ว่าง</span>'}</div>
-      </div>`;
-    }).join('')}</div>`;
+  updateHUD();
+  renderPanel();
 }
 
 function gearLabel(g) {
@@ -1100,56 +1129,61 @@ function gearFull(g) {
     <b>+${g.stat.amount} ${st}</b>${trait && trait.id !== 'none' ? `<span class="blh-trait">• ${esc(trait.label)}</span>` : ''}`;
 }
 
-function planGear(run) {
+function planGear(run, locked) {
   const slots = GEAR_SLOTS.map(s => {
     const g = run.gear[s.id];
+    const btn = g
+      ? (locked ? '<span class="blh-mini-lock">🔒</span>' : `<button class="blh-mini-btn" onclick="blh.unequip('${s.id}')">ถอด</button>`)
+      : '';
     return `<div class="blh-gear-slot">
       <div class="blh-gear-slot-icon">${s.icon}</div>
       <div class="blh-gear-slot-main">
         <div class="blh-gear-slot-name">${s.name}</div>
         <div class="blh-gear-slot-val">${g ? gearFull(g) : '<span class="dim">— ว่าง —</span>'}</div>
       </div>
-      ${g ? `<button class="blh-mini-btn" onclick="blh.unequip('${s.id}')">ถอด</button>` : ''}
+      ${btn}
     </div>`;
   }).join('');
-  return `<div class="blh-gear-note">เกียร์ใช้ได้เฉพาะรอบรันนี้ — จบรันหายหมด</div>
+  const note = locked ? '🔒 เปลี่ยนเกียร์ไม่ได้ระหว่างสู้' : 'เกียร์ใช้ได้เฉพาะรอบรันนี้ — จบรันหายหมด';
+  return `<div class="blh-gear-note">${note}</div>
     <div class="blh-gear-slots">${slots}</div>`;
 }
 
-function planLoot(run) {
+function planLoot(run, locked) {
   if (!run.lootBag.length)
     return `<div class="blh-empty">🎒 กระเป๋าลูทว่าง — ล้มศัตรูเพื่อเก็บเกียร์</div>`;
   const items = run.lootBag.map((g, i) => {
     const slot = GEAR_SLOTS.find(s => s.id === g.slot);
+    const btn = locked ? '<span class="blh-mini-lock">🔒</span>' : `<button class="blh-mini-btn" onclick="blh.equipLoot(${i})">สวม</button>`;
     return `<div class="blh-loot-item">
       <div class="blh-loot-icon">${slot.icon}</div>
       <div class="blh-loot-main">
         <div class="blh-loot-name">${slot.name}</div>
         <div class="blh-loot-val">${gearFull(g)}</div>
       </div>
-      <button class="blh-mini-btn" onclick="blh.equipLoot(${i})">สวม</button>
+      ${btn}
     </div>`;
   }).join('');
-  return `<div class="blh-loot-list">${items}</div>`;
+  return `${locked ? '<div class="blh-gear-note">🔒 สวมเกียร์ไม่ได้ระหว่างสู้</div>' : ''}<div class="blh-loot-list">${items}</div>`;
 }
 
-function planCards(run) {
+function planCards(run, locked) {
   if (!run.hand.length)
     return `<div class="blh-empty">🃏 ไม่มีการ์ดแผนที่ — เก็บได้จากการล้มศัตรู</div>`;
   const cards = run.hand.map((id, i) => {
     const c = MAP_CARD_BY_ID[id];
     const kindLabel = { road: 'ROAD', adjacent: 'ADJACENT', terrain: 'TERRAIN' }[c.kind];
+    const btn = locked ? '<span class="blh-mini-lock">🔒</span>' : `<button class="blh-mini-btn" onclick="blh.startPlace(${i})">วาง</button>`;
     return `<div class="blh-mapcard" style="--accent:${c.accent}">
       <div class="blh-mapcard-icon">${c.icon}</div>
       <div class="blh-mapcard-main">
         <div class="blh-mapcard-name">${esc(c.name)} <span class="blh-mapcard-kind">${kindLabel}</span></div>
         <div class="blh-mapcard-desc">${esc(c.desc)}</div>
       </div>
-      <button class="blh-mini-btn" onclick="blh.startPlace(${i})">วาง</button>
+      ${btn}
     </div>`;
   }).join('');
-  return `<div class="blh-cards-note">เลือก “วาง” แล้วแตะช่องบนแผนที่ — เทอเรนคือหัวใจเสี่ยง/รางวัล</div>
-    <div class="blh-mapcard-list">${cards}</div>`;
+  return `<div class="blh-mapcard-list">${cards}</div>`;
 }
 
 function planMap(run) {
@@ -1157,27 +1191,16 @@ function planMap(run) {
   const enemies = BLH_MAP.cells.filter(c => c.type === 'road' && run.cells[c.id].enemy).length;
   const placed = Object.keys(run.placedCells).length;
   return `<div class="blh-mapinfo">
-      <div>🗺️ ช่องถนน: <b>${roadCount}</b> + Camp</div>
-      <div>👾 ศัตรูบนแผนที่: <b>${enemies}</b></div>
-      <div>🌵 การ์ดที่วางแล้ว: <b>${placed}</b></div>
-      <div class="dim">ปิดแผงนี้เพื่อดูแผนที่เต็ม แล้วแตะช่องที่ไฮไลต์เพื่อวางการ์ด</div>
+      <span>🗺️ ถนน <b>${roadCount}</b>+Camp</span>
+      <span>👾 ศัตรู <b>${enemies}</b></span>
+      <span>🌵 วางแล้ว <b>${placed}</b></span>
     </div>`;
 }
 
-function resumeWalk() {
-  const run = BLH.run;
-  run._placing = null; run._placingHand = null; // เผื่อค้างสถานะวาง
-  closePlan();
-  renderBoard();
-  setPhase('walking');
-  scheduleStep(400);
-}
-function backToCamp() { closePlan(); openCamp(); }
-function closePlan() { const el = q('blh-plan'); if (el) el.style.display = 'none'; }
-
-// ── gear ──
+// ── gear (เปลี่ยนได้เฉพาะนอกการสู้) ──
 function equipLoot(idx) {
   const run = BLH.run;
+  if (run.phase === 'battle') { blhToast('🔒 เปลี่ยนเกียร์ไม่ได้ระหว่างสู้'); return; }
   const g = run.lootBag[idx];
   if (!g) return;
   const prev = run.gear[g.slot];
@@ -1186,17 +1209,18 @@ function equipLoot(idx) {
   if (prev) run.lootBag.push(prev); // ของเก่ากลับลงกระเป๋า
   recomputeStats(run);
   updateHUD();
-  renderPlan();
+  renderPanel();
 }
 function unequip(slot) {
   const run = BLH.run;
+  if (run.phase === 'battle') { blhToast('🔒 เปลี่ยนเกียร์ไม่ได้ระหว่างสู้'); return; }
   const g = run.gear[slot];
   if (!g) return;
   run.gear[slot] = null;
   run.lootBag.push(g);
   recomputeStats(run);
   updateHUD();
-  renderPlan();
+  renderPanel();
 }
 
 // ── map card placement (grid-cell based) ──
@@ -1206,6 +1230,7 @@ function validPlacementTargets(cardId) {
 }
 function startPlace(handIdx) {
   const run = BLH.run;
+  if (run.phase === 'battle') { blhToast('🔒 วางการ์ดไม่ได้ระหว่างสู้'); return; }
   const id = run.hand[handIdx];
   if (id == null) return;
   const targets = validPlacementTargets(id);
@@ -1220,22 +1245,17 @@ function startPlace(handIdx) {
   }
   run._placing = id;
   run._placingHand = handIdx;
-  closePlan();
-  blhToast('แตะช่องที่ไฮไลต์เพื่อวาง');
+  _panelTab = 'map';
+  blhToast('แตะช่องที่ไฮไลต์บนแผนที่เพื่อวาง');
   renderBoard();
+  renderPanel();         // panel แสดงปุ่มยกเลิก + ไฮไลต์ช่องบน board
 }
 function cancelPlace() {
   const run = BLH.run;
   run._placing = null; run._placingHand = null;
+  _panelTab = 'map';
   renderBoard();
-  reopenPlanContext();   // กลับเข้าแผงวางแผน — ไม่ทิ้งผู้เล่นค้างบนบอร์ด
-}
-// เปิดแผงวางแผนกลับมาหลังวาง/ยกเลิก โดยอิง phase ปัจจุบัน
-function reopenPlanContext() {
-  const run = BLH.run;
-  if (!run) return;
-  _planTab = 'cards';
-  renderPlan();          // renderPlan แสดงปุ่ม “กลับ Camp” หรือ “เดินต่อ” ตาม phase
+  renderPanel();
 }
 // กฎการวาง (locked spec):
 //   road card     → ช่อง road เท่านั้น (วางบนช่องที่มีศัตรูได้ = แทนที่ encounter)
@@ -1273,7 +1293,8 @@ function placeAt(cellId) {
   renderBoard();
   updateHUD();
   blhToast(`วาง ${c.name} แล้ว`);
-  reopenPlanContext();   // กลับเข้าแผงวางแผน (cards) เพื่อวางต่อ หรือเดินต่อ/กลับ Camp
+  _panelTab = 'map';
+  renderPanel();         // อยู่แท็บ MAP เพื่อวางต่อ
 }
 
 // ผลของการ์ด:
@@ -1324,13 +1345,23 @@ function startBattle(ctx) {
   // pack_howl: ศัตรูบนช่องนี้แรงขึ้น (apply ครั้งเดียวตอนเริ่มสู้)
   if (cellFx.enemyDmgBonus) ctx.enemies.forEach(e => { e.atk += cellFx.enemyDmgBonus; });
   BLH._battle = battle;
-  const title = ctx.kind === 'boss' ? `BOSS FIGHT — ${run.boss.name}` : 'BATTLE';
   q('blh-battle').style.display = 'flex';
-  renderBattle(title);
+  buildBattleDOM();             // สร้าง popup ครั้งเดียว — entrance animation เล่นรอบเดียว
   battleLog(ctx.kind === 'boss'
     ? `⚔️ ${run.boss.name} ปรากฏตัวพร้อมลูกสมุน 2 ตัว!`
     : `⚔️ เจอ ${ctx.enemies[0].name}!`);
-  battle.timer = setTimeout(battleTick, 650);
+  scheduleBattleTick(BAL.BATTLE_OPEN_MS);
+}
+
+// ตั้งเวลา tick ถัดไป (speed-aware: Pause = ค้าง, 2x = หาร 2)
+function scheduleBattleTick(initialMs) {
+  const battle = BLH._battle, run = BLH.run;
+  if (!battle || battle.done || !run) return;
+  if (battle.timer) { clearTimeout(battle.timer); battle.timer = null; }
+  if (run.speed === 0 || battle.paused) { battle._pending = true; return; }   // Pause: รอ resume
+  battle._pending = false;
+  const base = initialMs == null ? BAL.BATTLE_MS : initialMs;
+  battle.timer = setTimeout(battleTick, Math.round(base / run.speed));
 }
 
 function aliveEnemies() { return BLH._battle.enemies.filter(e => e.hp > 0); }
@@ -1379,7 +1410,7 @@ function heroTraitValue(traitId) {
 function battleTick() {
   const battle = BLH._battle;
   const run = BLH.run;
-  if (!battle || battle.done || battle.paused) return;
+  if (!battle || battle.done || battle.paused || !run || run.speed === 0) return;
   battle.round++;
 
   // ── hero turn ── (+ATK เฉพาะช่อง เช่น shrine ที่ติดช่องถนนนี้)
@@ -1413,15 +1444,14 @@ function battleTick() {
     if (totalDmg > 0) battleLog(`💢 ศัตรูตอบโต้ −${totalDmg} (HP ${Math.round(run.stats.hp)})`);
   }
 
-  renderBattle();
+  updateBattleDynamic();      // อัปเดตเฉพาะ HP/log/dead — ไม่ rebuild popup (กัน flicker)
   updateHUD();
 
   // ── ตรวจจบ ──
   if (run.stats.hp <= 0) { endBattle('dead'); return; }
   if (!aliveEnemies().length) { endBattle('win'); return; }
 
-  const ms = run.fastBattle ? BAL.BATTLE_MS_FAST : BAL.BATTLE_MS;
-  battle.timer = setTimeout(battleTick, ms);
+  scheduleBattleTick();
 }
 
 function endBattle(result) {
@@ -1437,17 +1467,15 @@ function endBattle(result) {
       run.reviveUsed = true;
       run.stats.hp = Math.round(run.stats.maxhp * upgValue('safeDeath'));
       battleLog(`🪽 SAFER DEATH! ฟื้นคืนชีพที่ HP ${Math.round(run.stats.hp)}`);
+      updateBattleDynamic();
       updateHUD();
-      // เล่นต่อ
-      const ms = run.fastBattle ? BAL.BATTLE_MS_FAST : BAL.BATTLE_MS;
       battle.done = false;
-      battle.timer = setTimeout(battleTick, ms + 200);
-      renderBattle();
+      scheduleBattleTick(BAL.BATTLE_MS + 200);
       return;
     }
     battleLog('☠️ ฮีโร่ล้มลง...');
-    renderBattle('DEFEAT', true);
-    setTimeout(() => runEnd('dead'), 700);
+    finishBattleBanner('DEFEAT');
+    setTimeout(() => runEnd('dead'), 800);
     return;
   }
 
@@ -1455,8 +1483,8 @@ function endBattle(result) {
   if (battle.kind === 'boss') {
     battleLog(`🏆 ล้ม ${run.boss.name} สำเร็จ! RUN COMPLETE!`);
     run.bossFought = true;
-    renderBattle('VICTORY', true);
-    setTimeout(() => runEnd('boss'), 800);
+    finishBattleBanner('VICTORY');
+    setTimeout(() => runEnd('boss'), 900);
     return;
   }
 
@@ -1464,7 +1492,7 @@ function endBattle(result) {
   if (battle.cellId && run.cells[battle.cellId]) run.cells[battle.cellId].enemy = null;
   const drops = rollDrops(run, battle.cellFx);
   drops.forEach(d => battleLog(d));
-  renderBattle('WIN', true, drops);
+  finishBattleBanner('WIN');
   setTimeout(() => {
     closeBattle();
     renderBoard();
@@ -1550,59 +1578,85 @@ function startBossFight() {
     mk(MINIONS[mIds[1]], 'minion', 1), // ขวา
     mk(boss, 'boss', 2),
   ];
-  closeCamp();
   startBattle({ kind: 'boss', enemies, cellId: null });
 }
 
-// ── battle render ──
-function renderBattle(banner, finished, drops) {
-  const battle = BLH._battle;
-  const run = BLH.run;
+// ── battle popup: build DOM ครั้งเดียวต่อการสู้ (กัน flicker) ──
+function buildBattleDOM() {
+  const battle = BLH._battle, run = BLH.run;
   const el = q('blh-battle'); if (!el || !battle) return;
-  const hpPct = clamp(run.stats.hp / run.stats.maxhp * 100, 0, 100);
-
-  const enemyCards = battle.enemies.map(e => {
-    const pct = clamp(e.hp / e.maxhp * 100, 0, 100);
-    const dead = e.hp <= 0;
+  const enemyCards = battle.enemies.map((e, i) => {
     const tag = e.role === 'boss' ? 'BOSS' : e.role === 'minion' ? 'MINION' : (ROLE_LABEL[e.role] || '');
-    return `<div class="blh-bt-enemy ${dead ? 'dead' : ''} ${e.role === 'boss' ? 'boss' : ''}">
-      <div class="blh-bt-portrait"><img src="${e.img}" onerror="this.style.opacity=0">${dead ? '<div class="blh-bt-x">✖</div>' : ''}</div>
+    return `<div class="blh-bt-enemy ${e.role === 'boss' ? 'boss' : ''}" id="blh-bt-enemy-${i}">
+      <div class="blh-bt-portrait"><img src="${e.img}" onerror="this.style.opacity=0"><div class="blh-bt-x">✖</div></div>
       <div class="blh-bt-name">${esc(e.name)} <span class="blh-bt-tag">${tag}</span></div>
-      <div class="blh-bt-hpbar"><div class="blh-bt-hpfill enemy" style="width:${pct}%"></div></div>
-      <div class="blh-bt-hptext">${Math.max(0, Math.round(e.hp))}/${e.maxhp}</div>
+      <div class="blh-bt-hpbar"><div class="blh-bt-hpfill enemy" id="blh-bt-efill-${i}"></div></div>
+      <div class="blh-bt-hptext" id="blh-bt-etext-${i}"></div>
     </div>`;
   }).join('');
-
-  const logHtml = battle.log.slice(-7).map(l => `<div class="blh-bt-logline">${l}</div>`).join('');
-
-  let footer;
-  if (finished) {
-    footer = `<button class="blh-primary" onclick="blh.dismissBattle()">${banner === 'WIN' || banner === 'VICTORY' ? 'ดำเนินต่อ ▶' : 'ตกลง'}</button>`;
-  } else {
-    footer = `
-      <button class="blh-secondary sm" onclick="blh.toggleFast()">${run.fastBattle ? '⏩ FAST: ON' : '⏩ FAST'}</button>
-      <button class="blh-secondary sm" onclick="blh.battleInspect()">🔍 INSPECT</button>`;
-  }
-
+  // หมายเหตุ: innerHTML ถูกตั้งครั้งเดียวที่นี่ → entrance animation ของ .blh-bt-box เล่นรอบเดียว
   el.innerHTML = `
     <div class="blh-bt-box">
-      ${banner ? `<div class="blh-bt-banner ${banner === 'DEFEAT' ? 'lose' : 'win'}">${banner}</div>` : `<div class="blh-bt-title">⚔️ ${battle.kind === 'boss' ? esc(run.boss.name) : 'BATTLE'}</div>`}
+      <div class="blh-bt-titlebar" id="blh-bt-titlebar"></div>
       <div class="blh-bt-arena">
         <div class="blh-bt-hero">
           <div class="blh-bt-portrait hero"><img src="${run.hero.img}" onerror="this.style.opacity=0"></div>
           <div class="blh-bt-name">${esc(run.hero.name)}</div>
-          <div class="blh-bt-hpbar"><div class="blh-bt-hpfill hero" style="width:${hpPct}%"></div></div>
-          <div class="blh-bt-hptext">❤️ ${Math.max(0, Math.round(run.stats.hp))}/${run.stats.maxhp}</div>
-          <div class="blh-bt-mini">⚔️${run.stats.atk} 🛡️${run.stats.def}</div>
+          <div class="blh-bt-hpbar"><div class="blh-bt-hpfill hero" id="blh-bt-hero-hpfill"></div></div>
+          <div class="blh-bt-hptext" id="blh-bt-hero-hptext"></div>
+          <div class="blh-bt-mini" id="blh-bt-hero-mini"></div>
         </div>
         <div class="blh-bt-vs">VS</div>
         <div class="blh-bt-enemies ${battle.enemies.length > 1 ? 'multi' : ''}">${enemyCards}</div>
       </div>
-      <div class="blh-bt-log" id="blh-bt-log">${logHtml}</div>
-      <div class="blh-bt-foot">${footer}</div>
+      <div class="blh-bt-log" id="blh-bt-log"></div>
+      <div class="blh-bt-foot" id="blh-bt-foot"></div>
     </div>`;
-  const logEl = q('blh-bt-log');
-  if (logEl) logEl.scrollTop = logEl.scrollHeight;
+  setBattleTitle();
+  updateBattleDynamic();
+  setBattleFooter();
+}
+
+function setBattleTitle() {
+  const battle = BLH._battle, run = BLH.run; const tb = q('blh-bt-titlebar'); if (!tb || !battle) return;
+  tb.className = 'blh-bt-titlebar';
+  tb.textContent = `⚔️ ${battle.kind === 'boss' ? run.boss.name : 'BATTLE'}`;
+}
+
+// อัปเดตเฉพาะส่วนที่เปลี่ยน (HP bar/text + dead state) — ไม่แตะ DOM โครงสร้าง/animation
+function updateBattleDynamic() {
+  const battle = BLH._battle, run = BLH.run; if (!battle || !run) return;
+  const hf = q('blh-bt-hero-hpfill'); if (hf) hf.style.width = clamp(run.stats.hp / run.stats.maxhp * 100, 0, 100) + '%';
+  const ht = q('blh-bt-hero-hptext'); if (ht) ht.textContent = `❤️ ${Math.max(0, Math.round(run.stats.hp))}/${run.stats.maxhp}`;
+  const hm = q('blh-bt-hero-mini'); if (hm) hm.textContent = `⚔️${run.stats.atk + (battle.cellFx ? battle.cellFx.atkBonus : 0)} 🛡️${run.stats.def}`;
+  battle.enemies.forEach((e, i) => {
+    const ef = q(`blh-bt-efill-${i}`); if (ef) ef.style.width = clamp(e.hp / e.maxhp * 100, 0, 100) + '%';
+    const et = q(`blh-bt-etext-${i}`); if (et) et.textContent = `${Math.max(0, Math.round(e.hp))}/${e.maxhp}`;
+    const card = q(`blh-bt-enemy-${i}`); if (card) card.classList.toggle('dead', e.hp <= 0);
+  });
+}
+
+function setBattleFooter() {
+  const battle = BLH._battle; const foot = q('blh-bt-foot'); if (!foot || !battle) return;
+  if (battle.done) {
+    const cont = battle._banner === 'WIN' || battle._banner === 'VICTORY';
+    foot.innerHTML = `<button class="blh-primary" onclick="blh.dismissBattle()">${cont ? 'ดำเนินต่อ ▶' : 'ตกลง'}</button>`;
+  } else {
+    // ปุ่มความเร็ว (Pause/1x/2x) — ไม่ remount popup เมื่อกด
+    foot.innerHTML = speedBtnHtml('wide') +
+      (BLH.run && BLH.run.speed === 0 ? '<span class="blh-bt-paused">⏸ หยุดชั่วคราว</span>' : '');
+  }
+}
+
+// จบการสู้: ตั้ง banner + footer (ครั้งเดียว) — ไม่ rebuild ทั้ง popup
+function finishBattleBanner(banner) {
+  const battle = BLH._battle; if (!battle) return;
+  battle.done = true; battle._banner = banner;
+  if (battle.timer) { clearTimeout(battle.timer); battle.timer = null; }
+  updateBattleDynamic();
+  const tb = q('blh-bt-titlebar');
+  if (tb) { tb.className = 'blh-bt-titlebar banner ' + (banner === 'DEFEAT' ? 'lose' : 'win'); tb.textContent = banner; }
+  setBattleFooter();
 }
 
 function battleLog(line) {
@@ -1610,27 +1664,10 @@ function battleLog(line) {
   b.log.push(line);
   const logEl = q('blh-bt-log');
   if (logEl) {
+    // append เท่านั้น (ไม่ rebuild log ทั้งก้อน) — กัน flicker/scroll reset
     logEl.insertAdjacentHTML('beforeend', `<div class="blh-bt-logline">${line}</div>`);
+    while (logEl.childElementCount > 12) logEl.removeChild(logEl.firstElementChild);
     logEl.scrollTop = logEl.scrollHeight;
-  }
-}
-
-function toggleFast() {
-  const run = BLH.run; run.fastBattle = !run.fastBattle;
-  renderBattle();
-}
-
-function battleInspect() {
-  const b = BLH._battle; if (!b || b.done) return;
-  b.paused = !b.paused;
-  if (b.paused) {
-    if (b.timer) clearTimeout(b.timer);
-    blhToast('⏸ พักดูข้อมูล — แก้เกียร์/เทอเรนไม่ได้ระหว่างสู้');
-    const foot = q('blh-battle').querySelector('.blh-bt-foot');
-    if (foot) foot.innerHTML = `<button class="blh-primary sm" onclick="blh.battleInspect()">▶ สู้ต่อ</button>`;
-  } else {
-    renderBattle();
-    b.timer = setTimeout(battleTick, 300);
   }
 }
 
@@ -1679,7 +1716,7 @@ function runEnd(reason) {
 function finishRun(zeny, reason) {
   const run = BLH.run;
   blhAbortTimers();
-  closeBattle(); closePlan(); closeCamp();
+  closeBattle();
   BLH.save.loopZeny += zeny;
   BLH.save.stats.runs += 1;
   BLH.save.stats.bestLoops = Math.max(BLH.save.stats.bestLoops, run.loop);
@@ -1732,11 +1769,11 @@ function blhToast(msg) {
 // ── ลงทะเบียน method ของ run engine เข้า window bridge namespace ──
 Object.assign(blh, {
   startRun,
-  pausePlan, openPlanTab, resumeWalk, backToCamp,
+  panelTab, cycleSpeed, setSpeed,
   continueLoop, cashOut, placeSignal, abandonRun,
   equipLoot, unequip,
   startPlace, cancelPlace, placeAt,
-  toggleFast, battleInspect, dismissBattle,
+  dismissBattle,
 });
 
 // ── debug/test hooks (read-only; ใช้โดย scripts/smoke-blh.mjs — ไม่กระทบเกมเพลย์) ──
@@ -1744,5 +1781,5 @@ blh.__test = {
   BLH, BLH_MAP, BLH_CELL_BY_ID,
   getNeighborCells, getAdjacentRoadCells, getCellEffectsForRoad,
   isPlaceable, validPlacementTargets, startBossFight, stepWalk,
-  roadCellIds,
+  roadCellIds, updateBattleDynamic,
 };

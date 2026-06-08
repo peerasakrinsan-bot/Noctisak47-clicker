@@ -109,6 +109,17 @@ ok('Run renders the loop board', blhHtml().includes('blh-board'));
 ok('Hero token placed on board', boardHtml.includes('blh-token'));
 ok('classic startGame NOT called by run start', startGameCalls === 1);
 
+// 3b) persistent bottom panel + speed control ────────────────────────────────
+const panelHtml = document.getElementById('blh-panel').innerHTML;
+ok('persistent panel renders tabs', panelHtml.includes('blh-ptab'));
+['STATS', 'GEAR', 'LOOT', 'MAP', 'PLAN'].forEach(t =>
+  ok('panel has tab: ' + t, panelHtml.includes(t)));
+ok('default speed is 1x (slow)', window.blh.__test.BLH.run.speed === 1, 'speed=' + window.blh.__test.BLH.run.speed);
+window.blh.cycleSpeed(); ok('cycle → 2x', window.blh.__test.BLH.run.speed === 2);
+window.blh.cycleSpeed(); ok('cycle → Pause', window.blh.__test.BLH.run.speed === 0);
+window.blh.cycleSpeed(); ok('cycle → 1x', window.blh.__test.BLH.run.speed === 1);
+window.blh.setSpeed(1);
+
 // 4) GRID MAP MODEL (locked spec 7×9) ────────────────────────────────────────
 const T = window.blh.__test;
 const MAP = T.BLH_MAP;
@@ -170,6 +181,16 @@ while ((!window.blh.__test.BLH._battle || window.blh.__test.BLH._battle.kind !==
 const bt = T.BLH._battle;
 ok('Boss Signal summons a boss fight', bt && bt.kind === 'boss');
 ok('Boss is SUANG with 2 minions', bt && run.boss.id === 'suang' && bt.enemies.filter(e => e.role === 'minion').length === 2);
+
+// 7b) battle popup mounts once with stable update targets (anti-flicker) ──────
+ok('battle popup has stable titlebar', document.getElementById('blh-bt-titlebar') !== null);
+ok('battle popup has stable hero HP fill', document.getElementById('blh-bt-hero-hpfill') !== null);
+ok('battle popup has stable enemy HP fill', document.getElementById('blh-bt-efill-0') !== null);
+// updating dynamic parts must not throw / must keep the same nodes
+const fillBefore = document.getElementById('blh-bt-hero-hpfill');
+T.BLH.run.stats.hp = Math.round(T.BLH.run.stats.maxhp / 2);
+T.updateBattleDynamic();
+ok('updateBattleDynamic reuses same HP node (no remount)', document.getElementById('blh-bt-hero-hpfill') === fillBefore);
 
 // 8) separate economy: Loop Zeny persisted under its own key
 const blhSave = localStorage.getItem('noctisak47_blh');
