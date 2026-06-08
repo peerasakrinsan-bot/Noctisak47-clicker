@@ -109,11 +109,20 @@ ok('Run renders the loop board', blhHtml().includes('blh-board'));
 ok('Hero token placed on board', boardHtml.includes('blh-token'));
 ok('classic startGame NOT called by run start', startGameCalls === 1);
 
-// 3b) persistent bottom panel + speed control ────────────────────────────────
+// 3b) persistent bottom panel + speed control + stable layout structure ───────
 const panelHtml = document.getElementById('blh-panel').innerHTML;
 ok('persistent panel renders tabs', panelHtml.includes('blh-ptab'));
+ok('board sits in fixed board-wrap', blhHtml().includes('blh-board-wrap'));
+ok('panel has persistent speed row', panelHtml.includes('blh-panel-speed'));
 ['STATS', 'GEAR', 'LOOT', 'MAP', 'PLAN'].forEach(t =>
   ok('panel has tab: ' + t, panelHtml.includes(t)));
+// speed row + tabs must persist on EVERY tab (so layout/Pause never disappears)
+['stats', 'gear', 'loot', 'map', 'plan'].forEach(tab => {
+  window.blh.panelTab(tab);
+  const h = document.getElementById('blh-panel').innerHTML;
+  ok(`tab "${tab}" keeps speed row + tabs`, h.includes('blh-panel-speed') && h.includes('blh-panel-tabs') && h.includes('blh-panel-body'));
+});
+window.blh.panelTab('stats');
 ok('default speed is 1x (slow)', window.blh.__test.BLH.run.speed === 1, 'speed=' + window.blh.__test.BLH.run.speed);
 window.blh.cycleSpeed(); ok('cycle → 2x', window.blh.__test.BLH.run.speed === 2);
 window.blh.cycleSpeed(); ok('cycle → Pause', window.blh.__test.BLH.run.speed === 0);

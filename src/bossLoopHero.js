@@ -844,7 +844,7 @@ function recomputeStats(run) {
 function renderRunScreen() {
   setScreen('run', `
     <div class="blh-run-hud" id="blh-hud"></div>
-    <div class="blh-board" id="blh-board"></div>
+    <div class="blh-board-wrap"><div class="blh-board" id="blh-board"></div></div>
     <div class="blh-panel" id="blh-panel"></div>
     <div class="blh-overlay blh-battle-overlay" id="blh-battle" style="display:none"></div>
     <div class="blh-toast" id="blh-toast"></div>
@@ -928,13 +928,21 @@ const PANEL_TABS = [
   ['map', '🗺️', 'MAP'], ['plan', '📋', 'PLAN'],
 ];
 function panelTab(tab) { _panelTab = tab || 'stats'; renderPanel(); }
+// segmented Pause / 1x / 2x — ใช้ทั้งแถวความเร็วถาวร และในแบตเทิล
+function speedSegHtml() {
+  const s = BLH.run ? BLH.run.speed : 1;
+  return [[0, '⏸ Pause'], [1, '▶ 1x'], [2, '⏩ 2x']].map(([v, l]) =>
+    `<button class="blh-seg ${s === v ? 'on' : ''} ${v === 0 ? 'pause' : ''}" onclick="blh.setSpeed(${v})">${l}</button>`).join('');
+}
 function renderPanel() {
   const run = BLH.run; if (!run) return;
   const el = q('blh-panel'); if (!el) return;
   const tabBtns = PANEL_TABS.map(([id, icon, label]) =>
     `<button class="blh-ptab ${id === _panelTab ? 'on' : ''}" onclick="blh.panelTab('${id}')">
       <span class="blh-ptab-icon">${icon}</span><span class="blh-ptab-label">${label}</span></button>`).join('');
+  // โครงคงที่: แถวความเร็ว (ถาวร) → แถวแท็บ → body (สูงคงที่ เลื่อนภายใน)
   el.innerHTML = `
+    <div class="blh-panel-speed">${speedSegHtml()}</div>
     <div class="blh-panel-tabs">${tabBtns}</div>
     <div class="blh-panel-body" id="blh-panel-body">${renderPanelBody()}</div>`;
 }
@@ -987,12 +995,11 @@ function panelMap(run, locked) {
   return head + planCards(run, locked) + planMap(run);
 }
 
-// แผง PLAN — speed control + camp actions (Continue/CashOut/Signal) + abandon
+// แผง PLAN — camp actions (Continue/CashOut/Signal) + abandon
+// (ปุ่มความเร็ว Pause/1x/2x อยู่ในแถวความเร็วถาวรด้านบนแล้ว)
 function panelPlan(run) {
   const atCamp = run.phase === 'camp';
   const canSignal = run.bossSignalObtained && !run.bossSignalPlaced;
-  const seg = [[1, '▶ 1x'], [2, '⏩ 2x'], [0, '⏸ Pause']].map(([s, l]) =>
-    `<button class="blh-seg ${run.speed === s ? 'on' : ''}" onclick="blh.setSpeed(${s})">${l}</button>`).join('');
   let actions;
   if (atCamp) {
     actions = `
@@ -1006,7 +1013,6 @@ function panelPlan(run) {
       : 'เดินวนเก็บลูท/วางเทอเรน แล้วกลับ Camp เพื่อ Cash Out หรือเรียกบอส'}</div>`;
   }
   return `
-    <div class="blh-plan-row"><div class="blh-plan-label">ความเร็ว</div><div class="blh-seg-wrap">${seg}</div></div>
     <div class="blh-plan-status">LOOP <b>${run.loop}</b> • ${atCamp ? '⛺ ที่ Camp' : '🚶 กำลังเดิน'} • รางวัลถ้า Cash Out ~🔷 ${fmt(estCashOut(run))}</div>
     <div class="blh-plan-actions">${actions}</div>
     <button class="blh-danger-link" onclick="blh.abandonRun()">ยอมแพ้ / ออกจากรัน</button>`;
@@ -1016,8 +1022,9 @@ function panelPlan(run) {
 function renderBoard() {
   const run = BLH.run; if (!run) return;
   const el = q('blh-board'); if (!el) return;
+  // คอลัมน์ = 1fr ตาม gridWidth; แถวปล่อยเป็น implicit (auto) ให้ aspect-ratio:1/1
+  // ของ cell กำหนดความสูง → cell สี่เหลี่ยมจัตุรัสจริง
   el.style.gridTemplateColumns = `repeat(${BLH_MAP.gridWidth}, 1fr)`;
-  el.style.gridTemplateRows = `repeat(${BLH_MAP.gridHeight}, 1fr)`;
   let html = '';
   for (const def of BLH_MAP.cells) {
     const rc = run.cells[def.id];
