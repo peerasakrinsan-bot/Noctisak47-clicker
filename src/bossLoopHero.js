@@ -19,6 +19,17 @@
 
 const LS_KEY = 'noctisak47_blh';
 
+// dev/test เท่านั้น: ใช้กำหนดว่าจะเปิด debug hook (blh.__test) หรือไม่
+// จริง = รันใน Node smoke (ไม่มี location) หรือ localhost dev → เปิด
+// production (github.io ฯลฯ) → ปิด ไม่ expose internal state ออก window
+const BLH_DEV = (() => {
+  try {
+    const h = (typeof location !== 'undefined' && location.hostname) || '';
+    return !h || /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(h)
+      || (typeof location !== 'undefined' && location.protocol === 'file:');
+  } catch (e) { return false; }
+})();
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 const rnd  = (a, b) => a + Math.random() * (b - a);
 const rndi = (a, b) => Math.floor(rnd(a, b + 1));
@@ -348,7 +359,6 @@ const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map(u => [u.id, u]));
 // ── balance constants ────────────────────────────────────────────────────────
 const BAL = {
   // หมายเหตุ: ความยาวลูป = BLH_MAP.route.length (Camp + Road 12 = 13 ช่อง)
-  TARGET_LOOPS: [6, 8],      // เป้าหมายความยาวรันโดยเฉลี่ย
   BASE_LOOT_CHANCE: 0.45,
   BASE_SPAWN_CHANCE: 0.30,   // โอกาสเสกศัตรูในช่องว่างต่อ loop
   ENEMY_LOOP_SCALE: 0.17,    // ศัตรูแกร่งขึ้นต่อ loop
@@ -406,6 +416,7 @@ const BLH = {
   run: null,        // active run state (run-only)
   screen: null,     // current screen id
   _walkTimer: null,
+  _finishTimer: null, // หน่วงเวลาเปลี่ยนหน้า/จบรันหลังการสู้ (cancel ได้ผ่าน blhAbortTimers)
   _battle: null,    // active battle controller
 };
 
@@ -436,6 +447,7 @@ function blhExitToMenu() {
 
 function blhAbortTimers() {
   if (BLH._walkTimer) { clearTimeout(BLH._walkTimer); BLH._walkTimer = null; }
+  if (BLH._finishTimer) { clearTimeout(BLH._finishTimer); BLH._finishTimer = null; }
   if (BLH._battle && BLH._battle.timer) { clearTimeout(BLH._battle.timer); }
   BLH._battle = null;
 }
@@ -870,7 +882,7 @@ function updateHUD() {
 // ── speed control (Pause / 1x / 2x) ──
 function speedLabel() {
   const s = BLH.run ? BLH.run.speed : 1;
-  return s === 0 ? '⏸ PAUSED' : s === 1 ? '▶ 1x' : '⏩ 2x';
+  return s === 0 ? '⏸ Pause' : s === 1 ? '▶ 1x' : '⏩ 2x';
 }
 function speedBtnHtml(extraClass = '') {
   const s = BLH.run ? BLH.run.speed : 1;
@@ -1475,7 +1487,7 @@ function endBattle(result) {
     }
     battleLog('☠️ ฮีโร่ล้มลง...');
     finishBattleBanner('DEFEAT');
-    setTimeout(() => runEnd('dead'), 800);
+    BLH._finishTimer = setTimeout(() => runEnd('dead'), 800);
     return;
   }
 
@@ -1484,7 +1496,7 @@ function endBattle(result) {
     battleLog(`🏆 ล้ม ${run.boss.name} สำเร็จ! RUN COMPLETE!`);
     run.bossFought = true;
     finishBattleBanner('VICTORY');
-    setTimeout(() => runEnd('boss'), 900);
+    BLH._finishTimer = setTimeout(() => runEnd('boss'), 900);
     return;
   }
 
@@ -1493,7 +1505,9 @@ function endBattle(result) {
   const drops = rollDrops(run, battle.cellFx);
   drops.forEach(d => battleLog(d));
   finishBattleBanner('WIN');
-  setTimeout(() => {
+  BLH._finishTimer = setTimeout(() => {
+    BLH._finishTimer = null;
+    if (!BLH.run || BLH.run.ended) return;   // กันกรณีออกจากรันระหว่างหน่วงเวลา
     closeBattle();
     renderBoard();
     updateHUD();
@@ -1700,7 +1714,9 @@ function cashOut() {
 }
 
 function runEnd(reason) {
+  BLH._finishTimer = null;
   const run = BLH.run;
+  if (!run || run.ended) return;             // กันรันถูกปิดไปแล้ว (ออกจากรัน/จบรันซ้ำ)
   let zeny, label;
   if (reason === 'boss') {
     zeny = Math.floor(run.loop * BAL.CASHOUT_PER_LOOP + lootValue(run) + run.mods.zenyBonus + BAL.BOSS_BONUS);
@@ -1776,10 +1792,12 @@ Object.assign(blh, {
   dismissBattle,
 });
 
-// ── debug/test hooks (read-only; ใช้โดย scripts/smoke-blh.mjs — ไม่กระทบเกมเพลย์) ──
-blh.__test = {
-  BLH, BLH_MAP, BLH_CELL_BY_ID,
-  getNeighborCells, getAdjacentRoadCells, getCellEffectsForRoad,
-  isPlaceable, validPlacementTargets, startBossFight, stepWalk,
-  roadCellIds, updateBattleDynamic,
-};
+// ── debug/test hooks — เปิดเฉพาะ dev/test (smoke) ไม่ expose ใน production ──
+if (BLH_DEV) {
+  blh.__test = {
+    BLH, BLH_MAP, BLH_CELL_BY_ID,
+    getNeighborCells, getAdjacentRoadCells, getCellEffectsForRoad,
+    isPlaceable, validPlacementTargets, startBossFight, stepWalk,
+    roadCellIds, updateBattleDynamic,
+  };
+}
