@@ -3837,9 +3837,10 @@
 .blh-tile.camp { background: linear-gradient(150deg,#6c541d,#473712); border: 1px solid var(--gold);
   box-shadow: inset 0 0 9px rgba(0,0,0,.4), 0 0 10px rgba(255,204,0,.25); }
 .blh-tile.terrain { background: linear-gradient(150deg,#2b3340,#1d2530);
-  border: 1px solid rgba(140,160,190,.22); box-shadow: inset 0 0 7px rgba(0,0,0,.4); }
-.blh-tile.terrain.empty::after { content: ''; width: 34%; height: 34%;
-  border: 1.5px dashed rgba(150,175,205,.4); border-radius: 4px; }
+  border: 1px solid rgba(140,160,190,.18); box-shadow: inset 0 0 7px rgba(0,0,0,.4); }
+/* จุดจาง ๆ บอกว่าเป็นช่องเทอเรนว่าง (เบาเพราะมีหลายช่อง) */
+.blh-tile.terrain.empty::after { content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(150,175,205,.28); }
 .blh-tile.occupied { box-shadow: inset 0 0 9px rgba(0,0,0,.4), 0 0 9px rgba(136,221,170,.35); }
 .blh-tile.placeable { outline: 2px solid var(--cyan); outline-offset: -2px; box-shadow: 0 0 14px var(--cyan);
   cursor: pointer; animation: blhPulse 1s infinite; z-index: 2; }
@@ -3867,8 +3868,22 @@
 .blh-ptab:active { transform: scale(.96); }
 .blh-ptab-icon { font-size: 17px; line-height: 1; }
 .blh-ptab-label { font-size: 9px; letter-spacing: 1px; }
+/* แถบสถานะ/แอ็กชัน สูงคงที่ — Camp: Cash Out/Signal; เดิน: สถานะ + Abandon เล็ก */
+.blh-panel-status { flex: 0 0 auto; min-height: 40px; display: flex; align-items: center;
+  gap: 6px; padding: 0 2px; }
+.blh-status-text { flex: 1; min-width: 0; font-size: 12px; color: #c2c6cf; letter-spacing: .5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.blh-status-btn { flex: 1 1 auto; min-height: 40px; padding: 6px 8px; border-radius: 10px; cursor: pointer;
+  font-family: 'Oswald'; font-size: 14px; letter-spacing: 1px; white-space: nowrap; }
+.blh-status-btn.cash { background: rgba(255,204,0,.14); color: var(--gold); border: 1px solid rgba(255,204,0,.4); }
+.blh-status-btn.sig { background: linear-gradient(135deg,#ff2233,#ff8a00); color: #fff; border: none; flex: 0 0 auto; }
+.blh-status-btn:active { transform: scale(.97); }
+.blh-aband { flex: 0 0 auto; width: 32px; min-height: 36px; border-radius: 9px; cursor: pointer;
+  background: rgba(255,60,60,.10); color: #ff6b6b; border: 1px solid rgba(255,60,60,.3); font-size: 14px; }
+.blh-aband:active { transform: scale(.95); }
+
 /* body สูงคงที่ → สลับแท็บไม่ทำให้ panel/map ขยับ; เนื้อหายาวเลื่อนภายใน body */
-.blh-panel-body { flex: 0 0 auto; height: clamp(116px, 22vh, 200px);
+.blh-panel-body { flex: 0 0 auto; height: clamp(110px, 20vh, 190px);
   overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 2px; }
 
 /* ── speed control ── */
@@ -3878,19 +3893,12 @@
 .blh-speed-btn.paused { background: rgba(255,204,0,.14); color: var(--gold); border-color: var(--gold); }
 .blh-speed-btn.wide { width: 100%; }
 .blh-speed-btn:active { transform: scale(.97); }
-.blh-seg-wrap { display: flex; gap: 4px; flex: 1; }
 .blh-seg { flex: 1; min-height: 44px; border-radius: 9px; cursor: pointer; font-family: 'Oswald';
   font-size: 14px; letter-spacing: 1px; background: rgba(255,255,255,.05); color: #aeb3bd;
   border: 1px solid rgba(255,255,255,.12); }
 .blh-seg.on { background: rgba(0,255,238,.16); color: var(--cyan); border-color: var(--cyan); }
 .blh-seg.pause.on { background: rgba(255,204,0,.18); color: var(--gold); border-color: var(--gold); }
 .blh-seg:active { transform: scale(.97); }
-.blh-plan-row { display: flex; align-items: center; gap: 8px; }
-.blh-plan-label { font-size: 12px; color: #9aa0ad; letter-spacing: 1px; width: 56px; flex-shrink: 0; }
-.blh-plan-status { font-size: 12px; color: #c2c6cf; text-align: center; padding: 6px 0; }
-.blh-plan-actions { display: flex; flex-direction: column; gap: 8px; }
-.blh-plan-hint { font-family: 'Sarabun', sans-serif; font-size: 12px; color: #9aa0ad; text-align: center;
-  line-height: 1.5; padding: 6px; }
 .blh-mini-lock { font-size: 14px; opacity: .6; flex-shrink: 0; padding: 0 10px; }
 .blh-cards-note.hi { color: var(--cyan); }
 .blh-mini-btn.ghost { background: rgba(255,255,255,.10); color: #cfd3dc; min-height: 28px; padding: 2px 8px; }
@@ -3958,9 +3966,12 @@
   border-radius: 10px; background: rgba(255,255,255,.04); }
 .blh-bt-enemy.dead { opacity: .35; }
 .blh-bt-enemy.boss { background: rgba(255,34,51,.1); border: 1px solid rgba(255,34,51,.3); }
-.blh-bt-portrait { width: 66px; height: 66px; border-radius: 12px; overflow: hidden; position: relative;
-  background: radial-gradient(circle at 50% 30%, #2a2d3a, #0c0d12); }
-.blh-bt-portrait.hero { width: 84px; height: 84px; border: 2px solid var(--cyan); }
+/* battle portraits = การ์ด 3:4 (ไม่ยืดภาพ) */
+.blh-bt-portrait { width: clamp(54px, 16vw, 66px); aspect-ratio: 3 / 4; height: auto;
+  border-radius: 10px; overflow: hidden; position: relative;
+  background: radial-gradient(circle at 50% 30%, #2a2d3a, #0c0d12);
+  border: 1px solid rgba(255,255,255,.12); }
+.blh-bt-portrait.hero { width: clamp(72px, 22vw, 88px); border: 2px solid var(--cyan); }
 .blh-bt-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
 /* dead-X เรนเดอร์ไว้เสมอแต่ซ่อนไว้ — โชว์เมื่อ enemy card มี .dead (ไม่ remount) */
 .blh-bt-x { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;

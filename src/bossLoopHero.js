@@ -197,51 +197,48 @@ const MAP_CARDS = [
 const MAP_CARD_BY_ID = Object.fromEntries(MAP_CARDS.map(c => [c.id, c]));
 
 // ════════════════════════════════════════════════════════════════════════════
-// GRID MAP MODEL (data-driven, locked spec 7×9) — เส้นทางลูป + ช่องเทอเรนเป็น
-// grid cell ที่ชัดเจน (source of truth = cell id)
+// GRID MAP MODEL (data-driven, locked spec 7×9) — เส้นทางลูป + ช่องเทอเรน
+// (source of truth = cell id)
 // ────────────────────────────────────────────────────────────────────────────
-// • grid 7 คอลัมน์ × 9 แถว, cells อ้างด้วย { row, col }
-// • route = Camp + Road 12 = 13 ช่อง (วงรีแนวตั้ง, camp อยู่ล่างกลาง)
-// • terrain cells = 12 (inside กลางวง / outside ปีกซ้าย-ขวา) ทุกใบติดถนนแบบ
-//   orthogonal เพื่อให้ adjacent card ส่งผลเฉพาะช่องถนนใกล้เคียง
-// • ช่องที่ไม่อยู่ในลิสต์ = ว่าง (ระยะขอบของ grid) — ไม่ต้องประกาศ blocked
+// • grid 7 คอลัมน์ × 9 แถว
+// • route = Camp + Road 16 = 17 ช่อง (วงรีเชื่อมต่อเต็มกว่าเดิม, camp ล่างกลาง)
+// • ช่องที่เหลือทั้งหมด (non-road/non-camp) = terrain placement cell → ไม่มี
+//   ช่องว่างเปล่า; เป็น "กระดานแผนที่" เต็มผืน
+// • ฮีโร่เดินตาม route order เท่านั้น (เฉพาะ road/camp) — ไม่เหยียบ terrain
 // ────────────────────────────────────────────────────────────────────────────
-const BLH_MAP = {
-  gridWidth: 7,
-  gridHeight: 9,
-  cells: [
-    // ── loop route: Camp + 12 Road (วงรีแนวตั้ง คอลัมน์ 1/3/5, แถว 2–7) ──
-    { id: 'camp', row: 7, col: 3, type: 'camp', routeIndex: 0 },
-    { id: 'r01',  row: 6, col: 1, type: 'road', routeIndex: 1 },
-    { id: 'r02',  row: 5, col: 1, type: 'road', routeIndex: 2 },
-    { id: 'r03',  row: 4, col: 1, type: 'road', routeIndex: 3 },
-    { id: 'r04',  row: 3, col: 1, type: 'road', routeIndex: 4 },
-    { id: 'r05',  row: 2, col: 1, type: 'road', routeIndex: 5 },
-    { id: 'r06',  row: 2, col: 3, type: 'road', routeIndex: 6 },   // บนกลาง
-    { id: 'r07',  row: 2, col: 5, type: 'road', routeIndex: 7 },
-    { id: 'r08',  row: 3, col: 5, type: 'road', routeIndex: 8 },
-    { id: 'r09',  row: 4, col: 5, type: 'road', routeIndex: 9 },
-    { id: 'r10',  row: 5, col: 5, type: 'road', routeIndex: 10 },
-    { id: 'r11',  row: 6, col: 5, type: 'road', routeIndex: 11 },
-    { id: 'r12',  row: 6, col: 3, type: 'road', routeIndex: 12 },  // ล่างกลาง
-    // ── terrain slots — inside (คอลัมน์กลาง/ติดถนน) ──
-    { id: 't01',  row: 3, col: 2, type: 'terrain' }, // ↔ r04
-    { id: 't02',  row: 4, col: 2, type: 'terrain' }, // ↔ r03
-    { id: 't03',  row: 5, col: 2, type: 'terrain' }, // ↔ r02
-    { id: 't04',  row: 3, col: 4, type: 'terrain' }, // ↔ r08
-    { id: 't05',  row: 4, col: 4, type: 'terrain' }, // ↔ r09
-    { id: 't06',  row: 5, col: 4, type: 'terrain' }, // ↔ r10
-    { id: 't07',  row: 3, col: 3, type: 'terrain' }, // ↔ r06 (บน)
-    { id: 't08',  row: 5, col: 3, type: 'terrain' }, // ↔ r12 (ล่าง)
-    // ── terrain slots — outside (ปีกซ้าย/ขวา) ──
-    { id: 't09',  row: 3, col: 0, type: 'terrain' }, // ↔ r04
-    { id: 't10',  row: 5, col: 0, type: 'terrain' }, // ↔ r02
-    { id: 't11',  row: 3, col: 6, type: 'terrain' }, // ↔ r08
-    { id: 't12',  row: 5, col: 6, type: 'terrain' }, // ↔ r10
-  ],
-  // ลำดับเดินของฮีโร่ (route ID) — 13 ช่อง (Camp + Road 12), camp อยู่ใน route
-  route: ['camp', 'r01', 'r02', 'r03', 'r04', 'r05', 'r06', 'r07', 'r08', 'r09', 'r10', 'r11', 'r12'],
-};
+const BLH_GRID_W = 7, BLH_GRID_H = 9;
+// route: Camp + 16 road (ทุกช่องติดกันแบบ orthogonal/diagonal → วงต่อเนื่อง)
+const BLH_ROUTE_DEF = [
+  { id: 'camp', row: 8, col: 3, type: 'camp', routeIndex: 0 },  // ล่างกลาง
+  { id: 'r01',  row: 7, col: 4, type: 'road', routeIndex: 1 },
+  { id: 'r02',  row: 6, col: 5, type: 'road', routeIndex: 2 },
+  { id: 'r03',  row: 5, col: 5, type: 'road', routeIndex: 3 },
+  { id: 'r04',  row: 4, col: 5, type: 'road', routeIndex: 4 },
+  { id: 'r05',  row: 3, col: 5, type: 'road', routeIndex: 5 },
+  { id: 'r06',  row: 2, col: 5, type: 'road', routeIndex: 6 },
+  { id: 'r07',  row: 1, col: 4, type: 'road', routeIndex: 7 },
+  { id: 'r08',  row: 1, col: 3, type: 'road', routeIndex: 8 },   // บนกลาง
+  { id: 'r09',  row: 1, col: 2, type: 'road', routeIndex: 9 },
+  { id: 'r10',  row: 2, col: 1, type: 'road', routeIndex: 10 },
+  { id: 'r11',  row: 3, col: 1, type: 'road', routeIndex: 11 },
+  { id: 'r12',  row: 4, col: 1, type: 'road', routeIndex: 12 },
+  { id: 'r13',  row: 5, col: 1, type: 'road', routeIndex: 13 },
+  { id: 'r14',  row: 6, col: 1, type: 'road', routeIndex: 14 },
+  { id: 'r15',  row: 7, col: 2, type: 'road', routeIndex: 15 },
+  { id: 'r16',  row: 7, col: 3, type: 'road', routeIndex: 16 },  // ล่างกลางซ้าย-camp
+];
+// สร้าง cells: route ก่อน แล้วเติม "ทุกช่องที่เหลือ" เป็น terrain
+const BLH_MAP = (() => {
+  const cells = BLH_ROUTE_DEF.map(c => ({ ...c }));
+  const used = new Set(cells.map(c => c.row + ',' + c.col));
+  for (let row = 0; row < BLH_GRID_H; row++) {
+    for (let col = 0; col < BLH_GRID_W; col++) {
+      if (used.has(row + ',' + col)) continue;
+      cells.push({ id: `t_${row}_${col}`, row, col, type: 'terrain' });
+    }
+  }
+  return { gridWidth: BLH_GRID_W, gridHeight: BLH_GRID_H, cells, route: BLH_ROUTE_DEF.map(c => c.id) };
+})();
 const BLH_CELL_BY_ID = Object.fromEntries(BLH_MAP.cells.map(c => [c.id, c]));
 
 // ── adjacency helpers (อิง grid row/col; static ไม่ขึ้นกับ run) ──────────────
@@ -889,16 +886,17 @@ function speedBtnHtml(extraClass = '') {
   const cls = s === 0 ? 'paused' : '';
   return `<button class="blh-speed-btn ${cls} ${extraClass}" onclick="blh.cycleSpeed()">${speedLabel()}</button>`;
 }
-// วน 1x → 2x → Pause → 1x
+// วน 1x → 2x → Pause → 1x (ใช้กับปุ่มเดี่ยวในแบตเทิล)
 function cycleSpeed() {
   const run = BLH.run; if (!run) return;
-  run.speed = run.speed === 1 ? 2 : run.speed === 2 ? 0 : 1;
-  applySpeedChange();
-  renderPanel();
-  setBattleFooter();
+  const next = run.speed === 1 ? 2 : run.speed === 2 ? 0 : 1;
+  setSpeed(next);
 }
+// Pause = หยุด/วางแผน • 1x = ต่อ/เดินต่อ • 2x = เร็ว
+// ที่ Camp: กด 1x/2x = Continue Loop (ออกเดินด้วยความเร็วนั้น)
 function setSpeed(s) {
   const run = BLH.run; if (!run) return;
+  if (run.phase === 'camp' && s > 0) { run.speed = s; continueLoop(); return; }
   run.speed = s;
   applySpeedChange();
   renderPanel();
@@ -925,14 +923,30 @@ function applySpeedChange() {
 let _panelTab = 'stats';
 const PANEL_TABS = [
   ['stats', '📊', 'STATS'], ['gear', '🧤', 'GEAR'], ['loot', '🎒', 'LOOT'],
-  ['map', '🗺️', 'MAP'], ['plan', '📋', 'PLAN'],
+  ['map', '🗺️', 'MAP'],
 ];
 function panelTab(tab) { _panelTab = tab || 'stats'; renderPanel(); }
-// segmented Pause / 1x / 2x — ใช้ทั้งแถวความเร็วถาวร และในแบตเทิล
+// segmented Pause / 1x / 2x — Pause=วางแผน, 1x=ต่อ, 2x=เร็ว (ถาวรเหนือแท็บ)
 function speedSegHtml() {
   const s = BLH.run ? BLH.run.speed : 1;
   return [[0, '⏸ Pause'], [1, '▶ 1x'], [2, '⏩ 2x']].map(([v, l]) =>
     `<button class="blh-seg ${s === v ? 'on' : ''} ${v === 0 ? 'pause' : ''}" onclick="blh.setSpeed(${v})">${l}</button>`).join('');
+}
+// แถบสถานะ/แอ็กชัน (สูงคงที่) — ที่ Camp โชว์ Cash Out/Signal; เดิน=สถานะ; +Abandon เล็ก
+function panelStatusBar(run) {
+  const aband = `<button class="blh-aband" onclick="blh.abandonRun()" title="ยอมแพ้ / ออกจากรัน">✕</button>`;
+  if (run.phase === 'camp') {
+    const canSignal = run.bossSignalObtained && !run.bossSignalPlaced;
+    return `
+      <button class="blh-status-btn cash" onclick="blh.cashOut()">💰 CASH OUT ~🔷${fmt(estCashOut(run))}</button>
+      ${canSignal ? `<button class="blh-status-btn sig" onclick="blh.placeSignal()">📡 SIGNAL</button>` : ''}
+      ${aband}`;
+  }
+  const sig = run.bossSignalPlaced ? '📡 บอสพร้อม'
+            : run.bossSignalObtained ? '📡 มี Signal'
+            : `📡 loop ${BAL.BOSS_SIGNAL_MIN_LOOP}+`;
+  const state = run.speed === 0 ? '⏸ วางแผน' : '🚶 เดิน';
+  return `<div class="blh-status-text">${state} • LOOP ${run.loop} • 🔷~${fmt(estCashOut(run))} • ${sig}</div>${aband}`;
 }
 function renderPanel() {
   const run = BLH.run; if (!run) return;
@@ -940,9 +954,10 @@ function renderPanel() {
   const tabBtns = PANEL_TABS.map(([id, icon, label]) =>
     `<button class="blh-ptab ${id === _panelTab ? 'on' : ''}" onclick="blh.panelTab('${id}')">
       <span class="blh-ptab-icon">${icon}</span><span class="blh-ptab-label">${label}</span></button>`).join('');
-  // โครงคงที่: แถวความเร็ว (ถาวร) → แถวแท็บ → body (สูงคงที่ เลื่อนภายใน)
+  // โครงสูงคงที่: speed row → status/camp bar → tab row → body (เลื่อนภายใน)
   el.innerHTML = `
     <div class="blh-panel-speed">${speedSegHtml()}</div>
+    <div class="blh-panel-status ${run.phase === 'camp' ? 'camp' : ''}">${panelStatusBar(run)}</div>
     <div class="blh-panel-tabs">${tabBtns}</div>
     <div class="blh-panel-body" id="blh-panel-body">${renderPanelBody()}</div>`;
 }
@@ -954,7 +969,6 @@ function renderPanelBody() {
     case 'gear':  return planGear(run, locked);
     case 'loot':  return planLoot(run, locked);
     case 'map':   return panelMap(run, locked);
-    case 'plan':  return panelPlan(run);
   }
   return '';
 }
@@ -993,29 +1007,6 @@ function panelMap(run, locked) {
       ? `<div class="blh-cards-note dim">🔒 วางการ์ดไม่ได้ระหว่างสู้</div>`
       : `<div class="blh-cards-note">แตะ “วาง” แล้วเลือกช่องที่ไฮไลต์ — เทอเรนคือหัวใจเสี่ยง/รางวัล</div>`;
   return head + planCards(run, locked) + planMap(run);
-}
-
-// แผง PLAN — camp actions (Continue/CashOut/Signal) + abandon
-// (ปุ่มความเร็ว Pause/1x/2x อยู่ในแถวความเร็วถาวรด้านบนแล้ว)
-function panelPlan(run) {
-  const atCamp = run.phase === 'camp';
-  const canSignal = run.bossSignalObtained && !run.bossSignalPlaced;
-  let actions;
-  if (atCamp) {
-    actions = `
-      <button class="blh-primary" onclick="blh.continueLoop()">▶ CONTINUE LOOP</button>
-      <button class="blh-secondary" onclick="blh.cashOut()">💰 CASH OUT (~🔷 ${fmt(estCashOut(run))})</button>
-      ${canSignal ? `<button class="blh-signal" onclick="blh.placeSignal()">📡 PLACE BOSS SIGNAL</button>` : ''}
-      ${run.bossSignalPlaced ? `<div class="blh-signal-note">📡 รอบหน้าที่ถึง Camp เจอ ${esc(run.boss.name)}!</div>` : ''}`;
-  } else {
-    actions = `<div class="blh-plan-hint">${canSignal
-      ? '📡 มี Boss Signal — กลับ Camp เพื่อวาง แล้วเรียกบอส'
-      : 'เดินวนเก็บลูท/วางเทอเรน แล้วกลับ Camp เพื่อ Cash Out หรือเรียกบอส'}</div>`;
-  }
-  return `
-    <div class="blh-plan-status">LOOP <b>${run.loop}</b> • ${atCamp ? '⛺ ที่ Camp' : '🚶 กำลังเดิน'} • รางวัลถ้า Cash Out ~🔷 ${fmt(estCashOut(run))}</div>
-    <div class="blh-plan-actions">${actions}</div>
-    <button class="blh-danger-link" onclick="blh.abandonRun()">ยอมแพ้ / ออกจากรัน</button>`;
 }
 
 // ── วาด board จาก grid config (CSS grid 7×9) — full-cell map tiles ──
@@ -1112,11 +1103,12 @@ function arriveCamp() {
     run.stats.hp = clamp(run.stats.hp + amt, 0, run.stats.maxhp);
   }
   spawnForLoop(run);   // เสกศัตรูสำหรับ loop ใหม่ (ผู้เล่นได้วางแผนก่อน)
+  run.speed = 0;       // auto-pause: เข้าโหมดวางแผน (Pause highlight) — กด ▶1x เพื่อ Continue
   renderBoard();
   updateHUD();
-  _panelTab = 'plan';  // ถึง Camp → เด้งไปแท็บ PLAN (Continue/CashOut/Signal)
-  setPhase('camp');    // setPhase → renderPanel (auto-pause: ไม่ scheduleStep จนกด Continue)
-  blhToast(`⛺ ถึง Camp — LOOP ${run.loop}`);
+  _panelTab = 'map';   // ถึง Camp → เปิดแท็บ MAP เพื่อวางเทอเรน; Cash Out/Signal อยู่ในแถบสถานะ
+  setPhase('camp');    // setPhase → renderPanel (auto-pause: ไม่ scheduleStep จนกด ▶1x)
+  blhToast(`⛺ ถึง Camp — LOOP ${run.loop} • กด ▶1x เพื่อเดินต่อ`);
 }
 
 function continueLoop() {

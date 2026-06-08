@@ -114,13 +114,16 @@ const panelHtml = document.getElementById('blh-panel').innerHTML;
 ok('persistent panel renders tabs', panelHtml.includes('blh-ptab'));
 ok('board sits in fixed board-wrap', blhHtml().includes('blh-board-wrap'));
 ok('panel has persistent speed row', panelHtml.includes('blh-panel-speed'));
-['STATS', 'GEAR', 'LOOT', 'MAP', 'PLAN'].forEach(t =>
+['STATS', 'GEAR', 'LOOT', 'MAP'].forEach(t =>
   ok('panel has tab: ' + t, panelHtml.includes(t)));
+ok('Plan tab removed', !panelHtml.includes('>PLAN<'));
+ok('panel has status/camp bar', panelHtml.includes('blh-panel-status'));
 // speed row + tabs must persist on EVERY tab (so layout/Pause never disappears)
-['stats', 'gear', 'loot', 'map', 'plan'].forEach(tab => {
+['stats', 'gear', 'loot', 'map'].forEach(tab => {
   window.blh.panelTab(tab);
   const h = document.getElementById('blh-panel').innerHTML;
-  ok(`tab "${tab}" keeps speed row + tabs`, h.includes('blh-panel-speed') && h.includes('blh-panel-tabs') && h.includes('blh-panel-body'));
+  ok(`tab "${tab}" keeps speed row + status + tabs`,
+    h.includes('blh-panel-speed') && h.includes('blh-panel-status') && h.includes('blh-panel-tabs') && h.includes('blh-panel-body'));
 });
 window.blh.panelTab('stats');
 ok('default speed is 1x (slow)', window.blh.__test.BLH.run.speed === 1, 'speed=' + window.blh.__test.BLH.run.speed);
@@ -135,48 +138,65 @@ const MAP = T.BLH_MAP;
 const cells = MAP.cells;
 const roadCells = cells.filter(c => c.type === 'road');
 const terrainCells = cells.filter(c => c.type === 'terrain');
+const expTerrain = MAP.gridWidth * MAP.gridHeight - MAP.route.length; // ทุกช่องที่เหลือ = terrain
+const adjTerrainCount = terrainCells.filter(c => T.getAdjacentRoadCells(c.id).length > 0).length;
 ok('gridWidth === 7', MAP.gridWidth === 7, 'w=' + MAP.gridWidth);
 ok('gridHeight === 9', MAP.gridHeight === 9, 'h=' + MAP.gridHeight);
-ok('route length === 13 (Camp + 12 Road)', MAP.route.length === 13, 'route=' + MAP.route.length);
+ok('route length === 17 (Camp + 16 Road)', MAP.route.length === 17, 'route=' + MAP.route.length);
 ok('Camp cell exists', cells.some(c => c.type === 'camp') && MAP.route[0] === 'camp');
-ok('12 road cells exist', roadCells.length === 12, 'road=' + roadCells.length);
-ok('12 terrain cells exist', terrainCells.length === 12, 'terrain=' + terrainCells.length);
+ok('16 road cells exist', roadCells.length === 16, 'road=' + roadCells.length);
+ok('all remaining cells are terrain', terrainCells.length === expTerrain, `terrain=${terrainCells.length} exp=${expTerrain}`);
+ok('no empty/blocked gap cells (camp+road+terrain == grid)',
+  cells.length === MAP.gridWidth * MAP.gridHeight, 'cells=' + cells.length);
 
-// board renders every cell (13 route + 12 terrain = 25) from grid config
+// route cells must all be road/camp (hero only walks these)
+ok('route is only road/camp cells', MAP.route.every(id => {
+  const t = T.BLH_CELL_BY_ID[id].type; return t === 'road' || t === 'camp';
+}));
+
+// board renders every cell from grid config
 const nRoadDom = (boardHtml.match(/data-celltype="road"/g) || []).length;
 const nCampDom = (boardHtml.match(/data-celltype="camp"/g) || []).length;
 const nTerrDom = (boardHtml.match(/data-celltype="terrain"/g) || []).length;
-ok('board draws 12 road + 1 camp = 13 route cells', nRoadDom + nCampDom === 13, `${nRoadDom}road+${nCampDom}camp`);
-ok('board draws 12 terrain cells', nTerrDom === 12, 'terrainDom=' + nTerrDom);
+ok('board draws 16 road + 1 camp = 17 route cells', nRoadDom + nCampDom === 17, `${nRoadDom}road+${nCampDom}camp`);
+ok('board draws all terrain cells', nTerrDom === expTerrain, 'terrainDom=' + nTerrDom);
 
-// every terrain cell is orthogonally adjacent to ≥1 road (so adjacent cards are placeable)
-const allTerrainTouchRoad = terrainCells.every(c => T.getAdjacentRoadCells(c.id).length > 0);
-ok('all terrain cells touch ≥1 road cell', allTerrainTouchRoad);
-// getAdjacentRoadCells returns only road/camp cells
-const adjSample = T.getAdjacentRoadCells('t01');
+// at least some terrain cells touch road (adjacent cards placeable); helper returns only road/camp
+const adjTerr = terrainCells.find(c => T.getAdjacentRoadCells(c.id).length > 0);
+ok('some terrain cells touch ≥1 road cell', !!adjTerr && adjTerrainCount > 0, 'adjTerrain=' + adjTerrainCount);
+const adjSample = T.getAdjacentRoadCells(adjTerr.id);
 ok('getAdjacentRoadCells returns only road/camp', adjSample.length > 0 && adjSample.every(n => n.type === 'road' || n.type === 'camp'));
 
 // 5) PLACEMENT RULES ─────────────────────────────────────────────────────────
 const roadTargets = T.validPlacementTargets('spawn_rift'); // road card
 const adjTargets  = T.validPlacementTargets('shrine');     // adjacent card
 const terrTargets = T.validPlacementTargets('rock');       // terrain card
-ok('Road card → only road cells', roadTargets.length === 12 &&
+ok('Road card → only road cells', roadTargets.length === 16 &&
   roadTargets.every(id => T.BLH_CELL_BY_ID[id].type === 'road'), 'n=' + roadTargets.length);
-ok('Adjacent card → only terrain cells adjacent to road', adjTargets.length === 12 &&
+ok('Adjacent card → only terrain cells adjacent to road', adjTargets.length === adjTerrainCount &&
   adjTargets.every(id => T.BLH_CELL_BY_ID[id].type === 'terrain' && T.getAdjacentRoadCells(id).length > 0), 'n=' + adjTargets.length);
-ok('Terrain card → only terrain cells', terrTargets.length === 12 &&
+ok('Terrain card → all terrain cells', terrTargets.length === expTerrain &&
   terrTargets.every(id => T.BLH_CELL_BY_ID[id].type === 'terrain'), 'n=' + terrTargets.length);
 ok('Road/Adjacent/Terrain never target Camp', ![...roadTargets, ...adjTargets, ...terrTargets].includes('camp'));
 
 // 6) ADJACENT EFFECT is cell-local (only adjacent road cells) ─────────────────
 const run = T.BLH.run;
-const terrId = 't01';
-const adjRoad = T.getAdjacentRoadCells(terrId)[0].id;        // road touching t01
+const terrId = adjTerr.id;                                  // terrain cell touching a road
+const adjRoad = T.getAdjacentRoadCells(terrId)[0].id;        // road touching it
 const farRoad = roadCells.find(c => !T.getAdjacentRoadCells(terrId).some(a => a.id === c.id)).id;
-run.cells[terrId].placedCardId = 'shrine';                    // simulate placing shrine
+run.cells[terrId].placedCardId = 'shrine';                   // simulate placing shrine
 ok('shrine buffs ADJACENT road cell only', T.getCellEffectsForRoad(adjRoad).atkBonus === 2, 'adj=' + T.getCellEffectsForRoad(adjRoad).atkBonus);
 ok('shrine does NOT buff a far road cell', T.getCellEffectsForRoad(farRoad).atkBonus === 0, 'far=' + T.getCellEffectsForRoad(farRoad).atkBonus);
 run.cells[terrId].placedCardId = null;                        // reset
+
+// 6b) Camp auto-pause + 1x = Continue (Plan via Pause, no Plan tab) ───────────
+for (const id of T.roadCellIds()) run.cells[id].enemy = null; // unobstructed loop
+run.bossSignalObtained = false; run.bossSignalPlaced = false; // no boss yet
+run.phase = 'walking'; run.speed = 1;
+let cg = 0; while (run.phase === 'walking' && cg++ < 40) T.stepWalk();
+ok('Camp arrival auto-pauses (speed = Pause/0)', run.phase === 'camp' && run.speed === 0, `phase=${run.phase} speed=${run.speed}`);
+window.blh.setSpeed(1);  // tap ▶1x at Camp
+ok('1x at Camp = Continue Loop (walking, speed 1)', run.phase === 'walking' && run.speed === 1, `phase=${run.phase} speed=${run.speed}`);
 
 // 7) BOSS SIGNAL still summons SUANG at Camp ──────────────────────────────────
 for (const id of T.roadCellIds()) run.cells[id].enemy = null; // clear encounters so loop is unobstructed
