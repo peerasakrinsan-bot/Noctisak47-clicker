@@ -16,6 +16,11 @@
 // ไม่เกิด FOUC) — ไม่ import ที่นี่เพื่อเลี่ยงการโหลดซ้ำ.
 import './game.js';
 
+// ── BOSS LOOP HERO MODE (โหมดแยกอิสระ) ──────────────────────────────────────
+// โหลดหลัง game.js เพื่อให้ window bridge ของเกมหลัก (startGame / showMainMenu /
+// stopBGM) พร้อมใช้งานก่อน. โหมดนี้ผูกเข้ากับ flow ผ่านปุ่ม PLAY → Mode Select.
+import './bossLoopHero.js';
+
 // ── INTERACTION HARDENING ──────────────────────────────────────────────────
 // Prevent drag-ghost images on game assets (desktop + Android).
 document.addEventListener('dragstart', (e) => {
