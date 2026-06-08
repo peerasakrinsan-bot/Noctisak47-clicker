@@ -207,9 +207,11 @@ const MAP_CARD_BY_ID = Object.fromEntries(MAP_CARDS.map(c => [c.id, c]));
 // • ฮีโร่เดินตาม route order เท่านั้น (เฉพาะ road/camp) — ไม่เหยียบ terrain
 // ────────────────────────────────────────────────────────────────────────────
 const BLH_GRID_W = 7, BLH_GRID_H = 9;
-// route: Camp + 16 road (ทุกช่องติดกันแบบ orthogonal/diagonal → วงต่อเนื่อง)
+// route: Camp + 16 road — วงต่อเนื่อง (rows 1–7, cols 1–5), camp = ช่องแรก (ล่างกลาง)
+// • routeIndex 0 = Camp = hero spawn / cash out / boss signal / auto-pause
+// • ทุกช่องนอก route (รวม (8,3) เดิม) = terrain
 const BLH_ROUTE_DEF = [
-  { id: 'camp', row: 8, col: 3, type: 'camp', routeIndex: 0 },  // ล่างกลาง
+  { id: 'camp', row: 7, col: 3, type: 'camp', routeIndex: 0 },  // ช่องแรก = Camp (ล่างกลาง)
   { id: 'r01',  row: 7, col: 4, type: 'road', routeIndex: 1 },
   { id: 'r02',  row: 6, col: 5, type: 'road', routeIndex: 2 },
   { id: 'r03',  row: 5, col: 5, type: 'road', routeIndex: 3 },
@@ -224,8 +226,8 @@ const BLH_ROUTE_DEF = [
   { id: 'r12',  row: 4, col: 1, type: 'road', routeIndex: 12 },
   { id: 'r13',  row: 5, col: 1, type: 'road', routeIndex: 13 },
   { id: 'r14',  row: 6, col: 1, type: 'road', routeIndex: 14 },
-  { id: 'r15',  row: 7, col: 2, type: 'road', routeIndex: 15 },
-  { id: 'r16',  row: 7, col: 3, type: 'road', routeIndex: 16 },  // ล่างกลางซ้าย-camp
+  { id: 'r15',  row: 7, col: 1, type: 'road', routeIndex: 15 },
+  { id: 'r16',  row: 7, col: 2, type: 'road', routeIndex: 16 },  // ล่างซ้าย → กลับ camp
 ];
 // สร้าง cells: route ก่อน แล้วเติม "ทุกช่องที่เหลือ" เป็น terrain
 const BLH_MAP = (() => {

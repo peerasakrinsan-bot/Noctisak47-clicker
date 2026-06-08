@@ -144,6 +144,12 @@ ok('gridWidth === 7', MAP.gridWidth === 7, 'w=' + MAP.gridWidth);
 ok('gridHeight === 9', MAP.gridHeight === 9, 'h=' + MAP.gridHeight);
 ok('route length === 17 (Camp + 16 Road)', MAP.route.length === 17, 'route=' + MAP.route.length);
 ok('Camp cell exists', cells.some(c => c.type === 'camp') && MAP.route[0] === 'camp');
+// Camp relocation (Task 2): first route cell = Camp = hero spawn; old camp (8,3) → terrain
+ok('first route cell is Camp (routeIndex 0)', T.BLH_CELL_BY_ID[MAP.route[0]].type === 'camp');
+ok('hero spawns at Camp (routePos 0)', T.BLH.run.routePos === 0 && T.BLH.run.route[0] === 'camp');
+const oldCampCell = cells.find(c => c.row === 8 && c.col === 3);
+ok('old camp (8,3) is now terrain, not in route', oldCampCell && oldCampCell.type === 'terrain' && !MAP.route.includes(oldCampCell.id));
+ok('old camp (8,3) accepts a global terrain card', T.validPlacementTargets('rock').includes(oldCampCell.id));
 ok('16 road cells exist', roadCells.length === 16, 'road=' + roadCells.length);
 ok('all remaining cells are terrain', terrainCells.length === expTerrain, `terrain=${terrainCells.length} exp=${expTerrain}`);
 ok('no empty/blocked gap cells (camp+road+terrain == grid)',
