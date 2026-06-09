@@ -31,8 +31,8 @@ index.html              # HTML shell; loads src/styles.css and src/main.js
 src/
   main.js               # ES module entry point; imports game.js then bossLoopHero.js
   game.js               # All core game logic (~10,354 lines) — Stage 2A verbatim lift
-  bossLoopHero.js       # Boss Loop Hero mode (~1,804 lines) — independent module
-  styles.css            # All game styles (~4,072 lines)
+  bossLoopHero.js       # Boss Loop Hero / Loop RPG mode (~3,000 lines) — independent module
+  styles.css            # All game styles (~4,190 lines)
 public/
   sw.js                 # Service Worker (copied verbatim to dist/)
   manifest.json         # PWA manifest
