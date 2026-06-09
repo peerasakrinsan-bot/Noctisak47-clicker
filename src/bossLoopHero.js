@@ -200,37 +200,36 @@ const MAP_CARDS = [
 const MAP_CARD_BY_ID = Object.fromEntries(MAP_CARDS.map(c => [c.id, c]));
 
 // ════════════════════════════════════════════════════════════════════════════
-// GRID MAP MODEL (data-driven, locked spec 7×9) — เส้นทางลูป + ช่องเทอเรน
+// GRID MAP MODEL (data-driven, locked spec 7×7) — เส้นทางลูป + ช่องเทอเรน
 // (source of truth = cell id)
 // ────────────────────────────────────────────────────────────────────────────
-// • grid 7 คอลัมน์ × 9 แถว
-// • route = Camp + Road 16 = 17 ช่อง (วงรีเชื่อมต่อเต็มกว่าเดิม, camp ล่างกลาง)
+// • grid 7 คอลัมน์ × 7 แถว
+// • route = Camp + Road 15 = 16 ช่อง (วงสี่เหลี่ยมเต็ม rows 1–5, cols 1–5)
 // • ช่องที่เหลือทั้งหมด (non-road/non-camp) = terrain placement cell → ไม่มี
 //   ช่องว่างเปล่า; เป็น "กระดานแผนที่" เต็มผืน
 // • ฮีโร่เดินตาม route order เท่านั้น (เฉพาะ road/camp) — ไม่เหยียบ terrain
 // ────────────────────────────────────────────────────────────────────────────
-const BLH_GRID_W = 7, BLH_GRID_H = 9;
-// route: Camp + 16 road — วงต่อเนื่อง (rows 1–7, cols 1–5), camp = ช่องแรก (ล่างกลาง)
-// • routeIndex 0 = Camp = hero spawn / cash out / boss signal / auto-pause
-// • ทุกช่องนอก route (รวม (8,3) เดิม) = terrain
+const BLH_GRID_W = 7, BLH_GRID_H = 7;
+// route: Camp + 15 road — วงสี่เหลี่ยม (rows 1–5, cols 1–5), camp = ช่องแรก (ล่างกลาง, 5,3)
+// • routeIndex 0 = Camp = hero spawn / cash out / boss signal / auto-pause + ฟื้น HP
+// • ทุกช่องนอก route = terrain
 const BLH_ROUTE_DEF = [
-  { id: 'camp', row: 7, col: 3, type: 'camp', routeIndex: 0 },  // ช่องแรก = Camp (ล่างกลาง)
-  { id: 'r01',  row: 7, col: 4, type: 'road', routeIndex: 1 },
-  { id: 'r02',  row: 6, col: 5, type: 'road', routeIndex: 2 },
-  { id: 'r03',  row: 5, col: 5, type: 'road', routeIndex: 3 },
-  { id: 'r04',  row: 4, col: 5, type: 'road', routeIndex: 4 },
-  { id: 'r05',  row: 3, col: 5, type: 'road', routeIndex: 5 },
-  { id: 'r06',  row: 2, col: 5, type: 'road', routeIndex: 6 },
+  { id: 'camp', row: 5, col: 3, type: 'camp', routeIndex: 0 },   // Camp ล่างกลาง
+  { id: 'r01',  row: 5, col: 4, type: 'road', routeIndex: 1 },
+  { id: 'r02',  row: 5, col: 5, type: 'road', routeIndex: 2 },   // มุมขวาล่าง
+  { id: 'r03',  row: 4, col: 5, type: 'road', routeIndex: 3 },
+  { id: 'r04',  row: 3, col: 5, type: 'road', routeIndex: 4 },
+  { id: 'r05',  row: 2, col: 5, type: 'road', routeIndex: 5 },
+  { id: 'r06',  row: 1, col: 5, type: 'road', routeIndex: 6 },   // มุมขวาบน
   { id: 'r07',  row: 1, col: 4, type: 'road', routeIndex: 7 },
   { id: 'r08',  row: 1, col: 3, type: 'road', routeIndex: 8 },   // บนกลาง
   { id: 'r09',  row: 1, col: 2, type: 'road', routeIndex: 9 },
-  { id: 'r10',  row: 2, col: 1, type: 'road', routeIndex: 10 },
-  { id: 'r11',  row: 3, col: 1, type: 'road', routeIndex: 11 },
-  { id: 'r12',  row: 4, col: 1, type: 'road', routeIndex: 12 },
-  { id: 'r13',  row: 5, col: 1, type: 'road', routeIndex: 13 },
-  { id: 'r14',  row: 6, col: 1, type: 'road', routeIndex: 14 },
-  { id: 'r15',  row: 7, col: 1, type: 'road', routeIndex: 15 },
-  { id: 'r16',  row: 7, col: 2, type: 'road', routeIndex: 16 },  // ล่างซ้าย → กลับ camp
+  { id: 'r10',  row: 1, col: 1, type: 'road', routeIndex: 10 },  // มุมซ้ายบน
+  { id: 'r11',  row: 2, col: 1, type: 'road', routeIndex: 11 },
+  { id: 'r12',  row: 3, col: 1, type: 'road', routeIndex: 12 },
+  { id: 'r13',  row: 4, col: 1, type: 'road', routeIndex: 13 },
+  { id: 'r14',  row: 5, col: 1, type: 'road', routeIndex: 14 },  // มุมซ้ายล่าง
+  { id: 'r15',  row: 5, col: 2, type: 'road', routeIndex: 15 },  // ล่างซ้าย → กลับ camp
 ];
 // สร้าง cells: route ก่อน แล้วเติม "ทุกช่องที่เหลือ" เป็น terrain
 const BLH_MAP = (() => {
@@ -376,7 +375,7 @@ const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map(u => [u.id, u]));
 
 // ── balance constants ────────────────────────────────────────────────────────
 const BAL = {
-  // หมายเหตุ: ความยาวลูป = BLH_MAP.route.length (Camp + Road 12 = 13 ช่อง)
+  // หมายเหตุ: ความยาวลูป = BLH_MAP.route.length (Camp + Road 15 = 16 ช่อง)
   BASE_LOOT_CHANCE: 0.45,
   BASE_SPAWN_CHANCE: 0.30,   // โอกาสเสกศัตรูในช่องว่างต่อ loop
   ENEMY_LOOP_SCALE: 0.17,    // ศัตรูแกร่งขึ้นต่อ loop
@@ -1332,12 +1331,9 @@ function arriveCamp() {
   }
   // perk trigger จาก loop count (เก็บเป็น pending แสดงตอนถึง Camp)
   checkPerkLoopTrigger(run);
-  // camp recovery (Arena Training: CAMP RECOVERY + perk Holy Resolve)
-  const heal = upgValue('campHeal') + (run.perkMods.campRecov || 0);
-  if (heal > 0) {
-    const amt = Math.round(run.stats.maxhp * heal);
-    run.stats.hp = clamp(run.stats.hp + amt, 0, run.stats.maxhp);
-  }
+  // camp recovery: ฟื้น HP 15% ขั้นพื้นฐาน + Arena Training CAMP RECOVERY + perk Holy Resolve
+  const campHealAmt = Math.round(run.stats.maxhp * (0.15 + upgValue('campHeal') + (run.perkMods.campRecov || 0)));
+  run.stats.hp = clamp(run.stats.hp + campHealAmt, 0, run.stats.maxhp);
   spawnForLoop(run);   // เสกศัตรูสำหรับ loop ใหม่ (ผู้เล่นได้วางแผนก่อน)
   run.speed = 0;       // auto-pause: เข้าโหมดวางแผน (Pause highlight) — กด ▶1x เพื่อ Continue
   renderBoard();
