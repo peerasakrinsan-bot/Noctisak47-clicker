@@ -1368,6 +1368,7 @@ function setGrowthPlan(planId) {
   if (!preset) return;
   run.growthPlan = planId;
   blhToast(`📈 เปลี่ยนแผน: ${preset.icon} ${preset.name}`);
+  updateHUD();
   renderPanel();
 }
 
