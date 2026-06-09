@@ -112,17 +112,25 @@ The smoke script does **not** exercise gameplay timers or balance — it only co
 | Card mastery (line 10230) | `CM_TIER` constants, `cmRecordRun`, `cmShowEvolutionReveal` |
 | Window bridge (line 10328) | `Object.assign(window, {...})` — exposes game functions for inline `onclick` in index.html |
 
-### Boss Loop Hero mode (`src/bossLoopHero.js`)
+### Loop RPG Mode (`src/bossLoopHero.js`)
 
-An **independent** auto-battle mode added in the latest milestone. It shares the same host page but is fully isolated from the core game:
+An **independent** auto-battle mode (user-facing name: **LOOP RPG MODE**; internal code/state still uses the `blh` / `BLH` prefix for stability). It shares the same host page but is fully isolated from the core game:
 
 - **State**: `BLH.run` / `BLH.save` (not the core `save` object)
 - **Economy**: Loop Zeny — stored separately, does **not** touch `save.coins`
 - **Storage key**: `noctisak47_blh` (separate from `noctisak47_v3`)
 - **DOM**: all screens created dynamically inside `#blhRoot` (full-screen overlay) — never touches core game DOM
 - **Entry**: PLAY → Mode Select screen (`window.blhOpenModeSelect`); exiting returns to `window.showMainMenu()`
-- **Architecture**: fully data-driven configs (stage pool, boss pool, enemy pool, gear, Arena Training upgrades) — add content by extending config arrays, not engine code
+- **Architecture**: fully data-driven configs (stage pool, boss pool, enemy pool, gear, Arena Training upgrades, perk pools) — add content by extending config arrays, not engine code
 - `BLH_DEV` flag: exposes `blh.__test` debug hook on `localhost`/`127.0.0.1`/`file:` only; hidden in production
+
+**Style labels (no class/job names shown):** NOCTISAK47 = *Shadow Striker*, TOEI = *Holy Guard*, APOLOGIZE = *Iron Fist*.
+
+**Stat model (Ragnarok-inspired):** each hero has base stats `STR/AGI/VIT/DEX/INT/LUK` (`HEROES[].base`). `deriveCombat(base, addCombat)` maps them to combat stats `ATK/DEF/HP/ASPD/CRI/CRIDMG/EVA/LS/PEN` (+`hit`, `damageReduction`, `extraHit`), then applies `STAT_CAPS` (crit 50%, crit dmg 250%, eva 35%, lifesteal 20%, armorPen 40 flat). Combat uses `resolveAttack(att, def)`: `effectiveDef = max(0, def - armorPen)` → `baseDamage = max(1, atk - effectiveDef)` → evasion dodge → crit → mitigations → lifesteal.
+
+**Perk system (run-only):** `HERO_PERKS[heroId]` = 8 perks/hero; effects live only in `run.perkMods` and vanish when the run ends. Triggered by loop count (`PERK_LOOP_TRIGGERS` = 3/6/9/12/15/18) and placement milestones (`PERK_BUILD_TRIGGERS` = 5/10/15 placed cards), stored as `run.perkPending`, resolved at Camp via a perk-choice overlay (3 random options, no repeats; the run pauses until chosen).
+
+**Gear:** `makeGear` rolls 1–2 stats from `GEAR_SLOT_POOLS` per slot (Glove/Jacket/Boots/Charm), mixing base stats and combat stats; rolls render as e.g. `+3 STR`, `+5% CRI`, `+4 PEN`.
 
 `src/main.js` imports `bossLoopHero.js` **after** `game.js` so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
 

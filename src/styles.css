@@ -3741,7 +3741,14 @@
 .blh-hero-name { font-size: 19px; letter-spacing: 1px; color: var(--gold); }
 .blh-hero-role { font-size: 11px; letter-spacing: 2px; color: var(--cyan); }
 .blh-hero-blurb { font-family: 'Sarabun', sans-serif; font-size: 12px; color: #b8bcc6; line-height: 1.45; }
-.blh-hero-stats { display: flex; gap: 10px; font-size: 13px; color: #d7dae2; margin-top: 4px; }
+.blh-hero-stats { display: flex; flex-wrap: wrap; gap: 5px; font-size: 13px; color: #d7dae2; margin-top: 6px; }
+
+/* ── base / combat stat chips (Loop RPG Mode) ── */
+.blh-ss-base { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+.blh-bstat { font-size: 11px; letter-spacing: .5px; color: #cdd2dc; padding: 2px 7px; border-radius: 6px;
+  background: rgba(51,221,255,.10); border: 1px solid rgba(51,221,255,.25); white-space: nowrap; }
+.blh-bstat b { color: var(--cyan); font-weight: 700; margin-right: 2px; }
+.blh-roll-sep { color: #6b6f78; }
 
 /* ── STAGE SELECT ── */
 .blh-stage-list { display: flex; flex-direction: column; gap: 14px; }
@@ -3943,6 +3950,32 @@
 .blh-mapinfo { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 10px 2px; font-size: 12px; color: #b8bcc6; }
 .blh-mapcard-list { margin-top: 6px; }
 .blh-cards-note { margin-bottom: 4px; }
+
+/* ── active perk chips in STATS panel ── */
+.blh-perk-active { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.blh-perk-chip { font-size: 10px; letter-spacing: .5px; color: #ffe7a8; padding: 2px 7px; border-radius: 6px;
+  background: rgba(255,204,68,.12); border: 1px solid rgba(255,204,68,.3); white-space: nowrap; }
+
+/* ── PERK CHOICE overlay (Camp; เกมหยุดจนเลือกเสร็จ) ── */
+.blh-perk-overlay { align-items: center; }
+.blh-perk-box { width: 100%; max-width: 520px; margin: 0 12px; box-sizing: border-box;
+  background: linear-gradient(180deg, #12101c, #08070c); border: 2px solid rgba(255,204,68,.45);
+  border-radius: 18px; padding: 18px 14px calc(env(safe-area-inset-bottom,0px) + 16px);
+  display: flex; flex-direction: column; gap: 10px; box-shadow: 0 0 44px rgba(255,204,68,.22);
+  animation: blhSlideUp .2s ease; max-height: 92vh; }
+.blh-perk-head { text-align: center; font-size: 18px; letter-spacing: 2px; color: var(--gold); }
+.blh-perk-style { font-size: 10px; letter-spacing: 1px; color: var(--cyan); display: block; margin-top: 2px; }
+.blh-perk-sub { text-align: center; font-family: 'Sarabun', sans-serif; font-size: 12px; color: #b8bcc6; margin-bottom: 4px; }
+.blh-perk-list { display: flex; flex-direction: column; gap: 10px; }
+.blh-perk-card { text-align: left; padding: 13px 14px; border-radius: 14px; cursor: pointer; width: 100%;
+  background: linear-gradient(135deg, rgba(255,204,68,.08), rgba(255,255,255,.02));
+  border: 1.5px solid rgba(255,204,68,.4); color: #e8eaf0; transition: transform .08s ease, border-color .12s ease; }
+.blh-perk-card:active { transform: scale(.98); border-color: var(--gold); }
+.blh-perk-name { font-size: 16px; letter-spacing: .5px; color: var(--gold); }
+.blh-perk-desc { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #d2d6df; margin: 4px 0 8px; line-height: 1.5; }
+.blh-perk-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.blh-perk-tag { font-size: 9px; letter-spacing: 1px; color: var(--cyan); padding: 1px 6px; border-radius: 5px;
+  border: 1px solid rgba(51,221,255,.35); background: rgba(51,221,255,.08); }
 
 /* ── BATTLE popup (DOM mount ครั้งเดียว — update เฉพาะ HP/log/dead) ── */
 .blh-battle-overlay { align-items: center; }
