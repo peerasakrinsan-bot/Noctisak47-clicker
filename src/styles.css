@@ -3885,13 +3885,13 @@
   gap: 6px; padding: 0 2px; }
 .blh-status-text { flex: 1; min-width: 0; font-size: 12px; color: #c2c6cf; letter-spacing: .5px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.blh-status-btn { flex: 1 1 auto; min-height: 40px; padding: 6px 8px; border-radius: 10px; cursor: pointer;
-  font-family: 'Oswald'; font-size: 14px; letter-spacing: 1px; white-space: nowrap; }
+.blh-status-btn { flex: 1 1 auto; min-height: 36px; padding: 4px 8px; border-radius: 10px; cursor: pointer;
+  font-family: 'Oswald'; font-size: 12px; letter-spacing: .5px; white-space: nowrap; }
 .blh-status-btn.cash { background: rgba(255,204,0,.14); color: var(--gold); border: 1px solid rgba(255,204,0,.4); }
 .blh-status-btn.sig { background: linear-gradient(135deg,#ff2233,#ff8a00); color: #fff; border: none; flex: 0 0 auto; }
 .blh-status-btn:active { transform: scale(.97); }
-.blh-aband { flex: 0 0 auto; width: 32px; min-height: 36px; border-radius: 9px; cursor: pointer;
-  background: rgba(255,60,60,.10); color: #ff6b6b; border: 1px solid rgba(255,60,60,.3); font-size: 14px; }
+.blh-aband { flex: 0 0 auto; width: 30px; min-height: 30px; border-radius: 9px; cursor: pointer;
+  background: rgba(255,60,60,.10); color: #ff6b6b; border: 1px solid rgba(255,60,60,.3); font-size: 13px; }
 .blh-aband:active { transform: scale(.95); }
 
 /* body สูงคงที่ → สลับแท็บไม่ทำให้ panel/map ขยับ; เนื้อหายาวเลื่อนภายใน body */
@@ -3900,18 +3900,20 @@
 
 /* ── COMPACT DOCK — replaces tab panel ─────────────────────────────────────
    Panel height = ~35% screen (HUD fills rest); detail panel scrolls inside  */
-#blh-run .blh-panel { height: clamp(210px, 37vh, 290px); }
+#blh-run .blh-panel { height: clamp(210px, 37vh, 290px); gap: 4px; padding: 4px; }
 
 /* ── dock ctrl row ── */
 .blh-dock-ctrl { flex: 0 0 auto; display: flex; gap: 4px; align-items: center; }
-.blh-dock-speed { display: flex; gap: 4px; }
+/* flex-shrink:0 so speed segs never compress when camp status is wide */
+.blh-dock-speed { display: flex; gap: 4px; flex-shrink: 0; }
 .blh-dock-status { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
-.blh-dock-status.camp { flex-wrap: wrap; gap: 4px; }
+/* nowrap: both action buttons share the remaining status width without reflowing */
+.blh-dock-status.camp { flex-wrap: nowrap; gap: 4px; }
 
 /* ── Row A: equipped gear chips ── */
 .blh-dock-equip { flex: 0 0 auto; display: flex; gap: 3px; }
 .blh-equip-chip { flex: 1; display: flex; flex-direction: column; align-items: center;
-  gap: 2px; padding: 4px 2px; min-height: 38px; cursor: pointer;
+  gap: 2px; padding: 2px 2px; min-height: 30px; cursor: pointer;
   background: #0d0d0d; border: 1px solid #222; border-radius: 2px; }
 .blh-equip-chip:active { transform: scale(.94); }
 .blh-equip-chip.sel { border-color: var(--cyan); background: rgba(0,255,238,.08); }
@@ -3970,6 +3972,7 @@
   margin-top: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 /* ── hero tap button in default detail ── */
+.blh-dock-cashout-hint { font-size: 10px; color: var(--gold); opacity: .85; margin-top: 3px; letter-spacing: .3px; }
 .blh-dock-hint { display: flex; flex-direction: column; gap: 0; }
 .blh-dock-hint-row { display: flex; align-items: center; gap: 8px; }
 .blh-hero-tap-btn { display: flex; align-items: center; gap: 7px; padding: 5px 8px;
@@ -4007,8 +4010,8 @@
 .blh-speed-btn.paused { background: rgba(255,204,0,.14); color: var(--gold); border-color: var(--gold); }
 .blh-speed-btn.wide { width: 100%; }
 .blh-speed-btn:active { transform: scale(.97); }
-.blh-seg { flex: 1; min-height: 44px; border-radius: 9px; cursor: pointer; font-family: 'Oswald';
-  font-size: 14px; letter-spacing: 1px; background: rgba(255,255,255,.05); color: #aeb3bd;
+.blh-seg { flex: 1; min-height: 36px; border-radius: 9px; cursor: pointer; font-family: 'Oswald';
+  font-size: 13px; letter-spacing: .5px; background: rgba(255,255,255,.05); color: #aeb3bd;
   border: 1px solid rgba(255,255,255,.12); }
 .blh-seg.on { background: rgba(0,255,238,.16); color: var(--cyan); border-color: var(--cyan); }
 .blh-seg.pause.on { background: rgba(255,204,0,.18); color: var(--gold); border-color: var(--gold); }
@@ -4145,6 +4148,18 @@
 .blh-alloc-confirm:disabled, .blh-alloc-reset:disabled { opacity: .4; cursor: default; }
 .blh-alloc-warn { margin-top: 7px; font-size: 10px; color: #c89a4a; line-height: 1.4;
   font-family: 'Sarabun', sans-serif; }
+/* ── Growth Plan section (auto-allocation) ── */
+.blh-growth-section { margin-top: 6px; padding: 8px 8px 6px; border-radius: 8px;
+  background: rgba(34,119,255,.06); border: 1px solid rgba(34,119,255,.18); }
+.blh-growth-head { font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--gold); margin-bottom: 5px; }
+.blh-preset-btn.on { background: rgba(34,119,255,.35); border-color: rgba(34,119,255,.75);
+  color: #fff; font-weight: 700; }
+.blh-growth-note { font-size: 10px; color: #8a9ab0; margin-top: 4px; font-style: italic; }
+.blh-growth-stats { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.blh-rs-chip { font-size: 10px; background: rgba(100,220,255,.10); border: 1px solid rgba(100,220,255,.22);
+  border-radius: 4px; padding: 1px 5px; color: #9de8ff; }
+.blh-plan-hud { font-size: 13px; line-height: 1; }
 
 /* ── PERK CHOICE overlay (Camp; เกมหยุดจนเลือกเสร็จ) ── */
 .blh-perk-overlay { align-items: center; }

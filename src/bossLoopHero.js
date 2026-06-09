@@ -611,12 +611,14 @@ const ENEMY_EXP = { basic: 8, fast: 12, tank: 14, cursed: 16, elite: 35 };
 function expToNext(level) { return 30 + Math.pow(level - 1, 2) * 18; }
 // Preset จัดสรรแต้ม stat (ratio รวม = 10; stat แรกในแต่ละ preset รับเศษที่เหลือ)
 const EXP_PRESETS = [
-  { id: 'power',  name: 'POWER',  icon: '⚔️', ratio: { str: 6, vit: 2, dex: 2 } },
-  { id: 'tank',   name: 'TANK',   icon: '🛡️', ratio: { vit: 6, str: 2, int: 2 } },
-  { id: 'speed',  name: 'SPEED',  icon: '⚡', ratio: { agi: 6, dex: 2, luk: 2 } },
-  { id: 'luck',   name: 'LUCK',   icon: '🍀', ratio: { luk: 5, dex: 2, agi: 2, str: 1 } },
-  { id: 'mystic', name: 'MYSTIC', icon: '✨', ratio: { int: 5, luk: 3, vit: 2 } },
+  { id: 'power',  name: 'POWER',  icon: '⚔️', ratio: { str: 6, vit: 2, dex: 2 },          order: ['str', 'dex', 'vit'] },
+  { id: 'tank',   name: 'TANK',   icon: '🛡️', ratio: { vit: 6, str: 2, int: 2 },          order: ['vit', 'str', 'dex'] },
+  { id: 'speed',  name: 'SPEED',  icon: '⚡', ratio: { agi: 6, dex: 2, luk: 2 },          order: ['agi', 'luk', 'vit'] },
+  { id: 'luck',   name: 'LUCK',   icon: '🍀', ratio: { luk: 5, dex: 2, agi: 2, str: 1 }, order: ['luk', 'dex', 'agi'] },
+  { id: 'mystic', name: 'MYSTIC', icon: '✨', ratio: { int: 5, luk: 3, vit: 2 },          order: ['int', 'vit', 'luk'] },
 ];
+// default growth plan per hero (matches playstyle)
+const HERO_DEFAULT_PLAN = { noctisak47: 'luck', toei: 'power', apologize: 'speed' };
 
 // ════════════════════════════════════════════════════════════════════════════
 // SPEC STATUS — Boss Loop Mode backlog ครบแล้ว (ไม่มี deferred เหลือ)
@@ -1176,15 +1178,13 @@ function startRun() {
     // ── gear traits (run-only) ──
     traitMods: null,        // เซ็ตใน recomputeStats (aggregateTraits)
     _quickStepActive: false,// Quick Step trait: ASPD บัฟหลังชนะไฟต์จนจบลูป
-    // ── run EXP / level / stat allocation (run-only — รีเซ็ตเมื่อรันจบ) ──
-    // draft → confirm → locked: ปั้นแต้มใน draftRunStats ก่อน, กด Confirm แล้ว
-    // ย้ายเข้า confirmedRunStats (ล็อกจนจบรัน). combat ใช้ "confirmed" เท่านั้น
+    // ── run EXP / level / Auto Growth Plan (run-only — รีเซ็ตเมื่อรันจบ) ──
+    // Level-up จัดสรร +2 แต้มอัตโนมัติตาม growthPlan ทันที (ไม่มี draft/confirm)
     level: 1,
     exp: 0,
     expToNext: expToNext(1),  // = 30
-    pendingStatPoints: 0,                                      // แต้มว่างที่ยังไม่วางใน draft
-    confirmedRunStats: { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 },  // ล็อก — มีผลต่อ combat
-    draftRunStats:     { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 },  // ร่าง — ยังไม่มีผลจนกด Confirm
+    growthPlan: HERO_DEFAULT_PLAN[hero.id] || 'luck',          // แผนเติบโตอัตโนมัติ
+    runStats: { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 }, // stat ที่ได้จาก level-up รันนี้
   };
   BLH.run = run;
 
@@ -1285,9 +1285,8 @@ function recomputeStats(run) {
   const m = run.perkMods;
   const tr = run.traitMods;
   const gb = gear.base, gc = gear.combat;
-  // 1) base stat (str..luk) — รวม stat-point allocations ที่ "ยืนยันแล้ว" เท่านั้น
-  //    (draftRunStats ที่ยังไม่ confirm จะไม่มีผลต่อ combat — ตามสเปก)
-  const rs = run.confirmedRunStats || {};
+  // 1) base stat (str..luk) — auto-growth allocations applied immediately on level-up
+  const rs = run.runStats || {};
   const b = {};
   for (const k of BASE_STAT_KEYS) b[k] = (run.base[k] || 0) + (m[k] || 0) + (gb[k] || 0) + (rs[k] || 0);
   run.statBase = b;
@@ -1320,119 +1319,55 @@ function recomputeStats(run) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// EXP / LEVEL / STAT ALLOCATION — run-only (draft → confirm → locked)
+// EXP / LEVEL / AUTO GROWTH PLAN — run-only (รีเซ็ตเมื่อรันจบ)
 // ════════════════════════════════════════════════════════════════════════════
-// invariant: pendingStatPoints = แต้มสะสมทั้งหมด − ผลรวม draftRunStats
-//   draftRunStats[k] >= confirmedRunStats[k] เสมอ (draft = confirmed + ส่วนที่กำลังปั้น)
-//   combat อ่านจาก confirmedRunStats เท่านั้น (recomputeStats)
+// Level-up → autoAllocatePoints() จัดสรร +2 แต้มตาม growthPlan ทันที
+// ไม่มี draft/confirm/pending — stats ออกฤทธิ์ใน combat ทันที
 
-// ผลรวมส่วน draft ที่ยังไม่ยืนยัน (เกินจาก confirmed)
-function draftDelta(run) {
-  const d = run.draftRunStats, c = run.confirmedRunStats;
-  return BASE_STAT_KEYS.reduce((s, k) => s + ((d[k] || 0) - (c[k] || 0)), 0);
+// cycle ผ่าน plan order และจัดสรร points เข้า runStats; คืน summary ของที่จัดสรรไป
+function autoAllocatePoints(run, points) {
+  const preset = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
+  const order = preset.order;
+  const rs = run.runStats;
+  const gained = {};
+  for (let i = 0; i < points; i++) {
+    const k = order[i % order.length];
+    rs[k] = (rs[k] || 0) + 1;
+    gained[k] = (gained[k] || 0) + 1;
+  }
+  return gained;
 }
 
-// ให้ EXP + จัดการ level-up (overflow สะสม, +2 แต้มว่างต่อ level)
+// ให้ EXP + auto-allocate stat points บน level-up (ไม่มี pause, ไม่มี pending)
 function grantExp(amount) {
   const run = BLH.run; if (!run || run.ended || amount <= 0) return;
   run.exp += amount;
-  let leveled = false;
+  let totalGained = 0;
   while (run.exp >= run.expToNext) {
     run.exp -= run.expToNext;
     run.level += 1;
-    run.pendingStatPoints += 2;
+    totalGained += 2;
     run.expToNext = expToNext(run.level);
-    leveled = true;
   }
-  if (leveled) {
-    blhToast(`⬆️ LEVEL UP! Lv.${run.level} • ได้ 2 แต้ม stat`);
+  if (totalGained > 0) {
+    const gained = autoAllocatePoints(run, totalGained);
+    recomputeStats(run);
+    const preset = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
+    const statLine = Object.entries(gained).map(([k, v]) => `${k.toUpperCase()}+${v}`).join(' ');
+    blhToast(`⬆️ Lv.${run.level} ${preset.icon}${preset.name}: ${statLine}`);
     updateHUD();
-    if (run.phase !== 'battle') {
-      if (run.speed !== 0) { run.speed = 0; applySpeedChange(); }
-      _selection = { type: 'hero' };
-      renderPanel();
-    }
+    if (_selection && _selection.type === 'hero') renderPanel();
   }
 }
 
-// จัดสรรแต้มลง stat key หนึ่ง — แก้ "draft" เท่านั้น (amount > 0 วาง, < 0 คืน)
-//   + : ดึงจาก pendingStatPoints → draft
-//   − : คืน draft → pendingStatPoints แต่ลดต่ำกว่า confirmed ไม่ได้
-//   ถูก block ระหว่างสู้ (run.phase === 'battle')
-function allocateStat(key, amount) {
+// เปลี่ยน Growth Plan (block ระหว่างสู้; เปลี่ยนแค่ level-up ในอนาคต)
+function setGrowthPlan(planId) {
   const run = BLH.run; if (!run) return;
-  if (run.phase === 'battle') { blhToast('🔒 จัดสรรสเตตัสไม่ได้ระหว่างสู้'); return; }
-  if (!BASE_STAT_KEYS.includes(key)) return;
-  const draft = run.draftRunStats, conf = run.confirmedRunStats;
-  if (amount > 0) {
-    const add = Math.min(amount, run.pendingStatPoints);
-    if (add <= 0) return;
-    draft[key] = (draft[key] || 0) + add;
-    run.pendingStatPoints -= add;
-  } else if (amount < 0) {
-    const floor = conf[key] || 0;                  // ลดต่ำกว่า confirmed ไม่ได้
-    const cur = draft[key] || 0;
-    const sub = Math.min(-amount, cur - floor);
-    if (sub <= 0) return;
-    draft[key] = cur - sub;
-    run.pendingStatPoints += sub;
-  }
-  // draft ไม่กระทบ combat (recompute ใช้ confirmed) — แค่รีเฟรช UI
-  updateHUD();
-  renderPanel();
-}
-
-// ยืนยัน draft → confirmed (ล็อกจนจบรัน) แล้วคำนวณ combat ใหม่
-function confirmStats() {
-  const run = BLH.run; if (!run) return;
-  if (run.phase === 'battle') { blhToast('🔒 ยืนยันสเตตัสไม่ได้ระหว่างสู้'); return; }
-  const delta = draftDelta(run);
-  if (delta <= 0) { blhToast('ยังไม่ได้จัดสรรแต้มใหม่'); return; }
-  run.confirmedRunStats = { ...run.draftRunStats };   // ล็อก: confirmed = draft
-  recomputeStats(run);                                 // confirmed มีผลต่อ combat แล้ว
-  updateHUD();
-  renderPanel();
-  blhToast(`✅ ยืนยันสเตตัส +${delta} — ล็อกจนจบรัน`);
-}
-
-// คืน draft กลับเป็น confirmed (คืนแต้มที่ยังไม่ยืนยันให้ pending)
-function resetDraft() {
-  const run = BLH.run; if (!run) return;
-  if (run.phase === 'battle') { blhToast('🔒 รีเซ็ต draft ไม่ได้ระหว่างสู้'); return; }
-  const refund = draftDelta(run);
-  if (refund <= 0) return;
-  run.pendingStatPoints += refund;
-  run.draftRunStats = { ...run.confirmedRunStats };
-  updateHUD();
-  renderPanel();
-}
-
-// preset: ใช้เฉพาะ "แต้มว่าง" (pending + draft-ที่ยังไม่ยืนยัน) วางลง draft ตาม ratio
-//   ไม่แตะ confirmed (วางทับบน confirmed); stat แรกใน ratio รับเศษจากการปัด floor
-function applyPreset(presetId) {
-  const run = BLH.run; if (!run) return;
-  if (run.phase === 'battle') { blhToast('🔒 จัดสรรสเตตัสไม่ได้ระหว่างสู้'); return; }
-  const preset = EXP_PRESETS.find(p => p.id === presetId);
+  if (run.phase === 'battle') { blhToast('🔒 เปลี่ยนแผนไม่ได้ระหว่างสู้'); return; }
+  const preset = EXP_PRESETS.find(p => p.id === planId);
   if (!preset) return;
-  const draft = run.draftRunStats, conf = run.confirmedRunStats;
-  // คืนส่วน draft ที่ยังไม่ยืนยันกลับเข้า pending ก่อน (draft กลับเป็น confirmed)
-  for (const k of BASE_STAT_KEYS) {
-    const extra = (draft[k] || 0) - (conf[k] || 0);
-    if (extra > 0) run.pendingStatPoints += extra;
-    draft[k] = conf[k] || 0;
-  }
-  const pool = run.pendingStatPoints;
-  if (pool <= 0) { blhToast('ไม่มีแต้มว่างให้จัดสรร'); return; }
-  const ratioKeys = Object.keys(preset.ratio);
-  const ratioSum = ratioKeys.reduce((s, k) => s + preset.ratio[k], 0);
-  const allocs = {};
-  let used = 0;
-  for (const k of ratioKeys) { allocs[k] = Math.floor(pool * preset.ratio[k] / ratioSum); used += allocs[k]; }
-  allocs[ratioKeys[0]] += pool - used;                 // เศษไปที่ stat หลักของ preset
-  for (const k of ratioKeys) draft[k] = (draft[k] || 0) + allocs[k];
-  run.pendingStatPoints = 0;                           // วางทั้งหมดลง draft แล้ว
-  // ยังเป็น draft → ไม่กระทบ combat จนกด Confirm
-  updateHUD();
+  run.growthPlan = planId;
+  blhToast(`📈 เปลี่ยนแผน: ${preset.icon} ${preset.name}`);
   renderPanel();
 }
 
@@ -1498,7 +1433,7 @@ function updateHUD() {
       <span class="blh-hptext">❤️ ${Math.max(0, Math.round(run.stats.hp))}/${run.stats.maxhp}</span></div>
     <div class="blh-hud-stats">
       <span>⚔️ ${run.stats.atk}</span><span>🛡️ ${run.stats.def}</span>
-      <span>⬆️ Lv.<b>${run.level}</b>${run.pendingStatPoints > 0 ? `<b class="blh-pts-hud">+${run.pendingStatPoints}</b>` : ''}</span>
+      <span>⬆️ Lv.<b>${run.level}</b><span class="blh-plan-hud"> ${(EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0]).icon}</span></span>
       <span>🃏 ${run.hand.length}/${MAX_CARD_TYPES}</span><span>🎒 ${run.lootBag.length}/${bagCap()}</span>
     </div>`;
 }
@@ -1586,7 +1521,7 @@ function dockCtrlRow(run) {
   if (run.phase === 'camp') {
     const canSignal = run.bossSignalObtained && !run.bossSignalPlaced;
     status = `<div class="blh-dock-status camp">
-      <button class="blh-status-btn cash" onclick="blh.cashOut()">💰 CASH OUT ~🔷${fmt(estCashOut(run))}</button>
+      <button class="blh-status-btn cash" onclick="blh.cashOut()">💰 CASH OUT</button>
       ${canSignal ? `<button class="blh-status-btn sig" onclick="blh.placeSignal()">📡 SIGNAL</button>` : ''}
     </div>`;
   } else {
@@ -1691,13 +1626,14 @@ function dockDetail(run, locked) {
 function dockDetailDefault(run, locked) {
   const s = run.stats;
   const expPct = run.expToNext > 0 ? clamp(run.exp / run.expToNext * 100, 0, 100) : 100;
-  const hasPending = run.pendingStatPoints > 0;
+  const curPlan = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
+  const campLine = run.phase === 'camp'
+    ? `<div class="blh-dock-cashout-hint">💰 ~🔷${fmt(estCashOut(run))} เมื่อ Cash Out</div>` : '';
   return `<div class="blh-dock-hint">
     <div class="blh-dock-hint-row">
       <button class="blh-hero-tap-btn" onclick="blh.selectItem({type:'hero'})">
         <img src="${run.hero.img}" onerror="this.style.opacity=0">
         <span class="blh-hero-tap-name">${esc(run.hero.name)}</span>
-        ${hasPending ? `<span class="blh-pts-badge">+${run.pendingStatPoints}</span>` : ''}
       </button>
       <div class="blh-dock-hint-stats">
         <span>⚔️ ${s.atk}</span><span>🛡️ ${s.def}</span>
@@ -1705,17 +1641,17 @@ function dockDetailDefault(run, locked) {
         <span>⚡ ${s.aspd}</span><span>🎯 ${Math.round(s.critRate * 100)}%</span>
       </div>
     </div>
-    <div class="blh-level-row" style="margin-top:5px">
-      <span class="blh-lvl-tag">Lv.<b>${run.level}</b></span>
+    <div class="blh-level-row" style="margin-top:4px">
+      <span class="blh-lvl-tag">Lv.<b>${run.level}</b> ${curPlan.icon}</span>
       <div class="blh-expbar"><div class="blh-expfill" style="width:${expPct.toFixed(1)}%"></div>
         <span class="blh-exptext">${run.exp}/${run.expToNext} EXP</span></div>
-      ${hasPending ? `<span class="blh-pts-badge">+${run.pendingStatPoints}</span>` : ''}
     </div>
+    ${campLine}
     ${run._placing ? `<div class="blh-detail-placing">🗺️ เลือกช่องที่ไฮไลต์ <button class="blh-mini-btn ghost" onclick="blh.cancelPlace()">✖ ยกเลิก</button></div>` : ''}
   </div>`;
 }
 
-// Hero detail: base/combat stats + perks + level/EXP + stat allocation
+// Hero detail: base/combat stats + perks + level/EXP + growth plan selector
 function dockDetailHero(run, locked) {
   const s = run.stats, b = run.statBase || run.base;
   const c = { atk: s.atk, def: s.def, maxhp: s.maxhp, aspd: s.aspd,
@@ -1727,30 +1663,10 @@ function dockDetailHero(run, locked) {
       }).join('')}</div>` : '';
   const expPct = run.expToNext > 0 ? clamp(run.exp / run.expToNext * 100, 0, 100) : 100;
   const battle = run.phase === 'battle';
-  const draft = run.draftRunStats, conf = run.confirmedRunStats;
-  const delta = draftDelta(run);
-  const hasActivity = run.pendingStatPoints > 0 || delta > 0 || BASE_STAT_KEYS.some(k => (conf[k] || 0) > 0);
-  const allocHtml = hasActivity ? `
-    <div class="blh-alloc-section${battle ? ' locked' : ''}">
-      <div class="blh-alloc-head">แต้มว่าง: <b>${run.pendingStatPoints}</b>${delta > 0 ? ` <span class="blh-alloc-draft">ร่าง +${delta}</span>` : ''}${battle ? ' <span class="blh-alloc-lock">🔒</span>' : ''}</div>
-      <div class="blh-preset-row">${EXP_PRESETS.map(p =>
-        `<button class="blh-preset-btn" ${battle ? 'disabled' : ''} onclick="blh.applyPreset('${p.id}')">${p.icon} ${esc(p.name)}</button>`).join('')}</div>
-      <div class="blh-stat-alloc">${BASE_STAT_KEYS.map(k => {
-        const cv = conf[k] || 0, extra = (draft[k] || 0) - cv;
-        const canAdd = !battle && run.pendingStatPoints > 0, canSub = !battle && extra > 0;
-        return `<div class="blh-alloc-row">
-          <span class="blh-alloc-k">${k.toUpperCase()}</span>
-          <span class="blh-alloc-v">+${cv}${extra > 0 ? `<sup>(+${extra})</sup>` : ''}</span>
-          <button class="blh-alloc-btn" ${canSub ? '' : 'disabled'} onclick="blh.allocateStat('${k}',-1)">−</button>
-          <button class="blh-alloc-btn" ${canAdd ? '' : 'disabled'} onclick="blh.allocateStat('${k}',1)">+</button>
-        </div>`;
-      }).join('')}</div>
-      <div class="blh-alloc-actions">
-        <button class="blh-alloc-confirm" ${(!battle && delta > 0) ? '' : 'disabled'} onclick="blh.confirmStats()">✅ ยืนยันสเตตัส</button>
-        <button class="blh-alloc-reset" ${(!battle && delta > 0) ? '' : 'disabled'} onclick="blh.resetDraft()">↺ ล้างร่าง</button>
-      </div>
-      <div class="blh-alloc-warn">⚠️ เมื่อยืนยันแล้ว สเตตัสจะถูกล็อกจนจบรัน</div>
-    </div>` : '';
+  const curPlan = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
+  const rs = run.runStats || {};
+  const statSummary = BASE_STAT_KEYS.filter(k => (rs[k] || 0) > 0)
+    .map(k => `<span class="blh-rs-chip">${k.toUpperCase()}+${rs[k]}</span>`).join('');
   return `<div class="blh-dock-detail-hero">
     <div class="blh-detail-close-row">
       <span class="blh-statbox-name">${esc(run.hero.name)} <span class="blh-statbox-role">${esc(run.hero.role)}</span></span>
@@ -1760,12 +1676,17 @@ function dockDetailHero(run, locked) {
     <div class="blh-ss-row">${combatStatChips(c)}</div>
     ${perkLine}
     <div class="blh-level-row">
-      <span class="blh-lvl-tag">Lv.<b>${run.level}</b></span>
+      <span class="blh-lvl-tag">Lv.<b>${run.level}</b> ${curPlan.icon}</span>
       <div class="blh-expbar"><div class="blh-expfill" style="width:${expPct.toFixed(1)}%"></div>
         <span class="blh-exptext">${run.exp}/${run.expToNext} EXP</span></div>
-      ${run.pendingStatPoints > 0 ? `<span class="blh-pts-badge">+${run.pendingStatPoints}</span>` : ''}
     </div>
-    ${allocHtml}
+    <div class="blh-growth-section">
+      <div class="blh-growth-head">📈 Growth Plan${battle ? ' <span class="blh-alloc-lock">🔒</span>' : ''}</div>
+      <div class="blh-preset-row">${EXP_PRESETS.map(p =>
+        `<button class="blh-preset-btn${p.id === run.growthPlan ? ' on' : ''}" ${battle ? 'disabled' : ''} onclick="blh.setGrowthPlan('${p.id}')">${p.icon} ${esc(p.name)}</button>`).join('')}</div>
+      <div class="blh-growth-note">Auto-applies on level up</div>
+      ${statSummary ? `<div class="blh-growth-stats">${statSummary}</div>` : ''}
+    </div>
   </div>`;
 }
 
@@ -1800,7 +1721,7 @@ function dockDetailLoot(run, locked, idx) {
     [gear.mainStat, gear.subStat].filter(Boolean).forEach(r => { if (r.k === key) v += r.v; });
     return v;
   }
-  const KEYS = ['ATK', 'DEF', 'HP', 'ASPD', 'CRI', 'CRIDMG', 'EVA', 'PEN', 'LS', 'HIT', 'DR'];
+  const KEYS = ['ATK', 'DEF', 'HP', 'ASPD', 'CRI', 'CRIDMG', 'EVA', 'PEN', 'LS', 'HIT', 'DR', 'DROP'];
   const deltaRows = KEYS.map(k => {
     const nv = rollVal(g, k), ev = rollVal(equipped, k);
     if (nv === 0 && ev === 0) return '';
@@ -1812,7 +1733,8 @@ function dockDetailLoot(run, locked, idx) {
     return `<div class="blh-delta-row"><span>${lbl}</span><span class="${cls}">${dStr}</span></div>`;
   }).filter(Boolean).join('');
   const td = (g.traits || []).length - ((equipped && equipped.traits) || []).length;
-  const traitRow = `<div class="blh-delta-row"><span>✦ Traits</span><span class="${td > 0 ? 'blh-delta-pos' : td < 0 ? 'blh-delta-neg' : 'blh-delta-neu'}">${td > 0 ? '+' : ''}${td}</span></div>`;
+  const traitRow = td !== 0
+    ? `<div class="blh-delta-row"><span>✦ Traits</span><span class="${td > 0 ? 'blh-delta-pos' : 'blh-delta-neg'}">${td > 0 ? '+' : ''}${td}</span></div>` : '';
   const btns = locked ? '<span class="blh-mini-lock">🔒</span>'
     : `<div class="blh-compare-actions">
         <button class="blh-alloc-confirm" style="flex:2" onclick="blh.equipLoot(${idx});blh.clearSelection()">สวม</button>
@@ -1837,7 +1759,7 @@ function dockDetailCard(run, locked, cardId) {
   const kindLabel = { road: 'ROAD', adjacent: 'ADJACENT', terrain: 'TERRAIN' }[c.kind] || c.kind;
   const placing = run._placing === cardId;
   const validTargets = !locked ? validPlacementTargets(cardId) : [];
-  const close = `<button class="blh-mini-btn ghost" onclick="blh.cancelPlace();blh.clearSelection()">✕</button>`;
+  const close = `<button class="blh-mini-btn ghost" onclick="blh.cancelPlace()">✕</button>`;
   return `<div class="blh-dock-detail-card">
     <div class="blh-detail-head">
       <span class="blh-detail-icon" style="color:${c.accent}">${c.icon}</span>
@@ -2140,6 +2062,7 @@ function equipLoot(idx) {
   run.lootBag.splice(idx, 1);
   if (prev) run.lootBag.push(prev); // ของเก่ากลับลงกระเป๋า
   recomputeStats(run);
+  _selection = null; // bag index changed; clear before re-render
   updateHUD();
   renderPanel();
 }
@@ -2165,6 +2088,7 @@ function sellLoot(idx) {
   run.mods.zenyBonus += val;
   const slot = GEAR_SLOTS.find(s => s.id === g.slot);
   blhToast(`💰 ขาย ${slot ? slot.name : ''} → +${val} Zeny`);
+  _selection = null; // bag index changed; clear before re-render
   updateHUD();
   renderPanel();
 }
@@ -3081,7 +3005,7 @@ Object.assign(blh, {
   startPlace, cancelPlace, placeAt,
   dismissBattle,
   choosePerk,
-  allocateStat, applyPreset, confirmStats, resetDraft,
+  setGrowthPlan,
 });
 
 // ── debug/test hooks — เปิดเฉพาะ dev/test (smoke) ไม่ expose ใน production ──
@@ -3098,9 +3022,9 @@ if (BLH_DEV) {
     generatePerkOffer, openPerkChoice, choosePerk, remainingPerks,
     // hero passives + spec balance (Boss Loop Mode core)
     HERO_PASSIVES, SPEC_BAL, GEAR_SLOTS, fireSpecial, heroAct,
-    // run EXP / level / stat allocation (draft → confirm → locked)
-    ENEMY_EXP, EXP_PRESETS, expToNext, grantExp,
-    allocateStat, applyPreset, confirmStats, resetDraft, draftDelta,
+    // run EXP / level / auto-growth plan
+    ENEMY_EXP, EXP_PRESETS, HERO_DEFAULT_PLAN, expToNext, grantExp,
+    autoAllocatePoints, setGrowthPlan,
     // gear tier + rarity + traits (run-only)
     GEAR_TIER_DEFS, GEAR_RARITIES, GEAR_RARITY_BY_ID, RARITY_WEIGHTS,
     GEAR_TRAITS, GEAR_TRAIT_BY_ID, TRAIT_CHANCE, MAX_TRAITS_BY_TIER,
