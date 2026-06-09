@@ -611,12 +611,14 @@ const ENEMY_EXP = { basic: 8, fast: 12, tank: 14, cursed: 16, elite: 35 };
 function expToNext(level) { return 30 + Math.pow(level - 1, 2) * 18; }
 // Preset จัดสรรแต้ม stat (ratio รวม = 10; stat แรกในแต่ละ preset รับเศษที่เหลือ)
 const EXP_PRESETS = [
-  { id: 'power',  name: 'POWER',  icon: '⚔️', ratio: { str: 6, vit: 2, dex: 2 } },
-  { id: 'tank',   name: 'TANK',   icon: '🛡️', ratio: { vit: 6, str: 2, int: 2 } },
-  { id: 'speed',  name: 'SPEED',  icon: '⚡', ratio: { agi: 6, dex: 2, luk: 2 } },
-  { id: 'luck',   name: 'LUCK',   icon: '🍀', ratio: { luk: 5, dex: 2, agi: 2, str: 1 } },
-  { id: 'mystic', name: 'MYSTIC', icon: '✨', ratio: { int: 5, luk: 3, vit: 2 } },
+  { id: 'power',  name: 'POWER',  icon: '⚔️', ratio: { str: 6, vit: 2, dex: 2 },          order: ['str', 'dex', 'vit'] },
+  { id: 'tank',   name: 'TANK',   icon: '🛡️', ratio: { vit: 6, str: 2, int: 2 },          order: ['vit', 'str', 'dex'] },
+  { id: 'speed',  name: 'SPEED',  icon: '⚡', ratio: { agi: 6, dex: 2, luk: 2 },          order: ['agi', 'luk', 'vit'] },
+  { id: 'luck',   name: 'LUCK',   icon: '🍀', ratio: { luk: 5, dex: 2, agi: 2, str: 1 }, order: ['luk', 'dex', 'agi'] },
+  { id: 'mystic', name: 'MYSTIC', icon: '✨', ratio: { int: 5, luk: 3, vit: 2 },          order: ['int', 'vit', 'luk'] },
 ];
+// default growth plan per hero (matches playstyle)
+const HERO_DEFAULT_PLAN = { noctisak47: 'luck', toei: 'power', apologize: 'speed' };
 
 // ════════════════════════════════════════════════════════════════════════════
 // SPEC STATUS — Boss Loop Mode backlog ครบแล้ว (ไม่มี deferred เหลือ)
@@ -1176,15 +1178,13 @@ function startRun() {
     // ── gear traits (run-only) ──
     traitMods: null,        // เซ็ตใน recomputeStats (aggregateTraits)
     _quickStepActive: false,// Quick Step trait: ASPD บัฟหลังชนะไฟต์จนจบลูป
-    // ── run EXP / level / stat allocation (run-only — รีเซ็ตเมื่อรันจบ) ──
-    // draft → confirm → locked: ปั้นแต้มใน draftRunStats ก่อน, กด Confirm แล้ว
-    // ย้ายเข้า confirmedRunStats (ล็อกจนจบรัน). combat ใช้ "confirmed" เท่านั้น
+    // ── run EXP / level / Auto Growth Plan (run-only — รีเซ็ตเมื่อรันจบ) ──
+    // Level-up จัดสรร +2 แต้มอัตโนมัติตาม growthPlan ทันที (ไม่มี draft/confirm)
     level: 1,
     exp: 0,
     expToNext: expToNext(1),  // = 30
-    pendingStatPoints: 0,                                      // แต้มว่างที่ยังไม่วางใน draft
-    confirmedRunStats: { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 },  // ล็อก — มีผลต่อ combat
-    draftRunStats:     { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 },  // ร่าง — ยังไม่มีผลจนกด Confirm
+    growthPlan: HERO_DEFAULT_PLAN[hero.id] || 'luck',          // แผนเติบโตอัตโนมัติ
+    runStats: { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 }, // stat ที่ได้จาก level-up รันนี้
   };
   BLH.run = run;
 
@@ -1285,9 +1285,8 @@ function recomputeStats(run) {
   const m = run.perkMods;
   const tr = run.traitMods;
   const gb = gear.base, gc = gear.combat;
-  // 1) base stat (str..luk) — รวม stat-point allocations ที่ "ยืนยันแล้ว" เท่านั้น
-  //    (draftRunStats ที่ยังไม่ confirm จะไม่มีผลต่อ combat — ตามสเปก)
-  const rs = run.confirmedRunStats || {};
+  // 1) base stat (str..luk) — auto-growth allocations applied immediately on level-up
+  const rs = run.runStats || {};
   const b = {};
   for (const k of BASE_STAT_KEYS) b[k] = (run.base[k] || 0) + (m[k] || 0) + (gb[k] || 0) + (rs[k] || 0);
   run.statBase = b;
@@ -1320,114 +1319,55 @@ function recomputeStats(run) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// EXP / LEVEL / STAT ALLOCATION — run-only (draft → confirm → locked)
+// EXP / LEVEL / AUTO GROWTH PLAN — run-only (รีเซ็ตเมื่อรันจบ)
 // ════════════════════════════════════════════════════════════════════════════
-// invariant: pendingStatPoints = แต้มสะสมทั้งหมด − ผลรวม draftRunStats
-//   draftRunStats[k] >= confirmedRunStats[k] เสมอ (draft = confirmed + ส่วนที่กำลังปั้น)
-//   combat อ่านจาก confirmedRunStats เท่านั้น (recomputeStats)
+// Level-up → autoAllocatePoints() จัดสรร +2 แต้มตาม growthPlan ทันที
+// ไม่มี draft/confirm/pending — stats ออกฤทธิ์ใน combat ทันที
 
-// ผลรวมส่วน draft ที่ยังไม่ยืนยัน (เกินจาก confirmed)
-function draftDelta(run) {
-  const d = run.draftRunStats, c = run.confirmedRunStats;
-  return BASE_STAT_KEYS.reduce((s, k) => s + ((d[k] || 0) - (c[k] || 0)), 0);
+// cycle ผ่าน plan order และจัดสรร points เข้า runStats; คืน summary ของที่จัดสรรไป
+function autoAllocatePoints(run, points) {
+  const preset = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
+  const order = preset.order;
+  const rs = run.runStats;
+  const gained = {};
+  for (let i = 0; i < points; i++) {
+    const k = order[i % order.length];
+    rs[k] = (rs[k] || 0) + 1;
+    gained[k] = (gained[k] || 0) + 1;
+  }
+  return gained;
 }
 
-// ให้ EXP + จัดการ level-up (overflow สะสม, +2 แต้มว่างต่อ level)
+// ให้ EXP + auto-allocate stat points บน level-up (ไม่มี pause, ไม่มี pending)
 function grantExp(amount) {
   const run = BLH.run; if (!run || run.ended || amount <= 0) return;
   run.exp += amount;
-  let leveled = false;
+  let totalGained = 0;
   while (run.exp >= run.expToNext) {
     run.exp -= run.expToNext;
     run.level += 1;
-    run.pendingStatPoints += 2;
+    totalGained += 2;
     run.expToNext = expToNext(run.level);
-    leveled = true;
   }
-  if (leveled) {
-    blhToast(`⬆️ LEVEL UP! Lv.${run.level} • ได้ 2 แต้ม stat`);
+  if (totalGained > 0) {
+    const gained = autoAllocatePoints(run, totalGained);
+    recomputeStats(run);
+    const preset = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
+    const statLine = Object.entries(gained).map(([k, v]) => `${k.toUpperCase()}+${v}`).join(' ');
+    blhToast(`⬆️ Lv.${run.level} ${preset.icon}${preset.name}: ${statLine}`);
     updateHUD();
-    if (run.phase !== 'battle') renderPanel();
+    if (_selection && _selection.type === 'hero') renderPanel();
   }
 }
 
-// จัดสรรแต้มลง stat key หนึ่ง — แก้ "draft" เท่านั้น (amount > 0 วาง, < 0 คืน)
-//   + : ดึงจาก pendingStatPoints → draft
-//   − : คืน draft → pendingStatPoints แต่ลดต่ำกว่า confirmed ไม่ได้
-//   ถูก block ระหว่างสู้ (run.phase === 'battle')
-function allocateStat(key, amount) {
+// เปลี่ยน Growth Plan (block ระหว่างสู้; เปลี่ยนแค่ level-up ในอนาคต)
+function setGrowthPlan(planId) {
   const run = BLH.run; if (!run) return;
-  if (run.phase === 'battle') { blhToast('🔒 จัดสรรสเตตัสไม่ได้ระหว่างสู้'); return; }
-  if (!BASE_STAT_KEYS.includes(key)) return;
-  const draft = run.draftRunStats, conf = run.confirmedRunStats;
-  if (amount > 0) {
-    const add = Math.min(amount, run.pendingStatPoints);
-    if (add <= 0) return;
-    draft[key] = (draft[key] || 0) + add;
-    run.pendingStatPoints -= add;
-  } else if (amount < 0) {
-    const floor = conf[key] || 0;                  // ลดต่ำกว่า confirmed ไม่ได้
-    const cur = draft[key] || 0;
-    const sub = Math.min(-amount, cur - floor);
-    if (sub <= 0) return;
-    draft[key] = cur - sub;
-    run.pendingStatPoints += sub;
-  }
-  // draft ไม่กระทบ combat (recompute ใช้ confirmed) — แค่รีเฟรช UI
-  updateHUD();
-  renderPanel();
-}
-
-// ยืนยัน draft → confirmed (ล็อกจนจบรัน) แล้วคำนวณ combat ใหม่
-function confirmStats() {
-  const run = BLH.run; if (!run) return;
-  if (run.phase === 'battle') { blhToast('🔒 ยืนยันสเตตัสไม่ได้ระหว่างสู้'); return; }
-  const delta = draftDelta(run);
-  if (delta <= 0) { blhToast('ยังไม่ได้จัดสรรแต้มใหม่'); return; }
-  run.confirmedRunStats = { ...run.draftRunStats };   // ล็อก: confirmed = draft
-  recomputeStats(run);                                 // confirmed มีผลต่อ combat แล้ว
-  updateHUD();
-  renderPanel();
-  blhToast(`✅ ยืนยันสเตตัส +${delta} — ล็อกจนจบรัน`);
-}
-
-// คืน draft กลับเป็น confirmed (คืนแต้มที่ยังไม่ยืนยันให้ pending)
-function resetDraft() {
-  const run = BLH.run; if (!run) return;
-  if (run.phase === 'battle') { blhToast('🔒 รีเซ็ต draft ไม่ได้ระหว่างสู้'); return; }
-  const refund = draftDelta(run);
-  if (refund <= 0) return;
-  run.pendingStatPoints += refund;
-  run.draftRunStats = { ...run.confirmedRunStats };
-  updateHUD();
-  renderPanel();
-}
-
-// preset: ใช้เฉพาะ "แต้มว่าง" (pending + draft-ที่ยังไม่ยืนยัน) วางลง draft ตาม ratio
-//   ไม่แตะ confirmed (วางทับบน confirmed); stat แรกใน ratio รับเศษจากการปัด floor
-function applyPreset(presetId) {
-  const run = BLH.run; if (!run) return;
-  if (run.phase === 'battle') { blhToast('🔒 จัดสรรสเตตัสไม่ได้ระหว่างสู้'); return; }
-  const preset = EXP_PRESETS.find(p => p.id === presetId);
+  if (run.phase === 'battle') { blhToast('🔒 เปลี่ยนแผนไม่ได้ระหว่างสู้'); return; }
+  const preset = EXP_PRESETS.find(p => p.id === planId);
   if (!preset) return;
-  const draft = run.draftRunStats, conf = run.confirmedRunStats;
-  // คืนส่วน draft ที่ยังไม่ยืนยันกลับเข้า pending ก่อน (draft กลับเป็น confirmed)
-  for (const k of BASE_STAT_KEYS) {
-    const extra = (draft[k] || 0) - (conf[k] || 0);
-    if (extra > 0) run.pendingStatPoints += extra;
-    draft[k] = conf[k] || 0;
-  }
-  const pool = run.pendingStatPoints;
-  if (pool <= 0) { blhToast('ไม่มีแต้มว่างให้จัดสรร'); return; }
-  const ratioKeys = Object.keys(preset.ratio);
-  const ratioSum = ratioKeys.reduce((s, k) => s + preset.ratio[k], 0);
-  const allocs = {};
-  let used = 0;
-  for (const k of ratioKeys) { allocs[k] = Math.floor(pool * preset.ratio[k] / ratioSum); used += allocs[k]; }
-  allocs[ratioKeys[0]] += pool - used;                 // เศษไปที่ stat หลักของ preset
-  for (const k of ratioKeys) draft[k] = (draft[k] || 0) + allocs[k];
-  run.pendingStatPoints = 0;                           // วางทั้งหมดลง draft แล้ว
-  // ยังเป็น draft → ไม่กระทบ combat จนกด Confirm
+  run.growthPlan = planId;
+  blhToast(`📈 เปลี่ยนแผน: ${preset.icon} ${preset.name}`);
   updateHUD();
   renderPanel();
 }
@@ -1487,14 +1427,14 @@ function updateHUD() {
   el.innerHTML = `
     <div class="blh-hud-top">
       <div class="blh-hud-loop">LOOP <b>${run.loop}</b></div>
-      <div class="blh-hud-hero">${esc(run.hero.name)}</div>
+      <div class="blh-hud-hero blh-hud-hero-tap" onclick="blh.selectItem({type:'hero'})">${esc(run.hero.name)}</div>
       <div class="blh-hud-sig">${sig}</div>
     </div>
     <div class="blh-hpbar"><div class="blh-hpfill" style="width:${pct}%"></div>
       <span class="blh-hptext">❤️ ${Math.max(0, Math.round(run.stats.hp))}/${run.stats.maxhp}</span></div>
     <div class="blh-hud-stats">
       <span>⚔️ ${run.stats.atk}</span><span>🛡️ ${run.stats.def}</span>
-      <span>⬆️ Lv.<b>${run.level}</b>${run.pendingStatPoints > 0 ? `<b class="blh-pts-hud">+${run.pendingStatPoints}</b>` : ''}</span>
+      <span>⬆️ Lv.<b>${run.level}</b><span class="blh-plan-hud"> ${(EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0]).icon}</span></span>
       <span>🃏 ${run.hand.length}/${MAX_CARD_TYPES}</span><span>🎒 ${run.lootBag.length}/${bagCap()}</span>
     </div>`;
 }
@@ -1541,150 +1481,339 @@ function applySpeedChange() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// PERSISTENT BOTTOM PANEL (Stats / Gear / Loot / Map / Plan) — มองเห็นตลอดรัน
+// COMPACT DOCK PANEL — replaces tab-based Stats/Gear/Loot/Map UI
+// Always-visible rows: Equipped (A) · Cards (B) · Bag (C) + contextual detail
 // ════════════════════════════════════════════════════════════════════════════
-let _panelTab = 'stats';
-const PANEL_TABS = [
-  ['stats', '📊', 'STATS'], ['gear', '🧤', 'GEAR'], ['loot', '🎒', 'LOOT'],
-  ['map', '🗺️', 'MAP'],
-];
-function panelTab(tab) { _panelTab = tab || 'stats'; renderPanel(); }
+let _selection = null; // { type:'hero'|'gear'|'loot'|'card'|'tile', slot?,idx?,cardId?,cellId? }
+
+function selectItem(sel)   { _selection = sel; renderPanel(); }
+function clearSelection()  { _selection = null; renderPanel(); }
+function selectGear(slot)  {
+  if (_selection && _selection.type === 'gear' && _selection.slot === slot) { clearSelection(); return; }
+  _selection = { type: 'gear', slot }; renderPanel();
+}
+function selectLoot(idx)   {
+  if (_selection && _selection.type === 'loot' && _selection.idx === idx) { clearSelection(); return; }
+  _selection = { type: 'loot', idx }; renderPanel();
+}
+function selectCard(cardId) {
+  const run = BLH.run; if (!run) return;
+  if (run.phase === 'battle') { _selection = { type: 'card', cardId }; renderPanel(); return; }
+  startPlace(cardId);
+}
+function selectTile(cellId) {
+  if (_selection && _selection.type === 'tile' && _selection.cellId === cellId) { clearSelection(); return; }
+  _selection = { type: 'tile', cellId }; renderPanel();
+}
+function panelTab(tab) {
+  _selection = (tab === 'stats') ? { type: 'hero' } : null;
+  renderPanel();
+}
 // segmented Pause / 1x / 2x — Pause=วางแผน, 1x=ต่อ, 2x=เร็ว (ถาวรเหนือแท็บ)
 function speedSegHtml() {
   const s = BLH.run ? BLH.run.speed : 1;
   return [[0, '⏸ Pause'], [1, '▶ 1x'], [2, '⏩ 2x']].map(([v, l]) =>
     `<button class="blh-seg ${s === v ? 'on' : ''} ${v === 0 ? 'pause' : ''}" onclick="blh.setSpeed(${v})">${l}</button>`).join('');
 }
-// แถบสถานะ/แอ็กชัน (สูงคงที่) — ที่ Camp โชว์ Cash Out/Signal; เดิน=สถานะ; +Abandon เล็ก
-function panelStatusBar(run) {
+// ── dock control row (speed segs + status/camp + abandon button) ──
+function dockCtrlRow(run) {
   const aband = `<button class="blh-aband" onclick="blh.abandonRun()" title="ยอมแพ้ / ออกจากรัน">✕</button>`;
+  let status;
   if (run.phase === 'camp') {
     const canSignal = run.bossSignalObtained && !run.bossSignalPlaced;
-    return `
-      <button class="blh-status-btn cash" onclick="blh.cashOut()">💰 CASH OUT ~🔷${fmt(estCashOut(run))}</button>
+    status = `<div class="blh-dock-status camp">
+      <button class="blh-status-btn cash" onclick="blh.cashOut()">💰 CASH OUT</button>
       ${canSignal ? `<button class="blh-status-btn sig" onclick="blh.placeSignal()">📡 SIGNAL</button>` : ''}
-      ${aband}`;
+    </div>`;
+  } else {
+    const sig = run.bossSignalPlaced ? '📡 บอสพร้อม' : run.bossSignalObtained ? '📡 มี Signal' : `📡 loop ${BAL.BOSS_SIGNAL_MIN_LOOP}+`;
+    const state = run.speed === 0 ? '⏸ วางแผน' : '🚶 เดิน';
+    status = `<div class="blh-dock-status"><span class="blh-status-text">${state} • ${sig}</span></div>`;
   }
-  const sig = run.bossSignalPlaced ? '📡 บอสพร้อม'
-            : run.bossSignalObtained ? '📡 มี Signal'
-            : `📡 loop ${BAL.BOSS_SIGNAL_MIN_LOOP}+`;
-  const state = run.speed === 0 ? '⏸ วางแผน' : '🚶 เดิน';
-  return `<div class="blh-status-text">${state} • LOOP ${run.loop} • 🔷~${fmt(estCashOut(run))} • ${sig}</div>${aband}`;
+  return `<div class="blh-dock-ctrl"><div class="blh-dock-speed">${speedSegHtml()}</div>${status}${aband}</div>`;
 }
 function renderPanel() {
   const run = BLH.run; if (!run) return;
   const el = q('blh-panel'); if (!el) return;
-  const tabBtns = PANEL_TABS.map(([id, icon, label]) =>
-    `<button class="blh-ptab ${id === _panelTab ? 'on' : ''}" onclick="blh.panelTab('${id}')">
-      <span class="blh-ptab-icon">${icon}</span><span class="blh-ptab-label">${label}</span></button>`).join('');
-  // โครงสูงคงที่: speed row → status/camp bar → tab row → body (เลื่อนภายใน)
+  const locked = run.phase === 'battle';
   el.innerHTML = `
-    <div class="blh-panel-speed">${speedSegHtml()}</div>
-    <div class="blh-panel-status ${run.phase === 'camp' ? 'camp' : ''}">${panelStatusBar(run)}</div>
-    <div class="blh-panel-tabs">${tabBtns}</div>
-    <div class="blh-panel-body" id="blh-panel-body">${renderPanelBody()}</div>`;
-}
-function renderPanelBody() {
-  const run = BLH.run;
-  const locked = run.phase === 'battle';   // gear/terrain ใช้ไม่ได้ระหว่างสู้
-  switch (_panelTab) {
-    case 'stats': return panelStats(run);
-    case 'gear':  return planGear(run, locked);
-    case 'loot':  return planLoot(run, locked);
-    case 'map':   return panelMap(run, locked);
-  }
-  return '';
+    ${dockCtrlRow(run)}
+    ${dockEquipRow(run)}
+    ${dockCardRow(run, locked)}
+    ${dockBagRow(run, locked)}
+    <div class="blh-dock-detail" id="blh-dock-detail">${dockDetail(run, locked)}</div>`;
 }
 
-// แผง STATS — base stat + combat stat (compact) + level/EXP + stat alloc + เพิร์ก + เกียร์ย่อ
-function panelStats(run) {
+// ── Row A: 5 equipped gear chips (always visible, tap → detail) ──
+function dockEquipRow(run) {
+  const slots = GEAR_SLOTS.map(sl => {
+    const g = run.gear[sl.id];
+    const isSel = _selection && _selection.type === 'gear' && _selection.slot === sl.id;
+    const label = g ? gearLabel(g) : `<span class="dim">ว่าง</span>`;
+    return `<button class="blh-equip-chip${isSel ? ' sel' : ''}${g ? '' : ' empty'}"
+      onclick="blh.selectGear('${sl.id}')">
+      <span class="blh-equip-chip-icon">${sl.icon}</span>
+      <span class="blh-equip-chip-label">${label}</span>
+    </button>`;
+  }).join('');
+  return `<div class="blh-dock-equip">${slots}</div>`;
+}
+
+// ── Row B: card hand as ultra-compact chips (tap → select + placement mode) ──
+function dockCardRow(run, locked) {
+  const cap = run.hand.length >= MAX_CARD_TYPES;
+  const oldest = cap ? oldestHandCardId(run) : null;
+  const warn = cap ? ' warn' : '';
+  const label = `<span class="blh-dock-row-label${warn}">🃏 ${run.hand.length}/${MAX_CARD_TYPES}</span>`;
+  if (!run.hand.length)
+    return `<div class="blh-dock-cards">${label}<span class="dim blh-dock-empty-note">ไม่มีการ์ด</span></div>`;
+  const chips = run.hand.map(st => {
+    const c = MAP_CARD_BY_ID[st.cardId];
+    const isSel = _selection && _selection.type === 'card' && _selection.cardId === st.cardId;
+    const isOld = st.cardId === oldest;
+    return `<button class="blh-card-chip${isSel ? ' sel' : ''}${isOld ? ' oldest' : ''}"
+      style="--accent:${c.accent}" onclick="blh.selectCard('${st.cardId}')"
+      title="${esc(c.name)} × ${st.count}">${c.icon}<span class="blh-card-chip-badge">×${st.count}</span></button>`;
+  }).join('');
+  const overflow = cap && oldest
+    ? `<span class="blh-dock-overflow">⚠ แปลงต่อไป: ${esc((MAP_CARD_BY_ID[oldest] || {}).name || oldest)}</span>` : '';
+  return `<div class="blh-dock-cards">${label}<div class="blh-card-chips">${chips}</div>${overflow}</div>`;
+}
+
+// ── Row C: gear bag preview — newest 3–4 chips + overflow warning ──
+function dockBagRow(run, locked) {
+  const cap = bagCap();
+  const full = run.lootBag.length >= cap;
+  const warn = full ? ' warn' : '';
+  const label = `<span class="blh-dock-row-label${warn}">🎒 ${run.lootBag.length}/${cap}</span>`;
+  if (!run.lootBag.length)
+    return `<div class="blh-dock-bag">${label}<span class="dim blh-dock-empty-note">กระเป๋าว่าง</span></div>`;
+  const preview = run.lootBag.slice(-4).reverse(); // newest first
+  const chips = preview.map((g, i) => {
+    const actualIdx = run.lootBag.length - 1 - i;
+    const sl = GEAR_SLOTS.find(s => s.id === g.slot) || GEAR_SLOTS[0];
+    const rar = rarityOf(g);
+    const isSel = _selection && _selection.type === 'loot' && _selection.idx === actualIdx;
+    return `<button class="blh-bag-chip${isSel ? ' sel' : ''}" style="--rar-color:${rar.color}"
+      onclick="blh.selectLoot(${actualIdx})" title="${sl.name} T${g.tier} ${rar.name}">
+      ${sl.icon}<span class="blh-bag-chip-tier">T${g.tier}</span>
+    </button>`;
+  }).join('');
+  let overflow = '';
+  if (full) {
+    const og = run.lootBag[0]; const osl = GEAR_SLOTS.find(s => s.id === og.slot) || GEAR_SLOTS[0];
+    const hiVal = ['epic', 'legendary'].includes(og.rarity);
+    overflow = `<span class="blh-dock-overflow${hiVal ? ' warn-strong' : ''}">⚠ salvage: ${osl.icon}T${og.tier}</span>`;
+  }
+  const more = run.lootBag.length > 4
+    ? `<span class="blh-dock-row-label">+${run.lootBag.length - 4}</span>` : '';
+  return `<div class="blh-dock-bag">${label}<div class="blh-bag-chips">${chips}</div>${overflow}${more}</div>`;
+}
+
+// ── Contextual detail panel dispatcher ──────────────────────────────────────
+function dockDetail(run, locked) {
+  if (!_selection) return dockDetailDefault(run, locked);
+  switch (_selection.type) {
+    case 'hero': return dockDetailHero(run, locked);
+    case 'gear': return dockDetailGear(run, locked, _selection.slot);
+    case 'loot': return dockDetailLoot(run, locked, _selection.idx);
+    case 'card': return dockDetailCard(run, locked, _selection.cardId);
+    case 'tile': return dockDetailTile(run, _selection.cellId);
+  }
+  return dockDetailDefault(run, locked);
+}
+
+// Default: hero mini-card + key stats + EXP bar
+function dockDetailDefault(run, locked) {
+  const s = run.stats;
+  const expPct = run.expToNext > 0 ? clamp(run.exp / run.expToNext * 100, 0, 100) : 100;
+  const curPlan = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
+  const campLine = run.phase === 'camp'
+    ? `<div class="blh-dock-cashout-hint">💰 ~🔷${fmt(estCashOut(run))} เมื่อ Cash Out</div>` : '';
+  return `<div class="blh-dock-hint">
+    <div class="blh-dock-hint-row">
+      <button class="blh-hero-tap-btn" onclick="blh.selectItem({type:'hero'})">
+        <img src="${run.hero.img}" onerror="this.style.opacity=0">
+        <span class="blh-hero-tap-name">${esc(run.hero.name)}</span>
+      </button>
+      <div class="blh-dock-hint-stats">
+        <span>⚔️ ${s.atk}</span><span>🛡️ ${s.def}</span>
+        <span>❤️ ${Math.round(s.hp)}/${s.maxhp}</span>
+        <span>⚡ ${s.aspd}</span><span>🎯 ${Math.round(s.critRate * 100)}%</span>
+      </div>
+    </div>
+    <div class="blh-level-row" style="margin-top:4px">
+      <span class="blh-lvl-tag">Lv.<b>${run.level}</b> ${curPlan.icon}</span>
+      <div class="blh-expbar"><div class="blh-expfill" style="width:${expPct.toFixed(1)}%"></div>
+        <span class="blh-exptext">${run.exp}/${run.expToNext} EXP</span></div>
+    </div>
+    ${campLine}
+    ${run._placing ? `<div class="blh-detail-placing">🗺️ เลือกช่องที่ไฮไลต์ <button class="blh-mini-btn ghost" onclick="blh.cancelPlace()">✖ ยกเลิก</button></div>` : ''}
+  </div>`;
+}
+
+// Hero detail: base/combat stats + perks + level/EXP + growth plan selector
+function dockDetailHero(run, locked) {
   const s = run.stats, b = run.statBase || run.base;
-  const c = {
-    atk: s.atk, def: s.def, maxhp: s.maxhp, aspd: s.aspd,
-    critRate: s.critRate, critDamage: s.critDamage, evasion: s.evasion, lifesteal: s.lifesteal, armorPen: s.armorPen,
-  };
-  // perk ที่เลือกแล้วในรันนี้
+  const c = { atk: s.atk, def: s.def, maxhp: s.maxhp, aspd: s.aspd,
+    critRate: s.critRate, critDamage: s.critDamage, evasion: s.evasion, lifesteal: s.lifesteal, armorPen: s.armorPen };
   const pool = HERO_PERKS[run.hero.id] || [];
   const perkLine = run.perks.length
     ? `<div class="blh-perk-active">${run.perks.map(id => {
         const p = pool.find(x => x.id === id); return p ? `<span class="blh-perk-chip">✨ ${esc(p.name)}</span>` : '';
       }).join('')}</div>` : '';
-  // ── Level / EXP bar (แสดงเสมอ) ──
   const expPct = run.expToNext > 0 ? clamp(run.exp / run.expToNext * 100, 0, 100) : 100;
-  const lvlHtml = `
-    <div class="blh-level-row">
-      <span class="blh-lvl-tag">Lv.<b>${run.level}</b></span>
-      <div class="blh-expbar">
-        <div class="blh-expfill" style="width:${expPct.toFixed(1)}%"></div>
-        <span class="blh-exptext">${run.exp}/${run.expToNext} EXP</span>
-      </div>
-      ${run.pendingStatPoints > 0 ? `<span class="blh-pts-badge">+${run.pendingStatPoints}</span>` : ''}
-    </div>`;
-  // ── Stat Allocation (draft → confirm → locked) ──
   const battle = run.phase === 'battle';
-  const draft = run.draftRunStats, conf = run.confirmedRunStats;
-  const delta = draftDelta(run);
-  const hasActivity = run.pendingStatPoints > 0 || delta > 0 || BASE_STAT_KEYS.some(k => (conf[k] || 0) > 0);
-  const allocHtml = hasActivity ? `
-    <div class="blh-alloc-section${battle ? ' locked' : ''}">
-      <div class="blh-alloc-head">แต้มว่าง: <b>${run.pendingStatPoints}</b>${delta > 0 ? ` <span class="blh-alloc-draft">ร่าง +${delta}</span>` : ''}${battle ? ' <span class="blh-alloc-lock">🔒</span>' : ''}</div>
-      <div class="blh-preset-row">
-        ${EXP_PRESETS.map(p =>
-          `<button class="blh-preset-btn" ${battle ? 'disabled' : ''} onclick="blh.applyPreset('${p.id}')">${p.icon} ${esc(p.name)}</button>`
-        ).join('')}
-      </div>
-      <div class="blh-stat-alloc">
-        ${BASE_STAT_KEYS.map(k => {
-          const c = conf[k] || 0;
-          const extra = (draft[k] || 0) - c;            // ส่วน draft ที่ยังไม่ยืนยัน
-          const canAdd = !battle && run.pendingStatPoints > 0;
-          const canSub = !battle && extra > 0;          // ลดได้เฉพาะส่วน draft (ไม่ต่ำกว่า confirmed)
-          return `<div class="blh-alloc-row">
-            <span class="blh-alloc-k">${k.toUpperCase()}</span>
-            <span class="blh-alloc-v">+${c}${extra > 0 ? `<sup>(+${extra})</sup>` : ''}</span>
-            <button class="blh-alloc-btn" ${canSub ? '' : 'disabled'} onclick="blh.allocateStat('${k}',-1)">−</button>
-            <button class="blh-alloc-btn" ${canAdd ? '' : 'disabled'} onclick="blh.allocateStat('${k}',1)">+</button>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="blh-alloc-actions">
-        <button class="blh-alloc-confirm" ${(!battle && delta > 0) ? '' : 'disabled'} onclick="blh.confirmStats()">✅ ยืนยันสเตตัส</button>
-        <button class="blh-alloc-reset" ${(!battle && delta > 0) ? '' : 'disabled'} onclick="blh.resetDraft()">↺ ล้างร่าง</button>
-      </div>
-      <div class="blh-alloc-warn">⚠️ เมื่อยืนยันแล้ว สเตตัสจะถูกล็อกจนจบรัน</div>
-    </div>` : '';
-  return `
-    <div class="blh-statbox">
-      <div class="blh-statbox-portrait"><img src="${run.hero.img}" onerror="this.style.opacity=0"></div>
-      <div class="blh-statbox-info">
-        <div class="blh-statbox-name">${esc(run.hero.name)} <span class="blh-statbox-role">${esc(run.hero.role)}</span></div>
-        <div class="blh-statline">❤️ <b>${Math.round(s.hp)}/${s.maxhp}</b> • 🔄 LOOP <b>${run.loop}</b> • 🃏 <b>${run.hand.length}/${MAX_CARD_TYPES}</b> • ${speedLabel()}</div>
-        <div class="blh-ss-base">${baseStatChips(b)}</div>
-        <div class="blh-ss-row">${combatStatChips(c)}</div>
-      </div>
+  const curPlan = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
+  const rs = run.runStats || {};
+  const statSummary = BASE_STAT_KEYS.filter(k => (rs[k] || 0) > 0)
+    .map(k => `<span class="blh-rs-chip">${k.toUpperCase()}+${rs[k]}</span>`).join('');
+  return `<div class="blh-dock-detail-hero">
+    <div class="blh-detail-close-row">
+      <span class="blh-statbox-name">${esc(run.hero.name)} <span class="blh-statbox-role">${esc(run.hero.role)}</span></span>
+      <button class="blh-mini-btn ghost" onclick="blh.clearSelection()">✕</button>
     </div>
+    <div class="blh-ss-base">${baseStatChips(b)}</div>
+    <div class="blh-ss-row">${combatStatChips(c)}</div>
     ${perkLine}
-    ${lvlHtml}
-    ${allocHtml}
-    <div class="blh-equip-strip">${GEAR_SLOTS.map(sl => {
-      const g = run.gear[sl.id];
-      return `<div class="blh-equip-mini">
-        <div class="blh-equip-mini-icon">${sl.icon}</div>
-        <div class="blh-equip-mini-name">${g ? gearLabel(g) : '<span class="dim">ว่าง</span>'}</div>
-      </div>`;
-    }).join('')}</div>`;
+    <div class="blh-level-row">
+      <span class="blh-lvl-tag">Lv.<b>${run.level}</b> ${curPlan.icon}</span>
+      <div class="blh-expbar"><div class="blh-expfill" style="width:${expPct.toFixed(1)}%"></div>
+        <span class="blh-exptext">${run.exp}/${run.expToNext} EXP</span></div>
+    </div>
+    <div class="blh-growth-section">
+      <div class="blh-growth-head">📈 Growth Plan${battle ? ' <span class="blh-alloc-lock">🔒</span>' : ''}</div>
+      <div class="blh-preset-row">${EXP_PRESETS.map(p =>
+        `<button class="blh-preset-btn${p.id === run.growthPlan ? ' on' : ''}" ${battle ? 'disabled' : ''} onclick="blh.setGrowthPlan('${p.id}')">${p.icon} ${esc(p.name)}</button>`).join('')}</div>
+      <div class="blh-growth-note">Auto-applies on level up</div>
+      ${statSummary ? `<div class="blh-growth-stats">${statSummary}</div>` : ''}
+    </div>
+  </div>`;
 }
 
-// แผง MAP — การ์ดแผนที่/เทอเรน + สถานะการวาง + ข้อมูลแผนที่
-function panelMap(run, locked) {
-  const placing = run._placing != null;
-  const head = placing
-    ? `<div class="blh-cards-note hi">เลือกช่องที่ไฮไลต์บนแผนที่ • <button class="blh-mini-btn ghost" onclick="blh.cancelPlace()">✖ ยกเลิก</button></div>`
-    : locked
-      ? `<div class="blh-cards-note dim">🔒 วางการ์ดไม่ได้ระหว่างสู้</div>`
-      : `<div class="blh-cards-note">แตะ “วาง” แล้วเลือกช่องที่ไฮไลต์ — เทอเรนคือหัวใจเสี่ยง/รางวัล</div>`;
-  return head + planCards(run, locked) + planMap(run);
+// Equipped gear slot detail (tap equip chip)
+function dockDetailGear(run, locked, slot) {
+  const sl = GEAR_SLOTS.find(s => s.id === slot);
+  if (!sl) return dockDetailDefault(run, locked);
+  const g = run.gear[slot];
+  const close = `<button class="blh-mini-btn ghost" onclick="blh.clearSelection()">✕</button>`;
+  if (!g) return `<div class="blh-dock-detail-gear">
+    <div class="blh-detail-close-row"><span>${sl.icon} ${sl.name} — <span class="dim">ว่าง</span></span>${close}</div>
+  </div>`;
+  const btn = locked ? '<span class="blh-mini-lock">🔒</span>'
+    : `<button class="blh-mini-btn" onclick="blh.unequip('${slot}')">ถอด</button>`;
+  return `<div class="blh-dock-detail-gear">
+    <div class="blh-detail-close-row"><span>${sl.icon} ${sl.name}</span>${close}</div>
+    <div style="margin-top:4px">${gearFull(g)}</div>
+    <div style="margin-top:6px">${btn}</div>
+  </div>`;
 }
+
+// Loot bag item: compare vs equipped same-slot item
+function dockDetailLoot(run, locked, idx) {
+  const g = run.lootBag[idx];
+  if (!g) return dockDetailDefault(run, locked);
+  const sl = GEAR_SLOTS.find(s => s.id === g.slot) || GEAR_SLOTS[0];
+  const equipped = run.gear[g.slot];
+  const close = `<button class="blh-mini-btn ghost" onclick="blh.clearSelection()">✕</button>`;
+  function rollVal(gear, key) {
+    if (!gear) return 0;
+    let v = 0;
+    [gear.mainStat, gear.subStat].filter(Boolean).forEach(r => { if (r.k === key) v += r.v; });
+    return v;
+  }
+  const KEYS = ['ATK', 'DEF', 'HP', 'ASPD', 'CRI', 'CRIDMG', 'EVA', 'PEN', 'LS', 'HIT', 'DR', 'DROP'];
+  const deltaRows = KEYS.map(k => {
+    const nv = rollVal(g, k), ev = rollVal(equipped, k);
+    if (nv === 0 && ev === 0) return '';
+    const d = nv - ev;
+    const isPct = !!(STAT_ROLLS[k] || {}).pct;
+    const lbl = (STAT_ROLLS[k] || {}).label || k;
+    const dStr = d === 0 ? '—' : `${d > 0 ? '+' : ''}${d}${isPct ? '%' : ''}`;
+    const cls = d > 0 ? 'blh-delta-pos' : d < 0 ? 'blh-delta-neg' : 'blh-delta-neu';
+    return `<div class="blh-delta-row"><span>${lbl}</span><span class="${cls}">${dStr}</span></div>`;
+  }).filter(Boolean).join('');
+  const td = (g.traits || []).length - ((equipped && equipped.traits) || []).length;
+  const traitRow = td !== 0
+    ? `<div class="blh-delta-row"><span>✦ Traits</span><span class="${td > 0 ? 'blh-delta-pos' : 'blh-delta-neg'}">${td > 0 ? '+' : ''}${td}</span></div>` : '';
+  const btns = locked ? '<span class="blh-mini-lock">🔒</span>'
+    : `<div class="blh-compare-actions">
+        <button class="blh-alloc-confirm" style="flex:2" onclick="blh.equipLoot(${idx});blh.clearSelection()">สวม</button>
+        <button class="blh-mini-btn sell" onclick="blh.sellLoot(${idx});blh.clearSelection()">ขาย 🔷${gearWorth(g)}</button>
+      </div>`;
+  return `<div class="blh-dock-detail-loot">
+    <div class="blh-detail-close-row"><span>${sl.icon} ${sl.name} — เปรียบเทียบ</span>${close}</div>
+    <div class="blh-compare">
+      <div class="blh-compare-col new"><div class="blh-compare-label new">▶ ใหม่</div>${gearFull(g)}</div>
+      <div class="blh-compare-col"><div class="blh-compare-label">สวมอยู่</div>${equipped ? gearFull(equipped) : '<span class="dim">— ว่าง —</span>'}</div>
+    </div>
+    ${(deltaRows || traitRow) ? `<div class="blh-compare-delta">${deltaRows}${traitRow}</div>` : ''}
+    ${btns}
+  </div>`;
+}
+
+// Card detail + placement state
+function dockDetailCard(run, locked, cardId) {
+  const st = findHandStack(run, cardId);
+  const c = MAP_CARD_BY_ID[cardId];
+  if (!c) return dockDetailDefault(run, locked);
+  const kindLabel = { road: 'ROAD', adjacent: 'ADJACENT', terrain: 'TERRAIN' }[c.kind] || c.kind;
+  const placing = run._placing === cardId;
+  const validTargets = !locked ? validPlacementTargets(cardId) : [];
+  const close = `<button class="blh-mini-btn ghost" onclick="blh.cancelPlace()">✕</button>`;
+  return `<div class="blh-dock-detail-card">
+    <div class="blh-detail-head">
+      <span class="blh-detail-icon" style="color:${c.accent}">${c.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="blh-detail-name">${esc(c.name)}</div>
+        <div class="blh-detail-sub">
+          <span class="blh-mapcard-kind">${kindLabel}</span>
+          ${st ? `<span class="blh-detail-count">×${st.count}</span>` : ''}
+          ${c.danger ? `<span class="blh-detail-danger">⚠ Danger ${c.danger}</span>` : ''}
+        </div>
+      </div>${close}
+    </div>
+    <div class="blh-detail-desc">${esc(c.desc)}</div>
+    ${placing
+      ? `<div class="blh-detail-placing">🗺️ ไฮไลต์ ${validTargets.length} ช่อง — แตะแผนที่เพื่อวาง</div>`
+      : locked
+        ? `<div class="blh-detail-placing dim">🔒 วางไม่ได้ระหว่างสู้</div>`
+        : `<button class="blh-mini-btn" style="width:100%;margin-top:6px" onclick="blh.selectCard('${cardId}')">🗺️ เลือกวาง (${validTargets.length} ช่อง)</button>`}
+  </div>`;
+}
+
+// Map tile detail: type + placed card + local danger + enemy
+function dockDetailTile(run, cellId) {
+  const def = BLH_CELL_BY_ID[cellId];
+  if (!def) return dockDetailDefault(run, false);
+  const rc = run.cells[cellId];
+  const typeLabel = { road: 'ถนน', terrain: 'เทอเรน', camp: 'แคมป์' }[def.type] || def.type;
+  const close = `<button class="blh-mini-btn ghost" onclick="blh.clearSelection()">✕</button>`;
+  let body = '';
+  if (rc.placedCardId) {
+    const cd = MAP_CARD_BY_ID[rc.placedCardId];
+    body += `<div style="font-size:12px;margin-top:4px">${cd ? `${cd.icon} <b>${esc(cd.name)}</b> — ${esc(cd.desc)}` : rc.placedCardId}</div>`;
+  } else if (def.type !== 'camp') {
+    body += `<div class="dim" style="font-size:11px;margin-top:4px;font-family:'Sarabun',sans-serif">ว่าง — ยังไม่มีการ์ดวาง</div>`;
+  }
+  if (def.type === 'road') {
+    const ld = localDangerForRoad(cellId), sc = localDangerScaling(ld);
+    body += ld > 0
+      ? `<div class="blh-danger-info" style="margin-top:6px">
+           <span class="blh-danger-tag">⚠️ Danger <b>${ld}</b></span>
+           <span>👹 HP +${Math.round((sc.hpMult-1)*100)}% ATK +${Math.round((sc.atkMult-1)*100)}%</span>
+           <span>💰 +${Math.round((sc.zenyMult-1)*100)}% 🎁 +${Math.round(sc.gearDropBonus*100)}%</span>
+         </div>`
+      : `<div class="blh-danger-info dim" style="margin-top:5px">⚠️ Danger 0</div>`;
+    if (rc.enemy) body += `<div style="font-size:12px;margin-top:4px">👾 ${esc(rc.enemy.name)}</div>`;
+  }
+  return `<div class="blh-dock-detail-tile">
+    <div class="blh-detail-close-row">
+      <span style="font-size:12px">[${def.col+1},${def.row+1}] ${typeLabel}</span>${close}
+    </div>${body}
+  </div>`;
+}
+
 
 // ── วาด board จาก grid config (CSS grid 7×9) — full-cell map tiles ──
 function renderBoard() {
@@ -1715,9 +1844,11 @@ function renderBoard() {
     if (placeable) cls.push('placeable');
     if (occupied) cls.push('occupied');
     if (def.type === 'terrain' && !occupied) cls.push('empty');
+    if (_selection && _selection.type === 'tile' && _selection.cellId === def.id) cls.push('tile-sel');
+    const handler = placeable ? `blh.placeAt('${def.id}')` : `blh.selectTile('${def.id}')`;
     html += `<div class="${cls.join(' ')}" data-celltype="${def.type}" data-cellid="${def.id}"
       style="grid-column:${def.col + 1};grid-row:${def.row + 1}"
-      ${placeable ? `onclick="blh.placeAt('${def.id}')"` : ''}>${inner}</div>`;
+      onclick="${handler}">${inner}</div>`;
   }
   // hero token (absolute overlay บนกึ่งกลาง cell — ไม่ทับ visual ของไทล์)
   const tp = cellCenterPct(BLH_CELL_BY_ID[run.route[run.routePos]]);
@@ -1796,7 +1927,7 @@ function arriveCamp() {
   run.speed = 0;       // auto-pause: เข้าโหมดวางแผน (Pause highlight) — กด ▶1x เพื่อ Continue
   renderBoard();
   updateHUD();
-  _panelTab = 'map';   // ถึง Camp → เปิดแท็บ MAP เพื่อวางเทอเรน; Cash Out/Signal อยู่ในแถบสถานะ
+  _selection = null;   // ถึง Camp → reset selection; dock always visible
   setPhase('camp');    // setPhase → renderPanel (auto-pause: ไม่ scheduleStep จนกด ▶1x)
   // ถ้ามีสิทธิ์เลือกเพิร์กค้าง → แสดงหน้าเลือกก่อน Continue/Cash Out
   if (run.perkPending > 0) { openPerkChoice(); return; }
@@ -1809,7 +1940,7 @@ function continueLoop() {
   if (run.speed === 0) run.speed = 1;        // ถ้าค้าง Pause ไว้ ให้กลับมาเดิน
   // sacred charge — ATK เพิ่ม 1 loop หลังออกจาก Camp
   if (run.perkMods.postCampAtk > 0) run._campAtkBuff = Math.round(run.stats.atk * run.perkMods.postCampAtk);
-  _panelTab = 'map';
+  _selection = null;
   setPhase('walking');                        // renderPanel
   scheduleStep(450);
 }
@@ -1920,94 +2051,6 @@ function gearFull(g) {
   return `<span class="blh-rar-tag" style="color:${rar.color};border-color:${rar.color}">T${g.tier} ${rar.name}</span> ${stats}${traits}`;
 }
 
-function planGear(run, locked) {
-  const slots = GEAR_SLOTS.map(s => {
-    const g = run.gear[s.id];
-    const btn = g
-      ? (locked ? '<span class="blh-mini-lock">🔒</span>' : `<button class="blh-mini-btn" onclick="blh.unequip('${s.id}')">ถอด</button>`)
-      : '';
-    return `<div class="blh-gear-slot">
-      <div class="blh-gear-slot-icon">${s.icon}</div>
-      <div class="blh-gear-slot-main">
-        <div class="blh-gear-slot-name">${s.name}</div>
-        <div class="blh-gear-slot-val">${g ? gearFull(g) : '<span class="dim">— ว่าง —</span>'}</div>
-      </div>
-      ${btn}
-    </div>`;
-  }).join('');
-  const note = locked ? '🔒 เปลี่ยนเกียร์ไม่ได้ระหว่างสู้' : 'เกียร์ใช้ได้เฉพาะรอบรันนี้ — จบรันหายหมด';
-  return `<div class="blh-gear-note">${note}</div>
-    <div class="blh-gear-slots">${slots}</div>`;
-}
-
-function planLoot(run, locked) {
-  const cap = bagCap();
-  const full = run.lootBag.length >= cap;
-  const head = `<div class="blh-hand-head">🎒 Gear Bag <b>${run.lootBag.length}/${cap}</b>${full ? ' <span class="blh-bag-full">เต็ม — ดรอปใหม่ salvage ตัวเก่าสุด</span>' : ''}</div>`;
-  if (!run.lootBag.length)
-    return head + `<div class="blh-empty">กระเป๋าลูทว่าง — ล้มศัตรูเพื่อเก็บเกียร์</div>`;
-  const items = run.lootBag.map((g, i) => {
-    const slot = GEAR_SLOTS.find(s => s.id === g.slot);
-    const isOldest = full && i === 0;                  // เก่าสุด = index 0 (oldest → newest)
-    const oldestTag = isOldest ? '<span class="blh-mapcard-oldest" title="เก่าสุด — จะถูก salvage ก่อนถ้ากระเป๋าเต็ม">เก่าสุด</span>' : '';
-    const btns = locked
-      ? '<span class="blh-mini-lock">🔒</span>'
-      : `<div class="blh-loot-btns"><button class="blh-mini-btn" onclick="blh.equipLoot(${i})">สวม</button><button class="blh-mini-btn sell" onclick="blh.sellLoot(${i})" title="ขาย 100% มูลค่า">ขาย 🔷${gearWorth(g)}</button></div>`;
-    return `<div class="blh-loot-item${isOldest ? ' oldest' : ''}">
-      <div class="blh-loot-icon">${slot.icon}</div>
-      <div class="blh-loot-main">
-        <div class="blh-loot-name">${slot.name}${oldestTag}</div>
-        <div class="blh-loot-val">${gearFull(g)}</div>
-      </div>
-      ${btns}
-    </div>`;
-  }).join('');
-  return head + `${locked ? '<div class="blh-gear-note">🔒 สวม/ขายเกียร์ไม่ได้ระหว่างสู้</div>' : ''}<div class="blh-loot-list">${items}</div>`;
-}
-
-function planCards(run, locked) {
-  const head = `<div class="blh-hand-head">🃏 Map Cards <b>${run.hand.length}/${MAX_CARD_TYPES}</b></div>`;
-  if (!run.hand.length)
-    return head + `<div class="blh-empty">ไม่มีการ์ดแผนที่ — เก็บได้จากการล้มศัตรู</div>`;
-  const oldest = run.hand.length >= MAX_CARD_TYPES ? oldestHandCardId(run) : null;  // มาร์กเบาๆ เมื่อมือเต็ม
-  const cards = run.hand.map(st => {
-    const c = MAP_CARD_BY_ID[st.cardId];
-    const kindLabel = { road: 'ROAD', adjacent: 'ADJACENT', terrain: 'TERRAIN' }[c.kind];
-    const btn = locked ? '<span class="blh-mini-lock">🔒</span>' : `<button class="blh-mini-btn" onclick="blh.startPlace('${st.cardId}')">วาง</button>`;
-    const oldestTag = st.cardId === oldest ? '<span class="blh-mapcard-oldest" title="เก่าสุด — จะถูกแปลงก่อนถ้ามือเต็ม">เก่าสุด</span>' : '';
-    return `<div class="blh-mapcard${st.cardId === oldest ? ' oldest' : ''}" style="--accent:${c.accent}">
-      <div class="blh-mapcard-icon">${c.icon}<span class="blh-mapcard-count">x${st.count}</span></div>
-      <div class="blh-mapcard-main">
-        <div class="blh-mapcard-name">${esc(c.name)} <span class="blh-mapcard-kind">${kindLabel}</span>${oldestTag}</div>
-        <div class="blh-mapcard-desc">${esc(c.desc)}</div>
-      </div>
-      ${btn}
-    </div>`;
-  }).join('');
-  return head + `<div class="blh-mapcard-list">${cards}</div>`;
-}
-
-function planMap(run) {
-  const roadIds = BLH_MAP.cells.filter(c => c.type === 'road').map(c => c.id);
-  const enemies = roadIds.filter(id => run.cells[id].enemy).length;
-  const placed = Object.keys(run.placedCells).length;
-  // local danger สูงสุดบนแผนที่ (สรุปย่อ — ไม่มี slot-detail UI แยก)
-  let peak = 0;
-  for (const id of roadIds) { const d = localDangerForRoad(id); if (d > peak) peak = d; }
-  const sc = localDangerScaling(peak);
-  const dangerLine = peak > 0
-    ? `<div class="blh-danger-info">
-         <span class="blh-danger-tag">⚠️ Danger <b>${peak}</b></span>
-         <span>👹 HP +${Math.round((sc.hpMult - 1) * 100)}% / ATK +${Math.round((sc.atkMult - 1) * 100)}%</span>
-         <span>💰 Zeny +${Math.round((sc.zenyMult - 1) * 100)}% / 🎁 +${Math.round(sc.gearDropBonus * 100)}%</span>
-       </div>`
-    : `<div class="blh-danger-info dim">⚠️ Danger 0 — วางไทล์ใกล้ถนนเพื่อเพิ่มความเสี่ยง/รางวัล</div>`;
-  return `<div class="blh-mapinfo">
-      <span>🗺️ ถนน <b>${roadIds.length}</b>+Camp</span>
-      <span>👾 ศัตรู <b>${enemies}</b></span>
-      <span>🌵 วางแล้ว <b>${placed}</b></span>
-    </div>${dangerLine}`;
-}
 
 // ── gear (เปลี่ยนได้เฉพาะนอกการสู้) ──
 function equipLoot(idx) {
@@ -2020,6 +2063,7 @@ function equipLoot(idx) {
   run.lootBag.splice(idx, 1);
   if (prev) run.lootBag.push(prev); // ของเก่ากลับลงกระเป๋า
   recomputeStats(run);
+  _selection = null; // bag index changed; clear before re-render
   updateHUD();
   renderPanel();
 }
@@ -2045,6 +2089,7 @@ function sellLoot(idx) {
   run.mods.zenyBonus += val;
   const slot = GEAR_SLOTS.find(s => s.id === g.slot);
   blhToast(`💰 ขาย ${slot ? slot.name : ''} → +${val} Zeny`);
+  _selection = null; // bag index changed; clear before re-render
   updateHUD();
   renderPanel();
 }
@@ -2069,15 +2114,15 @@ function startPlace(cardId) {
     return;
   }
   run._placing = cardId;
-  _panelTab = 'map';
+  _selection = { type: 'card', cardId };
   blhToast('แตะช่องที่ไฮไลต์บนแผนที่เพื่อวาง');
   renderBoard();
-  renderPanel();         // panel แสดงปุ่มยกเลิก + ไฮไลต์ช่องบน board
+  renderPanel();
 }
 function cancelPlace() {
   const run = BLH.run;
   run._placing = null;
-  _panelTab = 'map';
+  _selection = null;
   renderBoard();
   renderPanel();
 }
@@ -2121,10 +2166,9 @@ function placeAt(cellId) {
   renderBoard();
   updateHUD();
   blhToast(`วาง ${c.name} แล้ว`);
-  _panelTab = 'map';
-  // ถ้าได้สิทธิ์เพิร์กจากการวาง และอยู่ที่ Camp → แสดงทันที
+  _selection = null;
   if (run.perkPending > 0 && run.phase === 'camp') { openPerkChoice(); return; }
-  renderPanel();         // อยู่แท็บ MAP เพื่อวางต่อ
+  renderPanel();
 }
 
 // ผลของการ์ด:
@@ -2955,13 +2999,14 @@ function blhToast(msg) {
 // ── ลงทะเบียน method ของ run engine เข้า window bridge namespace ──
 Object.assign(blh, {
   startRun,
-  panelTab, cycleSpeed, setSpeed,
+  panelTab, selectItem, clearSelection, selectGear, selectLoot, selectCard, selectTile,
+  cycleSpeed, setSpeed,
   continueLoop, cashOut, placeSignal, abandonRun,
   equipLoot, unequip, sellLoot,
   startPlace, cancelPlace, placeAt,
   dismissBattle,
   choosePerk,
-  allocateStat, applyPreset, confirmStats, resetDraft,
+  setGrowthPlan,
 });
 
 // ── debug/test hooks — เปิดเฉพาะ dev/test (smoke) ไม่ expose ใน production ──
@@ -2978,9 +3023,9 @@ if (BLH_DEV) {
     generatePerkOffer, openPerkChoice, choosePerk, remainingPerks,
     // hero passives + spec balance (Boss Loop Mode core)
     HERO_PASSIVES, SPEC_BAL, GEAR_SLOTS, fireSpecial, heroAct,
-    // run EXP / level / stat allocation (draft → confirm → locked)
-    ENEMY_EXP, EXP_PRESETS, expToNext, grantExp,
-    allocateStat, applyPreset, confirmStats, resetDraft, draftDelta,
+    // run EXP / level / auto-growth plan
+    ENEMY_EXP, EXP_PRESETS, HERO_DEFAULT_PLAN, expToNext, grantExp,
+    autoAllocatePoints, setGrowthPlan,
     // gear tier + rarity + traits (run-only)
     GEAR_TIER_DEFS, GEAR_RARITIES, GEAR_RARITY_BY_ID, RARITY_WEIGHTS,
     GEAR_TRAITS, GEAR_TRAIT_BY_ID, TRAIT_CHANCE, MAX_TRAITS_BY_TIER,

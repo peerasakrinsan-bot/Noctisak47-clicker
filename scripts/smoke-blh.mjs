@@ -109,21 +109,23 @@ ok('Run renders the loop board', blhHtml().includes('blh-board'));
 ok('Hero token placed on board', boardHtml.includes('blh-token'));
 ok('classic startGame NOT called by run start', startGameCalls === 1);
 
-// 3b) persistent bottom panel + speed control + stable layout structure ───────
+// 3b) persistent compact dock panel (new UI) + speed control + stable layout ──
 const panelHtml = document.getElementById('blh-panel').innerHTML;
-ok('persistent panel renders tabs', panelHtml.includes('blh-ptab'));
+ok('persistent panel renders dock rows', panelHtml.includes('blh-dock-ctrl') && panelHtml.includes('blh-dock-equip'));
 ok('board sits in fixed board-wrap', blhHtml().includes('blh-board-wrap'));
-ok('panel has persistent speed row', panelHtml.includes('blh-panel-speed'));
-['STATS', 'GEAR', 'LOOT', 'MAP'].forEach(t =>
-  ok('panel has tab: ' + t, panelHtml.includes(t)));
+ok('panel has persistent speed row', panelHtml.includes('blh-dock-speed'));
+ok('panel has tab: STATS', panelHtml.includes('blh-dock-hint-stats'));
+ok('panel has tab: GEAR', panelHtml.includes('blh-dock-equip'));
+ok('panel has tab: LOOT', panelHtml.includes('blh-dock-bag'));
+ok('panel has tab: MAP', panelHtml.includes('blh-dock-cards'));
 ok('Plan tab removed', !panelHtml.includes('>PLAN<'));
-ok('panel has status/camp bar', panelHtml.includes('blh-panel-status'));
-// speed row + tabs must persist on EVERY tab (so layout/Pause never disappears)
+ok('panel has status/camp bar', panelHtml.includes('blh-dock-status'));
+// dock rows must persist after every panelTab() call (backward-compat shim)
 ['stats', 'gear', 'loot', 'map'].forEach(tab => {
   window.blh.panelTab(tab);
   const h = document.getElementById('blh-panel').innerHTML;
   ok(`tab "${tab}" keeps speed row + status + tabs`,
-    h.includes('blh-panel-speed') && h.includes('blh-panel-status') && h.includes('blh-panel-tabs') && h.includes('blh-panel-body'));
+    h.includes('blh-dock-speed') && h.includes('blh-dock-status') && h.includes('blh-dock-equip') && h.includes('blh-dock-bag'));
 });
 window.blh.panelTab('stats');
 ok('default speed is 1x (slow)', window.blh.__test.BLH.run.speed === 1, 'speed=' + window.blh.__test.BLH.run.speed);
@@ -302,38 +304,44 @@ ok('fresh run starts with no perks (run-only)', T.BLH.run.perks.length === 0);
 ok('fresh run starts with empty perkMods triggers', T.BLH.run.perkPending === 0);
 window.blh.setSpeed(1);
 
-// 10) RUN EXP / LEVEL / STAT ALLOCATION (draft → confirm → locked) ───────────
+// 10) RUN EXP / LEVEL / AUTO-GROWTH PLAN ────────────────────────────────────
 // ใช้ run จาก 9j (APOLOGIZE hero, fresh run)
 const expT = window.blh.__test;
 const expRun = expT.BLH.run;
 const BSK2 = expT.BASE_STAT_KEYS;
-const allocSum = obj => BSK2.reduce((s, k) => s + (obj[k] || 0), 0);
+const rsSum = obj => BSK2.reduce((s, k) => s + (obj[k] || 0), 0);
 
-// 10a) fresh run has correct initial EXP/level state
+// 10a) fresh run has correct initial EXP/level/growth-plan state
 ok('fresh run level is 1', expRun.level === 1, 'lv=' + expRun.level);
 ok('fresh run exp is 0', expRun.exp === 0, 'exp=' + expRun.exp);
-ok('fresh run pendingStatPoints is 0', expRun.pendingStatPoints === 0, 'pts=' + expRun.pendingStatPoints);
-ok('fresh run confirmedRunStats all zero', BSK2.every(k => expRun.confirmedRunStats[k] === 0));
-ok('fresh run draftRunStats all zero', BSK2.every(k => expRun.draftRunStats[k] === 0));
+ok('fresh run runStats all zero', BSK2.every(k => (expRun.runStats[k] || 0) === 0));
+ok('apologize hero defaults to speed plan', expRun.growthPlan === 'speed',
+  'plan=' + expRun.growthPlan);
 
 // 10b) expToNext formula: 30 + (level-1)² × 18
 ok('expToNext(1) = 30', expT.expToNext(1) === 30, 'got=' + expT.expToNext(1));
 ok('expToNext(2) = 48', expT.expToNext(2) === 48, 'got=' + expT.expToNext(2));
 ok('expToNext(5) = 318', expT.expToNext(5) === 318, 'got=' + expT.expToNext(5));
 
-// 10c) grantExp: accumulates without level-up, then levels up with overflow → pending points
+// 10c) grantExp auto-allocates +2 points per level-up (no pending)
 expT.grantExp(25);
 ok('25 EXP: level still 1, exp = 25', expRun.level === 1 && expRun.exp === 25,
   `lv=${expRun.level} exp=${expRun.exp}`);
 expT.grantExp(10); // total 35 ≥ expToNext(1)=30 → level up; overflow = 5
 ok('35 total EXP → level 2', expRun.level === 2, 'lv=' + expRun.level);
 ok('EXP overflow preserved after level up', expRun.exp === 5, 'exp=' + expRun.exp);
-ok('+2 pending points per level up', expRun.pendingStatPoints === 2, 'pts=' + expRun.pendingStatPoints);
+ok('no pending stat points after level-up (auto-allocated)',
+  !expRun.pendingStatPoints || expRun.pendingStatPoints === 0);
+ok('+2 runStats points allocated on level-up', rsSum(expRun.runStats) === 2,
+  'sum=' + rsSum(expRun.runStats));
 ok('expToNext updates to level 2 value', expRun.expToNext === expT.expToNext(2),
   `expToNext=${expRun.expToNext}`);
-// grant more so we have a comfortable pool for the draft/confirm tests
-expT.grantExp(expRun.expToNext - expRun.exp); // exactly level up once more → +2 (total pending 4)
-ok('pending points pooled to 4', expRun.pendingStatPoints === 4, 'pts=' + expRun.pendingStatPoints);
+// SPEED plan order: ['agi','luk','vit'] → 2 pts = agi+1, luk+1
+ok('speed plan level-up: agi+1 luk+1',
+  (expRun.runStats.agi || 0) === 1 && (expRun.runStats.luk || 0) === 1,
+  `agi=${expRun.runStats.agi} luk=${expRun.runStats.luk}`);
+ok('level-up immediately affects combat (ATK recomputed)',
+  typeof expRun.stats.atk === 'number' && expRun.stats.atk > 0);
 
 // 10d) ENEMY_EXP: every role has a positive numeric value
 ['basic', 'fast', 'tank', 'cursed', 'elite'].forEach(role =>
@@ -341,82 +349,56 @@ ok('pending points pooled to 4', expRun.pendingStatPoints === 4, 'pts=' + expRun
     'val=' + expT.ENEMY_EXP[role]));
 ok('elite EXP > basic EXP', expT.ENEMY_EXP.elite > expT.ENEMY_EXP.basic);
 
-// 10e) DRAFT: +/− affect draft only (not confirmed), and combat does NOT change yet
+// 10e) autoAllocatePoints: cycles through plan order round-robin
+const testRs = { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 };
+const speedTestRun = { growthPlan: 'speed', runStats: testRs };
+expT.autoAllocatePoints(speedTestRun, 3); // order: agi, luk, vit → +1 each
+ok('speed plan +3 pts: agi+1 luk+1 vit+1',
+  testRs.agi === 1 && testRs.luk === 1 && testRs.vit === 1,
+  `agi=${testRs.agi} luk=${testRs.luk} vit=${testRs.vit}`);
+expT.autoAllocatePoints(speedTestRun, 4); // wraps: agi+1 luk+1 vit+1 agi+1
+ok('speed plan +4 more: agi=3 luk=2 vit=2',
+  testRs.agi === 3 && testRs.luk === 2 && testRs.vit === 2,
+  `agi=${testRs.agi} luk=${testRs.luk} vit=${testRs.vit}`);
+
+const powerRs = { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 };
+const powerTestRun = { growthPlan: 'power', runStats: powerRs };
+expT.autoAllocatePoints(powerTestRun, 2); // order: str, dex, vit → str+1 dex+1
+ok('power plan +2 pts: str+1 dex+1',
+  powerRs.str === 1 && powerRs.dex === 1,
+  `str=${powerRs.str} dex=${powerRs.dex}`);
+
+// 10f) setGrowthPlan: changes plan outside battle
 expRun.phase = 'camp';
-const atkBeforeDraft = expRun.stats.atk;
-expT.allocateStat('str', 1);
-expT.allocateStat('str', 1); // draft STR +2
-ok('draft + spends pending points', expRun.pendingStatPoints === 2, 'pts=' + expRun.pendingStatPoints);
-ok('draft + adds to draftRunStats only', expRun.draftRunStats.str === 2 && expRun.confirmedRunStats.str === 0,
-  `draft=${expRun.draftRunStats.str} conf=${expRun.confirmedRunStats.str}`);
-ok('DRAFT does NOT affect combat ATK before confirm', expRun.stats.atk === atkBeforeDraft,
-  `atk=${expRun.stats.atk} before=${atkBeforeDraft}`);
-ok('statBase ignores draft (confirmed only)', expRun.statBase.str === expRun.base.str + (expRun.perkMods.str || 0),
-  `statBase.str=${expRun.statBase.str}`);
-// draft − returns to pending
-expT.allocateStat('str', -1);
-ok('draft − refunds to pending', expRun.pendingStatPoints === 3 && expRun.draftRunStats.str === 1,
-  `pts=${expRun.pendingStatPoints} draft=${expRun.draftRunStats.str}`);
+expT.setGrowthPlan('power');
+ok('can change plan in camp phase', expRun.growthPlan === 'power', 'plan=' + expRun.growthPlan);
+expT.setGrowthPlan('speed');
+ok('change back to speed plan', expRun.growthPlan === 'speed', 'plan=' + expRun.growthPlan);
 
-// 10f) CONFIRM: moves draft → confirmed, locks, and NOW affects combat
-expT.allocateStat('dex', 1); // draft: str1, dex1 (pending 2)
-expT.confirmStats();
-ok('confirm moves draft into confirmed', expRun.confirmedRunStats.str === 1 && expRun.confirmedRunStats.dex === 1,
-  `str=${expRun.confirmedRunStats.str} dex=${expRun.confirmedRunStats.dex}`);
-ok('confirm leaves unspent pending intact', expRun.pendingStatPoints === 2, 'pts=' + expRun.pendingStatPoints);
-ok('confirmed STR affects combat ATK', expRun.stats.atk > atkBeforeDraft,
-  `atk=${expRun.stats.atk} before=${atkBeforeDraft}`);
-ok('statBase now includes confirmed STR', expRun.statBase.str === expRun.base.str + 1 + (expRun.perkMods.str || 0),
-  `statBase.str=${expRun.statBase.str}`);
-
-// 10g) CONFIRMED stats cannot be refunded below confirmed value
-expT.allocateStat('str', -1); // STR draft == confirmed (1) → cannot go below
-ok('cannot reduce STR below confirmed (1)', expRun.draftRunStats.str === 1 && expRun.confirmedRunStats.str === 1,
-  `draft=${expRun.draftRunStats.str} conf=${expRun.confirmedRunStats.str}`);
-
-// 10h) RESET DRAFT: reverts unconfirmed additions and restores pending
-expT.allocateStat('vit', 2); // draft adds vit+2 (pending 0)
-ok('draft vit added before reset', expRun.draftRunStats.vit === 2 && expRun.pendingStatPoints === 0);
-expT.resetDraft();
-ok('reset draft reverts to confirmed', expRun.draftRunStats.vit === 0 && expRun.draftRunStats.str === 1,
-  `vit=${expRun.draftRunStats.vit} str=${expRun.draftRunStats.str}`);
-ok('reset draft restores pending', expRun.pendingStatPoints === 2, 'pts=' + expRun.pendingStatPoints);
-ok('reset draft does NOT touch confirmed', expRun.confirmedRunStats.str === 1 && expRun.confirmedRunStats.dex === 1);
-
-// 10i) PRESET: spends pending into draft only, never alters confirmed
-expT.applyPreset('power'); // POWER: str6 vit2 dex2; pending 2 → str=2 (1 floor + 1 remainder)
-ok('preset spends all pending into draft', expRun.pendingStatPoints === 0, 'pts=' + expRun.pendingStatPoints);
-ok('preset keeps confirmed stats locked', expRun.confirmedRunStats.str === 1 && expRun.confirmedRunStats.dex === 1,
-  `str=${expRun.confirmedRunStats.str} dex=${expRun.confirmedRunStats.dex}`);
-ok('preset stacks draft on top of confirmed', expRun.draftRunStats.str >= expRun.confirmedRunStats.str,
-  `draft.str=${expRun.draftRunStats.str} conf.str=${expRun.confirmedRunStats.str}`);
-ok('preset draft does NOT affect combat until confirm',
-  expRun.statBase.str === expRun.base.str + 1 + (expRun.perkMods.str || 0),
-  `statBase.str=${expRun.statBase.str}`);
-// preset with no pending + no draft → no-op (confirm current draft so pending = 0, delta = 0)
-expT.confirmStats(); // lock current preset draft → pending stays 0, draftDelta → 0
-const confSnapshot = { ...expRun.confirmedRunStats };
-ok('confirm after preset clears draft delta', expT.draftDelta(expRun) === 0);
-expT.applyPreset('tank'); // pending 0 + no draft → nothing to allocate
-ok('preset with no available points does not alter confirmed',
-  BSK2.every(k => expRun.confirmedRunStats[k] === confSnapshot[k]));
-
-// 10j) battle blocks allocation / confirm / reset
-expRun.pendingStatPoints = 2; // give points
+// 10g) setGrowthPlan: blocked during battle
 expRun.phase = 'battle';
-const draftSnapshot = { ...expRun.draftRunStats };
-const confBattleSnapshot = { ...expRun.confirmedRunStats };
-expT.allocateStat('str', 1);
-ok('allocateStat blocked during battle', allocSum(expRun.draftRunStats) === allocSum(draftSnapshot) && expRun.pendingStatPoints === 2);
-expRun.draftRunStats.luk = (expRun.draftRunStats.luk || 0) + 1; // simulate a pending draft delta
-expT.confirmStats();
-ok('confirmStats blocked during battle', expRun.confirmedRunStats.luk === (confBattleSnapshot.luk || 0));
-expT.resetDraft();
-ok('resetDraft blocked during battle', expRun.draftRunStats.luk === 1); // unchanged (still drafted)
-expRun.draftRunStats.luk = confBattleSnapshot.luk || 0; // cleanup
+expT.setGrowthPlan('tank');
+ok('plan change blocked during battle', expRun.growthPlan === 'speed', 'plan=' + expRun.growthPlan);
 expRun.phase = 'camp';
 
-// 10k) RUN END resets confirmed/draft/pending/level/exp (fresh run = clean slate)
+// 10h) plan change does NOT retroactively alter already-allocated runStats
+const rsBefore = { ...expRun.runStats };
+expT.setGrowthPlan('power');
+ok('changing plan does not alter already-allocated runStats',
+  BSK2.every(k => (expRun.runStats[k] || 0) === (rsBefore[k] || 0)));
+expT.setGrowthPlan('speed'); // restore
+
+// 10i) grantExp after plan change uses the new plan
+expRun.phase = 'camp';
+const strBeforeChange = expRun.runStats.str || 0;
+expT.setGrowthPlan('power'); // power order: str, dex, vit
+expT.grantExp(expRun.expToNext - expRun.exp); // exactly level up once
+ok('after plan change level-up allocates to power plan (STR increases)',
+  (expRun.runStats.str || 0) > strBeforeChange,
+  `str=${expRun.runStats.str} before=${strBeforeChange}`);
+expT.setGrowthPlan('speed'); // restore for next sections
+
+// 10j) RUN END resets runStats/level/exp, new run gets hero default plan
 window.blhOpenModeSelect();
 window.blh.pickMode('blh');
 window.blh.pickHero('noctisak47'); window.blh.heroNext();
@@ -424,17 +406,23 @@ window.blh.pickStage('stage1'); window.blh.startRun();
 const freshRun = expT.BLH.run;
 ok('run end resets level to 1', freshRun.level === 1, 'lv=' + freshRun.level);
 ok('run end resets exp to 0', freshRun.exp === 0, 'exp=' + freshRun.exp);
-ok('run end resets pending points to 0', freshRun.pendingStatPoints === 0, 'pts=' + freshRun.pendingStatPoints);
-ok('run end resets confirmedRunStats', BSK2.every(k => freshRun.confirmedRunStats[k] === 0));
-ok('run end resets draftRunStats', BSK2.every(k => freshRun.draftRunStats[k] === 0));
+ok('run end resets runStats to all zero', BSK2.every(k => (freshRun.runStats[k] || 0) === 0),
+  'sum=' + rsSum(freshRun.runStats));
+ok('noctisak47 defaults to luck plan', freshRun.growthPlan === 'luck',
+  'plan=' + freshRun.growthPlan);
 window.blh.setSpeed(1);
 
+// 10k) HERO_DEFAULT_PLAN assignments
+ok('HERO_DEFAULT_PLAN.noctisak47 = luck', expT.HERO_DEFAULT_PLAN.noctisak47 === 'luck');
+ok('HERO_DEFAULT_PLAN.toei = power', expT.HERO_DEFAULT_PLAN.toei === 'power');
+ok('HERO_DEFAULT_PLAN.apologize = speed', expT.HERO_DEFAULT_PLAN.apologize === 'speed');
+
 // 10l) module exports + preset config sanity
-ok('BLH exposes grantExp/allocateStat/applyPreset/confirmStats/resetDraft',
-  ['grantExp', 'allocateStat', 'applyPreset', 'confirmStats', 'resetDraft'].every(f => typeof expT[f] === 'function'));
+ok('BLH exposes grantExp/setGrowthPlan/autoAllocatePoints',
+  ['grantExp', 'setGrowthPlan', 'autoAllocatePoints'].every(f => typeof expT[f] === 'function'));
 ok('EXP_PRESETS has 5 presets', expT.EXP_PRESETS.length === 5, 'n=' + expT.EXP_PRESETS.length);
-ok('all presets have id/name/icon/ratio', expT.EXP_PRESETS.every(p =>
-  p.id && p.name && p.icon && typeof p.ratio === 'object' && Object.keys(p.ratio).length > 0));
+ok('all presets have id/name/icon/order', expT.EXP_PRESETS.every(p =>
+  p.id && p.name && p.icon && Array.isArray(p.order) && p.order.length >= 2));
 
 // 11) GEAR TIER + RARITY + TRAITS ────────────────────────────────────────────
 const G = window.blh.__test;
