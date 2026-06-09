@@ -3709,6 +3709,12 @@
   background: var(--gold); color: #1a1400; border: none; font-family: 'Oswald'; font-size: 13px;
   letter-spacing: 1px; cursor: pointer; }
 .blh-mini-btn:active { filter: brightness(.9); }
+/* loot row: equip + sell stacked (no horizontal scroll on mobile) */
+.blh-loot-btns { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.blh-loot-btns .blh-mini-btn { min-height: 28px; padding: 3px 10px; font-size: 11px; }
+.blh-mini-btn.sell { background: rgba(255,255,255,.10); color: #d7dae2; }
+.blh-loot-item.oldest { opacity: .82; }
+.blh-bag-full { font-size: 9px; letter-spacing: .3px; color: #c89a4a; font-family: 'Sarabun', sans-serif; }
 .blh-foot { margin-top: auto; padding-top: 8px; }
 @keyframes blhPulse { 0%,100%{ filter: brightness(1);} 50%{ filter: brightness(1.25);} }
 
@@ -3927,7 +3933,7 @@
 .blh-statbox-name { font-size: 16px; color: var(--gold); letter-spacing: 1px; }
 .blh-statbox-role { font-size: 10px; color: var(--cyan); letter-spacing: 1px; }
 .blh-statline { font-size: 13px; color: #d7dae2; margin-top: 3px; }
-.blh-equip-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.blh-equip-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
 .blh-equip-mini { padding: 8px 4px; border-radius: 10px; background: rgba(255,255,255,.04); text-align: center; }
 .blh-equip-mini-icon { font-size: 20px; }
 .blh-equip-mini-name { font-size: 10px; color: #c2c6cf; margin-top: 2px; }
@@ -3941,19 +3947,102 @@
 .blh-gear-slot-val, .blh-loot-val { font-size: 13px; color: #e8eaf0; margin-top: 2px; }
 .blh-tier-tag { font-size: 10px; letter-spacing: 1px; border: 1px solid; border-radius: 5px; padding: 1px 5px; margin-right: 6px; }
 .blh-trait { font-family: 'Sarabun', sans-serif; font-size: 11px; color: #9aa0ad; margin-left: 4px; }
-.blh-mapcard { border-left: 3px solid var(--accent); }
+/* ── gear tier + rarity + traits ── */
+.blh-rar-tag { display: inline-block; font-size: 10px; letter-spacing: .5px; border: 1px solid;
+  border-radius: 5px; padding: 1px 5px; margin-right: 6px; white-space: nowrap; }
+.blh-substat { color: #aab0bd; font-size: 12px; }
+.blh-gear-traits { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.blh-trait-chip { font-size: 10px; letter-spacing: .3px; color: #ffe2a8; padding: 1px 6px; border-radius: 6px;
+  background: rgba(255,196,84,.10); border: 1px solid rgba(255,196,84,.32); white-space: nowrap;
+  font-family: 'Sarabun', sans-serif; }
+.blh-mapcard { border-left: 3px solid var(--accent); position: relative; }
+.blh-mapcard.oldest { opacity: .82; border-left-style: dashed; }
 .blh-mapcard-name { font-size: 14px; color: #e8eaf0; }
 .blh-mapcard-kind { font-size: 9px; letter-spacing: 1px; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.blh-mapcard-icon { position: relative; }
+.blh-mapcard-count { position: absolute; right: -2px; bottom: -2px; font-size: 11px; font-weight: 700;
+  color: #fff; background: rgba(0,0,0,.7); border-radius: 7px; padding: 0 4px; line-height: 1.4; }
+.blh-mapcard-oldest { font-size: 8px; letter-spacing: .5px; color: #c89a4a; border: 1px solid rgba(200,154,74,.5);
+  border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.blh-hand-head { font-size: 12px; color: #b8bcc6; margin: 2px 0 4px; }
+.blh-hand-head b { color: #fff; }
 .blh-mapcard-desc { font-family: 'Sarabun', sans-serif; font-size: 11px; color: #9aa0ad; margin-top: 3px; line-height: 1.4; }
 .blh-empty { text-align: center; padding: 30px 10px; color: #6b6f78; font-family: 'Sarabun', sans-serif; font-size: 13px; }
 .blh-mapinfo { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 10px 2px; font-size: 12px; color: #b8bcc6; }
 .blh-mapcard-list { margin-top: 6px; }
 .blh-cards-note { margin-bottom: 4px; }
 
+/* ── local danger summary (MAP panel) ── */
+.blh-danger-info { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px;
+  margin: 6px 0 2px; padding: 6px 8px; border-radius: 8px; font-size: 11px; color: #d7b07a;
+  background: rgba(255,120,40,.08); border: 1px solid rgba(255,120,40,.22); }
+.blh-danger-info.dim { color: #8a8f99; background: rgba(255,255,255,.03); border-color: #2a2a2a; }
+.blh-danger-tag { font-size: 12px; color: #ff9f5a; white-space: nowrap; }
+.blh-danger-tag b { color: #fff; }
+/* per-road danger badge on the board tile */
+.blh-cell-danger { position: absolute; top: 1px; right: 2px; font-size: 9px; line-height: 1;
+  color: #ffcf9a; text-shadow: 0 1px 2px #000; pointer-events: none; }
+
 /* ── active perk chips in STATS panel ── */
 .blh-perk-active { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
 .blh-perk-chip { font-size: 10px; letter-spacing: .5px; color: #ffe7a8; padding: 2px 7px; border-radius: 6px;
   background: rgba(255,204,68,.12); border: 1px solid rgba(255,204,68,.3); white-space: nowrap; }
+
+/* ── Level / EXP bar (STATS panel) ── */
+.blh-level-row { display: flex; align-items: center; gap: 7px; margin-top: 9px; }
+.blh-lvl-tag { font-size: 12px; letter-spacing: .5px; color: var(--cyan); white-space: nowrap; flex-shrink: 0; }
+.blh-lvl-tag b { color: #fff; }
+.blh-expbar { flex: 1; height: 14px; border-radius: 7px; background: rgba(255,255,255,.08);
+  overflow: hidden; position: relative; min-width: 0; }
+.blh-expfill { position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #2277ff, #55aaff); transition: width .3s ease; }
+.blh-exptext { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #fff; letter-spacing: .3px; text-shadow: 0 1px 3px #000; }
+.blh-pts-badge { font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #fff; padding: 2px 7px;
+  border-radius: 8px; background: linear-gradient(135deg, #e87b00, #ffaa22);
+  box-shadow: 0 0 8px rgba(255,160,0,.5); white-space: nowrap; flex-shrink: 0; }
+/* HUD level stat points indicator */
+.blh-pts-hud { margin-left: 3px; font-size: 10px; color: #ffaa22; }
+
+/* ── Stat Allocation section (STATS panel) ── */
+.blh-alloc-section { margin-top: 10px; padding: 10px 10px 8px; border-radius: 10px;
+  background: rgba(34,119,255,.07); border: 1px solid rgba(34,119,255,.22); }
+.blh-alloc-section.locked { opacity: .65; }
+.blh-alloc-head { font-size: 12px; color: #b8bcc6; margin-bottom: 7px; }
+.blh-alloc-head b { color: #fff; }
+.blh-alloc-draft { font-size: 11px; color: #ffaa22; margin-left: 4px; }
+.blh-alloc-lock { font-size: 11px; }
+/* 5 preset buttons — compact horizontal row (overflow = scroll) */
+.blh-preset-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+.blh-preset-btn { font-size: 10px; letter-spacing: .5px; color: #d0d4df; padding: 4px 7px;
+  border-radius: 7px; border: 1px solid rgba(34,119,255,.35); background: rgba(34,119,255,.12);
+  cursor: pointer; white-space: nowrap; transition: background .1s; }
+.blh-preset-btn:not(:disabled):active { background: rgba(34,119,255,.30); }
+.blh-preset-btn:disabled { opacity: .45; cursor: default; }
+/* 2-column allocation grid (6 stats × [key value − +]) */
+.blh-stat-alloc { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.blh-alloc-row { display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,.03);
+  padding: 4px 6px; border-radius: 6px; }
+.blh-alloc-k { font-size: 10px; letter-spacing: .8px; color: var(--cyan); flex: 0 0 28px; }
+.blh-alloc-v { font-size: 12px; color: #e8eaf0; flex: 1; }
+.blh-alloc-v sup { font-size: 9px; color: #ffaa22; margin-left: 1px; }
+.blh-alloc-btn { width: 22px; height: 22px; font-size: 14px; line-height: 1;
+  border-radius: 5px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08);
+  color: #e8eaf0; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.blh-alloc-btn:not(:disabled):active { background: rgba(255,255,255,.18); }
+.blh-alloc-btn:disabled { opacity: .35; cursor: default; }
+/* confirm / reset draft actions */
+.blh-alloc-actions { display: flex; gap: 6px; margin-top: 8px; }
+.blh-alloc-confirm, .blh-alloc-reset { flex: 1; font-size: 11px; letter-spacing: .5px; padding: 7px 6px;
+  border-radius: 7px; cursor: pointer; white-space: nowrap; transition: background .1s; }
+.blh-alloc-confirm { color: #051; border: 1px solid #1c8a4a; font-weight: 700;
+  background: linear-gradient(135deg, #1fbf63, #36d97a); }
+.blh-alloc-confirm:not(:disabled):active { background: linear-gradient(135deg, #18a653, #2cc56b); }
+.blh-alloc-reset { color: #d0d4df; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); }
+.blh-alloc-reset:not(:disabled):active { background: rgba(255,255,255,.16); }
+.blh-alloc-confirm:disabled, .blh-alloc-reset:disabled { opacity: .4; cursor: default; }
+.blh-alloc-warn { margin-top: 7px; font-size: 10px; color: #c89a4a; line-height: 1.4;
+  font-family: 'Sarabun', sans-serif; }
 
 /* ── PERK CHOICE overlay (Camp; เกมหยุดจนเลือกเสร็จ) ── */
 .blh-perk-overlay { align-items: center; }

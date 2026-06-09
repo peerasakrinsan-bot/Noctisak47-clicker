@@ -31,8 +31,8 @@ index.html              # HTML shell; loads src/styles.css and src/main.js
 src/
   main.js               # ES module entry point; imports game.js then bossLoopHero.js
   game.js               # All core game logic (~10,354 lines) — Stage 2A verbatim lift
-  bossLoopHero.js       # Boss Loop Hero mode (~1,804 lines) — independent module
-  styles.css            # All game styles (~4,072 lines)
+  bossLoopHero.js       # Boss Loop Hero / Loop RPG mode (~3,000 lines) — independent module
+  styles.css            # All game styles (~4,190 lines)
 public/
   sw.js                 # Service Worker (copied verbatim to dist/)
   manifest.json         # PWA manifest
@@ -126,11 +126,27 @@ An **independent** auto-battle mode (user-facing name: **LOOP RPG MODE**; intern
 
 **Style labels (no class/job names shown):** NOCTISAK47 = *Shadow Striker*, TOEI = *Holy Guard*, APOLOGIZE = *Iron Fist*.
 
-**Stat model (Ragnarok-inspired):** each hero has base stats `STR/AGI/VIT/DEX/INT/LUK` (`HEROES[].base`). `deriveCombat(base, addCombat)` maps them to combat stats `ATK/DEF/HP/ASPD/CRI/CRIDMG/EVA/LS/PEN` (+`hit`, `damageReduction`, `extraHit`), then applies `STAT_CAPS` (crit 50%, crit dmg 250%, eva 35%, lifesteal 20%, armorPen 40 flat). Combat uses `resolveAttack(att, def)`: `effectiveDef = max(0, def - armorPen)` → `baseDamage = max(1, atk - effectiveDef)` → evasion dodge → crit → mitigations → lifesteal.
+**Stat model (spec, Ragnarok-inspired):** each hero has base stats `STR/VIT/AGI/DEX/LUK/INT` (`HEROES[].base`). `deriveCombat(base, addCombat)` maps them to combat stats `ATK/DEF/HP/ASPD/CRI/CRIDMG/EVA/LS/PEN` (+`hitBonus`, `healEffect`, `terrainEffect`, `damageReduction`, `extraHit`), then applies `STAT_CAPS` (crit 50%, crit dmg 250%, eva 35%, lifesteal 20%, armorPen 40 flat). Spec stat rules: STR +1 ATK & +5% crit dmg/5; VIT +8 HP & +1 DEF/5; AGI +1.5% ASPD & +2% dodge/5; DEX +1% hit & +3 PEN/5; LUK +0.8% crit & +1% dodge/5; INT +1% terrain & +3% heal/5. **Lifesteal is gear-only** (no stat grants it). Combat `resolveAttack(att, def)`: **unified hit/miss** (`hitChance = clamp(0.90 + hitBonus − targetDodge, 0.75, 0.98)`; specials set `noMiss`) → `effectiveDef = max(0, def − armorPen)` → `baseDamage = max(1, atk − effectiveDef)` → crit → execute → `capDmg` (special final-damage cap) → mitigations → lifesteal (heal-cap 15% HP normal / 20% special).
+
+**Hero passives (spec, run/battle-only — `HERO_PASSIVES`):** auto-fire in combat off a per-battle `hitStreak` (only landed normal hits count). NOCTISAK47 **Overdrive Shot** (every 5 hits, never-miss special), TOEI **Power Punch** (every 4 hits charges the next attack into a special + small shield), APOLOGIZE **Apology Counter** (base +18% dodge; on a dodge, never-miss counter). All specials can crit and obey per-hero final-damage caps.
 
 **Perk system (run-only):** `HERO_PERKS[heroId]` = 8 perks/hero; effects live only in `run.perkMods` and vanish when the run ends. Triggered by loop count (`PERK_LOOP_TRIGGERS` = 3/6/9/12/15/18) and placement milestones (`PERK_BUILD_TRIGGERS` = 5/10/15 placed cards), stored as `run.perkPending`, resolved at Camp via a perk-choice overlay (3 random options, no repeats; the run pauses until chosen).
 
-**Gear:** `makeGear` rolls 1–2 stats from `GEAR_SLOT_POOLS` per slot (Glove/Jacket/Boots/Charm), mixing base stats and combat stats; rolls render as e.g. `+3 STR`, `+5% CRI`, `+4 PEN`.
+**Gear (5 slots): tier × rarity × traits (run-only).** `makeGear(run, ctx)` produces `{ slot, tier:1–4, rarity, mainStat, subStat, traits:[0–2] }` for Weapon/Glove/Jacket/Boots/Charm. **Tier** comes from loop depth + enemy influence (`rollGearTier`: Fighter/`fast` small boost, Elite strong boost, Treasure tier+rarity boost; Arena Training `higherTier` + treasure terrain bump). **Rarity** (Common/Rare/Epic/Legendary — *not* "Mythic") is weighted per tier (`RARITY_WEIGHTS`) and drives stat-roll quality (`rollMin/rollMax` % of tier range: Common 40–65% → Legendary 90–100%) plus trait chance. **Main** stat (1) is rolled at full quality; **sub** stat (1, never the same key) at ~40–60%. **Traits** (`GEAR_TRAITS`, 10 MVP: Blood Taste, Clean Escape, Heavy Grip, Quick Step, Lucky Find, Card Sense, Counter Guard, Last Stand, Iron Skin, Sharp Rhythm) roll per `TRAIT_CHANCE[tier][rarity]` — T1–2 max 1, T3–4 up to 2 distinct; Cursed enemies bias toward Charm + trait chance. Traits stack across gear and are capped per-trait in `aggregateTraits` → `run.traitMods`. Main/sub pools are `GEAR_MAIN_POOLS` / `GEAR_SUB_POOLS`; **Lifesteal is Charm-only** (still gear-only, no stat grants it). Run-only — all gear vanishes on run end / Cash Out.
+
+**Economy (spec):** Camp heals base 20% max HP (cap 50% with bonuses, incl. Clean Escape trait); death keeps 30% Loop Zeny (Safe Retreat raises to max 50%); Cash Out auto-sells equipped + bag gear (trait shards add value) and converts leftover map cards to small Loop Zeny. Centralized in `SPEC_BAL`.
+
+**Run EXP / level / stat allocation (run-only):** kills grant `ENEMY_EXP[role]`; `expToNext(lvl)=30+(lvl-1)²·18`; +2 points/level into `pendingStatPoints`. Allocation uses a **draft → confirm → locked** model (`draftRunStats` reversible, `confirmStats` commits into `confirmedRunStats` which alone affects combat and can't be refunded; `resetDraft`/presets operate on pending only). All reset on run end.
+
+**Combat caps** (`STAT_CAPS`): crit 50%, crit dmg 250%, dodge 35%, lifesteal 20%, armorPen 40 (flat, unchanged), drop bonus +40%, attack-speed add +60. New `HIT` gear stat feeds `hitBonus` in `deriveCombat`.
+
+**Local Danger (per-road, run-only):** each placed map tile carries a `danger` value (`MAP_CARDS[].danger`: 0–3, mapped to spec archetypes). `localDangerForRoad(cellId)` sums the road cell's own card + orthogonally-adjacent terrain cells' cards — danger is *local* (distant roads = 0). `localDangerScaling(d)` → `{steps:floor(d/5), hpMult:+5%/step, atkMult:+4%/step, zenyMult:+5%/step, gearDropBonus:+4%/step}` (`DANGER_BAL`). Applied at `startBattle` for normal encounters (scales enemy HP/ATK on top of the loop-depth scaling already baked into `makeEnemy`); `endBattle` grants the Zeny bonus and passes `gearDropBonus` into `rollDrops`' drop *chance*. **Danger raises quantity/reward only — never gear tier or rarity** (those stay loop-depth + enemy-type via `rollGearTier`/`rollGearRarity`, which ignore the danger fields). Shown in the MAP panel (peak danger + scaling) and as a per-road `⚠N` badge.
+
+**Map-card hand stacking (run-only):** `run.hand` is ordered stack entries `[{cardId, count, order}]` limited by **card-type count** (`MAX_CARD_TYPES = 8`), not total cards. `addCardToHand` stacks duplicates (no overflow), adds new types under the cap, and at 8/8 evicts the oldest stack (lowest `order`) — converting it to Loop Zeny (`CARD_KIND_ZENY`: road 2 / adjacent 3 / terrain 4 per card) via `run.mods.zenyBonus`, with a toast. Placing consumes one via `consumeCardFromHand` (stack 0 removes the type); failed placement consumes nothing. `handZeny(run)` (folded into `estCashOut`) converts remaining stacks on Cash Out. All run-only — hand clears on run end.
+
+**Gear bag cap + overflow auto-salvage (run-only):** `run.lootBag` is capped at `bagCap()` = `BASE_BAG (12)` + Arena Training `bagExpand` (+2/level, max 3 → 18). On a gear drop (`rollDrops`), the new piece is pushed, then `enforceBagCap` salvages the **oldest** bag piece(s) (index 0, oldest→newest) at `AUTO_SALVAGE_PCT` (40%) of `gearWorth` into `run.mods.zenyBonus`, with a toast (stronger warning for Epic/Legendary). Equipped gear (`run.gear`) is never auto-salvaged. Manual `sellLoot(idx)` pays 100% of `gearWorth`. Cash Out still values bag ×1 + equipped ×2 (`lootValue`). All run-only.
+
+**Deferred to follow-up:** none — the original Boss Loop Mode spec backlog is complete.
 
 `src/main.js` imports `bossLoopHero.js` **after** `game.js` so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
 
