@@ -126,11 +126,17 @@ An **independent** auto-battle mode (user-facing name: **LOOP RPG MODE**; intern
 
 **Style labels (no class/job names shown):** NOCTISAK47 = *Shadow Striker*, TOEI = *Holy Guard*, APOLOGIZE = *Iron Fist*.
 
-**Stat model (Ragnarok-inspired):** each hero has base stats `STR/AGI/VIT/DEX/INT/LUK` (`HEROES[].base`). `deriveCombat(base, addCombat)` maps them to combat stats `ATK/DEF/HP/ASPD/CRI/CRIDMG/EVA/LS/PEN` (+`hit`, `damageReduction`, `extraHit`), then applies `STAT_CAPS` (crit 50%, crit dmg 250%, eva 35%, lifesteal 20%, armorPen 40 flat). Combat uses `resolveAttack(att, def)`: `effectiveDef = max(0, def - armorPen)` → `baseDamage = max(1, atk - effectiveDef)` → evasion dodge → crit → mitigations → lifesteal.
+**Stat model (spec, Ragnarok-inspired):** each hero has base stats `STR/VIT/AGI/DEX/LUK/INT` (`HEROES[].base`). `deriveCombat(base, addCombat)` maps them to combat stats `ATK/DEF/HP/ASPD/CRI/CRIDMG/EVA/LS/PEN` (+`hitBonus`, `healEffect`, `terrainEffect`, `damageReduction`, `extraHit`), then applies `STAT_CAPS` (crit 50%, crit dmg 250%, eva 35%, lifesteal 20%, armorPen 40 flat). Spec stat rules: STR +1 ATK & +5% crit dmg/5; VIT +8 HP & +1 DEF/5; AGI +1.5% ASPD & +2% dodge/5; DEX +1% hit & +3 PEN/5; LUK +0.8% crit & +1% dodge/5; INT +1% terrain & +3% heal/5. **Lifesteal is gear-only** (no stat grants it). Combat `resolveAttack(att, def)`: **unified hit/miss** (`hitChance = clamp(0.90 + hitBonus − targetDodge, 0.75, 0.98)`; specials set `noMiss`) → `effectiveDef = max(0, def − armorPen)` → `baseDamage = max(1, atk − effectiveDef)` → crit → execute → `capDmg` (special final-damage cap) → mitigations → lifesteal (heal-cap 15% HP normal / 20% special).
+
+**Hero passives (spec, run/battle-only — `HERO_PASSIVES`):** auto-fire in combat off a per-battle `hitStreak` (only landed normal hits count). NOCTISAK47 **Overdrive Shot** (every 5 hits, never-miss special), TOEI **Power Punch** (every 4 hits charges the next attack into a special + small shield), APOLOGIZE **Apology Counter** (base +18% dodge; on a dodge, never-miss counter). All specials can crit and obey per-hero final-damage caps.
 
 **Perk system (run-only):** `HERO_PERKS[heroId]` = 8 perks/hero; effects live only in `run.perkMods` and vanish when the run ends. Triggered by loop count (`PERK_LOOP_TRIGGERS` = 3/6/9/12/15/18) and placement milestones (`PERK_BUILD_TRIGGERS` = 5/10/15 placed cards), stored as `run.perkPending`, resolved at Camp via a perk-choice overlay (3 random options, no repeats; the run pauses until chosen).
 
-**Gear:** `makeGear` rolls 1–2 stats from `GEAR_SLOT_POOLS` per slot (Glove/Jacket/Boots/Charm), mixing base stats and combat stats; rolls render as e.g. `+3 STR`, `+5% CRI`, `+4 PEN`.
+**Gear (5 slots):** `makeGear` rolls 1–2 stats from `GEAR_SLOT_POOLS` per slot (Weapon/Glove/Jacket/Boots/Charm; Weapon is the main-damage slot and only Lifesteal source), mixing base stats and combat stats; rolls render as e.g. `+3 STR`, `+5% CRI`, `+4 PEN`. Run-only — all gear vanishes on run end / Cash Out.
+
+**Economy (spec):** Camp heals base 20% max HP (cap 50% with bonuses); death keeps 30% Loop Zeny (Safe Retreat raises to max 50%); Cash Out auto-sells equipped + bag gear and converts leftover map cards to small Loop Zeny. Centralized in `SPEC_BAL`.
+
+**Deferred to follow-up** (see the `DEFERRED` banner in `bossLoopHero.js`): gear rarity + 10 traits, run EXP/level + stat-point allocation/presets, local-danger scaling, 8-type card-hand stacking, and 12-slot gear-bag overflow auto-salvage.
 
 `src/main.js` imports `bossLoopHero.js` **after** `game.js` so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
 

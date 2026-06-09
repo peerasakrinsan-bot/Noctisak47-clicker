@@ -71,6 +71,9 @@ const MODES = [
 // ── ฮีโร่ที่เล่นได้ (ใช้ asset boss ตัวละครเดิม) ──────────────────────────────
 // แต่ละฮีโร่มี "สไตล์" (style label) แทนชื่อคลาส/อาชีพตรง ๆ + base stat สาย RPG
 //   STR / AGI / VIT / DEX / INT / LUK → แปลงเป็น combat stat ใน deriveStats()
+// หมายเหตุ: base stat ล็อกตามสเปก Boss Loop Mode (คลาสไลก์/distinct)
+//   role = style label (ตาม CLAUDE.md — ห้ามโชว์ชื่อคลาส/อาชีพตรง ๆ)
+//   passive = id ของพาสซีฟประจำฮีโร่ (ดู HERO_PASSIVES) — ทำงานในไฟต์อัตโนมัติ
 const HEROES = [
   {
     id: 'noctisak47',
@@ -78,8 +81,9 @@ const HEROES = [
     img: 'boxer.png',
     icon: 'boxer_icon.webp',
     role: 'SHADOW STRIKER',         // style label (ไม่ใช่ชื่อคลาส)
-    blurb: 'สายเร็ว–หลบ–คริต เน้นจังหวะลอบโจมตีและคอมโบหลังหลบ',
-    base: { str: 6, agi: 10, vit: 5, dex: 7, int: 4, luk: 8 },
+    passive: 'overdrive_shot',
+    blurb: 'สายปืนสมดุล–แม่นยำ–คริต • ทุก 5 หมัดที่เข้า ยิง Overdrive Shot ที่ไม่พลาด',
+    base: { str: 6, vit: 6, agi: 6, dex: 8, luk: 5, int: 4 },
   },
   {
     id: 'toei',
@@ -87,8 +91,9 @@ const HEROES = [
     img: 'toei_boxer.png',
     icon: 'toei_boxer_icon.webp',
     role: 'HOLY GUARD',             // style label
-    blurb: 'สายอึด–ป้องกัน–ฟื้นตัว ยืนระยะยาวและสวนกลับเมื่อโดนตี',
-    base: { str: 7, agi: 3, vit: 11, dex: 5, int: 6, luk: 4 },
+    passive: 'power_punch',
+    blurb: 'สายหนัก–อึด–เจาะเกราะ • ทุก 4 หมัดที่เข้า หมัดถัดไปกลายเป็น Power Punch',
+    base: { str: 10, vit: 8, agi: 3, dex: 5, luk: 4, int: 2 },
   },
   {
     id: 'apologize',
@@ -96,8 +101,9 @@ const HEROES = [
     img: 'apologize.png',
     icon: 'apologize_icon.webp',
     role: 'IRON FIST',              // style label
-    blurb: 'สายคอมโบ–เจาะเกราะ–ดูดเลือด ยิ่ง HP เหลือน้อยยิ่งดุ',
-    base: { str: 11, agi: 5, vit: 7, dex: 8, int: 3, luk: 5 },
+    passive: 'apology_counter',
+    blurb: 'สายลื่นไหล–หลบ–สวนกลับ • หลบสำเร็จแล้วสวน Apology Counter ที่ไม่พลาด',
+    base: { str: 4, vit: 4, agi: 10, dex: 5, luk: 8, int: 3 },
   },
 ];
 const BASE_STAT_KEYS = ['str', 'agi', 'vit', 'dex', 'int', 'luk'];
@@ -313,7 +319,9 @@ function cellCenterPct(cell) {
 const BOSS_SIGNAL = { id: 'boss_signal', name: 'BOSS SIGNAL', icon: '📡', accent: '#ff2233' };
 
 // ── gear: 4 ช่อง + 4 tier (Ragnarok parody / new assets → emoji placeholder) ─
+// 5 ช่อง (สเปก Boss Loop Mode): Weapon เป็นช่องดาเมจหลัก + เป็นแหล่ง Lifesteal เดียว
 const GEAR_SLOTS = [
+  { id: 'weapon', name: 'WEAPON', icon: '🔫' },
   { id: 'glove',  name: 'GLOVE',  icon: '🥊' },
   { id: 'jacket', name: 'JACKET', icon: '🧥' },
   { id: 'boots',  name: 'BOOTS',  icon: '🥾' },
@@ -355,6 +363,7 @@ const STAT_ROLLS = {
 
 // gear-slot → pool ของ stat ที่สุ่มได้ (ให้ของแต่ละช่องมีคาแรกเตอร์)
 const GEAR_SLOT_POOLS = {
+  weapon: ['ATK', 'STR', 'CRI', 'CRIDMG', 'PEN', 'LS'], // อาวุธ: ดาเมจหลัก + แหล่ง Lifesteal เดียว (สเปก: LS มาจากเกียร์เท่านั้น)
   glove:  ['STR', 'ATK', 'CRI', 'CRIDMG', 'PEN'],
   jacket: ['VIT', 'HP', 'DEF', 'DR'],
   boots:  ['AGI', 'ASPD', 'EVA', 'CRI'],
@@ -369,8 +378,9 @@ const UPGRADES = [
   { id: 'lootChance', name: 'LOOT CHANCE',     icon: '🎁', desc: '+5% โอกาสดรอปลูท/เลเวล',        max: 5, costBase: 90,  costGrow: 1.7, per: 0.05 },
   { id: 'higherTier', name: 'HIGHER TIER',     icon: '✨', desc: '+8% โอกาสลูท tier สูงขึ้น/เลเวล', max: 5, costBase: 120, costGrow: 1.8, per: 0.08 },
   { id: 'extraCard',  name: 'EXTRA MAP CARD',  icon: '🃏', desc: '+1 การ์ดแผนที่เริ่มต้น/เลเวล',   max: 3, costBase: 150, costGrow: 2.0, per: 1  },
-  { id: 'campHeal',   name: 'CAMP RECOVERY',   icon: '⛺', desc: 'ฟื้น HP +8%/เลเวล เมื่อถึง Camp', max: 5, costBase: 100, costGrow: 1.7, per: 0.08 },
-  { id: 'safeDeath',  name: 'SAFER DEATH',     icon: '🪽', desc: 'ฟื้นคืนชีพ 1 ครั้ง/รัน ที่ HP +15%/เลเวล', max: 4, costBase: 200, costGrow: 2.1, per: 0.15 },
+  { id: 'campHeal',   name: 'CAMP RECOVERY',   icon: '⛺', desc: 'ฟื้น HP +5%/เลเวล เมื่อถึง Camp (ฐาน 20%, เพดาน 50%)', max: 3, costBase: 100, costGrow: 1.7, per: 0.05 },
+  // SAFE RETREAT (สเปก): เพิ่ม % Loop Zeny ที่เก็บได้เมื่อตาย (ฐาน 30% → เพดาน 50%)
+  { id: 'safeDeath',  name: 'SAFE RETREAT',    icon: '🪽', desc: 'เก็บ Loop Zeny ตอนตาย +5%/เลเวล (ฐาน 30%, เพดาน 50%)', max: 4, costBase: 200, costGrow: 2.1, per: 0.05 },
 ];
 const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map(u => [u.id, u]));
 
@@ -390,7 +400,61 @@ const BAL = {
   BATTLE_OPEN_MS: 700,       // หน่วงก่อนรอบแรกหลังเปิด popup
   CASHOUT_PER_LOOP: 40,
   BOSS_BONUS: 350,
+  CARD_SELL: 8,              // แปลงการ์ดแผนที่ที่เหลือเป็น Loop Zeny ตอน Cash Out (ต่อใบ)
 };
+
+// ════════════════════════════════════════════════════════════════════════════
+// SPEC_BAL — ค่าบาลานซ์หลักตามสเปก Boss Loop Mode (รวมไว้ที่เดียวเพื่อปรับง่าย)
+// ════════════════════════════════════════════════════════════════════════════
+const SPEC_BAL = {
+  // ── HIT / MISS (สเปก: ทั้งฮีโร่และศัตรูพลาดได้) ──
+  BASE_HIT: 0.90,            // โอกาสเข้าฐาน
+  MIN_HIT: 0.75,            // เพดานล่างหลังหัก dodge เป้าหมาย
+  MAX_HIT: 0.98,            // เพดานบน
+  // ── LIFESTEAL (สเปก: มาจากเกียร์เท่านั้น + เพดานฟื้นต่อหมัด) ──
+  LS_HEAL_NORMAL: 0.15,      // ฟื้นได้สูงสุด 15% maxHP ต่อหมัดปกติ
+  LS_HEAL_SPECIAL: 0.20,     // ฟื้นได้สูงสุด 20% maxHP ต่อสกิลพิเศษ
+  // ── CAMP / DEATH economy (สเปก) ──
+  CAMP_HEAL_BASE: 0.20,      // ฟื้นฐาน 20% maxHP เมื่อถึง Camp
+  CAMP_HEAL_CAP: 0.50,       // เพดานฟื้นรวมโบนัส 50%
+  DEATH_RECOVERY_BASE: 0.30, // เก็บ Loop Zeny 30% เมื่อตาย
+  DEATH_RECOVERY_CAP: 0.50,  // เพดานรวม Safe Retreat 50%
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// HERO PASSIVES — พาสซีฟประจำฮีโร่ (สเปก) ทำงานอัตโนมัติในไฟต์
+//   • นับเฉพาะ "หมัดปกติที่เข้า" (miss ไม่นับ) → battle.hitStreak
+//   • สกิลพิเศษ: ไม่พลาด, คริตได้, ยังถูกลด DEF/มิทิเกชัน, มีเพดานดาเมจสุดท้ายหลังคริต
+//   เปอร์เซ็นต์เป็นสัดส่วนของ ATK ฮีโร่ ณ ขณะนั้น
+// ════════════════════════════════════════════════════════════════════════════
+const HERO_PASSIVES = {
+  noctisak47: {
+    id: 'overdrive_shot', name: 'Overdrive Shot', mode: 'every', everyHits: 5,
+    basePct: 1.40, capPct: 2.20, dexPer5: 0.05, strPer5: 0.03,
+    lukZenyPer5: 0.03, zenyOnHit: 20, finalCapAfterCrit: 3.30,
+  },
+  toei: {
+    id: 'power_punch', name: 'Power Punch', mode: 'charge', everyHits: 4,
+    basePct: 1.90, vsElitePct: 2.20, capPct: 3.20, strPer5: 0.08,
+    dexPenPer5: 1, vitShieldPer5: 3, finalCapAfterCrit: 4.50,
+  },
+  apologize: {
+    id: 'apology_counter', name: 'Apology Counter', mode: 'counter',
+    baseDodge: 0.18, counterPct: 0.80, capPct: 1.40, strPer5: 0.04,
+    lukCritPer5: 0.05, finalCapAfterCrit: 2.50,
+  },
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// DEFERRED — สเปก Boss Loop Mode ส่วนที่ยกไป follow-up (ตามที่ตกลง "core loop first")
+//   ระบบเหล่านี้ "ยังไม่" implement ในรอบนี้ (เพื่อคุมความเสี่ยง/ไม่กระทบ core loop เดิม):
+//     • Gear Rarity (Common/Rare/Epic/Legendary) + 10 Traits + กฎ 2-trait ของ tier 3–4
+//     • Run-only Level/EXP + แต้ม stat 2/เลเวล + การจัดสรร manual/preset
+//     • Local Danger (ทุก 5 danger → enemy HP/ATK/Zeny/drop) + แสดงค่า danger ต่อช่อง
+//     • Card Hand แบบ 8 "ชนิด" + stacking (x4) + overflow → แปลงเป็น Zeny
+//     • Gear Bag 12 ช่อง + overflow auto-salvage (เตือนพิเศษเมื่อ Epic/Legendary หลุด)
+//   ปัจจุบันยังใช้: tier-only gear, perk system (run-only), flat hand (≤6 ใบ), unlimited bag
+// ════════════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════════════════════════════════════════
 // STAT MODEL — base stat (STR..LUK) → derived combat stat + caps
@@ -436,21 +500,31 @@ function emptyPerkMods() {
 
 // derive combat stat จาก base stat (+ gear + perk + terrain mod)
 // คืน object combat stat พร้อม cap แล้ว (ไม่รวม current hp)
+// ── stat → combat ตามสเปก Boss Loop Mode ──
+//   STR: +1 ATK; ทุก 5 STR → คริตดาเมจ +5%
+//   VIT: +8 maxHP; ทุก 5 VIT → DEF +1
+//   AGI: +1.5% ความเร็วโจมตี; ทุก 5 AGI → หลบ +2%
+//   DEX: +1% hit; ทุก 5 DEX → เจาะเกราะ +3 (flat ในโมเดลนี้)
+//   LUK: +0.8% คริต; ทุก 5 LUK → หลบ +1%
+//   INT: +1% terrain effect; ทุก 5 INT → heal effect +3%
+//   หมายเหตุสเปก: Lifesteal มาจากเกียร์เท่านั้น (ไม่มาจาก stat/terrain/upgrade)
 function deriveCombat(b, addCombat) {
   const a = addCombat || {};
-  let atk = 5 + b.str * 1.0 + b.dex * 0.3;
-  let maxhp = 60 + b.vit * 7 + b.str * 1.0;
-  let def = 1 + b.vit * 0.4;
+  let atk = 5 + b.str * 1.0;
+  let maxhp = 60 + b.vit * 8;
+  let def = 1 + Math.floor(b.vit / 5);
   let aspd = 100 + b.agi * 1.5;
-  let critRate = 0.03 + b.luk * 0.005;
-  let critDamage = 1.5;
-  let evasion = b.agi * 0.004;
-  let lifesteal = b.int * 0.002;
-  let armorPen = b.str * 0.15 + b.dex * 0.2;
-  let hit = 80 + b.dex * 2;
+  let critRate = 0.05 + b.luk * 0.008;
+  let critDamage = 1.5 + Math.floor(b.str / 5) * 0.05;
+  let evasion = Math.floor(b.agi / 5) * 0.02 + Math.floor(b.luk / 5) * 0.01;
+  let lifesteal = 0;                                  // สเปก: gear-only
+  let armorPen = Math.floor(b.dex / 5) * 3 + Math.floor(b.str / 5) * 1;
+  let hitBonus = b.dex * 0.01;                        // +1% hit ต่อ DEX
+  let healEffect = Math.floor(b.int / 5) * 0.03;      // ทุก 5 INT → +3% heal
+  let terrainEffect = b.int * 0.01;                   // +1% terrain effect ต่อ INT
   let damageReduction = 0;
   let dropBonus = 0;
-  // + combat adds (gear/perk)
+  // + combat adds (gear/perk/upgrade)
   atk += a.atk || 0;  maxhp += a.hp || 0;  def += a.def || 0;  aspd += a.aspd || 0;
   critRate += a.critRate || 0;  critDamage += a.critDamage || 0;  evasion += a.evasion || 0;
   lifesteal += a.lifesteal || 0;  armorPen += a.armorPen || 0;  damageReduction += a.damageReduction || 0;
@@ -461,7 +535,9 @@ function deriveCombat(b, addCombat) {
     maxhp: Math.max(1, Math.round(maxhp)),
     def: Math.max(0, Math.round(def)),
     aspd: Math.round(aspd),
-    hit: Math.round(hit),
+    hitBonus: clamp(hitBonus, 0, 0.5),
+    healEffect: clamp(healEffect, 0, 0.40),           // เพดาน heal effect 40%
+    terrainEffect: clamp(terrainEffect, 0, 0.35),     // เพดาน terrain effect 35%
     critRate: clamp(critRate, 0, STAT_CAPS.critRate),
     critDamage: clamp(critDamage, 1.0, STAT_CAPS.critDamage),
     evasion: clamp(evasion, 0, STAT_CAPS.evasion),
@@ -899,7 +975,7 @@ function startRun() {
     base: { ...hero.base },             // base stat สาย RPG (str..luk)
     statBase: { ...hero.base },         // base stat หลังรวม perk/gear (สำหรับแสดงผล)
     stats: { hp: null, maxhp: ss.combat.maxhp },  // derived combat — เติมใน recomputeStats
-    gear: { glove: null, jacket: null, boots: null, charm: null },
+    gear: { weapon: null, glove: null, jacket: null, boots: null, charm: null },
     lootBag: [],
     hand: [],
     cells,                  // { [cellId]: { id, type, enemy, placedCardId } }
@@ -922,7 +998,6 @@ function startRun() {
     bossSignalObtained: false,
     bossSignalPlaced: false,
     bossFought: false,
-    reviveUsed: false,
     speed: 1,               // 0 = Pause, 1 = 1x (ช้า, default), 2 = 2x
     ended: false,
     _placing: null,
@@ -1332,12 +1407,12 @@ function arriveCamp() {
   }
   // perk trigger จาก loop count (เก็บเป็น pending แสดงตอนถึง Camp)
   checkPerkLoopTrigger(run);
-  // camp recovery (Arena Training: CAMP RECOVERY + perk Holy Resolve)
-  const heal = upgValue('campHeal') + (run.perkMods.campRecov || 0);
-  if (heal > 0) {
-    const amt = Math.round(run.stats.maxhp * heal);
-    run.stats.hp = clamp(run.stats.hp + amt, 0, run.stats.maxhp);
-  }
+  // camp recovery (สเปก: ฐาน 20% + Arena Training + perk + INT heal effect, เพดานรวม 50%)
+  let healPct = (SPEC_BAL.CAMP_HEAL_BASE + upgValue('campHeal') + (run.perkMods.campRecov || 0))
+    * (1 + (run.stats.healEffect || 0));
+  healPct = clamp(healPct, 0, SPEC_BAL.CAMP_HEAL_CAP);
+  const amt = Math.round(run.stats.maxhp * healPct);
+  if (amt > 0) run.stats.hp = clamp(run.stats.hp + amt, 0, run.stats.maxhp);
   spawnForLoop(run);   // เสกศัตรูสำหรับ loop ใหม่ (ผู้เล่นได้วางแผนก่อน)
   run.speed = 0;       // auto-pause: เข้าโหมดวางแผน (Pause highlight) — กด ▶1x เพื่อ Continue
   renderBoard();
@@ -1668,6 +1743,11 @@ function startBattle(ctx) {
     timer: null,
     paused: false,
     done: false,
+    // ── hero passive state (run/battle-only) ──
+    heroHits: 0,               // หมัดที่เข้าทั้งหมด (perk thirdHit/comboFlow)
+    hitStreak: 0,              // หมัดปกติที่เข้าต่อเนื่อง (พาสซีฟ — miss ไม่นับ)
+    toeiCharged: false,        // TOEI ชาร์จ Power Punch ไว้แล้วหรือยัง
+    heroShield: 0,             // โล่จาก Power Punch
   };
   // pack_howl: ศัตรูบนช่องนี้แรงขึ้น (apply ครั้งเดียวตอนเริ่มสู้)
   if (cellFx.enemyDmgBonus) ctx.enemies.forEach(e => { e.atk += cellFx.enemyDmgBonus; });
@@ -1712,25 +1792,32 @@ function chooseTarget(battle) {
 //   baseDamage   = max(1, atk - effectiveDef)
 //   dodge → critRate → critDamage → mitigations → apply
 function resolveAttack(att, def) {
-  // 1) หลบ — hit/accuracy ของผู้โจมตีลด EVA ของเป้าหมายเล็กน้อย
-  let eva = def.evasion || 0;
-  if (att.hit) eva = Math.max(0, eva - (att.hit - 80) / 1000);
-  if (eva > 0 && Math.random() < eva) return { dodged: true, dmg: 0, crit: false };
+  // 1) HIT / MISS (สเปก): hitChance = 90% + hitBonus ผู้ตี − dodge เป้าหมาย, clamp 75–98%
+  //    การหลบของเป้าหมายถูกรวมเข้า hit roll เดียว (miss = โดนหลบ)
+  //    สกิลพิเศษ/พาสซีฟ (att.noMiss) ข้ามการ roll นี้ — ไม่มีวันพลาด
+  if (!att.noMiss) {
+    const hitChance = clamp(
+      SPEC_BAL.BASE_HIT + (att.hitBonus || 0) - (def.evasion || 0),
+      SPEC_BAL.MIN_HIT, SPEC_BAL.MAX_HIT);
+    if (Math.random() > hitChance) return { missed: true, dmg: 0, crit: false };
+  }
   // 2) เกราะ/ดาเมจฐาน
   const effDef = Math.max(0, (def.def || 0) - (att.armorPen || 0));
   let dmg = Math.max(1, Math.round(att.atk * rnd(0.9, 1.1)) - effDef);
-  // 3) คริต
+  // 3) คริต (สกิลพิเศษคริตได้)
   let crit = false;
   if (att.critRate && Math.random() < att.critRate) { dmg = Math.round(dmg * (att.critDamage || 1.5)); crit = true; }
   // 4) execute (backstab vs เป้าหมาย HP ต่ำ)
   if (att.execLowHp && def.maxhp && def.hp / def.maxhp < 0.5) dmg = Math.round(dmg * (1 + att.execLowHp));
-  // 5) มิทิเกชันของผู้รับ (guard ตอน HP ต่ำ / กันคริต / ลดดาเมจรวม)
+  // 5) เพดานดาเมจสุดท้ายของสกิลพิเศษ (หลังคริต) — สเปกกำหนดต่อฮีโร่
+  if (att.capDmg) dmg = Math.min(dmg, att.capDmg);
+  // 6) มิทิเกชันของผู้รับ (guard ตอน HP ต่ำ / กันคริต / ลดดาเมจรวม)
   if (def.lowHpGuard && def.maxhp && def.hp / def.maxhp < 0.4) dmg = Math.round(dmg * (1 - def.lowHpGuard));
   if (crit && def.burstReduce) dmg = Math.round(dmg * (1 - def.burstReduce));
   if (def.dr) dmg = Math.round(dmg * (1 - def.dr));
   dmg = Math.max(1, dmg);
   def.hp = Math.max(0, def.hp - dmg);
-  return { dodged: false, dmg, crit };
+  return { missed: false, dmg, crit };
 }
 
 // descriptor ฮีโร่ฝั่งโจมตี (รวม cellFx + perk buff + combo/low-hp)
@@ -1740,24 +1827,37 @@ function heroAttacker(run, battle, isExtra) {
   if (m.comboFlow) atk = Math.round(atk * (1 + Math.min(0.5, m.comboFlow * (battle.heroHits || 0))));
   if (m.lowHpAtk && s.hp / s.maxhp < 0.3) atk = Math.round(atk * (1 + m.lowHpAtk));
   if (isExtra) atk = Math.max(1, Math.round(atk * 0.5));   // หมัดเสริมเบากว่า
-  return { isHero: true, atk, critRate: s.critRate, critDamage: s.critDamage, armorPen: s.armorPen, execLowHp: m.execLowHp, hit: s.hit };
+  return { isHero: true, atk, critRate: s.critRate, critDamage: s.critDamage, armorPen: s.armorPen, execLowHp: m.execLowHp, hitBonus: s.hitBonus };
 }
 
 // descriptor ฮีโร่ฝั่งรับ (mutate .hp ระหว่างศัตรูตี)
 function heroDefender(run) {
   const m = run.perkMods, s = run.stats;
   let eva = s.evasion;
+  // APOLOGIZE — พาสซีฟ Apology Counter ให้ base dodge เพิ่ม
+  const pas = HERO_PASSIVES[run.hero.id];
+  if (pas && pas.mode === 'counter') eva = clamp(eva + pas.baseDodge, 0, STAT_CAPS.evasion);
   if (m.lowHpEva && s.hp / s.maxhp < 0.3) eva = clamp(eva + m.lowHpEva, 0, STAT_CAPS.evasion);
   return { isHero: true, def: s.def, evasion: eva, dr: s.damageReduction,
     lowHpGuard: m.lowHpGuard, burstReduce: m.burstReduce, hp: s.hp, maxhp: s.maxhp };
 }
 
 // ฮีโร่ตี target 1 ครั้ง (รวม spirit-fist / lifesteal / venom / kill)
+// lifesteal: ฟื้น = floor(dmg × LS) แต่ไม่เกินเพดานต่อหมัด (สเปก: ปกติ 15%, สกิล 20% maxHP)
+function applyLifesteal(run, dmg, healCapPct) {
+  if (run.stats.lifesteal <= 0 || dmg <= 0) return;
+  const raw = Math.floor(dmg * run.stats.lifesteal);
+  const cap = Math.round(run.stats.maxhp * healCapPct);
+  const heal = Math.min(raw, cap);
+  if (heal > 0) run.stats.hp = clamp(run.stats.hp + heal, 0, run.stats.maxhp);
+}
+
+// คืน true ถ้าหมัดเข้า (ใช้เป็นเงื่อนไขนับ hit streak ของพาสซีฟ) / false ถ้าพลาด
 function heroStrike(target, battle, run, isExtra) {
   const m = run.perkMods;
   const att = heroAttacker(run, battle, isExtra);
   const r = resolveAttack(att, target);
-  if (r.dodged) { battleLog(`💨 ${target.name} หลบหมัด!`); return; }
+  if (r.missed) { battleLog(`💨 ${run.hero.name} ชกพลาด ${target.name}!`); return false; }
   battle.heroHits = (battle.heroHits || 0) + 1;
   let extra = '';
   // spirit fist — ทุกหมัดที่ 3
@@ -1769,17 +1869,79 @@ function heroStrike(target, battle, run, isExtra) {
   // armor break — ลด DEF เป้าหมายชั่วคราว (ภายในไฟต์)
   if (m.armorBreak) { target.def = Math.max(0, (target.def || 0) - m.armorBreak); }
   battleLog(`${isExtra ? '⚡' : '🥊'} ${run.hero.name} → ${target.name} −${r.dmg}${r.crit ? ' 💥CRIT' : ''}${extra}`);
-  // lifesteal — floor(dmg * ls)
-  if (run.stats.lifesteal > 0) {
-    const heal = Math.floor(r.dmg * run.stats.lifesteal);
-    if (heal > 0) run.stats.hp = clamp(run.stats.hp + heal, 0, run.stats.maxhp);
-  }
+  applyLifesteal(run, r.dmg, SPEC_BAL.LS_HEAL_NORMAL);
   // venom — ติดพิษ
   if (m.dotChance && target.hp > 0 && Math.random() < m.dotChance && !target._dot) {
     target._dot = { dmg: Math.max(1, Math.round(att.atk * 0.10)), turns: 3 };
     battleLog(`🟢 ${target.name} ติดพิษ!`);
   }
   if (target.hp <= 0) onEnemyKilled(target, run, r.crit);
+  return true;
+}
+
+// ── HERO PASSIVES — สกิลพิเศษ (ไม่พลาด, คริตได้, มีเพดานดาเมจสุดท้าย) ──────────
+// ยิงสกิลพิเศษประจำฮีโร่ใส่เป้าหมาย (Overdrive Shot / Power Punch / Apology Counter)
+function fireSpecial(target, battle, run, kind) {
+  if (!target || target.hp <= 0) return;
+  const pas = HERO_PASSIVES[run.hero.id];
+  if (!pas) return;
+  const b = run.statBase || run.base, s = run.stats;
+  const baseAtk = heroAttacker(run, battle, false).atk;   // atk ฮีโร่รวมบัฟ (ไม่ลดแบบหมัดเสริม)
+  let pct, critRate = s.critRate, critDamage = s.critDamage, armorPen = s.armorPen;
+  if (kind === 'overdrive_shot') {
+    pct = Math.min(pas.capPct, pas.basePct + Math.floor(b.dex / 5) * pas.dexPer5 + Math.floor(b.str / 5) * pas.strPer5);
+  } else if (kind === 'power_punch') {
+    const base = (target.role === 'elite') ? pas.vsElitePct : pas.basePct;
+    pct = Math.min(pas.capPct, base + Math.floor(b.str / 5) * pas.strPer5);
+    armorPen += Math.floor(b.dex / 5) * pas.dexPenPer5;     // เจาะเกราะพิเศษ
+  } else { // apology_counter
+    pct = Math.min(pas.capPct, pas.counterPct + Math.floor(b.str / 5) * pas.strPer5);
+    critRate = clamp(critRate + Math.floor(b.luk / 5) * pas.lukCritPer5, 0, STAT_CAPS.critRate);
+  }
+  const att = {
+    atk: Math.max(1, Math.round(baseAtk * pct)),
+    noMiss: true, critRate, critDamage, armorPen,
+    capDmg: Math.round(baseAtk * pas.finalCapAfterCrit),   // เพดานดาเมจสุดท้ายหลังคริต
+  };
+  const r = resolveAttack(att, target);
+  battleLog(`✨ ${run.hero.name} ใช้ ${pas.name} → ${target.name} −${r.dmg}${r.crit ? ' 💥CRIT' : ''}`);
+  applyLifesteal(run, r.dmg, SPEC_BAL.LS_HEAL_SPECIAL);
+  // NOCTISAK47 — โอกาส Loop Zeny พิเศษจาก LUK
+  if (kind === 'overdrive_shot') {
+    const chance = Math.floor(b.luk / 5) * pas.lukZenyPer5;
+    if (chance > 0 && Math.random() < chance) {
+      run.mods.zenyBonus += pas.zenyOnHit;
+      battleLog(`🍀 Overdrive โบนัส +${pas.zenyOnHit} Zeny`);
+    }
+  }
+  // TOEI — โล่เล็กหลัง Power Punch (ดูดซับดาเมจตาถัดไป)
+  if (kind === 'power_punch') {
+    const sh = Math.floor(b.vit / 5) * pas.vitShieldPer5;
+    if (sh > 0) { battle.heroShield = (battle.heroShield || 0) + sh; battleLog(`🛡️ ได้โล่ ${sh}`); }
+  }
+  if (target.hp <= 0) onEnemyKilled(target, run, r.crit);
+}
+
+// หมัดหลักของฮีโร่ต่อ 1 เทิร์น — จัดการพาสซีฟ (streak / charge / special)
+function heroAct(target, battle, run) {
+  const pas = HERO_PASSIVES[run.hero.id];
+  // TOEI — หมัดถัดไปถูกชาร์จเป็น Power Punch
+  if (pas && pas.mode === 'charge' && battle.toeiCharged) {
+    battle.toeiCharged = false;
+    fireSpecial(target, battle, run, pas.id);
+    return;
+  }
+  const landed = heroStrike(target, battle, run, false);
+  if (!landed) return;                       // miss ไม่นับ streak (สเปก)
+  battle.hitStreak = (battle.hitStreak || 0) + 1;
+  if (!pas) return;
+  if (pas.mode === 'every' && battle.hitStreak % pas.everyHits === 0) {
+    const t2 = chooseTarget(battle);          // ยิงสกิลทันที (อาจใส่เป้าใหม่ถ้าตัวเดิมตาย)
+    if (t2) fireSpecial(t2, battle, run, pas.id);
+  } else if (pas.mode === 'charge' && battle.hitStreak % pas.everyHits === 0) {
+    battle.toeiCharged = true;
+    battleLog(`🔱 ${run.hero.name} ชาร์จ ${pas.name}!`);
+  }
 }
 
 function onEnemyKilled(target, run, wasCrit) {
@@ -1808,11 +1970,11 @@ function battleTick() {
   battle.round++;
   const m = run.perkMods;
 
-  // ── HERO TURN ──
+  // ── HERO TURN (heroAct จัดการพาสซีฟ streak/charge/special) ──
   const target = chooseTarget(battle);
   if (target) {
-    heroStrike(target, battle, run, false);
-    // double strike (perk) หรือ extra-hit จาก ASPD
+    heroAct(target, battle, run);
+    // double strike (perk) หรือ extra-hit จาก ASPD — หมัดเสริม (ไม่นับ streak พาสซีฟ)
     if (m.doubleStrike && Math.random() < m.doubleStrike) {
       const t2 = chooseTarget(battle); if (t2) heroStrike(t2, battle, run, true);
     } else if (run.stats.extraHit && Math.random() < run.stats.extraHit) {
@@ -1829,17 +1991,27 @@ function battleTick() {
   let totalDmg = 0, anyHit = false;
   for (const e of aliveEnemies()) {
     const before = heroDef.hp;
-    const r = resolveAttack({ atk: e.atk, hit: 80 }, heroDef);
-    if (r.dodged) {
+    const r = resolveAttack({ atk: e.atk, hitBonus: 0 }, heroDef);
+    if (r.missed) {
       battleLog(`💨 ${run.hero.name} หลบ ${e.name}!`);
-      // vanish counter — สวนหลังหลบ
-      if (m.dodgeCounter) {
+      // APOLOGIZE — Apology Counter: หลบสำเร็จแล้วสวนกลับ (ไม่พลาด, คริตได้)
+      const pas = HERO_PASSIVES[run.hero.id];
+      if (pas && pas.mode === 'counter' && e.hp > 0) fireSpecial(e, battle, run, pas.id);
+      // vanish counter — perk สวนหลังหลบ
+      if (m.dodgeCounter && e.hp > 0) {
         const dmg = Math.max(1, Math.round(run.stats.atk * m.dodgeCounter));
         e.hp = Math.max(0, e.hp - dmg);
         battleLog(`🌀 สวนกลับ ${e.name} −${dmg}`);
         if (e.hp <= 0) onEnemyKilled(e, run, false);
       }
       continue;
+    }
+    // TOEI — โล่จาก Power Punch ดูดซับดาเมจตาถัดไป
+    if (battle.heroShield > 0 && r.dmg > 0) {
+      const absorb = Math.min(battle.heroShield, r.dmg);
+      battle.heroShield -= absorb;
+      heroDef.hp = Math.min(heroDef.maxhp, heroDef.hp + absorb);
+      if (absorb > 0) battleLog(`🛡️ โล่กัน ${absorb}`);
     }
     totalDmg += before - heroDef.hp; anyHit = true;
     // thorns gear-roll หายไปแล้ว — ใช้ retaliate perk แทน
@@ -1872,18 +2044,7 @@ function endBattle(result) {
   if (battle.timer) clearTimeout(battle.timer);
 
   if (result === 'dead') {
-    // safer death — ฟื้นคืนชีพ 1 ครั้ง/รัน ถ้ามี upgrade
-    const reviveLv = upgLevel('safeDeath');
-    if (reviveLv > 0 && !run.reviveUsed) {
-      run.reviveUsed = true;
-      run.stats.hp = Math.round(run.stats.maxhp * upgValue('safeDeath'));
-      battleLog(`🪽 SAFER DEATH! ฟื้นคืนชีพที่ HP ${Math.round(run.stats.hp)}`);
-      updateBattleDynamic();
-      updateHUD();
-      battle.done = false;
-      scheduleBattleTick(BAL.BATTLE_MS + 200);
-      return;
-    }
+    // สเปก: HP<=0 จบรันทันที — Safe Retreat ช่วยเรื่อง "เก็บ Loop Zeny" ตอนตาย (ดู runEnd)
     battleLog('☠️ ฮีโร่ล้มลง...');
     finishBattleBanner('DEFEAT');
     BLH._finishTimer = setTimeout(() => runEnd('dead'), 800);
@@ -2118,7 +2279,11 @@ function closeBattle() {
 // RUN END / CASH OUT / ABANDON
 // ════════════════════════════════════════════════════════════════════════════
 function estCashOut(run) {
-  return Math.floor(run.loop * BAL.CASHOUT_PER_LOOP + lootValue(run) + run.mods.zenyBonus);
+  // สเปก Cash Out: รวม loop + ขายเกียร์อัตโนมัติ (lootValue = สวม×2 + กระเป๋า) +
+  //   แปลงการ์ดแผนที่ที่เหลือเป็น Loop Zeny เล็กน้อย + zeny โบนัสสะสม
+  return Math.floor(
+    run.loop * BAL.CASHOUT_PER_LOOP + lootValue(run) +
+    run.hand.length * BAL.CARD_SELL + run.mods.zenyBonus);
 }
 function gearWorth(g) {
   return (g.rolls || []).reduce((s, r) => s + Math.abs(r.v), 0);
@@ -2146,8 +2311,9 @@ function runEnd(reason) {
     zeny = Math.floor(run.loop * BAL.CASHOUT_PER_LOOP + lootValue(run) + run.mods.zenyBonus + BAL.BOSS_BONUS);
     BLH.save.stats.bossKills += 1;
     label = 'boss';
-  } else { // dead — death recovery (ได้ครึ่งเดียว)
-    zeny = Math.floor((run.loop * BAL.CASHOUT_PER_LOOP + lootValue(run) + run.mods.zenyBonus) * 0.5);
+  } else { // dead — death recovery (สเปก: เก็บ 30% + Safe Retreat สูงสุด 50%)
+    const recov = clamp(SPEC_BAL.DEATH_RECOVERY_BASE + upgValue('safeDeath'), 0, SPEC_BAL.DEATH_RECOVERY_CAP);
+    zeny = Math.floor((run.loop * BAL.CASHOUT_PER_LOOP + lootValue(run) + run.mods.zenyBonus) * recov);
     label = 'dead';
   }
   finishRun(zeny, label);
@@ -2229,5 +2395,7 @@ if (BLH_DEV) {
     deriveCombat, recomputeStats, makeGear, resolveAttack,
     checkPerkLoopTrigger, checkPerkBuildTrigger, grantPerkChoice,
     generatePerkOffer, openPerkChoice, choosePerk, remainingPerks,
+    // hero passives + spec balance (Boss Loop Mode core)
+    HERO_PASSIVES, SPEC_BAL, GEAR_SLOTS, fireSpecial, heroAct,
   };
 }

@@ -3928,7 +3928,7 @@
 .blh-statbox-name { font-size: 16px; color: var(--gold); letter-spacing: 1px; }
 .blh-statbox-role { font-size: 10px; color: var(--cyan); letter-spacing: 1px; }
 .blh-statline { font-size: 13px; color: #d7dae2; margin-top: 3px; }
-.blh-equip-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.blh-equip-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
 .blh-equip-mini { padding: 8px 4px; border-radius: 10px; background: rgba(255,255,255,.04); text-align: center; }
 .blh-equip-mini-icon { font-size: 20px; }
 .blh-equip-mini-name { font-size: 10px; color: #c2c6cf; margin-top: 2px; }
