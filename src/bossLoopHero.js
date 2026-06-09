@@ -180,28 +180,32 @@ const STAGES = [
 
 // ── map / terrain cards (รวม 9 ใบ: 3 Road / 3 Adjacent / 3 Terrain) ──────────
 // terrain ใช้ new assets → ใช้ emoji placeholder ชั่วคราว (ASSET RULES อนุญาต)
+// หมายเหตุ: ฟิลด์ `danger` = ค่าความเสี่ยงเฉพาะที่ (local danger) ของไทล์
+//   map ตาม archetype ในสเปก (ชื่อ archetype อยู่ในคอมเมนต์):
+//   Street Clinic +0, Boxing Gym/Street Thug +1, Treasure Fight/Dark Alley/Neon District +2,
+//   Elite Fighter/Blood Shrine/Cursed Billboard +3
 const MAP_CARDS = [
   // ── ROAD (วางบนช่องถนน — ผลเฉพาะช่องนั้น) ──
-  { id: 'spawn_rift',  name: 'รอยแยกศัตรู', kind: 'road', icon: '🌀', accent: '#ff5577',
-    desc: 'เสกศัตรูลงช่องถนนที่เลือกทันที + ลูทดีขึ้นบนช่องนั้น' },
-  { id: 'pack_howl',   name: 'เสียงหอนฝูง', kind: 'road', icon: '🐺', accent: '#ff5577',
-    desc: 'ศัตรูบนช่องถนนนี้แรงขึ้น แต่ดรอป Loop Zeny มากขึ้นเมื่อชนะบนช่องนี้' },
-  { id: 'blood_track', name: 'รอยเลือด',    kind: 'road', icon: '🩸', accent: '#ff5577',
-    desc: 'เพิ่มโอกาสดรอป Boss Signal เมื่อสู้บนช่องถนนนี้' },
+  { id: 'spawn_rift',  name: 'รอยแยกศัตรู', kind: 'road', icon: '🌀', accent: '#ff5577', danger: 3, // Blood Shrine
+    desc: 'เสกศัตรูลงช่องถนนที่เลือกทันที + ลูทดีขึ้นบนช่องนั้น • Danger +3' },
+  { id: 'pack_howl',   name: 'เสียงหอนฝูง', kind: 'road', icon: '🐺', accent: '#ff5577', danger: 3, // Elite Fighter
+    desc: 'ศัตรูบนช่องถนนนี้แรงขึ้น แต่ดรอป Loop Zeny มากขึ้นเมื่อชนะบนช่องนี้ • Danger +3' },
+  { id: 'blood_track', name: 'รอยเลือด',    kind: 'road', icon: '🩸', accent: '#ff5577', danger: 2, // Dark Alley
+    desc: 'เพิ่มโอกาสดรอป Boss Signal เมื่อสู้บนช่องถนนนี้ • Danger +2' },
   // ── ADJACENT (วางบนช่องเทอเรนติดถนน — ส่งผลเฉพาะช่องถนนข้างเคียง) ──
-  { id: 'campfire',    name: 'กองไฟ',       kind: 'adjacent', icon: '🔥', accent: '#ffcc44',
-    desc: 'ฟื้น HP +6 เมื่อเดินผ่านช่องถนนที่อยู่ติดกองไฟ' },
-  { id: 'shrine',      name: 'ศาลเจ้า',     kind: 'adjacent', icon: '⛩️', accent: '#ffcc44',
-    desc: 'ATK +2 ระหว่างสู้บนช่องถนนที่อยู่ติดศาลเจ้า' },
-  { id: 'lucky_totem', name: 'โทเทมนำโชค',  kind: 'adjacent', icon: '🍀', accent: '#ffcc44',
-    desc: 'โอกาสดรอปลูท +12% บนช่องถนนที่อยู่ติดโทเทม' },
-  // ── TERRAIN (วางบนช่องเทอเรน — บัฟทั้งรอบรัน) ──
-  { id: 'rock',        name: 'หินผา',       kind: 'terrain', icon: '🪨', accent: '#88ddaa',
-    desc: 'DEF +3 ถาวรตลอดรอบรัน' },
-  { id: 'thornfield',  name: 'ทุ่งหนาม',    kind: 'terrain', icon: '🌵', accent: '#88ddaa',
-    desc: 'ศัตรูเสีย HP เริ่มต้น -15% แต่ฮีโร่ก็เจ็บ +1 ต่อตา' },
-  { id: 'treasure',    name: 'ลานสมบัติ',   kind: 'terrain', icon: '💎', accent: '#88ddaa',
-    desc: 'อัปเกรด tier ลูทขึ้น 1 ขั้นตลอดรอบรัน' },
+  { id: 'campfire',    name: 'กองไฟ',       kind: 'adjacent', icon: '🔥', accent: '#ffcc44', danger: 0, // Street Clinic
+    desc: 'ฟื้น HP +6 เมื่อเดินผ่านช่องถนนที่อยู่ติดกองไฟ • Danger +0' },
+  { id: 'shrine',      name: 'ศาลเจ้า',     kind: 'adjacent', icon: '⛩️', accent: '#ffcc44', danger: 1, // Boxing Gym
+    desc: 'ATK +2 ระหว่างสู้บนช่องถนนที่อยู่ติดศาลเจ้า • Danger +1' },
+  { id: 'lucky_totem', name: 'โทเทมนำโชค',  kind: 'adjacent', icon: '🍀', accent: '#ffcc44', danger: 2, // Neon District
+    desc: 'โอกาสดรอปลูท +12% บนช่องถนนที่อยู่ติดโทเทม • Danger +2' },
+  // ── TERRAIN (วางบนช่องเทอเรน — บัฟทั้งรอบรัน + danger เฉพาะที่กับถนนข้างเคียง) ──
+  { id: 'rock',        name: 'หินผา',       kind: 'terrain', icon: '🪨', accent: '#88ddaa', danger: 1, // Street Thug
+    desc: 'DEF +3 ถาวรตลอดรอบรัน • Danger +1 ให้ถนนข้างเคียง' },
+  { id: 'thornfield',  name: 'ทุ่งหนาม',    kind: 'terrain', icon: '🌵', accent: '#88ddaa', danger: 2, // Treasure Fight
+    desc: 'ศัตรูเสีย HP เริ่มต้น -15% แต่ฮีโร่ก็เจ็บ +1 ต่อตา • Danger +2 ให้ถนนข้างเคียง' },
+  { id: 'treasure',    name: 'ลานสมบัติ',   kind: 'terrain', icon: '💎', accent: '#88ddaa', danger: 2, // Treasure Fight
+    desc: 'อัปเกรด tier ลูทขึ้น 1 ขั้นตลอดรอบรัน • Danger +2 ให้ถนนข้างเคียง' },
 ];
 const MAP_CARD_BY_ID = Object.fromEntries(MAP_CARDS.map(c => [c.id, c]));
 
@@ -305,6 +309,49 @@ function applyAdjacentCardFx(id, fx) {
     case 'shrine':      fx.atkBonus += 2; break;   // ATK ระหว่างสู้บนช่องถนนข้างๆ
     case 'lucky_totem': fx.lootBonus += 0.12; break; // โอกาสลูทบนช่องถนนข้างๆ
   }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// LOCAL DANGER — ความเสี่ยงเฉพาะที่ของช่องถนน (จากไทล์ที่วาง) — local ไม่ใช่ global
+// ────────────────────────────────────────────────────────────────────────────
+// danger รวมจาก: (1) การ์ดบนช่องถนนนั้นเอง + (2) การ์ดบนช่องเทอเรนที่ "ติดกัน"
+//   (orthogonal) — ทั้ง adjacent และ terrain ส่ง danger ให้ถนนข้างเคียง
+// ช่องถนนที่อยู่ไกล (ไม่ติดกับไทล์) = danger 0 (local เท่านั้น)
+const DANGER_BAL = {
+  STEP: 5,                 // ทุก 5 danger = 1 step
+  HP_PER_STEP: 0.05,       // Enemy HP +5%/step
+  ATK_PER_STEP: 0.04,      // Enemy ATK +4%/step
+  ZENY_PER_STEP: 0.05,     // Loop Zeny +5%/step
+  GEAR_DROP_PER_STEP: 0.04,// Gear drop chance +4%/step (ปริมาณ/โอกาส — ไม่แตะ tier/rarity)
+};
+function cardDanger(cardId) {
+  const c = MAP_CARD_BY_ID[cardId];
+  return c ? (c.danger || 0) : 0;
+}
+// local danger ของช่องถนนหนึ่ง (self road card + neighbor terrain cards)
+function localDangerForRoad(roadCellId) {
+  const run = BLH.run;
+  if (!run || !run.cells) return 0;
+  let d = 0;
+  const self = run.cells[roadCellId];
+  if (self && self.placedCardId) d += cardDanger(self.placedCardId);
+  for (const n of getNeighborCells(roadCellId)) {
+    if (n.type !== 'terrain') continue;          // เฉพาะเทอเรนที่ติดกัน (adjacent/terrain การ์ด)
+    const tc = run.cells[n.id];
+    if (tc && tc.placedCardId) d += cardDanger(tc.placedCardId);
+  }
+  return d;
+}
+// แปลง local danger → ตัวคูณ/โบนัส (ปริมาณ+รางวัล เท่านั้น; ไม่แตะ tier/rarity)
+function localDangerScaling(localDanger) {
+  const steps = Math.floor((localDanger || 0) / DANGER_BAL.STEP);
+  return {
+    steps,
+    hpMult: 1 + steps * DANGER_BAL.HP_PER_STEP,
+    atkMult: 1 + steps * DANGER_BAL.ATK_PER_STEP,
+    zenyMult: 1 + steps * DANGER_BAL.ZENY_PER_STEP,
+    gearDropBonus: steps * DANGER_BAL.GEAR_DROP_PER_STEP,
+  };
 }
 
 // ── จุดกึ่งกลาง (%) ของ cell บน CSS grid (ใช้วาง hero token แบบ absolute) ──
@@ -523,11 +570,10 @@ const EXP_PRESETS = [
 // ════════════════════════════════════════════════════════════════════════════
 // DEFERRED — สเปก Boss Loop Mode ส่วนที่ยกไป follow-up (ตามที่ตกลง "core loop first")
 //   ระบบเหล่านี้ "ยังไม่" implement ในรอบนี้ (เพื่อคุมความเสี่ยง/ไม่กระทบ core loop เดิม):
-//     • Gear Rarity (Common/Rare/Epic/Legendary) + 10 Traits + กฎ 2-trait ของ tier 3–4
-//     • Local Danger (ทุก 5 danger → enemy HP/ATK/Zeny/drop) + แสดงค่า danger ต่อช่อง
 //     • Card Hand แบบ 8 "ชนิด" + stacking (x4) + overflow → แปลงเป็น Zeny
 //     • Gear Bag 12 ช่อง + overflow auto-salvage (เตือนพิเศษเมื่อ Epic/Legendary หลุด)
-//   ปัจจุบันยังใช้: tier-only gear, perk system (run-only), flat hand (≤6 ใบ), unlimited bag
+//   ทำแล้ว: gear tier/rarity/traits, run EXP/level/stat allocation, Local Danger (per-road)
+//   ปัจจุบันยังใช้: flat hand (≤6 ใบ), unlimited bag
 // ════════════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1610,6 +1656,11 @@ function renderBoard() {
       const c = MAP_CARD_BY_ID[rc.placedCardId];
       inner += `<div class="blh-cell-marker" title="${esc(c.name)}">${c.icon}</div>`;
     }
+    // local danger badge เฉพาะช่องถนนที่มี danger > 0 (แสดงความเป็น local)
+    if (def.type === 'road') {
+      const ld = localDangerForRoad(def.id);
+      if (ld > 0) inner += `<div class="blh-cell-danger" title="Local Danger ${ld}">⚠${ld}</div>`;
+    }
     const cls = ['blh-tile', def.type];     // เช่น "blh-tile road" / "blh-tile terrain"
     if (placeable) cls.push('placeable');
     if (occupied) cls.push('occupied');
@@ -1876,14 +1927,25 @@ function planCards(run, locked) {
 }
 
 function planMap(run) {
-  const roadCount = BLH_MAP.cells.filter(c => c.type === 'road').length;
-  const enemies = BLH_MAP.cells.filter(c => c.type === 'road' && run.cells[c.id].enemy).length;
+  const roadIds = BLH_MAP.cells.filter(c => c.type === 'road').map(c => c.id);
+  const enemies = roadIds.filter(id => run.cells[id].enemy).length;
   const placed = Object.keys(run.placedCells).length;
+  // local danger สูงสุดบนแผนที่ (สรุปย่อ — ไม่มี slot-detail UI แยก)
+  let peak = 0;
+  for (const id of roadIds) { const d = localDangerForRoad(id); if (d > peak) peak = d; }
+  const sc = localDangerScaling(peak);
+  const dangerLine = peak > 0
+    ? `<div class="blh-danger-info">
+         <span class="blh-danger-tag">⚠️ Danger <b>${peak}</b></span>
+         <span>👹 HP +${Math.round((sc.hpMult - 1) * 100)}% / ATK +${Math.round((sc.atkMult - 1) * 100)}%</span>
+         <span>💰 Zeny +${Math.round((sc.zenyMult - 1) * 100)}% / 🎁 +${Math.round(sc.gearDropBonus * 100)}%</span>
+       </div>`
+    : `<div class="blh-danger-info dim">⚠️ Danger 0 — วางไทล์ใกล้ถนนเพื่อเพิ่มความเสี่ยง/รางวัล</div>`;
   return `<div class="blh-mapinfo">
-      <span>🗺️ ถนน <b>${roadCount}</b>+Camp</span>
+      <span>🗺️ ถนน <b>${roadIds.length}</b>+Camp</span>
       <span>👾 ศัตรู <b>${enemies}</b></span>
       <span>🌵 วางแล้ว <b>${placed}</b></span>
-    </div>`;
+    </div>${dangerLine}`;
 }
 
 // ── gear (เปลี่ยนได้เฉพาะนอกการสู้) ──
@@ -2040,7 +2102,27 @@ function startBattle(ctx) {
     hitStreak: 0,              // หมัดปกติที่เข้าต่อเนื่อง (พาสซีฟ — miss ไม่นับ)
     toeiCharged: false,        // TOEI ชาร์จ Power Punch ไว้แล้วหรือยัง
     heroShield: 0,             // โล่จาก Power Punch
+    // ── local danger (เฉพาะ road encounter; รวมกับ loop scaling ที่ baked ไว้ใน makeEnemy) ──
+    localDanger: 0, dangerSteps: 0, zenyMult: 1, gearDropBonus: 0,
   };
+  // LOCAL DANGER: road encounter → scale enemy HP/ATK (ปริมาณ) ตามไทล์รอบช่องนี้
+  //   loop scaling ถูก bake ไว้ใน makeEnemy แล้ว → danger คูณทับ (สองสเกลซ้อนกัน)
+  //   ไม่แตะ gear tier/rarity — เฉพาะ HP/ATK + (zeny/gear-drop เก็บไว้ใช้ตอน reward)
+  if (ctx.kind === 'normal' && ctx.cellId) {
+    const ld = localDangerForRoad(ctx.cellId);
+    const sc = localDangerScaling(ld);
+    battle.localDanger = ld;
+    battle.dangerSteps = sc.steps;
+    battle.zenyMult = sc.zenyMult;
+    battle.gearDropBonus = sc.gearDropBonus;
+    if (sc.steps > 0) {
+      for (const e of ctx.enemies) {
+        e.maxhp = Math.max(1, Math.round(e.maxhp * sc.hpMult));
+        e.hp = e.maxhp;
+        e.atk = Math.round(e.atk * sc.atkMult);
+      }
+    }
+  }
   // pack_howl: ศัตรูบนช่องนี้แรงขึ้น (apply ครั้งเดียวตอนเริ่มสู้)
   if (cellFx.enemyDmgBonus) ctx.enemies.forEach(e => { e.atk += cellFx.enemyDmgBonus; });
   BLH._battle = battle;
@@ -2394,8 +2476,14 @@ function endBattle(result) {
   if (run.traitMods && run.traitMods.quickStep > 0 && !run._quickStepActive) {
     run._quickStepActive = true; recomputeStats(run);
   }
+  // LOCAL DANGER reward: Loop Zeny โบนัส (ปริมาณ) ตาม danger ของช่องนี้
+  if (battle.zenyMult > 1) {
+    const bonus = Math.round(BAL.CASHOUT_PER_LOOP * (battle.zenyMult - 1));
+    if (bonus > 0) { run.mods.zenyBonus += bonus; battleLog(`⚠️ Danger โบนัส +${bonus} Zeny`); }
+  }
   const enemyRole = battle.enemies[0] && battle.enemies[0].role;
-  const drops = rollDrops(run, battle.cellFx, { enemyRole });
+  // danger gear-drop bonus = โอกาสดรอป (ปริมาณ) เท่านั้น — ไม่ส่งต่อให้ tier/rarity
+  const drops = rollDrops(run, battle.cellFx, { enemyRole, gearDropBonus: battle.gearDropBonus || 0 });
   drops.forEach(d => battleLog(d));
   finishBattleBanner('WIN');
   BLH._finishTimer = setTimeout(() => {
@@ -2416,10 +2504,11 @@ function rollDrops(run, fx = EMPTY_CELL_FX, ctx = {}) {
   if (fx.zenyBonus) run.mods.zenyBonus += fx.zenyBonus;
   // gear DROP roll (charm DROP stat) → โอกาสลูท/ซีนี่เพิ่ม
   const dropBonus = run.stats.dropBonus || 0;
-  // gear (+lootBonus เฉพาะช่อง + Lucky Find trait)
-  const chance = BAL.BASE_LOOT_CHANCE + upgValue('lootChance') + run.mods.lootBonus + (fx.lootBonus || 0) + dropBonus + (tr.luckyFind || 0);
+  // gear (+lootBonus เฉพาะช่อง + Lucky Find trait + local danger gear-drop bonus)
+  //   danger เพิ่ม "โอกาสดรอป" เท่านั้น — ไม่ส่งต่อให้ makeGear (tier/rarity คงเดิม)
+  const chance = BAL.BASE_LOOT_CHANCE + upgValue('lootChance') + run.mods.lootBonus + (fx.lootBonus || 0) + dropBonus + (tr.luckyFind || 0) + (ctx.gearDropBonus || 0);
   if (Math.random() < chance) {
-    const g = makeGear(run, ctx);
+    const g = makeGear(run, { enemyRole: ctx.enemyRole, treasure: ctx.treasure });
     run.lootBag.push(g);
     const slot = GEAR_SLOTS.find(s => s.id === g.slot);
     out.push(`🎁 ลูท: ${slot.name} ${gearLabelText(g)}`);
@@ -2797,5 +2886,9 @@ if (BLH_DEV) {
     GEAR_TRAITS, GEAR_TRAIT_BY_ID, TRAIT_CHANCE, MAX_TRAITS_BY_TIER,
     GEAR_MAIN_POOLS, GEAR_SUB_POOLS, STAT_ROLLS,
     rollGearTier, rollGearRarity, rollGearTraits, aggregateGear, aggregateTraits,
+    // local danger (per-road, derived from placed tiles)
+    MAP_CARDS, MAP_CARD_BY_ID, DANGER_BAL,
+    cardDanger, localDangerForRoad, localDangerScaling,
+    startBattle, makeEnemy,
   };
 }

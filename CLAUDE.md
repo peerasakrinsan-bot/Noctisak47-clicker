@@ -140,7 +140,9 @@ An **independent** auto-battle mode (user-facing name: **LOOP RPG MODE**; intern
 
 **Combat caps** (`STAT_CAPS`): crit 50%, crit dmg 250%, dodge 35%, lifesteal 20%, armorPen 40 (flat, unchanged), drop bonus +40%, attack-speed add +60. New `HIT` gear stat feeds `hitBonus` in `deriveCombat`.
 
-**Deferred to follow-up** (see the `DEFERRED` banner in `bossLoopHero.js`): local-danger scaling, 8-type card-hand stacking, and 12-slot gear-bag overflow auto-salvage.
+**Local Danger (per-road, run-only):** each placed map tile carries a `danger` value (`MAP_CARDS[].danger`: 0–3, mapped to spec archetypes). `localDangerForRoad(cellId)` sums the road cell's own card + orthogonally-adjacent terrain cells' cards — danger is *local* (distant roads = 0). `localDangerScaling(d)` → `{steps:floor(d/5), hpMult:+5%/step, atkMult:+4%/step, zenyMult:+5%/step, gearDropBonus:+4%/step}` (`DANGER_BAL`). Applied at `startBattle` for normal encounters (scales enemy HP/ATK on top of the loop-depth scaling already baked into `makeEnemy`); `endBattle` grants the Zeny bonus and passes `gearDropBonus` into `rollDrops`' drop *chance*. **Danger raises quantity/reward only — never gear tier or rarity** (those stay loop-depth + enemy-type via `rollGearTier`/`rollGearRarity`, which ignore the danger fields). Shown in the MAP panel (peak danger + scaling) and as a per-road `⚠N` badge.
+
+**Deferred to follow-up** (see the `DEFERRED` banner in `bossLoopHero.js`): 8-type card-hand stacking, and 12-slot gear-bag overflow auto-salvage.
 
 `src/main.js` imports `bossLoopHero.js` **after** `game.js` so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
 

@@ -563,6 +563,88 @@ ok('attack-speed add capped (+60 → extraHit ≤ 0.40)', aspdCap.extraHit <= 0.
 const dropCap = G.deriveCombat({ str: 0, agi: 0, vit: 0, dex: 0, int: 0, luk: 0 }, { dropBonus: 9 });
 ok('drop bonus capped at +40%', Math.abs(dropCap.dropBonus - 0.40) < 1e-9, 'drop=' + dropCap.dropBonus);
 
+// 12) LOCAL DANGER (per-road, derived from placed tiles) ─────────────────────
+const D = window.blh.__test;
+// fresh run for controlled danger tests
+window.blhOpenModeSelect();
+window.blh.pickMode('blh');
+window.blh.pickHero('noctisak47'); window.blh.heroNext();
+window.blh.pickStage('stage1'); window.blh.startRun();
+const dRun = D.BLH.run;
+// clean board: clear placements + enemies
+for (const id in dRun.cells) { dRun.cells[id].placedCardId = null; dRun.cells[id].enemy = null; }
+
+const dRoadIds = D.roadCellIds();
+// find a road cell with an adjacent terrain neighbor
+let roadA = null, terrAdj = null;
+for (const id of dRoadIds) {
+  const t = D.getNeighborCells(id).find(n => n.type === 'terrain');
+  if (t) { roadA = id; terrAdj = t.id; break; }
+}
+ok('found a road cell with adjacent terrain', !!roadA && !!terrAdj);
+
+// 12a) road card danger applies to its own road slot
+dRun.cells[roadA].placedCardId = 'blood_track';        // danger 2 (road)
+ok('local danger from road tile on its own slot', D.localDangerForRoad(roadA) === 2, 'ld=' + D.localDangerForRoad(roadA));
+
+// 12b) roadside/terrain tile on adjacent cell adds to the nearby road slot
+dRun.cells[terrAdj].placedCardId = 'thornfield';        // danger 2 (terrain) on adjacent cell
+ok('adjacent tile adds local danger to nearby road', D.localDangerForRoad(roadA) === 4, 'ld=' + D.localDangerForRoad(roadA));
+
+// 12c) danger does not reach a distant (non-adjacent) road slot
+const roadFar = dRoadIds.find(id => id !== roadA && !D.getNeighborCells(id).some(n => n.id === terrAdj));
+ok('distant road slot has danger 0', D.localDangerForRoad(roadFar) === 0, 'ld=' + D.localDangerForRoad(roadFar));
+
+// 12d) scaling math (every 5 danger = 1 step)
+const s10 = D.localDangerScaling(10);
+ok('danger 10 → 2 steps', s10.steps === 2, 'steps=' + s10.steps);
+ok('HP mult 1.10 at 10 danger', Math.abs(s10.hpMult - 1.10) < 1e-9, 'hp=' + s10.hpMult);
+ok('ATK mult 1.08 at 10 danger', Math.abs(s10.atkMult - 1.08) < 1e-9, 'atk=' + s10.atkMult);
+ok('Zeny mult 1.10 at 10 danger', Math.abs(s10.zenyMult - 1.10) < 1e-9, 'z=' + s10.zenyMult);
+ok('gear-drop +0.08 at 10 danger', Math.abs(s10.gearDropBonus - 0.08) < 1e-9, 'g=' + s10.gearDropBonus);
+const s4 = D.localDangerScaling(4);
+ok('danger 4 → 0 steps (no scaling under threshold)', s4.steps === 0 && s4.hpMult === 1 && s4.gearDropBonus === 0);
+
+// 12e) per-card danger values (Street Clinic = campfire = 0)
+ok('Street Clinic (campfire) danger is 0', D.cardDanger('campfire') === 0);
+ok('danger values match archetypes',
+  D.cardDanger('spawn_rift') === 3 && D.cardDanger('shrine') === 1 && D.cardDanger('blood_track') === 2);
+
+// 12f) startBattle applies danger to enemy HP/ATK + sets reward mults (need ≥5 local danger)
+dRun.cells[roadA].placedCardId = 'spawn_rift';          // danger 3 (self) + thornfield 2 (adj) = 5
+ok('local danger reaches 5 (1 step)', D.localDangerForRoad(roadA) === 5, 'ld=' + D.localDangerForRoad(roadA));
+const dEnemy = { id: 't', name: 'T', img: '', role: 'basic', maxhp: 100, hp: 100, atk: 50, def: 0, evasion: 0 };
+D.startBattle({ kind: 'normal', enemies: [dEnemy], cellId: roadA });
+const dbt = D.BLH._battle;
+ok('battle computes danger steps', dbt.dangerSteps === 1, 'steps=' + dbt.dangerSteps);
+ok('local danger scales enemy HP (+5%)', dEnemy.maxhp === 105, 'hp=' + dEnemy.maxhp);
+ok('local danger scales enemy ATK (+4%)', dEnemy.atk === 52, 'atk=' + dEnemy.atk);  // round(50*1.04)=52
+ok('local danger sets Loop Zeny reward mult (+5%)', Math.abs(dbt.zenyMult - 1.05) < 1e-9, 'z=' + dbt.zenyMult);
+ok('local danger sets gear-drop reward bonus (+4%)', Math.abs(dbt.gearDropBonus - 0.04) < 1e-9, 'g=' + dbt.gearDropBonus);
+D.BLH._battle = null; dRun.phase = 'camp';               // cleanup battle state
+
+// 12g) loop scaling and danger scaling stack
+dRun.loop = 1; dRun.mods.enemyHpMult = 1;
+const eLoop1 = D.makeEnemy({ id: 'x', name: 'X', role: 'basic', base: { hp: 100, atk: 10, def: 0 } }, dRun);
+dRun.loop = 11;
+const eLoop11 = D.makeEnemy({ id: 'x', name: 'X', role: 'basic', base: { hp: 100, atk: 10, def: 0 } }, dRun);
+ok('loop depth scaling raises base enemy HP', eLoop11.maxhp > eLoop1.maxhp, `l1=${eLoop1.maxhp} l11=${eLoop11.maxhp}`);
+const stacked = Math.round(eLoop11.maxhp * D.localDangerScaling(5).hpMult);
+ok('danger scaling stacks on top of loop scaling', stacked > eLoop11.maxhp, `stacked=${stacked} loopOnly=${eLoop11.maxhp}`);
+
+// 12h) danger must NOT alter gear tier/rarity roll inputs
+dRun.loop = 1; dRun.mods.lootTierBump = 0;
+let tierStable = true;
+for (let i = 0; i < 80; i++) { if (D.rollGearTier(dRun, { enemyRole: 'basic', gearDropBonus: 100 }) !== 1) tierStable = false; }
+ok('danger/gearDropBonus never raises gear tier (loop1+basic → T1)', tierStable);
+let noLeg = true;
+for (let i = 0; i < 300; i++) { if (D.rollGearRarity(1, { enemyRole: 'basic', gearDropBonus: 100 }).id === 'legendary') noLeg = false; }
+ok('danger never unlocks higher rarity (T1 basic → never Legendary)', noLeg);
+
+// 12i) module exports
+ok('BLH exposes localDangerForRoad/localDangerScaling/cardDanger',
+  ['localDangerForRoad', 'localDangerScaling', 'cardDanger'].every(f => typeof D[f] === 'function'));
+
 // ── report ───────────────────────────────────────────────────────────────────
 for (const c of checks) {
   console.log(`${c.cond ? '✅' : '❌'} ${c.name}${c.detail ? '  (' + c.detail + ')' : ''}`);
