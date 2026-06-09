@@ -1017,11 +1017,14 @@ function startRun() {
     ended: false,
     _placing: null,
     // ── run EXP / level / stat allocation (run-only — รีเซ็ตเมื่อรันจบ) ──
+    // draft → confirm → locked: ปั้นแต้มใน draftRunStats ก่อน, กด Confirm แล้ว
+    // ย้ายเข้า confirmedRunStats (ล็อกจนจบรัน). combat ใช้ "confirmed" เท่านั้น
     level: 1,
     exp: 0,
     expToNext: expToNext(1),  // = 30
-    statPoints: 0,
-    runStats: { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 },
+    pendingStatPoints: 0,                                      // แต้มว่างที่ยังไม่วางใน draft
+    confirmedRunStats: { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 },  // ล็อก — มีผลต่อ combat
+    draftRunStats:     { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 },  // ร่าง — ยังไม่มีผลจนกด Confirm
   };
   BLH.run = run;
 
@@ -1100,8 +1103,9 @@ function recomputeStats(run) {
   const gear = aggregateGear(run);
   const m = run.perkMods;
   const gb = gear.base, gc = gear.combat;
-  // 1) base stat (str..luk) — รวม stat-point allocations (run.runStats)
-  const rs = run.runStats || {};
+  // 1) base stat (str..luk) — รวม stat-point allocations ที่ "ยืนยันแล้ว" เท่านั้น
+  //    (draftRunStats ที่ยังไม่ confirm จะไม่มีผลต่อ combat — ตามสเปก)
+  const rs = run.confirmedRunStats || {};
   const b = {};
   for (const k of BASE_STAT_KEYS) b[k] = (run.base[k] || 0) + (m[k] || 0) + (gb[k] || 0) + (rs[k] || 0);
   run.statBase = b;
@@ -1131,9 +1135,19 @@ function recomputeStats(run) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// EXP / LEVEL / STAT ALLOCATION — run-only
+// EXP / LEVEL / STAT ALLOCATION — run-only (draft → confirm → locked)
 // ════════════════════════════════════════════════════════════════════════════
-// ให้ EXP + จัดการ level-up (overflow สะสม, +2 แต้ม stat ต่อ level)
+// invariant: pendingStatPoints = แต้มสะสมทั้งหมด − ผลรวม draftRunStats
+//   draftRunStats[k] >= confirmedRunStats[k] เสมอ (draft = confirmed + ส่วนที่กำลังปั้น)
+//   combat อ่านจาก confirmedRunStats เท่านั้น (recomputeStats)
+
+// ผลรวมส่วน draft ที่ยังไม่ยืนยัน (เกินจาก confirmed)
+function draftDelta(run) {
+  const d = run.draftRunStats, c = run.confirmedRunStats;
+  return BASE_STAT_KEYS.reduce((s, k) => s + ((d[k] || 0) - (c[k] || 0)), 0);
+}
+
+// ให้ EXP + จัดการ level-up (overflow สะสม, +2 แต้มว่างต่อ level)
 function grantExp(amount) {
   const run = BLH.run; if (!run || run.ended || amount <= 0) return;
   run.exp += amount;
@@ -1141,7 +1155,7 @@ function grantExp(amount) {
   while (run.exp >= run.expToNext) {
     run.exp -= run.expToNext;
     run.level += 1;
-    run.statPoints += 2;
+    run.pendingStatPoints += 2;
     run.expToNext = expToNext(run.level);
     leveled = true;
   }
@@ -1152,47 +1166,83 @@ function grantExp(amount) {
   }
 }
 
-// จัดสรรแต้มลง stat key หนึ่ง (amount > 0 = ใช้แต้ม, < 0 = คืนแต้ม)
-// ถูก block ระหว่างสู้ (run.phase === 'battle')
+// จัดสรรแต้มลง stat key หนึ่ง — แก้ "draft" เท่านั้น (amount > 0 วาง, < 0 คืน)
+//   + : ดึงจาก pendingStatPoints → draft
+//   − : คืน draft → pendingStatPoints แต่ลดต่ำกว่า confirmed ไม่ได้
+//   ถูก block ระหว่างสู้ (run.phase === 'battle')
 function allocateStat(key, amount) {
   const run = BLH.run; if (!run) return;
   if (run.phase === 'battle') { blhToast('🔒 จัดสรรสเตตัสไม่ได้ระหว่างสู้'); return; }
   if (!BASE_STAT_KEYS.includes(key)) return;
-  const cur = run.runStats[key] || 0;
+  const draft = run.draftRunStats, conf = run.confirmedRunStats;
   if (amount > 0) {
-    if (run.statPoints < amount) return;
-    run.runStats[key] = cur + amount;
-    run.statPoints -= amount;
+    const add = Math.min(amount, run.pendingStatPoints);
+    if (add <= 0) return;
+    draft[key] = (draft[key] || 0) + add;
+    run.pendingStatPoints -= add;
   } else if (amount < 0) {
-    const sub = Math.min(cur, -amount);
-    if (sub === 0) return;
-    run.runStats[key] = cur - sub;
-    run.statPoints += sub;
+    const floor = conf[key] || 0;                  // ลดต่ำกว่า confirmed ไม่ได้
+    const cur = draft[key] || 0;
+    const sub = Math.min(-amount, cur - floor);
+    if (sub <= 0) return;
+    draft[key] = cur - sub;
+    run.pendingStatPoints += sub;
   }
-  recomputeStats(run);
+  // draft ไม่กระทบ combat (recompute ใช้ confirmed) — แค่รีเฟรช UI
   updateHUD();
   renderPanel();
 }
 
-// คืนแต้มทั้งหมด (pending + allocated) แล้วกระจายตาม preset ratio
-// stat แรกใน ratio รับเศษที่เหลือจากการปัด floor
+// ยืนยัน draft → confirmed (ล็อกจนจบรัน) แล้วคำนวณ combat ใหม่
+function confirmStats() {
+  const run = BLH.run; if (!run) return;
+  if (run.phase === 'battle') { blhToast('🔒 ยืนยันสเตตัสไม่ได้ระหว่างสู้'); return; }
+  const delta = draftDelta(run);
+  if (delta <= 0) { blhToast('ยังไม่ได้จัดสรรแต้มใหม่'); return; }
+  run.confirmedRunStats = { ...run.draftRunStats };   // ล็อก: confirmed = draft
+  recomputeStats(run);                                 // confirmed มีผลต่อ combat แล้ว
+  updateHUD();
+  renderPanel();
+  blhToast(`✅ ยืนยันสเตตัส +${delta} — ล็อกจนจบรัน`);
+}
+
+// คืน draft กลับเป็น confirmed (คืนแต้มที่ยังไม่ยืนยันให้ pending)
+function resetDraft() {
+  const run = BLH.run; if (!run) return;
+  if (run.phase === 'battle') { blhToast('🔒 รีเซ็ต draft ไม่ได้ระหว่างสู้'); return; }
+  const refund = draftDelta(run);
+  if (refund <= 0) return;
+  run.pendingStatPoints += refund;
+  run.draftRunStats = { ...run.confirmedRunStats };
+  updateHUD();
+  renderPanel();
+}
+
+// preset: ใช้เฉพาะ "แต้มว่าง" (pending + draft-ที่ยังไม่ยืนยัน) วางลง draft ตาม ratio
+//   ไม่แตะ confirmed (วางทับบน confirmed); stat แรกใน ratio รับเศษจากการปัด floor
 function applyPreset(presetId) {
   const run = BLH.run; if (!run) return;
   if (run.phase === 'battle') { blhToast('🔒 จัดสรรสเตตัสไม่ได้ระหว่างสู้'); return; }
   const preset = EXP_PRESETS.find(p => p.id === presetId);
   if (!preset) return;
-  let total = run.statPoints;
-  for (const k of BASE_STAT_KEYS) { total += run.runStats[k] || 0; run.runStats[k] = 0; }
-  if (total <= 0) return;
+  const draft = run.draftRunStats, conf = run.confirmedRunStats;
+  // คืนส่วน draft ที่ยังไม่ยืนยันกลับเข้า pending ก่อน (draft กลับเป็น confirmed)
+  for (const k of BASE_STAT_KEYS) {
+    const extra = (draft[k] || 0) - (conf[k] || 0);
+    if (extra > 0) run.pendingStatPoints += extra;
+    draft[k] = conf[k] || 0;
+  }
+  const pool = run.pendingStatPoints;
+  if (pool <= 0) { blhToast('ไม่มีแต้มว่างให้จัดสรร'); return; }
   const ratioKeys = Object.keys(preset.ratio);
   const ratioSum = ratioKeys.reduce((s, k) => s + preset.ratio[k], 0);
   const allocs = {};
   let used = 0;
-  for (const k of ratioKeys) { allocs[k] = Math.floor(total * preset.ratio[k] / ratioSum); used += allocs[k]; }
-  allocs[ratioKeys[0]] += total - used;  // เศษไปที่ stat หลักของ preset
-  for (const k of BASE_STAT_KEYS) run.runStats[k] = allocs[k] || 0;
-  run.statPoints = 0;
-  recomputeStats(run);
+  for (const k of ratioKeys) { allocs[k] = Math.floor(pool * preset.ratio[k] / ratioSum); used += allocs[k]; }
+  allocs[ratioKeys[0]] += pool - used;                 // เศษไปที่ stat หลักของ preset
+  for (const k of ratioKeys) draft[k] = (draft[k] || 0) + allocs[k];
+  run.pendingStatPoints = 0;                           // วางทั้งหมดลง draft แล้ว
+  // ยังเป็น draft → ไม่กระทบ combat จนกด Confirm
   updateHUD();
   renderPanel();
 }
@@ -1259,7 +1309,7 @@ function updateHUD() {
       <span class="blh-hptext">❤️ ${Math.max(0, Math.round(run.stats.hp))}/${run.stats.maxhp}</span></div>
     <div class="blh-hud-stats">
       <span>⚔️ ${run.stats.atk}</span><span>🛡️ ${run.stats.def}</span>
-      <span>⬆️ Lv.<b>${run.level}</b>${run.statPoints > 0 ? `<b class="blh-pts-hud">+${run.statPoints}</b>` : ''}</span>
+      <span>⬆️ Lv.<b>${run.level}</b>${run.pendingStatPoints > 0 ? `<b class="blh-pts-hud">+${run.pendingStatPoints}</b>` : ''}</span>
       <span>🃏 ${run.hand.length}</span><span>🎒 ${run.lootBag.length}</span>
     </div>`;
 }
@@ -1383,14 +1433,16 @@ function panelStats(run) {
         <div class="blh-expfill" style="width:${expPct.toFixed(1)}%"></div>
         <span class="blh-exptext">${run.exp}/${run.expToNext} EXP</span>
       </div>
-      ${run.statPoints > 0 ? `<span class="blh-pts-badge">+${run.statPoints}</span>` : ''}
+      ${run.pendingStatPoints > 0 ? `<span class="blh-pts-badge">+${run.pendingStatPoints}</span>` : ''}
     </div>`;
-  // ── Stat Allocation (โชว์เมื่อมีแต้มว่างหรือใช้ไปแล้ว) ──
+  // ── Stat Allocation (draft → confirm → locked) ──
   const battle = run.phase === 'battle';
-  const hasActivity = run.statPoints > 0 || BASE_STAT_KEYS.some(k => (run.runStats[k] || 0) > 0);
+  const draft = run.draftRunStats, conf = run.confirmedRunStats;
+  const delta = draftDelta(run);
+  const hasActivity = run.pendingStatPoints > 0 || delta > 0 || BASE_STAT_KEYS.some(k => (conf[k] || 0) > 0);
   const allocHtml = hasActivity ? `
     <div class="blh-alloc-section${battle ? ' locked' : ''}">
-      <div class="blh-alloc-head">แต้ม stat: <b>${run.statPoints}</b>${battle ? ' <span class="blh-alloc-lock">🔒</span>' : ''}</div>
+      <div class="blh-alloc-head">แต้มว่าง: <b>${run.pendingStatPoints}</b>${delta > 0 ? ` <span class="blh-alloc-draft">ร่าง +${delta}</span>` : ''}${battle ? ' <span class="blh-alloc-lock">🔒</span>' : ''}</div>
       <div class="blh-preset-row">
         ${EXP_PRESETS.map(p =>
           `<button class="blh-preset-btn" ${battle ? 'disabled' : ''} onclick="blh.applyPreset('${p.id}')">${p.icon} ${esc(p.name)}</button>`
@@ -1398,17 +1450,23 @@ function panelStats(run) {
       </div>
       <div class="blh-stat-alloc">
         ${BASE_STAT_KEYS.map(k => {
-          const alloc = run.runStats[k] || 0;
-          const canAdd = !battle && run.statPoints > 0;
-          const canSub = !battle && alloc > 0;
+          const c = conf[k] || 0;
+          const extra = (draft[k] || 0) - c;            // ส่วน draft ที่ยังไม่ยืนยัน
+          const canAdd = !battle && run.pendingStatPoints > 0;
+          const canSub = !battle && extra > 0;          // ลดได้เฉพาะส่วน draft (ไม่ต่ำกว่า confirmed)
           return `<div class="blh-alloc-row">
             <span class="blh-alloc-k">${k.toUpperCase()}</span>
-            <span class="blh-alloc-v">${b[k] || 0}${alloc > 0 ? `<sup>+${alloc}</sup>` : ''}</span>
+            <span class="blh-alloc-v">+${c}${extra > 0 ? `<sup>(+${extra})</sup>` : ''}</span>
             <button class="blh-alloc-btn" ${canSub ? '' : 'disabled'} onclick="blh.allocateStat('${k}',-1)">−</button>
             <button class="blh-alloc-btn" ${canAdd ? '' : 'disabled'} onclick="blh.allocateStat('${k}',1)">+</button>
           </div>`;
         }).join('')}
       </div>
+      <div class="blh-alloc-actions">
+        <button class="blh-alloc-confirm" ${(!battle && delta > 0) ? '' : 'disabled'} onclick="blh.confirmStats()">✅ ยืนยันสเตตัส</button>
+        <button class="blh-alloc-reset" ${(!battle && delta > 0) ? '' : 'disabled'} onclick="blh.resetDraft()">↺ ล้างร่าง</button>
+      </div>
+      <div class="blh-alloc-warn">⚠️ เมื่อยืนยันแล้ว สเตตัสจะถูกล็อกจนจบรัน</div>
     </div>` : '';
   return `
     <div class="blh-statbox">
@@ -2510,7 +2568,7 @@ Object.assign(blh, {
   startPlace, cancelPlace, placeAt,
   dismissBattle,
   choosePerk,
-  allocateStat, applyPreset,
+  allocateStat, applyPreset, confirmStats, resetDraft,
 });
 
 // ── debug/test hooks — เปิดเฉพาะ dev/test (smoke) ไม่ expose ใน production ──
@@ -2527,7 +2585,8 @@ if (BLH_DEV) {
     generatePerkOffer, openPerkChoice, choosePerk, remainingPerks,
     // hero passives + spec balance (Boss Loop Mode core)
     HERO_PASSIVES, SPEC_BAL, GEAR_SLOTS, fireSpecial, heroAct,
-    // run EXP / level / stat allocation
-    ENEMY_EXP, EXP_PRESETS, expToNext, grantExp, allocateStat, applyPreset,
+    // run EXP / level / stat allocation (draft → confirm → locked)
+    ENEMY_EXP, EXP_PRESETS, expToNext, grantExp,
+    allocateStat, applyPreset, confirmStats, resetDraft, draftDelta,
   };
 }

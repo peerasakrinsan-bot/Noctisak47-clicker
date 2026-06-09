@@ -299,32 +299,38 @@ ok('fresh run starts with no perks (run-only)', T.BLH.run.perks.length === 0);
 ok('fresh run starts with empty perkMods triggers', T.BLH.run.perkPending === 0);
 window.blh.setSpeed(1);
 
-// 10) RUN EXP / LEVEL / STAT ALLOCATION ─────────────────────────────────────
+// 10) RUN EXP / LEVEL / STAT ALLOCATION (draft → confirm → locked) ───────────
 // ใช้ run จาก 9j (APOLOGIZE hero, fresh run)
 const expT = window.blh.__test;
 const expRun = expT.BLH.run;
+const BSK2 = expT.BASE_STAT_KEYS;
+const allocSum = obj => BSK2.reduce((s, k) => s + (obj[k] || 0), 0);
 
 // 10a) fresh run has correct initial EXP/level state
 ok('fresh run level is 1', expRun.level === 1, 'lv=' + expRun.level);
 ok('fresh run exp is 0', expRun.exp === 0, 'exp=' + expRun.exp);
-ok('fresh run statPoints is 0', expRun.statPoints === 0, 'pts=' + expRun.statPoints);
-ok('fresh run runStats all zero', expT.BASE_STAT_KEYS.every(k => expRun.runStats[k] === 0));
+ok('fresh run pendingStatPoints is 0', expRun.pendingStatPoints === 0, 'pts=' + expRun.pendingStatPoints);
+ok('fresh run confirmedRunStats all zero', BSK2.every(k => expRun.confirmedRunStats[k] === 0));
+ok('fresh run draftRunStats all zero', BSK2.every(k => expRun.draftRunStats[k] === 0));
 
 // 10b) expToNext formula: 30 + (level-1)² × 18
 ok('expToNext(1) = 30', expT.expToNext(1) === 30, 'got=' + expT.expToNext(1));
 ok('expToNext(2) = 48', expT.expToNext(2) === 48, 'got=' + expT.expToNext(2));
 ok('expToNext(5) = 318', expT.expToNext(5) === 318, 'got=' + expT.expToNext(5));
 
-// 10c) grantExp: accumulates without level-up, then levels up with overflow
+// 10c) grantExp: accumulates without level-up, then levels up with overflow → pending points
 expT.grantExp(25);
 ok('25 EXP: level still 1, exp = 25', expRun.level === 1 && expRun.exp === 25,
   `lv=${expRun.level} exp=${expRun.exp}`);
 expT.grantExp(10); // total 35 ≥ expToNext(1)=30 → level up; overflow = 5
 ok('35 total EXP → level 2', expRun.level === 2, 'lv=' + expRun.level);
 ok('EXP overflow preserved after level up', expRun.exp === 5, 'exp=' + expRun.exp);
-ok('+2 stat points per level up', expRun.statPoints === 2, 'pts=' + expRun.statPoints);
+ok('+2 pending points per level up', expRun.pendingStatPoints === 2, 'pts=' + expRun.pendingStatPoints);
 ok('expToNext updates to level 2 value', expRun.expToNext === expT.expToNext(2),
   `expToNext=${expRun.expToNext}`);
+// grant more so we have a comfortable pool for the draft/confirm tests
+expT.grantExp(expRun.expToNext - expRun.exp); // exactly level up once more → +2 (total pending 4)
+ok('pending points pooled to 4', expRun.pendingStatPoints === 4, 'pts=' + expRun.pendingStatPoints);
 
 // 10d) ENEMY_EXP: every role has a positive numeric value
 ['basic', 'fast', 'tank', 'cursed', 'elite'].forEach(role =>
@@ -332,53 +338,97 @@ ok('expToNext updates to level 2 value', expRun.expToNext === expT.expToNext(2),
     'val=' + expT.ENEMY_EXP[role]));
 ok('elite EXP > basic EXP', expT.ENEMY_EXP.elite > expT.ENEMY_EXP.basic);
 
-// 10e) allocateStat: adds/removes points correctly outside battle
+// 10e) DRAFT: +/− affect draft only (not confirmed), and combat does NOT change yet
 expRun.phase = 'camp';
+const atkBeforeDraft = expRun.stats.atk;
 expT.allocateStat('str', 1);
-ok('allocateStat spends 1 stat point', expRun.statPoints === 1, 'pts=' + expRun.statPoints);
-ok('allocateStat adds to runStats.str', expRun.runStats.str === 1, 'str=' + expRun.runStats.str);
-// recomputeStats must have been called → statBase includes allocation
-ok('recomputeStats reflects runStats allocation',
-  expRun.statBase.str === (expRun.base.str + 1 + (expRun.perkMods.str || 0)),
-  `statBase.str=${expRun.statBase.str} expected=${expRun.base.str + 1}`);
-// refund
+expT.allocateStat('str', 1); // draft STR +2
+ok('draft + spends pending points', expRun.pendingStatPoints === 2, 'pts=' + expRun.pendingStatPoints);
+ok('draft + adds to draftRunStats only', expRun.draftRunStats.str === 2 && expRun.confirmedRunStats.str === 0,
+  `draft=${expRun.draftRunStats.str} conf=${expRun.confirmedRunStats.str}`);
+ok('DRAFT does NOT affect combat ATK before confirm', expRun.stats.atk === atkBeforeDraft,
+  `atk=${expRun.stats.atk} before=${atkBeforeDraft}`);
+ok('statBase ignores draft (confirmed only)', expRun.statBase.str === expRun.base.str + (expRun.perkMods.str || 0),
+  `statBase.str=${expRun.statBase.str}`);
+// draft − returns to pending
 expT.allocateStat('str', -1);
-ok('allocateStat refunds point back to pool', expRun.statPoints === 2 && expRun.runStats.str === 0,
-  `pts=${expRun.statPoints} str=${expRun.runStats.str}`);
+ok('draft − refunds to pending', expRun.pendingStatPoints === 3 && expRun.draftRunStats.str === 1,
+  `pts=${expRun.pendingStatPoints} draft=${expRun.draftRunStats.str}`);
 
-// 10f) allocateStat: blocked during battle
+// 10f) CONFIRM: moves draft → confirmed, locks, and NOW affects combat
+expT.allocateStat('dex', 1); // draft: str1, dex1 (pending 2)
+expT.confirmStats();
+ok('confirm moves draft into confirmed', expRun.confirmedRunStats.str === 1 && expRun.confirmedRunStats.dex === 1,
+  `str=${expRun.confirmedRunStats.str} dex=${expRun.confirmedRunStats.dex}`);
+ok('confirm leaves unspent pending intact', expRun.pendingStatPoints === 2, 'pts=' + expRun.pendingStatPoints);
+ok('confirmed STR affects combat ATK', expRun.stats.atk > atkBeforeDraft,
+  `atk=${expRun.stats.atk} before=${atkBeforeDraft}`);
+ok('statBase now includes confirmed STR', expRun.statBase.str === expRun.base.str + 1 + (expRun.perkMods.str || 0),
+  `statBase.str=${expRun.statBase.str}`);
+
+// 10g) CONFIRMED stats cannot be refunded below confirmed value
+expT.allocateStat('str', -1); // STR draft == confirmed (1) → cannot go below
+ok('cannot reduce STR below confirmed (1)', expRun.draftRunStats.str === 1 && expRun.confirmedRunStats.str === 1,
+  `draft=${expRun.draftRunStats.str} conf=${expRun.confirmedRunStats.str}`);
+
+// 10h) RESET DRAFT: reverts unconfirmed additions and restores pending
+expT.allocateStat('vit', 2); // draft adds vit+2 (pending 0)
+ok('draft vit added before reset', expRun.draftRunStats.vit === 2 && expRun.pendingStatPoints === 0);
+expT.resetDraft();
+ok('reset draft reverts to confirmed', expRun.draftRunStats.vit === 0 && expRun.draftRunStats.str === 1,
+  `vit=${expRun.draftRunStats.vit} str=${expRun.draftRunStats.str}`);
+ok('reset draft restores pending', expRun.pendingStatPoints === 2, 'pts=' + expRun.pendingStatPoints);
+ok('reset draft does NOT touch confirmed', expRun.confirmedRunStats.str === 1 && expRun.confirmedRunStats.dex === 1);
+
+// 10i) PRESET: spends pending into draft only, never alters confirmed
+expT.applyPreset('power'); // POWER: str6 vit2 dex2; pending 2 → str=2 (1 floor + 1 remainder)
+ok('preset spends all pending into draft', expRun.pendingStatPoints === 0, 'pts=' + expRun.pendingStatPoints);
+ok('preset keeps confirmed stats locked', expRun.confirmedRunStats.str === 1 && expRun.confirmedRunStats.dex === 1,
+  `str=${expRun.confirmedRunStats.str} dex=${expRun.confirmedRunStats.dex}`);
+ok('preset stacks draft on top of confirmed', expRun.draftRunStats.str >= expRun.confirmedRunStats.str,
+  `draft.str=${expRun.draftRunStats.str} conf.str=${expRun.confirmedRunStats.str}`);
+ok('preset draft does NOT affect combat until confirm',
+  expRun.statBase.str === expRun.base.str + 1 + (expRun.perkMods.str || 0),
+  `statBase.str=${expRun.statBase.str}`);
+// preset with no pending + no draft → no-op (confirm current draft so pending = 0, delta = 0)
+expT.confirmStats(); // lock current preset draft → pending stays 0, draftDelta → 0
+const confSnapshot = { ...expRun.confirmedRunStats };
+ok('confirm after preset clears draft delta', expT.draftDelta(expRun) === 0);
+expT.applyPreset('tank'); // pending 0 + no draft → nothing to allocate
+ok('preset with no available points does not alter confirmed',
+  BSK2.every(k => expRun.confirmedRunStats[k] === confSnapshot[k]));
+
+// 10j) battle blocks allocation / confirm / reset
+expRun.pendingStatPoints = 2; // give points
 expRun.phase = 'battle';
+const draftSnapshot = { ...expRun.draftRunStats };
+const confBattleSnapshot = { ...expRun.confirmedRunStats };
 expT.allocateStat('str', 1);
-ok('allocateStat blocked during battle (runStats unchanged)', expRun.runStats.str === 0 && expRun.statPoints === 2,
-  `str=${expRun.runStats.str} pts=${expRun.statPoints}`);
+ok('allocateStat blocked during battle', allocSum(expRun.draftRunStats) === allocSum(draftSnapshot) && expRun.pendingStatPoints === 2);
+expRun.draftRunStats.luk = (expRun.draftRunStats.luk || 0) + 1; // simulate a pending draft delta
+expT.confirmStats();
+ok('confirmStats blocked during battle', expRun.confirmedRunStats.luk === (confBattleSnapshot.luk || 0));
+expT.resetDraft();
+ok('resetDraft blocked during battle', expRun.draftRunStats.luk === 1); // unchanged (still drafted)
+expRun.draftRunStats.luk = confBattleSnapshot.luk || 0; // cleanup
 expRun.phase = 'camp';
 
-// 10g) applyPreset: distributes ALL available points per ratio, statPoints → 0
-expT.applyPreset('power'); // POWER ratio: str:6 vit:2 dex:2 (total=10); 2 pts → str=2 (1 floor + 1 remainder)
-const powerTotal = expT.BASE_STAT_KEYS.reduce((s, k) => s + (expRun.runStats[k] || 0), 0);
-ok('POWER preset allocates all available points', powerTotal === 2 && expRun.statPoints === 0,
-  `used=${powerTotal} pts=${expRun.statPoints}`);
-ok('POWER preset puts most points into STR', expRun.runStats.str > 0, 'str=' + expRun.runStats.str);
+// 10k) RUN END resets confirmed/draft/pending/level/exp (fresh run = clean slate)
+window.blhOpenModeSelect();
+window.blh.pickMode('blh');
+window.blh.pickHero('noctisak47'); window.blh.heroNext();
+window.blh.pickStage('stage1'); window.blh.startRun();
+const freshRun = expT.BLH.run;
+ok('run end resets level to 1', freshRun.level === 1, 'lv=' + freshRun.level);
+ok('run end resets exp to 0', freshRun.exp === 0, 'exp=' + freshRun.exp);
+ok('run end resets pending points to 0', freshRun.pendingStatPoints === 0, 'pts=' + freshRun.pendingStatPoints);
+ok('run end resets confirmedRunStats', BSK2.every(k => freshRun.confirmedRunStats[k] === 0));
+ok('run end resets draftRunStats', BSK2.every(k => freshRun.draftRunStats[k] === 0));
+window.blh.setSpeed(1);
 
-// 10h) recomputeStats includes runStats in derived ATK
-const baseAtk = expT.deriveCombat(expRun.base, {}).atk;
-ok('runStats allocation increases derived combat ATK',
-  expRun.stats.atk > baseAtk,
-  `run.atk=${expRun.stats.atk} base.atk=${baseAtk}`);
-
-// 10i) applyPreset: resets previous allocation before re-distributing
-expT.applyPreset('tank'); // TANK ratio: vit:6 str:2 int:2; 2 pts → vit=2 (floor 1 + remainder 1)
-ok('TANK preset resets previous POWER allocation',
-  expRun.runStats.str === 0 || expRun.runStats.vit >= expRun.runStats.str,
-  `str=${expRun.runStats.str} vit=${expRun.runStats.vit}`);
-const tankTotal = expT.BASE_STAT_KEYS.reduce((s, k) => s + (expRun.runStats[k] || 0), 0);
-ok('TANK preset uses all points (statPoints = 0)', tankTotal === 2 && expRun.statPoints === 0,
-  `used=${tankTotal} pts=${expRun.statPoints}`);
-
-// 10j) run end resets level/EXP (BLH.run = null after finishRun)
-// (already guaranteed: finishRun sets BLH.run = null — all run-only state goes with it)
-ok('BLH module exposes grantExp/allocateStat/applyPreset via __test',
-  typeof expT.grantExp === 'function' && typeof expT.allocateStat === 'function' && typeof expT.applyPreset === 'function');
+// 10l) module exports + preset config sanity
+ok('BLH exposes grantExp/allocateStat/applyPreset/confirmStats/resetDraft',
+  ['grantExp', 'allocateStat', 'applyPreset', 'confirmStats', 'resetDraft'].every(f => typeof expT[f] === 'function'));
 ok('EXP_PRESETS has 5 presets', expT.EXP_PRESETS.length === 5, 'n=' + expT.EXP_PRESETS.length);
 ok('all presets have id/name/icon/ratio', expT.EXP_PRESETS.every(p =>
   p.id && p.name && p.icon && typeof p.ratio === 'object' && Object.keys(p.ratio).length > 0));

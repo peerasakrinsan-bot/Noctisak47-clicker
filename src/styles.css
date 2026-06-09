@@ -3978,6 +3978,7 @@
 .blh-alloc-section.locked { opacity: .65; }
 .blh-alloc-head { font-size: 12px; color: #b8bcc6; margin-bottom: 7px; }
 .blh-alloc-head b { color: #fff; }
+.blh-alloc-draft { font-size: 11px; color: #ffaa22; margin-left: 4px; }
 .blh-alloc-lock { font-size: 11px; }
 /* 5 preset buttons — compact horizontal row (overflow = scroll) */
 .blh-preset-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -3998,6 +3999,18 @@
   color: #e8eaf0; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .blh-alloc-btn:not(:disabled):active { background: rgba(255,255,255,.18); }
 .blh-alloc-btn:disabled { opacity: .35; cursor: default; }
+/* confirm / reset draft actions */
+.blh-alloc-actions { display: flex; gap: 6px; margin-top: 8px; }
+.blh-alloc-confirm, .blh-alloc-reset { flex: 1; font-size: 11px; letter-spacing: .5px; padding: 7px 6px;
+  border-radius: 7px; cursor: pointer; white-space: nowrap; transition: background .1s; }
+.blh-alloc-confirm { color: #051; border: 1px solid #1c8a4a; font-weight: 700;
+  background: linear-gradient(135deg, #1fbf63, #36d97a); }
+.blh-alloc-confirm:not(:disabled):active { background: linear-gradient(135deg, #18a653, #2cc56b); }
+.blh-alloc-reset { color: #d0d4df; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); }
+.blh-alloc-reset:not(:disabled):active { background: rgba(255,255,255,.16); }
+.blh-alloc-confirm:disabled, .blh-alloc-reset:disabled { opacity: .4; cursor: default; }
+.blh-alloc-warn { margin-top: 7px; font-size: 10px; color: #c89a4a; line-height: 1.4;
+  font-family: 'Sarabun', sans-serif; }
 
 /* ── PERK CHOICE overlay (Camp; เกมหยุดจนเลือกเสร็จ) ── */
 .blh-perk-overlay { align-items: center; }
