@@ -299,6 +299,90 @@ ok('fresh run starts with no perks (run-only)', T.BLH.run.perks.length === 0);
 ok('fresh run starts with empty perkMods triggers', T.BLH.run.perkPending === 0);
 window.blh.setSpeed(1);
 
+// 10) RUN EXP / LEVEL / STAT ALLOCATION ─────────────────────────────────────
+// ใช้ run จาก 9j (APOLOGIZE hero, fresh run)
+const expT = window.blh.__test;
+const expRun = expT.BLH.run;
+
+// 10a) fresh run has correct initial EXP/level state
+ok('fresh run level is 1', expRun.level === 1, 'lv=' + expRun.level);
+ok('fresh run exp is 0', expRun.exp === 0, 'exp=' + expRun.exp);
+ok('fresh run statPoints is 0', expRun.statPoints === 0, 'pts=' + expRun.statPoints);
+ok('fresh run runStats all zero', expT.BASE_STAT_KEYS.every(k => expRun.runStats[k] === 0));
+
+// 10b) expToNext formula: 30 + (level-1)² × 18
+ok('expToNext(1) = 30', expT.expToNext(1) === 30, 'got=' + expT.expToNext(1));
+ok('expToNext(2) = 48', expT.expToNext(2) === 48, 'got=' + expT.expToNext(2));
+ok('expToNext(5) = 318', expT.expToNext(5) === 318, 'got=' + expT.expToNext(5));
+
+// 10c) grantExp: accumulates without level-up, then levels up with overflow
+expT.grantExp(25);
+ok('25 EXP: level still 1, exp = 25', expRun.level === 1 && expRun.exp === 25,
+  `lv=${expRun.level} exp=${expRun.exp}`);
+expT.grantExp(10); // total 35 ≥ expToNext(1)=30 → level up; overflow = 5
+ok('35 total EXP → level 2', expRun.level === 2, 'lv=' + expRun.level);
+ok('EXP overflow preserved after level up', expRun.exp === 5, 'exp=' + expRun.exp);
+ok('+2 stat points per level up', expRun.statPoints === 2, 'pts=' + expRun.statPoints);
+ok('expToNext updates to level 2 value', expRun.expToNext === expT.expToNext(2),
+  `expToNext=${expRun.expToNext}`);
+
+// 10d) ENEMY_EXP: every role has a positive numeric value
+['basic', 'fast', 'tank', 'cursed', 'elite'].forEach(role =>
+  ok(`ENEMY_EXP[${role}] > 0`, typeof expT.ENEMY_EXP[role] === 'number' && expT.ENEMY_EXP[role] > 0,
+    'val=' + expT.ENEMY_EXP[role]));
+ok('elite EXP > basic EXP', expT.ENEMY_EXP.elite > expT.ENEMY_EXP.basic);
+
+// 10e) allocateStat: adds/removes points correctly outside battle
+expRun.phase = 'camp';
+expT.allocateStat('str', 1);
+ok('allocateStat spends 1 stat point', expRun.statPoints === 1, 'pts=' + expRun.statPoints);
+ok('allocateStat adds to runStats.str', expRun.runStats.str === 1, 'str=' + expRun.runStats.str);
+// recomputeStats must have been called → statBase includes allocation
+ok('recomputeStats reflects runStats allocation',
+  expRun.statBase.str === (expRun.base.str + 1 + (expRun.perkMods.str || 0)),
+  `statBase.str=${expRun.statBase.str} expected=${expRun.base.str + 1}`);
+// refund
+expT.allocateStat('str', -1);
+ok('allocateStat refunds point back to pool', expRun.statPoints === 2 && expRun.runStats.str === 0,
+  `pts=${expRun.statPoints} str=${expRun.runStats.str}`);
+
+// 10f) allocateStat: blocked during battle
+expRun.phase = 'battle';
+expT.allocateStat('str', 1);
+ok('allocateStat blocked during battle (runStats unchanged)', expRun.runStats.str === 0 && expRun.statPoints === 2,
+  `str=${expRun.runStats.str} pts=${expRun.statPoints}`);
+expRun.phase = 'camp';
+
+// 10g) applyPreset: distributes ALL available points per ratio, statPoints → 0
+expT.applyPreset('power'); // POWER ratio: str:6 vit:2 dex:2 (total=10); 2 pts → str=2 (1 floor + 1 remainder)
+const powerTotal = expT.BASE_STAT_KEYS.reduce((s, k) => s + (expRun.runStats[k] || 0), 0);
+ok('POWER preset allocates all available points', powerTotal === 2 && expRun.statPoints === 0,
+  `used=${powerTotal} pts=${expRun.statPoints}`);
+ok('POWER preset puts most points into STR', expRun.runStats.str > 0, 'str=' + expRun.runStats.str);
+
+// 10h) recomputeStats includes runStats in derived ATK
+const baseAtk = expT.deriveCombat(expRun.base, {}).atk;
+ok('runStats allocation increases derived combat ATK',
+  expRun.stats.atk > baseAtk,
+  `run.atk=${expRun.stats.atk} base.atk=${baseAtk}`);
+
+// 10i) applyPreset: resets previous allocation before re-distributing
+expT.applyPreset('tank'); // TANK ratio: vit:6 str:2 int:2; 2 pts → vit=2 (floor 1 + remainder 1)
+ok('TANK preset resets previous POWER allocation',
+  expRun.runStats.str === 0 || expRun.runStats.vit >= expRun.runStats.str,
+  `str=${expRun.runStats.str} vit=${expRun.runStats.vit}`);
+const tankTotal = expT.BASE_STAT_KEYS.reduce((s, k) => s + (expRun.runStats[k] || 0), 0);
+ok('TANK preset uses all points (statPoints = 0)', tankTotal === 2 && expRun.statPoints === 0,
+  `used=${tankTotal} pts=${expRun.statPoints}`);
+
+// 10j) run end resets level/EXP (BLH.run = null after finishRun)
+// (already guaranteed: finishRun sets BLH.run = null — all run-only state goes with it)
+ok('BLH module exposes grantExp/allocateStat/applyPreset via __test',
+  typeof expT.grantExp === 'function' && typeof expT.allocateStat === 'function' && typeof expT.applyPreset === 'function');
+ok('EXP_PRESETS has 5 presets', expT.EXP_PRESETS.length === 5, 'n=' + expT.EXP_PRESETS.length);
+ok('all presets have id/name/icon/ratio', expT.EXP_PRESETS.every(p =>
+  p.id && p.name && p.icon && typeof p.ratio === 'object' && Object.keys(p.ratio).length > 0));
+
 // ── report ───────────────────────────────────────────────────────────────────
 for (const c of checks) {
   console.log(`${c.cond ? '✅' : '❌'} ${c.name}${c.detail ? '  (' + c.detail + ')' : ''}`);

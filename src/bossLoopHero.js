@@ -446,10 +446,25 @@ const HERO_PASSIVES = {
 };
 
 // ════════════════════════════════════════════════════════════════════════════
+// RUN EXP / LEVEL — run-only (รีเซ็ตเมื่อรันจบ ไม่บันทึกถาวร)
+// ════════════════════════════════════════════════════════════════════════════
+// EXP ที่ศัตรูแต่ละ role ให้เมื่อถูกฆ่า (สเปก)
+const ENEMY_EXP = { basic: 8, fast: 12, tank: 14, cursed: 16, elite: 35 };
+// EXP ที่ต้องการขึ้น level ถัดไป (สเปก: 30 + (level-1)² × 18)
+function expToNext(level) { return 30 + Math.pow(level - 1, 2) * 18; }
+// Preset จัดสรรแต้ม stat (ratio รวม = 10; stat แรกในแต่ละ preset รับเศษที่เหลือ)
+const EXP_PRESETS = [
+  { id: 'power',  name: 'POWER',  icon: '⚔️', ratio: { str: 6, vit: 2, dex: 2 } },
+  { id: 'tank',   name: 'TANK',   icon: '🛡️', ratio: { vit: 6, str: 2, int: 2 } },
+  { id: 'speed',  name: 'SPEED',  icon: '⚡', ratio: { agi: 6, dex: 2, luk: 2 } },
+  { id: 'luck',   name: 'LUCK',   icon: '🍀', ratio: { luk: 5, dex: 2, agi: 2, str: 1 } },
+  { id: 'mystic', name: 'MYSTIC', icon: '✨', ratio: { int: 5, luk: 3, vit: 2 } },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
 // DEFERRED — สเปก Boss Loop Mode ส่วนที่ยกไป follow-up (ตามที่ตกลง "core loop first")
 //   ระบบเหล่านี้ "ยังไม่" implement ในรอบนี้ (เพื่อคุมความเสี่ยง/ไม่กระทบ core loop เดิม):
 //     • Gear Rarity (Common/Rare/Epic/Legendary) + 10 Traits + กฎ 2-trait ของ tier 3–4
-//     • Run-only Level/EXP + แต้ม stat 2/เลเวล + การจัดสรร manual/preset
 //     • Local Danger (ทุก 5 danger → enemy HP/ATK/Zeny/drop) + แสดงค่า danger ต่อช่อง
 //     • Card Hand แบบ 8 "ชนิด" + stacking (x4) + overflow → แปลงเป็น Zeny
 //     • Gear Bag 12 ช่อง + overflow auto-salvage (เตือนพิเศษเมื่อ Epic/Legendary หลุด)
@@ -1001,6 +1016,12 @@ function startRun() {
     speed: 1,               // 0 = Pause, 1 = 1x (ช้า, default), 2 = 2x
     ended: false,
     _placing: null,
+    // ── run EXP / level / stat allocation (run-only — รีเซ็ตเมื่อรันจบ) ──
+    level: 1,
+    exp: 0,
+    expToNext: expToNext(1),  // = 30
+    statPoints: 0,
+    runStats: { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 },
   };
   BLH.run = run;
 
@@ -1079,9 +1100,10 @@ function recomputeStats(run) {
   const gear = aggregateGear(run);
   const m = run.perkMods;
   const gb = gear.base, gc = gear.combat;
-  // 1) base stat (str..luk)
+  // 1) base stat (str..luk) — รวม stat-point allocations (run.runStats)
+  const rs = run.runStats || {};
   const b = {};
-  for (const k of BASE_STAT_KEYS) b[k] = (run.base[k] || 0) + (m[k] || 0) + (gb[k] || 0);
+  for (const k of BASE_STAT_KEYS) b[k] = (run.base[k] || 0) + (m[k] || 0) + (gb[k] || 0) + (rs[k] || 0);
   run.statBase = b;
   // 2) combat adds (Arena Training + gear combat rolls + perk + terrain)
   const adds = {
@@ -1106,6 +1128,73 @@ function recomputeStats(run) {
   else if (c.maxhp > prevMax) run.stats.hp = Math.min(c.maxhp, curHp + (c.maxhp - prevMax));
   else run.stats.hp = curHp;
   run.stats.hp = clamp(run.stats.hp, 0, c.maxhp);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXP / LEVEL / STAT ALLOCATION — run-only
+// ════════════════════════════════════════════════════════════════════════════
+// ให้ EXP + จัดการ level-up (overflow สะสม, +2 แต้ม stat ต่อ level)
+function grantExp(amount) {
+  const run = BLH.run; if (!run || run.ended || amount <= 0) return;
+  run.exp += amount;
+  let leveled = false;
+  while (run.exp >= run.expToNext) {
+    run.exp -= run.expToNext;
+    run.level += 1;
+    run.statPoints += 2;
+    run.expToNext = expToNext(run.level);
+    leveled = true;
+  }
+  if (leveled) {
+    blhToast(`⬆️ LEVEL UP! Lv.${run.level} • ได้ 2 แต้ม stat`);
+    updateHUD();
+    if (run.phase !== 'battle') renderPanel();
+  }
+}
+
+// จัดสรรแต้มลง stat key หนึ่ง (amount > 0 = ใช้แต้ม, < 0 = คืนแต้ม)
+// ถูก block ระหว่างสู้ (run.phase === 'battle')
+function allocateStat(key, amount) {
+  const run = BLH.run; if (!run) return;
+  if (run.phase === 'battle') { blhToast('🔒 จัดสรรสเตตัสไม่ได้ระหว่างสู้'); return; }
+  if (!BASE_STAT_KEYS.includes(key)) return;
+  const cur = run.runStats[key] || 0;
+  if (amount > 0) {
+    if (run.statPoints < amount) return;
+    run.runStats[key] = cur + amount;
+    run.statPoints -= amount;
+  } else if (amount < 0) {
+    const sub = Math.min(cur, -amount);
+    if (sub === 0) return;
+    run.runStats[key] = cur - sub;
+    run.statPoints += sub;
+  }
+  recomputeStats(run);
+  updateHUD();
+  renderPanel();
+}
+
+// คืนแต้มทั้งหมด (pending + allocated) แล้วกระจายตาม preset ratio
+// stat แรกใน ratio รับเศษที่เหลือจากการปัด floor
+function applyPreset(presetId) {
+  const run = BLH.run; if (!run) return;
+  if (run.phase === 'battle') { blhToast('🔒 จัดสรรสเตตัสไม่ได้ระหว่างสู้'); return; }
+  const preset = EXP_PRESETS.find(p => p.id === presetId);
+  if (!preset) return;
+  let total = run.statPoints;
+  for (const k of BASE_STAT_KEYS) { total += run.runStats[k] || 0; run.runStats[k] = 0; }
+  if (total <= 0) return;
+  const ratioKeys = Object.keys(preset.ratio);
+  const ratioSum = ratioKeys.reduce((s, k) => s + preset.ratio[k], 0);
+  const allocs = {};
+  let used = 0;
+  for (const k of ratioKeys) { allocs[k] = Math.floor(total * preset.ratio[k] / ratioSum); used += allocs[k]; }
+  allocs[ratioKeys[0]] += total - used;  // เศษไปที่ stat หลักของ preset
+  for (const k of BASE_STAT_KEYS) run.runStats[k] = allocs[k] || 0;
+  run.statPoints = 0;
+  recomputeStats(run);
+  updateHUD();
+  renderPanel();
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1170,6 +1259,7 @@ function updateHUD() {
       <span class="blh-hptext">❤️ ${Math.max(0, Math.round(run.stats.hp))}/${run.stats.maxhp}</span></div>
     <div class="blh-hud-stats">
       <span>⚔️ ${run.stats.atk}</span><span>🛡️ ${run.stats.def}</span>
+      <span>⬆️ Lv.<b>${run.level}</b>${run.statPoints > 0 ? `<b class="blh-pts-hud">+${run.statPoints}</b>` : ''}</span>
       <span>🃏 ${run.hand.length}</span><span>🎒 ${run.lootBag.length}</span>
     </div>`;
 }
@@ -1271,7 +1361,7 @@ function renderPanelBody() {
   return '';
 }
 
-// แผง STATS — base stat + combat stat (compact) + เพิร์ก + เกียร์ย่อ
+// แผง STATS — base stat + combat stat (compact) + level/EXP + stat alloc + เพิร์ก + เกียร์ย่อ
 function panelStats(run) {
   const s = run.stats, b = run.statBase || run.base;
   const c = {
@@ -1284,6 +1374,42 @@ function panelStats(run) {
     ? `<div class="blh-perk-active">${run.perks.map(id => {
         const p = pool.find(x => x.id === id); return p ? `<span class="blh-perk-chip">✨ ${esc(p.name)}</span>` : '';
       }).join('')}</div>` : '';
+  // ── Level / EXP bar (แสดงเสมอ) ──
+  const expPct = run.expToNext > 0 ? clamp(run.exp / run.expToNext * 100, 0, 100) : 100;
+  const lvlHtml = `
+    <div class="blh-level-row">
+      <span class="blh-lvl-tag">Lv.<b>${run.level}</b></span>
+      <div class="blh-expbar">
+        <div class="blh-expfill" style="width:${expPct.toFixed(1)}%"></div>
+        <span class="blh-exptext">${run.exp}/${run.expToNext} EXP</span>
+      </div>
+      ${run.statPoints > 0 ? `<span class="blh-pts-badge">+${run.statPoints}</span>` : ''}
+    </div>`;
+  // ── Stat Allocation (โชว์เมื่อมีแต้มว่างหรือใช้ไปแล้ว) ──
+  const battle = run.phase === 'battle';
+  const hasActivity = run.statPoints > 0 || BASE_STAT_KEYS.some(k => (run.runStats[k] || 0) > 0);
+  const allocHtml = hasActivity ? `
+    <div class="blh-alloc-section${battle ? ' locked' : ''}">
+      <div class="blh-alloc-head">แต้ม stat: <b>${run.statPoints}</b>${battle ? ' <span class="blh-alloc-lock">🔒</span>' : ''}</div>
+      <div class="blh-preset-row">
+        ${EXP_PRESETS.map(p =>
+          `<button class="blh-preset-btn" ${battle ? 'disabled' : ''} onclick="blh.applyPreset('${p.id}')">${p.icon} ${esc(p.name)}</button>`
+        ).join('')}
+      </div>
+      <div class="blh-stat-alloc">
+        ${BASE_STAT_KEYS.map(k => {
+          const alloc = run.runStats[k] || 0;
+          const canAdd = !battle && run.statPoints > 0;
+          const canSub = !battle && alloc > 0;
+          return `<div class="blh-alloc-row">
+            <span class="blh-alloc-k">${k.toUpperCase()}</span>
+            <span class="blh-alloc-v">${b[k] || 0}${alloc > 0 ? `<sup>+${alloc}</sup>` : ''}</span>
+            <button class="blh-alloc-btn" ${canSub ? '' : 'disabled'} onclick="blh.allocateStat('${k}',-1)">−</button>
+            <button class="blh-alloc-btn" ${canAdd ? '' : 'disabled'} onclick="blh.allocateStat('${k}',1)">+</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
   return `
     <div class="blh-statbox">
       <div class="blh-statbox-portrait"><img src="${run.hero.img}" onerror="this.style.opacity=0"></div>
@@ -1295,6 +1421,8 @@ function panelStats(run) {
       </div>
     </div>
     ${perkLine}
+    ${lvlHtml}
+    ${allocHtml}
     <div class="blh-equip-strip">${GEAR_SLOTS.map(sl => {
       const g = run.gear[sl.id];
       return `<div class="blh-equip-mini">
@@ -1947,6 +2075,7 @@ function heroAct(target, battle, run) {
 function onEnemyKilled(target, run, wasCrit) {
   const m = run.perkMods;
   battleLog(`☠️ ${target.name} ถูกล้ม!`);
+  grantExp(ENEMY_EXP[target.role] || ENEMY_EXP.basic);
   if (m.killBuffAtk) run._killAtkBuff = (run._killAtkBuff || 0) + m.killBuffAtk;  // จนถึง loop ถัดไป
   if (m.critKillBonus && wasCrit) { run.mods.zenyBonus += 15; battleLog('🍀 Lucky Cut! +15 Zeny'); }
 }
@@ -2381,6 +2510,7 @@ Object.assign(blh, {
   startPlace, cancelPlace, placeAt,
   dismissBattle,
   choosePerk,
+  allocateStat, applyPreset,
 });
 
 // ── debug/test hooks — เปิดเฉพาะ dev/test (smoke) ไม่ expose ใน production ──
@@ -2397,5 +2527,7 @@ if (BLH_DEV) {
     generatePerkOffer, openPerkChoice, choosePerk, remainingPerks,
     // hero passives + spec balance (Boss Loop Mode core)
     HERO_PASSIVES, SPEC_BAL, GEAR_SLOTS, fireSpecial, heroAct,
+    // run EXP / level / stat allocation
+    ENEMY_EXP, EXP_PRESETS, expToNext, grantExp, allocateStat, applyPreset,
   };
 }
