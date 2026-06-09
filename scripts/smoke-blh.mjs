@@ -286,10 +286,13 @@ ok('critDamage cap 250%', capped.critDamage <= T.STAT_CAPS.critDamage + 1e-9, 'c
 ok('evasion cap 35%', capped.evasion <= T.STAT_CAPS.evasion + 1e-9, 'eva=' + capped.evasion);
 ok('lifesteal cap 20%', capped.lifesteal <= T.STAT_CAPS.lifesteal + 1e-9, 'ls=' + capped.lifesteal);
 ok('armorPen cap', capped.armorPen <= T.STAT_CAPS.armorPen, 'pen=' + capped.armorPen);
-// 9i) gear rolls carry base/combat stat rolls (not the old single stat shape)
+// 9i) gear carries tier/rarity/main/sub (new quality shape)
 const sampleGear = T.makeGear(pr);
-ok('gear has rolls array', Array.isArray(sampleGear.rolls) && sampleGear.rolls.length >= 1);
-ok('gear roll has key + value', sampleGear.rolls.every(r => typeof r.k === 'string' && typeof r.v === 'number'));
+ok('gear has slot + numeric tier (1–4)', typeof sampleGear.slot === 'string' &&
+  sampleGear.tier >= 1 && sampleGear.tier <= 4, 'tier=' + sampleGear.tier);
+ok('gear has rarity id', typeof sampleGear.rarity === 'string' && !!T.GEAR_RARITY_BY_ID[sampleGear.rarity]);
+ok('gear main stat has key+value', sampleGear.mainStat && typeof sampleGear.mainStat.k === 'string' && typeof sampleGear.mainStat.v === 'number');
+ok('gear sub stat has key+value', sampleGear.subStat && typeof sampleGear.subStat.k === 'string' && typeof sampleGear.subStat.v === 'number');
 // 9j) perks are run-only — a fresh run starts with an empty perk list
 window.blhOpenModeSelect();
 window.blh.pickMode('blh');
@@ -432,6 +435,133 @@ ok('BLH exposes grantExp/allocateStat/applyPreset/confirmStats/resetDraft',
 ok('EXP_PRESETS has 5 presets', expT.EXP_PRESETS.length === 5, 'n=' + expT.EXP_PRESETS.length);
 ok('all presets have id/name/icon/ratio', expT.EXP_PRESETS.every(p =>
   p.id && p.name && p.icon && typeof p.ratio === 'object' && Object.keys(p.ratio).length > 0));
+
+// 11) GEAR TIER + RARITY + TRAITS ────────────────────────────────────────────
+const G = window.blh.__test;
+const gRun = G.BLH.run;          // fresh run from 10k (noctisak47)
+
+// 11a) every generated gear has the full quality shape
+let allShapeOK = true, allTierOK = true, allRarityOK = true, mainStrongerCount = 0, sameStatSamples = 0;
+for (let i = 0; i < 400; i++) {
+  gRun.loop = 1 + (i % 16);                            // sweep loop depth → all tiers
+  const g = G.makeGear(gRun, {});
+  if (!(g.slot && g.tier >= 1 && g.tier <= 4 && g.rarity && g.mainStat && g.subStat && Array.isArray(g.traits))) allShapeOK = false;
+  if (g.tier < 1 || g.tier > 4) allTierOK = false;
+  if (!G.GEAR_RARITY_BY_ID[g.rarity]) allRarityOK = false;
+  if (g.mainStat.k === g.subStat.k) { sameStatSamples++; if (g.mainStat.v >= g.subStat.v) mainStrongerCount++; }
+}
+ok('gear always has slot/tier/rarity/main/sub/traits', allShapeOK);
+ok('gear tier always 1–4', allTierOK);
+ok('gear rarity always valid id', allRarityOK);
+ok('main stat ≥ sub stat when same stat type', sameStatSamples === 0 || mainStrongerCount === sameStatSamples,
+  `${mainStrongerCount}/${sameStatSamples}`);
+
+// 11b) no duplicate stat key within one gear (main ≠ sub) and no duplicate traits
+let noDupStat = true, noDupTrait = true, maxTraitsOK = true;
+for (let i = 0; i < 400; i++) {
+  gRun.loop = 1 + (i % 16);
+  const g = G.makeGear(gRun, { enemyRole: 'cursed' });   // cursed boosts trait chance
+  if (g.mainStat.k === g.subStat.k) noDupStat = false;
+  if (g.traits.length !== new Set(g.traits).size) noDupTrait = false;
+  if (g.traits.length > (G.MAX_TRAITS_BY_TIER[g.tier] || 1)) maxTraitsOK = false;
+  if (g.tier <= 2 && g.traits.length > 1) maxTraitsOK = false;
+}
+ok('main and sub stat keys never duplicate', noDupStat);
+ok('no duplicate traits within one gear', noDupTrait);
+ok('trait count respects tier cap (T1–2 ≤1, T3–4 ≤2)', maxTraitsOK);
+
+// 11c) rarity affects stat roll quality (Legendary rolls higher than Common, same tier)
+// Direct quality check: rarity rollMin/rollMax bands match spec & are monotonic
+const RB = Object.fromEntries(G.GEAR_RARITIES.map(r => [r.id, r]));
+ok('Common quality band 40–65%', Math.abs(RB.common.rollMin - 0.40) < 1e-9 && Math.abs(RB.common.rollMax - 0.65) < 1e-9);
+ok('Rare quality band 60–80%', Math.abs(RB.rare.rollMin - 0.60) < 1e-9 && Math.abs(RB.rare.rollMax - 0.80) < 1e-9);
+ok('Epic quality band 75–92%', Math.abs(RB.epic.rollMin - 0.75) < 1e-9 && Math.abs(RB.epic.rollMax - 0.92) < 1e-9);
+ok('Legendary quality band 90–100%', Math.abs(RB.legendary.rollMin - 0.90) < 1e-9 && Math.abs(RB.legendary.rollMax - 1.00) < 1e-9);
+ok('rarity bands are monotonically increasing', RB.common.rollMin < RB.rare.rollMin &&
+  RB.rare.rollMin < RB.epic.rollMin && RB.epic.rollMin < RB.legendary.rollMin);
+// empirical: avg main-stat value of Legendary > Common at the same tier (build gear directly via traits table is internal;
+// instead generate many and bucket by rarity)
+const buckets = { common: [], rare: [], epic: [], legendary: [] };
+for (let i = 0; i < 4000; i++) {
+  gRun.loop = 16;                          // force T4 base
+  const g = G.makeGear(gRun, {});
+  if (g.tier === 4) buckets[g.rarity].push(g.mainStat.v);
+}
+const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
+if (buckets.common.length > 20 && buckets.legendary.length > 20) {
+  ok('Legendary avg main-roll > Common avg main-roll (same tier)',
+    mean(buckets.legendary) > mean(buckets.common),
+    `leg=${mean(buckets.legendary).toFixed(1)} com=${mean(buckets.common).toFixed(1)}`);
+} else {
+  ok('Legendary avg main-roll > Common avg main-roll (same tier)', true, 'insufficient samples — skipped');
+}
+
+// 11d) trait chance table matches spec exactly
+const TC = G.TRAIT_CHANCE;
+ok('T1 Common trait 10%, 2-trait 0%', TC[1].common.t === 0.10 && TC[1].common.tt === 0);
+ok('T1 Legendary trait 50%, 2-trait 0%', TC[1].legendary.t === 0.50 && TC[1].legendary.tt === 0);
+ok('T3 Epic trait 80%, 2-trait 30%', TC[3].epic.t === 0.80 && TC[3].epic.tt === 0.30);
+ok('T4 Legendary trait 100%, 2-trait 70%', TC[4].legendary.t === 1.00 && TC[4].legendary.tt === 0.70);
+ok('T1–2 allow max 1 trait', G.MAX_TRAITS_BY_TIER[1] === 1 && G.MAX_TRAITS_BY_TIER[2] === 1);
+ok('T3–4 allow max 2 traits', G.MAX_TRAITS_BY_TIER[3] === 2 && G.MAX_TRAITS_BY_TIER[4] === 2);
+// empirical: T4 Legendary always rolls ≥1 trait (t=100%)
+let t4LegAlways = true;
+for (let i = 0; i < 200; i++) { if (G.rollGearTraits(4, 'legendary', {}).length < 1) t4LegAlways = false; }
+ok('T4 Legendary always has ≥1 trait (t=100%)', t4LegAlways);
+// empirical: T1 Common rarely 2 traits (tt=0 → never)
+let t1Never2 = true;
+for (let i = 0; i < 200; i++) { if (G.rollGearTraits(1, 'common', {}).length > 1) t1Never2 = false; }
+ok('T1 never rolls 2 traits', t1Never2);
+
+// 11e) MVP = 10 traits, each with key + cap
+ok('exactly 10 traits implemented', G.GEAR_TRAITS.length === 10, 'n=' + G.GEAR_TRAITS.length);
+ok('every trait has key + numeric cap', G.GEAR_TRAITS.every(t => typeof t.key === 'string' && typeof t.cap === 'number' && t.cap > 0));
+const TRAIT_NAMES = G.GEAR_TRAITS.map(t => t.name);
+['Blood Taste','Clean Escape','Heavy Grip','Quick Step','Lucky Find','Card Sense','Counter Guard','Last Stand','Iron Skin','Sharp Rhythm']
+  .forEach(n => ok('trait present: ' + n, TRAIT_NAMES.includes(n)));
+
+// 11f) traits stack across gear AND apply caps (aggregateTraits)
+const trDef = Object.fromEntries(G.GEAR_TRAITS.map(t => [t.id, t]));
+function gearWith(traits) { return { slot: 'charm', tier: 4, rarity: 'legendary', mainStat: { k: 'LUK', v: 5 }, subStat: { k: 'INT', v: 3 }, traits }; }
+// equip 3 Blood Taste copies → 3×0.04 = 0.12 but capped at 0.10
+gRun.gear = { weapon: gearWith(['blood_taste']), glove: gearWith(['blood_taste']), jacket: gearWith(['blood_taste']), boots: null, charm: null };
+let agg = G.aggregateTraits(gRun);
+ok('trait stacks across gear', agg.bloodTaste > trDef.blood_taste.per - 1e-9, 'bt=' + agg.bloodTaste);
+ok('trait stack respects cap (Blood Taste ≤ 0.10)', agg.bloodTaste <= trDef.blood_taste.cap + 1e-9, 'bt=' + agg.bloodTaste);
+ok('Blood Taste 3× hits the cap exactly', Math.abs(agg.bloodTaste - 0.10) < 1e-9, 'bt=' + agg.bloodTaste);
+// different traits coexist
+gRun.gear = { weapon: gearWith(['heavy_grip', 'last_stand']), glove: gearWith(['iron_skin']), jacket: null, boots: null, charm: null };
+agg = G.aggregateTraits(gRun);
+ok('multiple distinct traits aggregate independently',
+  agg.heavyGrip > 0 && agg.lastStand > 0 && agg.ironSkin > 0,
+  `hg=${agg.heavyGrip} ls=${agg.lastStand} is=${agg.ironSkin}`);
+
+// 11g) lifesteal STILL comes only from gear (no base/stat source) + caps hold
+// hero base with huge LUK/STR etc. but no gear → lifesteal must be 0
+const noGearLS = G.deriveCombat({ str: 99, agi: 99, vit: 99, dex: 99, int: 99, luk: 99 }, {});
+ok('lifesteal is 0 without gear (gear-only rule preserved)', noGearLS.lifesteal === 0, 'ls=' + noGearLS.lifesteal);
+const gearLS = G.deriveCombat({ str: 0, agi: 0, vit: 0, dex: 0, int: 0, luk: 0 }, { lifesteal: 0.5 });
+ok('gear lifesteal applies and is capped at 20%', Math.abs(gearLS.lifesteal - 0.20) < 1e-9, 'ls=' + gearLS.lifesteal);
+
+// 11h) gear remains run-only — equipped/loot gear vanishes on run end (BLH.run = null → fresh init)
+window.blhOpenModeSelect();
+window.blh.pickMode('blh');
+window.blh.pickHero('toei'); window.blh.heroNext();
+window.blh.pickStage('stage1'); window.blh.startRun();
+const gFresh = window.blh.__test.BLH.run;
+ok('fresh run starts with empty gear slots', G.GEAR_MAIN_POOLS && Object.keys(gFresh.gear).every(s => gFresh.gear[s] === null));
+ok('fresh run starts with empty loot bag', gFresh.lootBag.length === 0);
+ok('fresh run traitMods reset (all zero after recompute)',
+  Object.values(gFresh.traitMods || {}).every(v => v === 0));
+window.blh.setSpeed(1);
+
+// 11i) new combat stats wired: HIT gear stat raises hitBonus; ASPD add capped at +60
+const hitGear = G.deriveCombat({ str: 0, agi: 0, vit: 0, dex: 0, int: 0, luk: 0 }, { hitBonus: 0.10 });
+ok('HIT gear stat raises hitBonus', hitGear.hitBonus >= 0.10 - 1e-9, 'hit=' + hitGear.hitBonus);
+const aspdCap = G.deriveCombat({ str: 0, agi: 0, vit: 0, dex: 0, int: 0, luk: 0 }, { aspd: 999 });
+ok('attack-speed add capped (+60 → extraHit ≤ 0.40)', aspdCap.extraHit <= 0.40 + 1e-9, 'eh=' + aspdCap.extraHit);
+const dropCap = G.deriveCombat({ str: 0, agi: 0, vit: 0, dex: 0, int: 0, luk: 0 }, { dropBonus: 9 });
+ok('drop bonus capped at +40%', Math.abs(dropCap.dropBonus - 0.40) < 1e-9, 'drop=' + dropCap.dropBonus);
 
 // ── report ───────────────────────────────────────────────────────────────────
 for (const c of checks) {

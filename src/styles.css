@@ -3942,6 +3942,14 @@
 .blh-gear-slot-val, .blh-loot-val { font-size: 13px; color: #e8eaf0; margin-top: 2px; }
 .blh-tier-tag { font-size: 10px; letter-spacing: 1px; border: 1px solid; border-radius: 5px; padding: 1px 5px; margin-right: 6px; }
 .blh-trait { font-family: 'Sarabun', sans-serif; font-size: 11px; color: #9aa0ad; margin-left: 4px; }
+/* ── gear tier + rarity + traits ── */
+.blh-rar-tag { display: inline-block; font-size: 10px; letter-spacing: .5px; border: 1px solid;
+  border-radius: 5px; padding: 1px 5px; margin-right: 6px; white-space: nowrap; }
+.blh-substat { color: #aab0bd; font-size: 12px; }
+.blh-gear-traits { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.blh-trait-chip { font-size: 10px; letter-spacing: .3px; color: #ffe2a8; padding: 1px 6px; border-radius: 6px;
+  background: rgba(255,196,84,.10); border: 1px solid rgba(255,196,84,.32); white-space: nowrap;
+  font-family: 'Sarabun', sans-serif; }
 .blh-mapcard { border-left: 3px solid var(--accent); }
 .blh-mapcard-name { font-size: 14px; color: #e8eaf0; }
 .blh-mapcard-kind { font-size: 9px; letter-spacing: 1px; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
