@@ -15,11 +15,12 @@ npm install          # first time only
 npm run dev          # Vite dev server with HMR at http://localhost:5173
 npm run build        # production build → dist/
 npm run preview      # serve dist/ locally
+npm run smoke        # headless smoke check (mode-select + Boss Loop Hero wiring)
 ```
 
 For mobile testing, use browser DevTools device emulation or connect a real device on the same local network.
 
-There are no automated tests or linters. All verification is manual.
+There are no automated browser tests or linters. CI runs `npm run build && npm run smoke` (see `.github/workflows/smoke.yml`).
 
 ## Architecture
 
@@ -28,17 +29,21 @@ There are no automated tests or linters. All verification is manual.
 ```
 index.html              # HTML shell; loads src/styles.css and src/main.js
 src/
-  main.js               # ES module entry point; imports game.js
-  game.js               # All game logic (~10,352 lines) — Stage 2A verbatim lift
-  styles.css            # All game styles (~3,650 lines)
+  main.js               # ES module entry point; imports game.js then bossLoopHero.js
+  game.js               # All core game logic (~10,354 lines) — Stage 2A verbatim lift
+  bossLoopHero.js       # Boss Loop Hero mode (~1,804 lines) — independent module
+  styles.css            # All game styles (~4,072 lines)
 public/
   sw.js                 # Service Worker (copied verbatim to dist/)
   manifest.json         # PWA manifest
-  cards/                # 72 card artwork PNGs
-  *.png / *.mp3 / ...   # ~300 other static assets (sprites, audio, icons)
+  cards/                # 90 card artwork PNGs
+  *.png / *.mp3 / ...   # ~94 other static assets (sprites, audio, icons)
 scripts/
   postbuild-sw.js       # Post-build: injects hashed bundle paths into dist/sw.js
+  smoke-blh.mjs         # Headless smoke test for mode-select + BLH wiring (Node only)
 vite.config.js          # base: './', outDir: 'dist/', minify: false (Stage 2A)
+.github/workflows/
+  smoke.yml             # CI: build + smoke on every push / PR
 ```
 
 ### Migration stage
@@ -55,10 +60,26 @@ npm run build
   2. node scripts/postbuild-sw.js
        reads dist/assets/*.js and *.css
        injects their hashed filenames into PRECACHE_ASSETS in dist/sw.js
-       appends a build tag to CACHE_NAME (e.g. noctisak47-2026.06.08.2-abc123)
+       appends a build tag to CACHE_NAME (e.g. noctisak47-2026.06.08.3-abc123)
 ```
 
 The post-build step is required for the service worker to cache the hashed Vite bundles correctly; skipping it breaks offline mode.
+
+### CI / Smoke testing
+
+`.github/workflows/smoke.yml` runs on every push and pull request:
+
+1. Checkout → Node 20 → `npm ci`
+2. `npm run build` (Vite + postbuild-sw)
+3. `npm run smoke` — executes `scripts/smoke-blh.mjs` against a minimal DOM stub
+
+The smoke script verifies:
+- Mode Select opens from the PLAY entrypoint (`window.blhOpenModeSelect`)
+- Classic Mode still calls the original `window.startGame()`
+- Boss Loop Hero path: hero → stage → lobby → run actually starts
+- Loop Zeny lives in its own localStorage key (economy isolation)
+
+The smoke script does **not** exercise gameplay timers or balance — it only confirms wiring.
 
 ### Service Worker (`public/sw.js`)
 
@@ -73,17 +94,37 @@ The post-build step is required for the service worker to cache the hashed Vite 
 
 | Area | Description |
 |------|-------------|
-| `SHOP_DEF` | 7 shop items (OCA, RNGESUS, DE-SO-LATER, METH SHARD, BUFF STICK, TIME SKIP CORE, STONKS HAND), each with 5 upgrade levels |
-| `GOD_LEVELS` | 3 overdrive tiers: NOCTIS OVERDRIVE (5× dmg, 10 s), OVERDRIVE BURST (8× dmg, 6 s), ANNIHILATION MODE (12× dmg, 4 s) |
+| `SHOP_DEF` (line 56) | 7 shop items (OCA, RNGESUS, DE-SO-LATER, METH SHARD, BUFF STICK, TIME SKIP CORE, STONKS HAND), each with 5 upgrade levels |
+| `GOD_LEVELS` (line 1143) | 4 entries (index 0 = idle; 1–3 = active tiers): NOCTIS OVERDRIVE (5× dmg, 10 s), OVERDRIVE BURST (8× dmg, 6 s), ANNIHILATION MODE (12× dmg, 4 s) |
+| `BOSS_SKINS` (line 1397) | 10 purchasable boss skins |
+| `ARENA_SKINS` (line 1633) | 3 purchasable arena backgrounds |
+| `CARD_POOL` (line 2386) | 90-card definitions across 4 rarities |
 | Sound system | Web Audio API (`AudioContext`) for SFX; `<audio>` elements for BGM (`fight1-4.mp3`) |
 | `save` object | All player state — coins, cards, items, skins, arenas — persisted to `localStorage` and synced to cloud (Supabase) |
 | Hit/damage loop | Tap zones, weak-point detection, crit/overdrive multipliers, card bonuses |
 | Card system | 90 cards across 4 rarities. Mastery tracked via `save.cardRuns` (run count per card). |
 | Particle system | Object-pooled particles, rings, and break impacts — do not increase per-hit particle counts |
-| PRESSURE/BREAK | Rage-meter survival system: buildup → BREAK target mini-game → rewards/fail-rage |
-| AK47 system | Sequential 5-round weak-point chain with safe-spawn layout algorithm |
+| PRESSURE/BREAK (line 5946) | Rage-meter survival system: buildup → BREAK target mini-game → rewards/fail-rage |
+| AK47 system (line 1883) | Sequential 5-round weak-point chain with safe-spawn layout algorithm |
 | Daily reward system | 7-day streak with 06:00 rollover; state in `save.dailyQuest` |
 | Weekly challenge | 3 progressive tiers reset every Monday 06:00; state in `save.weeklyChallenge` |
+| Supabase cloud save (line 406) | Cloud save URL and anon key; upsert/download against `cloud_saves` table |
+| Card mastery (line 10230) | `CM_TIER` constants, `cmRecordRun`, `cmShowEvolutionReveal` |
+| Window bridge (line 10328) | `Object.assign(window, {...})` — exposes game functions for inline `onclick` in index.html |
+
+### Boss Loop Hero mode (`src/bossLoopHero.js`)
+
+An **independent** auto-battle mode added in the latest milestone. It shares the same host page but is fully isolated from the core game:
+
+- **State**: `BLH.run` / `BLH.save` (not the core `save` object)
+- **Economy**: Loop Zeny — stored separately, does **not** touch `save.coins`
+- **Storage key**: `noctisak47_blh` (separate from `noctisak47_v3`)
+- **DOM**: all screens created dynamically inside `#blhRoot` (full-screen overlay) — never touches core game DOM
+- **Entry**: PLAY → Mode Select screen (`window.blhOpenModeSelect`); exiting returns to `window.showMainMenu()`
+- **Architecture**: fully data-driven configs (stage pool, boss pool, enemy pool, gear, Arena Training upgrades) — add content by extending config arrays, not engine code
+- `BLH_DEV` flag: exposes `blh.__test` debug hook on `localhost`/`127.0.0.1`/`file:` only; hidden in production
+
+`src/main.js` imports `bossLoopHero.js` **after** `game.js` so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
 
 ### Game screen IDs
 
@@ -91,7 +132,7 @@ All screens are children of `#gameRoot` (position: fixed, 100vw/100vh):
 
 | ID | Purpose |
 |----|---------|
-| `mainMenu` | Title / main menu |
+| `mainMenu` | Title / main menu (includes Mode Select button) |
 | `shopScreen` | Shop / upgrades |
 | `bossScreen` | Boss skin shop |
 | `arenaScreen` | Arena skin shop |
@@ -107,14 +148,15 @@ All screens are children of `#gameRoot` (position: fixed, 100vw/100vh):
 | `cardModal` | Card detail popup |
 | `ocaConfirmModal` | Confirm card draw |
 | `rerollConfirmModal` | Confirm card slot reroll |
+| `#blhRoot` | Boss Loop Hero mode overlay (created by `bossLoopHero.js`) |
 
 ## Releasing / Version Bumping
 
 When making any change that players will receive, update the version string in **three places** to bust the Service Worker cache:
 
-1. `index.html` (~line 19): `window.NOCTISAK47_APP_VERSION = '2026.06.08.2'`
-2. `index.html` manifest link: `<link rel="manifest" href="/manifest.json?v=2026.06.08.2">`
-3. `public/sw.js` (~line 2): `const APP_VERSION = '2026.06.08.2'`
+1. `index.html` (~line 19): `window.NOCTISAK47_APP_VERSION = '2026.06.08.3'`
+2. `index.html` manifest link: `<link rel="manifest" href="/manifest.json?v=2026.06.08.3">`
+3. `public/sw.js` (~line 2): `const APP_VERSION = '2026.06.08.3'`
 
 Version format: `YYYY.MM.DD.n` (n = daily increment, starting at 1).
 
@@ -130,6 +172,7 @@ Version format: `YYYY.MM.DD.n` (n = daily increment, starting at 1).
 | `noctisak47_cloud_lock` | Lock token preventing concurrent cloud sync |
 | `noctisak47_app_version` | Cached version string for update detection |
 | `noctisak47_version_reload_done` | Flag preventing reload loops on version change |
+| `noctisak47_blh` | Boss Loop Hero mode save (BLH economy + progress, isolated) |
 
 Schema changes to the save object require a migration guard on load to avoid wiping existing saves. The key `noctisak47_v3` already implies two prior schema migrations.
 
@@ -156,7 +199,7 @@ save.updatedAt / deviceId / lastRunId   metadata for cloud sync conflict resolut
 
 ## Card Mastery System
 
-Mastery is tracked via `save.cardRuns[cardId]` (integer run count, incremented by `cmRecordRun` at end of each run).
+Mastery is tracked via `save.cardRuns[cardId]` (integer run count, incremented by `cmRecordRun` at end of each run, `game.js:10250`).
 
 | Tier | Constant | Threshold | Visual |
 |------|----------|-----------|--------|
@@ -164,7 +207,7 @@ Mastery is tracked via `save.cardRuns[cardId]` (integer run count, incremented b
 | Glossy | `CM_TIER.GLOSSY` | ≥ 10 runs | `.cm-glossy-wrap` CSS class |
 | Prismatic | `CM_TIER.PRISMATIC` | ≥ 30 runs | `.cm-prismatic-wrap` CSS class |
 
-`cmShowEvolutionReveal()` fires a toast overlay when a card evolves tier at the end of a run.
+`cmShowEvolutionReveal()` (`game.js:10303`) fires a toast overlay when a card evolves tier at the end of a run.
 
 ## Shop Items (`SHOP_DEF`)
 
@@ -222,7 +265,7 @@ Card IDs use a short 2-letter abbreviation (e.g. `po`, `lu`). A legacy `_MIGRATE
 
 ## Overdrive (`GOD_LEVELS`)
 
-3 overdrive tiers triggered by filling the OD bar:
+3 overdrive tiers triggered by filling the OD bar (index 0 is idle/off):
 
 | Level | Name | Damage Mult | Duration |
 |-------|------|-------------|----------|
@@ -232,16 +275,16 @@ Card IDs use a short 2-letter abbreviation (e.g. `po`, `lu`). A legacy `_MIGRATE
 
 ## PRESSURE / BREAK System
 
-Rage-meter mini-game that activates during combat (`PRESSURE` object, `src/game.js:5946`):
+Rage-meter mini-game that activates during combat (`PRESSURE` object, `game.js:5946`):
 
 - **Buildup phase**: rage meter fills over time; escalating aura FX
-- **BREAK phase**: a tappable `#breakTarget` appears with a short window (2.75–3.1 s scaled by `PRESSURE_BREAK_TABLE`); player must hit it to succeed
+- **BREAK phase**: a tappable `#breakTarget` appears with a short window (2.75–3.1 s scaled by `PRESSURE_BREAK_TABLE` at `game.js:5973`); player must hit it to succeed
 - **Success**: grants score/coin rewards + clears rage; `save.weeklyChallenge.breakSuccess` incremented
-- **Fail**: rage spikes via `PRESSURE_FAIL_RAGE_TABLE`; subsequent BREAKs harder
+- **Fail**: rage spikes via `PRESSURE_FAIL_RAGE_TABLE` (`game.js:5981`); subsequent BREAKs harder
 
 ## AK47 System
 
-Sequential 5-round weak-point chain (`src/game.js:1883`):
+Sequential 5-round weak-point chain (`game.js:1883`):
 
 - Rounds spawn in order WP 1 → 5; position chosen by a safe-spawn algorithm that avoids overlapping the previous position
 - Collecting all 5 triggers **AK47 BOMB** with coin/score bonuses; `save.weeklyChallenge.ak47Complete` incremented
@@ -271,7 +314,10 @@ The cloud save backend is **Supabase** (table `cloud_saves`, columns `player_id`
 - **Performance-sensitive paths**: The tap/hit handler runs on every touch event. Avoid DOM queries, allocations, or layout-triggering reads inside it. Use the existing object pools for particles.
 - **Shop balancing**: Keep new items within the ~250 coins/round economy described above.
 - **CSS**: Lives in `src/styles.css`. Use CSS custom properties and `transform`/`opacity` for animations. The layout uses `contain: layout paint` and `will-change` on animated elements.
-- **window bridge**: During Stage 2A/2B, globals that inline `onclick` attributes reference must remain on `window`. The bridge is the `Object.assign(window, {...})` block at the end of `src/game.js`. Do not remove entries without updating all callers in `index.html`.
+- **window bridge**: During Stage 2A/2B, globals that inline `onclick` attributes reference must remain on `window`. The bridge is the `Object.assign(window, {...})` block at `game.js:10328`. Do not remove entries without updating all callers in `index.html`.
 - **Vite base path**: `vite.config.js` sets `base: './'` for GitHub Pages subpath compatibility. All asset references in code must be relative or use the Vite asset import system.
 - **Save schema migrations**: Any new field added to the save object must be seeded in both `defaultSave()` and `normalizeSaveData()` with a safe default, so existing saves load without breakage.
 - **Version bumps required**: Every deploy that changes game behavior must update the version string in all three locations (see Releasing section above).
+- **Boss Loop Hero isolation**: `bossLoopHero.js` must never read or write `save` (core save object) or `noctisak47_v3`. Its own persistence key is `noctisak47_blh`. It interacts with the core only through the `window` bridge (`showMainMenu`, `startGame`, `stopBGM`).
+- **Smoke test**: `npm run smoke` must stay green after any change that touches mode-select wiring, BLH entry/exit flow, or the window bridge. Run it locally before pushing.
+- **Interaction hardening** (`src/main.js`): `dragstart` and `contextmenu` are suppressed on game visual elements to prevent drag-ghost and long-press save-image dialogs on mobile/desktop. Do not remove these listeners.
