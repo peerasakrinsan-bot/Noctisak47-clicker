@@ -207,27 +207,31 @@ const MAP_CARD_BY_ID = Object.fromEntries(MAP_CARDS.map(c => [c.id, c]));
 // • ฮีโร่เดินตาม route order เท่านั้น (เฉพาะ road/camp) — ไม่เหยียบ terrain
 // ────────────────────────────────────────────────────────────────────────────
 const BLH_GRID_W = 7, BLH_GRID_H = 9;
-// route: Camp + 16 road — วงต่อเนื่อง (rows 1–7, cols 1–5), camp = ช่องแรก (ล่างกลาง)
+// route: Camp + 16 road — วงโค้งเข้าใน (route ใหม่)
+// layout (7×9 grid, 0-indexed):
+//   row 1 cols 2-5 : แนวนอนบน (r08→r05)
+//   col 5 rows 2-4 : แขนขวา (r04→r02)  → เฉียง (4,5)→(5,4)→camp(6,3)
+//   col 2 rows 2-6 : แขนซ้าย (r09→r13) → row 7 cols 2-4 (r14→r16) → เฉียงกลับ camp
 // • routeIndex 0 = Camp = hero spawn / cash out / boss signal / auto-pause
-// • ทุกช่องนอก route (รวม (8,3) เดิม) = terrain
+// • ทุกช่องนอก route = terrain
 const BLH_ROUTE_DEF = [
-  { id: 'camp', row: 7, col: 3, type: 'camp', routeIndex: 0 },  // ช่องแรก = Camp (ล่างกลาง)
-  { id: 'r01',  row: 7, col: 4, type: 'road', routeIndex: 1 },
-  { id: 'r02',  row: 6, col: 5, type: 'road', routeIndex: 2 },
-  { id: 'r03',  row: 5, col: 5, type: 'road', routeIndex: 3 },
-  { id: 'r04',  row: 4, col: 5, type: 'road', routeIndex: 4 },
-  { id: 'r05',  row: 3, col: 5, type: 'road', routeIndex: 5 },
-  { id: 'r06',  row: 2, col: 5, type: 'road', routeIndex: 6 },
-  { id: 'r07',  row: 1, col: 4, type: 'road', routeIndex: 7 },
-  { id: 'r08',  row: 1, col: 3, type: 'road', routeIndex: 8 },   // บนกลาง
-  { id: 'r09',  row: 1, col: 2, type: 'road', routeIndex: 9 },
-  { id: 'r10',  row: 2, col: 1, type: 'road', routeIndex: 10 },
-  { id: 'r11',  row: 3, col: 1, type: 'road', routeIndex: 11 },
-  { id: 'r12',  row: 4, col: 1, type: 'road', routeIndex: 12 },
-  { id: 'r13',  row: 5, col: 1, type: 'road', routeIndex: 13 },
-  { id: 'r14',  row: 6, col: 1, type: 'road', routeIndex: 14 },
-  { id: 'r15',  row: 7, col: 1, type: 'road', routeIndex: 15 },
-  { id: 'r16',  row: 7, col: 2, type: 'road', routeIndex: 16 },  // ล่างซ้าย → กลับ camp
+  { id: 'camp', row: 6, col: 3, type: 'camp', routeIndex: 0 },   // Camp (ล่างกลาง-ใน)
+  { id: 'r01',  row: 5, col: 4, type: 'road', routeIndex: 1 },   // เฉียงขึ้น-ขวาสู่แขนขวา
+  { id: 'r02',  row: 4, col: 5, type: 'road', routeIndex: 2 },
+  { id: 'r03',  row: 3, col: 5, type: 'road', routeIndex: 3 },
+  { id: 'r04',  row: 2, col: 5, type: 'road', routeIndex: 4 },
+  { id: 'r05',  row: 1, col: 5, type: 'road', routeIndex: 5 },   // บนขวา
+  { id: 'r06',  row: 1, col: 4, type: 'road', routeIndex: 6 },   // แนวนอนบน
+  { id: 'r07',  row: 1, col: 3, type: 'road', routeIndex: 7 },   // บนกลาง
+  { id: 'r08',  row: 1, col: 2, type: 'road', routeIndex: 8 },   // บนซ้าย
+  { id: 'r09',  row: 2, col: 2, type: 'road', routeIndex: 9 },   // ลงแขนซ้าย
+  { id: 'r10',  row: 3, col: 2, type: 'road', routeIndex: 10 },
+  { id: 'r11',  row: 4, col: 2, type: 'road', routeIndex: 11 },
+  { id: 'r12',  row: 5, col: 2, type: 'road', routeIndex: 12 },
+  { id: 'r13',  row: 6, col: 2, type: 'road', routeIndex: 13 },
+  { id: 'r14',  row: 7, col: 2, type: 'road', routeIndex: 14 },  // โค้งล่าง
+  { id: 'r15',  row: 7, col: 3, type: 'road', routeIndex: 15 },
+  { id: 'r16',  row: 7, col: 4, type: 'road', routeIndex: 16 },  // เฉียงกลับ Camp
 ];
 // สร้าง cells: route ก่อน แล้วเติม "ทุกช่องที่เหลือ" เป็น terrain
 const BLH_MAP = (() => {
