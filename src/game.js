@@ -17,7 +17,7 @@ document.addEventListener('touchmove', e => {
 
 // FIX 1E — prevent full-page pan except inside scrollable screens
 document.addEventListener('touchmove', e => {
-  const scrollable = ['mainMenu','shopScreen','bossScreen','arenaScreen','cardCollectionScreen'];
+  const scrollable = ['mainMenu','shopScreen','bossScreen','arenaScreen','cardCollectionScreen','blhRoot'];
   for (const id of scrollable) {
     const el = $(id);
     if (el && el.style.display === 'flex' && el.contains(e.target)) return;
@@ -10328,6 +10328,8 @@ function cmShowEvolutionReveal(newTier) {
 Object.assign(window, {
   // ── navigation / run lifecycle ──
   startGame, goMainMenu, retryGame, pauseGame, resumeGame, pauseGoMainMenu,
+  // ── exposed for Boss Loop Hero mode (separate overlay) ──
+  showMainMenu, stopBGM, playBGM,
   // ── shop / upgrades / equipment ──
   openShop, closeShop, buyItem,
   // ── boss & arena skins ──

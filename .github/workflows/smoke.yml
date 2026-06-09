@@ -1,0 +1,25 @@
+# Lightweight CI: verify the app builds and the Boss Loop Hero / mode-select
+# wiring still works. No browser, no test framework — just `vite build` plus a
+# small Node smoke script (scripts/smoke-blh.mjs) driven through the public
+# window bridge. Keeps gameplay untouched.
+name: smoke
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build (Vite + service-worker postbuild)
+        run: npm run build
+      - name: Smoke check (mode select + Boss Loop Hero wiring)
+        run: npm run smoke
