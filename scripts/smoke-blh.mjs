@@ -77,7 +77,7 @@ ok('module exposes blh bridge', window.blh && typeof window.blh.pickMode === 'fu
 window.blhOpenModeSelect();
 ok('Mode Select renders title', blhHtml().includes('SELECT MODE'));
 ok('Mode Select lists Classic Mode', blhHtml().includes('CLASSIC MODE'));
-ok('Mode Select lists Boss Loop Hero', blhHtml().includes('BOSS LOOP HERO'));
+ok('Mode Select lists Loop RPG Mode', blhHtml().includes('LOOP RPG MODE'));
 ok('overlay visible on open', blhDisplay() === 'flex');
 
 // 2) Classic Mode still calls original startGame() and hides the overlay
@@ -232,6 +232,72 @@ const blhSave = localStorage.getItem('noctisak47_blh');
 ok('Loop Zeny save uses separate key', blhSave !== null);
 ok('save has loopZeny field', blhSave && JSON.parse(blhSave).loopZeny !== undefined);
 ok('main-game save key untouched', localStorage.getItem('noctisak47_v3') === null);
+
+// 9) LOOP RPG MODE — base stats, derived combat, perks, caps ─────────────────
+const HEROES = T.HEROES;
+const HERO_PERKS = T.HERO_PERKS;
+const BSK = T.BASE_STAT_KEYS;
+// 9a) every hero has the full base stat model
+ok('heroes have STR/AGI/VIT/DEX/INT/LUK base stats', HEROES.every(h =>
+  BSK.every(k => typeof h.base[k] === 'number')), 'keys=' + BSK.join(','));
+// 9b) derived combat stats exist on the live run
+const rs = T.BLH.run.stats;
+['atk', 'def', 'maxhp', 'aspd', 'critRate', 'critDamage', 'evasion', 'lifesteal', 'armorPen'].forEach(k =>
+  ok('combat stat exists: ' + k, typeof rs[k] === 'number', k + '=' + rs[k]));
+// 9c) perk pools: exactly 8 per hero, unique ids, mod is a function
+HEROES.forEach(h => {
+  const pool = HERO_PERKS[h.id] || [];
+  ok(`perk pool 8 for ${h.id}`, pool.length === 8, 'n=' + pool.length);
+  ok(`perk pool ${h.id} ids unique + mod fn`, new Set(pool.map(p => p.id)).size === 8 &&
+    pool.every(p => typeof p.mod === 'function'));
+});
+// 9d) perk offer = 3 distinct options from the hero's pool
+const pr = T.BLH.run;
+pr.perks = []; pr.perkOffer = null;
+const offer = T.generatePerkOffer(pr);
+ok('perk offer presents 3 options', offer.length === 3, 'n=' + offer.length);
+ok('perk offer has no duplicates', new Set(offer).size === offer.length);
+ok('perk offer all from hero pool', offer.every(id => (HERO_PERKS[pr.hero.id] || []).some(p => p.id === id)));
+// 9e) loop trigger creates a pending perk choice
+pr.perkPending = 0; pr.perkLoopFired = []; pr.perks = [];
+pr.loop = 3; T.checkPerkLoopTrigger(pr);
+ok('loop-3 trigger creates a pending perk choice', pr.perkPending >= 1, 'pending=' + pr.perkPending);
+const firedAgain = pr.perkPending; pr.loop = 3; T.checkPerkLoopTrigger(pr);
+ok('loop trigger does not re-fire the same milestone', pr.perkPending === firedAgain);
+// 9f) building placement milestone creates a pending perk choice
+pr.perkPending = 0; pr.perkBuildFired = [];
+pr.placedCount = 5; T.checkPerkBuildTrigger(pr);
+ok('placement-5 milestone creates a pending perk choice', pr.perkPending >= 1, 'pending=' + pr.perkPending);
+// 9g) choosing a perk applies its effect (run-only) without error, and is not re-offered
+pr.perkPending = 1; pr.perks = []; pr.perkMods = Object.assign({}, pr.perkMods);
+const chosen = T.generatePerkOffer(pr)[0];
+const before = JSON.stringify(pr.perkMods);
+window.blh.choosePerk(chosen);
+ok('chosen perk recorded on run', pr.perks.includes(chosen));
+ok('chosen perk mutated perkMods (effect applied)', JSON.stringify(pr.perkMods) !== before);
+const reoffer = T.generatePerkOffer(pr);
+ok('chosen perk not offered again this run', !reoffer.includes(chosen));
+// 9h) stat caps are enforced in deriveCombat
+const capped = T.deriveCombat(
+  { str: 0, agi: 0, vit: 0, dex: 0, int: 0, luk: 999 },
+  { critRate: 9, critDamage: 9, evasion: 9, lifesteal: 9, armorPen: 999 });
+ok('critRate cap 50%', capped.critRate <= T.STAT_CAPS.critRate + 1e-9, 'crit=' + capped.critRate);
+ok('critDamage cap 250%', capped.critDamage <= T.STAT_CAPS.critDamage + 1e-9, 'cdmg=' + capped.critDamage);
+ok('evasion cap 35%', capped.evasion <= T.STAT_CAPS.evasion + 1e-9, 'eva=' + capped.evasion);
+ok('lifesteal cap 20%', capped.lifesteal <= T.STAT_CAPS.lifesteal + 1e-9, 'ls=' + capped.lifesteal);
+ok('armorPen cap', capped.armorPen <= T.STAT_CAPS.armorPen, 'pen=' + capped.armorPen);
+// 9i) gear rolls carry base/combat stat rolls (not the old single stat shape)
+const sampleGear = T.makeGear(pr);
+ok('gear has rolls array', Array.isArray(sampleGear.rolls) && sampleGear.rolls.length >= 1);
+ok('gear roll has key + value', sampleGear.rolls.every(r => typeof r.k === 'string' && typeof r.v === 'number'));
+// 9j) perks are run-only — a fresh run starts with an empty perk list
+window.blhOpenModeSelect();
+window.blh.pickMode('blh');
+window.blh.pickHero('apologize'); window.blh.heroNext();
+window.blh.pickStage('stage1'); window.blh.startRun();
+ok('fresh run starts with no perks (run-only)', T.BLH.run.perks.length === 0);
+ok('fresh run starts with empty perkMods triggers', T.BLH.run.perkPending === 0);
+window.blh.setSpeed(1);
 
 // ── report ───────────────────────────────────────────────────────────────────
 for (const c of checks) {
