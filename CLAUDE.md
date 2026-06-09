@@ -142,7 +142,9 @@ An **independent** auto-battle mode (user-facing name: **LOOP RPG MODE**; intern
 
 **Local Danger (per-road, run-only):** each placed map tile carries a `danger` value (`MAP_CARDS[].danger`: 0–3, mapped to spec archetypes). `localDangerForRoad(cellId)` sums the road cell's own card + orthogonally-adjacent terrain cells' cards — danger is *local* (distant roads = 0). `localDangerScaling(d)` → `{steps:floor(d/5), hpMult:+5%/step, atkMult:+4%/step, zenyMult:+5%/step, gearDropBonus:+4%/step}` (`DANGER_BAL`). Applied at `startBattle` for normal encounters (scales enemy HP/ATK on top of the loop-depth scaling already baked into `makeEnemy`); `endBattle` grants the Zeny bonus and passes `gearDropBonus` into `rollDrops`' drop *chance*. **Danger raises quantity/reward only — never gear tier or rarity** (those stay loop-depth + enemy-type via `rollGearTier`/`rollGearRarity`, which ignore the danger fields). Shown in the MAP panel (peak danger + scaling) and as a per-road `⚠N` badge.
 
-**Deferred to follow-up** (see the `DEFERRED` banner in `bossLoopHero.js`): 8-type card-hand stacking, and 12-slot gear-bag overflow auto-salvage.
+**Map-card hand stacking (run-only):** `run.hand` is ordered stack entries `[{cardId, count, order}]` limited by **card-type count** (`MAX_CARD_TYPES = 8`), not total cards. `addCardToHand` stacks duplicates (no overflow), adds new types under the cap, and at 8/8 evicts the oldest stack (lowest `order`) — converting it to Loop Zeny (`CARD_KIND_ZENY`: road 2 / adjacent 3 / terrain 4 per card) via `run.mods.zenyBonus`, with a toast. Placing consumes one via `consumeCardFromHand` (stack 0 removes the type); failed placement consumes nothing. `handZeny(run)` (folded into `estCashOut`) converts remaining stacks on Cash Out. All run-only — hand clears on run end.
+
+**Deferred to follow-up** (see the `DEFERRED` banner in `bossLoopHero.js`): 12-slot gear-bag overflow auto-salvage.
 
 `src/main.js` imports `bossLoopHero.js` **after** `game.js` so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
 

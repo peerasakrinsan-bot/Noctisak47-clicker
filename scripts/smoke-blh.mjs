@@ -645,6 +645,82 @@ ok('danger never unlocks higher rarity (T1 basic → never Legendary)', noLeg);
 ok('BLH exposes localDangerForRoad/localDangerScaling/cardDanger',
   ['localDangerForRoad', 'localDangerScaling', 'cardDanger'].every(f => typeof D[f] === 'function'));
 
+// 13) MAP CARD HAND — stacking by type (8 max) + overflow → Loop Zeny ─────────
+const H = window.blh.__test;
+// fresh run, empty the hand for controlled tests
+window.blhOpenModeSelect();
+window.blh.pickMode('blh');
+window.blh.pickHero('apologize'); window.blh.heroNext();
+window.blh.pickStage('stage1'); window.blh.startRun();
+const hRun = H.BLH.run;
+hRun.hand = []; hRun._handOrderSeq = 0; hRun.mods.zenyBonus = 0;
+
+// 13a) new type adds a x1 stack
+H.addCardToHand(hRun, 'spawn_rift');
+ok('new card type adds a x1 stack', hRun.hand.length === 1 && hRun.hand[0].cardId === 'spawn_rift' && hRun.hand[0].count === 1);
+
+// 13b) duplicate increments the same stack (no new type, no overflow)
+H.addCardToHand(hRun, 'spawn_rift');
+H.addCardToHand(hRun, 'spawn_rift');
+ok('duplicate drop increments stack (still 1 type)', hRun.hand.length === 1 && H.findHandStack(hRun, 'spawn_rift').count === 3);
+
+// 13c) hand fills to 8 distinct types (all 9 cards exist; use 8 distinct)
+const eightTypes = H.MAP_CARDS.map(c => c.id).slice(0, H.MAX_CARD_TYPES); // 8 distinct ids
+hRun.hand = []; hRun._handOrderSeq = 0; hRun.mods.zenyBonus = 0;
+for (const id of eightTypes) H.addCardToHand(hRun, id);
+ok('hand holds exactly 8 card types', hRun.hand.length === H.MAX_CARD_TYPES, 'types=' + hRun.hand.length);
+const oldestId = eightTypes[0];
+const oldestStack = H.findHandStack(hRun, oldestId);
+// give the oldest a stack of 3 so overflow conversion is deterministic
+oldestStack.count = 3;
+ok('oldest stack identified', H.oldestHandCardId(hRun) === oldestId);
+
+// 13d) new type at 8/8 → removes oldest, converts to Loop Zeny, adds new type
+const zenyBefore = hRun.mods.zenyBonus;
+const newType = H.MAP_CARDS.map(c => c.id).find(id => !eightTypes.includes(id)); // the 9th card id
+const expectConv = H.cardZenyValue(oldestId) * 3;   // oldest stack value
+H.addCardToHand(hRun, newType);
+ok('overflow keeps type count at 8', hRun.hand.length === H.MAX_CARD_TYPES, 'types=' + hRun.hand.length);
+ok('overflow removes the oldest type', !H.findHandStack(hRun, oldestId));
+ok('overflow adds the new type x1', H.findHandStack(hRun, newType) && H.findHandStack(hRun, newType).count === 1);
+ok('overflow converts removed stack → Loop Zeny', hRun.mods.zenyBonus === zenyBefore + expectConv,
+  `got=${hRun.mods.zenyBonus - zenyBefore} exp=${expectConv}`);
+
+// 13e) placing consumes 1 from the stack (stack 0 removes the type)
+hRun.hand = []; hRun._handOrderSeq = 0;
+H.addCardToHand(hRun, 'rock'); H.addCardToHand(hRun, 'rock');   // rock x2 (terrain)
+ok('consume decrements stack', H.consumeCardFromHand(hRun, 'rock') === true && H.findHandStack(hRun, 'rock').count === 1);
+ok('consume to 0 removes the type', H.consumeCardFromHand(hRun, 'rock') === true && !H.findHandStack(hRun, 'rock'));
+ok('consume on missing type returns false', H.consumeCardFromHand(hRun, 'rock') === false);
+
+// 13f) failed placement consumes nothing (placeAt on invalid cell)
+hRun.hand = []; hRun._handOrderSeq = 0;
+H.addCardToHand(hRun, 'shrine');   // adjacent card (needs terrain-adjacent-to-road cell)
+hRun._placing = 'shrine';
+const campId = H.BLH_MAP.route[0];                 // camp cell — never a valid placement
+window.blh.placeAt(campId);
+ok('failed placement does not consume the card', H.findHandStack(hRun, 'shrine') && H.findHandStack(hRun, 'shrine').count === 1);
+
+// 13g) Cash Out converts remaining stacks to Loop Zeny (handZeny folded into estCashOut)
+hRun.hand = []; hRun._handOrderSeq = 0;
+H.addCardToHand(hRun, 'spawn_rift');                          // road = 2
+H.addCardToHand(hRun, 'rock'); H.addCardToHand(hRun, 'rock'); // terrain = 4 each → 8
+const expHandZeny = H.cardZenyValue('spawn_rift') * 1 + H.cardZenyValue('rock') * 2;
+ok('handZeny sums per-kind stack values', H.handZeny(hRun) === expHandZeny, `got=${H.handZeny(hRun)} exp=${expHandZeny}`);
+ok('Cash Out conversion values are small (per-kind 2–4)',
+  H.cardZenyValue('spawn_rift') === 2 && H.cardZenyValue('shrine') === 3 && H.cardZenyValue('rock') === 4);
+
+// 13h) cards are run-only — fresh run starts with a stacked-shape hand (entries, not raw ids)
+window.blhOpenModeSelect();
+window.blh.pickMode('blh');
+window.blh.pickHero('toei'); window.blh.heroNext();
+window.blh.pickStage('stage1'); window.blh.startRun();
+const hFresh = H.BLH.run;
+ok('fresh hand uses stack entries {cardId,count,order}', hFresh.hand.every(s =>
+  typeof s.cardId === 'string' && typeof s.count === 'number' && typeof s.order === 'number'));
+ok('fresh hand within 8-type limit', hFresh.hand.length <= H.MAX_CARD_TYPES);
+window.blh.setSpeed(1);
+
 // ── report ───────────────────────────────────────────────────────────────────
 for (const c of checks) {
   console.log(`${c.cond ? '✅' : '❌'} ${c.name}${c.detail ? '  (' + c.detail + ')' : ''}`);

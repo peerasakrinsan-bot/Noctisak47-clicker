@@ -1,5 +1,5 @@
 // NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker 2026.06.07.1
-const APP_VERSION = '2026.06.09.5';
+const APP_VERSION = '2026.06.09.6';
 const CACHE_NAME = 'noctisak47-' + APP_VERSION;
 
 const PRECACHE_ASSETS = [

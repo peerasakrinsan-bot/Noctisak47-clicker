@@ -354,6 +354,56 @@ function localDangerScaling(localDanger) {
   };
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// MAP CARD HAND — stack ตาม "ชนิด" (run-only)
+// ────────────────────────────────────────────────────────────────────────────
+// hand = [{ cardId, count, order }] เรียงตามลำดับที่ได้มา (order น้อย = เก่าสุด)
+// จำกัด "จำนวนชนิด" ไม่เกิน MAX_CARD_TYPES (ไม่ใช่จำนวนใบรวม):
+//   • ได้ใบซ้ำ → count++ (ไม่ overflow)
+//   • ชนิดใหม่ & ยังไม่เต็ม → เพิ่ม stack x1
+//   • ชนิดใหม่ & เต็ม 8/8 → เอา stack เก่าสุดออก แปลงเป็น Loop Zeny แล้วเพิ่มชนิดใหม่ x1
+// ════════════════════════════════════════════════════════════════════════════
+const MAX_CARD_TYPES = 8;
+// มูลค่าแปลงเป็น Loop Zeny ต่อใบ (เล็กน้อย): road = พื้นฐาน (1–2); adjacent/terrain = utility/special (2–5)
+const CARD_KIND_ZENY = { road: 2, adjacent: 3, terrain: 4 };
+function cardZenyValue(cardId) {
+  const c = MAP_CARD_BY_ID[cardId];
+  return c ? (CARD_KIND_ZENY[c.kind] || 2) : 2;
+}
+function stackZeny(stack) { return cardZenyValue(stack.cardId) * stack.count; }
+function handZeny(run) { return run.hand.reduce((s, st) => s + stackZeny(st), 0); }
+function findHandStack(run, cardId) { return run.hand.find(s => s.cardId === cardId); }
+// เพิ่มการ์ด 1 ใบเข้ามือ (จัดการ stack + overflow). ไม่มี failure — มือเต็ม → แปลงเก่าสุดทิ้ง
+function addCardToHand(run, cardId) {
+  const existing = findHandStack(run, cardId);
+  if (existing) { existing.count += 1; return; }            // ซ้ำ → stack เพิ่ม (ไม่ overflow)
+  if (run.hand.length >= MAX_CARD_TYPES) {                  // เต็ม → เอาเก่าสุดออก แปลงเป็น Zeny
+    let oldest = 0;
+    for (let i = 1; i < run.hand.length; i++) if (run.hand[i].order < run.hand[oldest].order) oldest = i;
+    const removed = run.hand.splice(oldest, 1)[0];
+    const zeny = stackZeny(removed);
+    run.mods.zenyBonus += zeny;
+    const rc = MAP_CARD_BY_ID[removed.cardId], nc = MAP_CARD_BY_ID[cardId];
+    blhToast(`🃏 มือเต็ม! แปลง ${rc ? rc.name : removed.cardId} x${removed.count} → +${zeny} Zeny • เพิ่ม ${nc ? nc.name : cardId}`);
+  }
+  run.hand.push({ cardId, count: 1, order: run._handOrderSeq++ });
+}
+// ใช้การ์ด 1 ใบจาก stack (วางสำเร็จ) — stack เหลือ 0 = ลบชนิดนั้น; คืน true ถ้าใช้ได้
+function consumeCardFromHand(run, cardId) {
+  const st = findHandStack(run, cardId);
+  if (!st || st.count <= 0) return false;
+  st.count -= 1;
+  if (st.count <= 0) run.hand.splice(run.hand.indexOf(st), 1);
+  return true;
+}
+// stack เก่าสุด (order น้อยสุด) — ใช้มาร์ก UI
+function oldestHandCardId(run) {
+  if (!run.hand.length) return null;
+  let oldest = run.hand[0];
+  for (const s of run.hand) if (s.order < oldest.order) oldest = s;
+  return oldest.cardId;
+}
+
 // ── จุดกึ่งกลาง (%) ของ cell บน CSS grid (ใช้วาง hero token แบบ absolute) ──
 function cellCenterPct(cell) {
   return {
@@ -506,7 +556,7 @@ const BAL = {
   BATTLE_OPEN_MS: 700,       // หน่วงก่อนรอบแรกหลังเปิด popup
   CASHOUT_PER_LOOP: 40,
   BOSS_BONUS: 350,
-  CARD_SELL: 8,              // แปลงการ์ดแผนที่ที่เหลือเป็น Loop Zeny ตอน Cash Out (ต่อใบ)
+  // หมายเหตุ: การแปลงการ์ดแผนที่เหลือเป็น Loop Zeny ใช้ handZeny() (per-kind) — ดู CARD_KIND_ZENY
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -570,10 +620,10 @@ const EXP_PRESETS = [
 // ════════════════════════════════════════════════════════════════════════════
 // DEFERRED — สเปก Boss Loop Mode ส่วนที่ยกไป follow-up (ตามที่ตกลง "core loop first")
 //   ระบบเหล่านี้ "ยังไม่" implement ในรอบนี้ (เพื่อคุมความเสี่ยง/ไม่กระทบ core loop เดิม):
-//     • Card Hand แบบ 8 "ชนิด" + stacking (x4) + overflow → แปลงเป็น Zeny
 //     • Gear Bag 12 ช่อง + overflow auto-salvage (เตือนพิเศษเมื่อ Epic/Legendary หลุด)
-//   ทำแล้ว: gear tier/rarity/traits, run EXP/level/stat allocation, Local Danger (per-road)
-//   ปัจจุบันยังใช้: flat hand (≤6 ใบ), unlimited bag
+//   ทำแล้ว: gear tier/rarity/traits, run EXP/level/stat allocation, Local Danger (per-road),
+//           Map-card hand stacking (8 ชนิด + overflow → Loop Zeny)
+//   ปัจจุบันยังใช้: unlimited gear bag
 // ════════════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1099,7 +1149,8 @@ function startRun() {
     stats: { hp: null, maxhp: ss.combat.maxhp },  // derived combat — เติมใน recomputeStats
     gear: { weapon: null, glove: null, jacket: null, boots: null, charm: null },
     lootBag: [],
-    hand: [],
+    hand: [],               // [{ cardId, count, order }] — stack ตามชนิด (≤ MAX_CARD_TYPES)
+    _handOrderSeq: 0,       // ตัวนับลำดับการได้การ์ด (order ของ stack)
     cells,                  // { [cellId]: { id, type, enemy, placedCardId } }
     placedCells: {},        // { [cellId]: { cardId, cardType, placedLoop } } — บันทึกการวาง
     placedCount: 0,         // จำนวนการ์ด/สิ่งก่อสร้างที่วางแล้ว (trigger เพิร์ก)
@@ -1138,9 +1189,9 @@ function startRun() {
   };
   BLH.run = run;
 
-  // การ์ดแผนที่เริ่มต้น (2 + extraCard upgrade) — สุ่มจากกองทั้งหมด
+  // การ์ดแผนที่เริ่มต้น (2 + extraCard upgrade) — สุ่มจากกองทั้งหมด (stack ตามชนิด)
   const startCards = ss.startCards;
-  for (let i = 0; i < startCards; i++) run.hand.push(pick(MAP_CARDS).id);
+  for (let i = 0; i < startCards; i++) addCardToHand(run, pick(MAP_CARDS).id);
 
   // ปิดเพลงไตเติลของเกมหลักระหว่างเล่นรัน
   if (typeof window.stopBGM === 'function') window.stopBGM();
@@ -1445,7 +1496,7 @@ function updateHUD() {
     <div class="blh-hud-stats">
       <span>⚔️ ${run.stats.atk}</span><span>🛡️ ${run.stats.def}</span>
       <span>⬆️ Lv.<b>${run.level}</b>${run.pendingStatPoints > 0 ? `<b class="blh-pts-hud">+${run.pendingStatPoints}</b>` : ''}</span>
-      <span>🃏 ${run.hand.length}</span><span>🎒 ${run.lootBag.length}</span>
+      <span>🃏 ${run.hand.length}/${MAX_CARD_TYPES}</span><span>🎒 ${run.lootBag.length}</span>
     </div>`;
 }
 
@@ -1608,7 +1659,7 @@ function panelStats(run) {
       <div class="blh-statbox-portrait"><img src="${run.hero.img}" onerror="this.style.opacity=0"></div>
       <div class="blh-statbox-info">
         <div class="blh-statbox-name">${esc(run.hero.name)} <span class="blh-statbox-role">${esc(run.hero.role)}</span></div>
-        <div class="blh-statline">❤️ <b>${Math.round(s.hp)}/${s.maxhp}</b> • 🔄 LOOP <b>${run.loop}</b> • 🃏 <b>${run.hand.length}</b> • ${speedLabel()}</div>
+        <div class="blh-statline">❤️ <b>${Math.round(s.hp)}/${s.maxhp}</b> • 🔄 LOOP <b>${run.loop}</b> • 🃏 <b>${run.hand.length}/${MAX_CARD_TYPES}</b> • ${speedLabel()}</div>
         <div class="blh-ss-base">${baseStatChips(b)}</div>
         <div class="blh-ss-row">${combatStatChips(c)}</div>
       </div>
@@ -1908,22 +1959,25 @@ function planLoot(run, locked) {
 }
 
 function planCards(run, locked) {
+  const head = `<div class="blh-hand-head">🃏 Map Cards <b>${run.hand.length}/${MAX_CARD_TYPES}</b></div>`;
   if (!run.hand.length)
-    return `<div class="blh-empty">🃏 ไม่มีการ์ดแผนที่ — เก็บได้จากการล้มศัตรู</div>`;
-  const cards = run.hand.map((id, i) => {
-    const c = MAP_CARD_BY_ID[id];
+    return head + `<div class="blh-empty">ไม่มีการ์ดแผนที่ — เก็บได้จากการล้มศัตรู</div>`;
+  const oldest = run.hand.length >= MAX_CARD_TYPES ? oldestHandCardId(run) : null;  // มาร์กเบาๆ เมื่อมือเต็ม
+  const cards = run.hand.map(st => {
+    const c = MAP_CARD_BY_ID[st.cardId];
     const kindLabel = { road: 'ROAD', adjacent: 'ADJACENT', terrain: 'TERRAIN' }[c.kind];
-    const btn = locked ? '<span class="blh-mini-lock">🔒</span>' : `<button class="blh-mini-btn" onclick="blh.startPlace(${i})">วาง</button>`;
-    return `<div class="blh-mapcard" style="--accent:${c.accent}">
-      <div class="blh-mapcard-icon">${c.icon}</div>
+    const btn = locked ? '<span class="blh-mini-lock">🔒</span>' : `<button class="blh-mini-btn" onclick="blh.startPlace('${st.cardId}')">วาง</button>`;
+    const oldestTag = st.cardId === oldest ? '<span class="blh-mapcard-oldest" title="เก่าสุด — จะถูกแปลงก่อนถ้ามือเต็ม">เก่าสุด</span>' : '';
+    return `<div class="blh-mapcard${st.cardId === oldest ? ' oldest' : ''}" style="--accent:${c.accent}">
+      <div class="blh-mapcard-icon">${c.icon}<span class="blh-mapcard-count">x${st.count}</span></div>
       <div class="blh-mapcard-main">
-        <div class="blh-mapcard-name">${esc(c.name)} <span class="blh-mapcard-kind">${kindLabel}</span></div>
+        <div class="blh-mapcard-name">${esc(c.name)} <span class="blh-mapcard-kind">${kindLabel}</span>${oldestTag}</div>
         <div class="blh-mapcard-desc">${esc(c.desc)}</div>
       </div>
       ${btn}
     </div>`;
   }).join('');
-  return `<div class="blh-mapcard-list">${cards}</div>`;
+  return head + `<div class="blh-mapcard-list">${cards}</div>`;
 }
 
 function planMap(run) {
@@ -1979,23 +2033,21 @@ function unequip(slot) {
 function validPlacementTargets(cardId) {
   return BLH_MAP.cells.filter(c => isPlaceable(c.id, cardId)).map(c => c.id);
 }
-function startPlace(handIdx) {
+function startPlace(cardId) {
   const run = BLH.run;
   if (run.phase === 'battle') { blhToast('🔒 วางการ์ดไม่ได้ระหว่างสู้'); return; }
-  const id = run.hand[handIdx];
-  if (id == null) return;
-  const targets = validPlacementTargets(id);
+  if (cardId == null || !findHandStack(run, cardId)) return;   // ต้องมี stack ของชนิดนี้ในมือ
+  const targets = validPlacementTargets(cardId);
   if (!targets.length) {
     // feedback ชัดเจนเมื่อไม่มีช่องที่วางได้
-    const c = MAP_CARD_BY_ID[id];
+    const c = MAP_CARD_BY_ID[cardId];
     const where = c.kind === 'road' ? 'ช่องถนนว่าง'
                 : c.kind === 'adjacent' ? 'ช่องเทอเรนที่ติดถนนและยังว่าง'
                 : 'ช่องเทอเรนที่ว่าง';
     blhToast(`ไม่มี${where}ให้วาง ${c.name}`);
     return;
   }
-  run._placing = id;
-  run._placingHand = handIdx;
+  run._placing = cardId;
   _panelTab = 'map';
   blhToast('แตะช่องที่ไฮไลต์บนแผนที่เพื่อวาง');
   renderBoard();
@@ -2003,7 +2055,7 @@ function startPlace(handIdx) {
 }
 function cancelPlace() {
   const run = BLH.run;
-  run._placing = null; run._placingHand = null;
+  run._placing = null;
   _panelTab = 'map';
   renderBoard();
   renderPanel();
@@ -2030,16 +2082,17 @@ function isPlaceable(cellId, cardId) {
 function placeAt(cellId) {
   const run = BLH.run;
   const cardId = run._placing;
+  // วางไม่สำเร็จ (ช่องไม่ valid หรือไม่มี stack) → ไม่กินการ์ด
   if (cardId == null || !isPlaceable(cellId, cardId)) return;
+  if (!findHandStack(run, cardId)) { run._placing = null; return; }
   const c = MAP_CARD_BY_ID[cardId];
   applyCardEffect(c, run, cellId);
   // บันทึกการวาง (source of truth ตาม cell id)
   run.cells[cellId].placedCardId = c.id;
   run.placedCells[cellId] = { cardId: c.id, cardType: c.kind, placedLoop: run.loop };
-  // เอาการ์ดออกจากมือ
-  const hi = run.hand.indexOf(cardId);
-  if (hi >= 0) run.hand.splice(hi, 1);
-  run._placing = null; run._placingHand = null;
+  // วางสำเร็จ → กินการ์ด 1 ใบจาก stack (stack 0 = ลบชนิดนั้น)
+  consumeCardFromHand(run, cardId);
+  run._placing = null;
   // นับการวางถาวร 1 ครั้ง → trigger เพิร์กจากจำนวนสิ่งก่อสร้าง
   run.placedCount += 1;
   checkPerkBuildTrigger(run);
@@ -2513,10 +2566,10 @@ function rollDrops(run, fx = EMPTY_CELL_FX, ctx = {}) {
     const slot = GEAR_SLOTS.find(s => s.id === g.slot);
     out.push(`🎁 ลูท: ${slot.name} ${gearLabelText(g)}`);
   }
-  // map card (โอกาสเล็ก + Card Sense trait)
-  if (Math.random() < 0.22 + (tr.cardSense || 0) && run.hand.length < 6) {
+  // map card (โอกาสเล็ก + Card Sense trait) — stack ตามชนิด; มือเต็มจะ overflow → Zeny เอง
+  if (Math.random() < 0.22 + (tr.cardSense || 0)) {
     const id = pick(MAP_CARDS).id;
-    run.hand.push(id);
+    addCardToHand(run, id);
     out.push(`🃏 ได้การ์ดแผนที่: ${MAP_CARD_BY_ID[id].name}`);
   }
   // boss signal (+bossSignalDropBonus เฉพาะช่อง เช่น blood_track)
@@ -2760,7 +2813,7 @@ function estCashOut(run) {
   //   แปลงการ์ดแผนที่ที่เหลือเป็น Loop Zeny เล็กน้อย + zeny โบนัสสะสม
   return Math.floor(
     run.loop * BAL.CASHOUT_PER_LOOP + lootValue(run) +
-    run.hand.length * BAL.CARD_SELL + run.mods.zenyBonus);
+    handZeny(run) + run.mods.zenyBonus);
 }
 function gearWorth(g) {
   let v = 0;
@@ -2890,5 +2943,8 @@ if (BLH_DEV) {
     MAP_CARDS, MAP_CARD_BY_ID, DANGER_BAL,
     cardDanger, localDangerForRoad, localDangerScaling,
     startBattle, makeEnemy,
+    // map-card hand stacking (run-only)
+    MAX_CARD_TYPES, CARD_KIND_ZENY, cardZenyValue, stackZeny, handZeny,
+    addCardToHand, consumeCardFromHand, findHandStack, oldestHandCardId,
   };
 }
