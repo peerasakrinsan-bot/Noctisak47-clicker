@@ -109,21 +109,23 @@ ok('Run renders the loop board', blhHtml().includes('blh-board'));
 ok('Hero token placed on board', boardHtml.includes('blh-token'));
 ok('classic startGame NOT called by run start', startGameCalls === 1);
 
-// 3b) persistent bottom panel + speed control + stable layout structure ───────
+// 3b) persistent compact dock panel (new UI) + speed control + stable layout ──
 const panelHtml = document.getElementById('blh-panel').innerHTML;
-ok('persistent panel renders tabs', panelHtml.includes('blh-ptab'));
+ok('persistent panel renders dock rows', panelHtml.includes('blh-dock-ctrl') && panelHtml.includes('blh-dock-equip'));
 ok('board sits in fixed board-wrap', blhHtml().includes('blh-board-wrap'));
-ok('panel has persistent speed row', panelHtml.includes('blh-panel-speed'));
-['STATS', 'GEAR', 'LOOT', 'MAP'].forEach(t =>
-  ok('panel has tab: ' + t, panelHtml.includes(t)));
+ok('panel has persistent speed row', panelHtml.includes('blh-dock-speed'));
+ok('panel has tab: STATS', panelHtml.includes('blh-dock-hint-stats'));
+ok('panel has tab: GEAR', panelHtml.includes('blh-dock-equip'));
+ok('panel has tab: LOOT', panelHtml.includes('blh-dock-bag'));
+ok('panel has tab: MAP', panelHtml.includes('blh-dock-cards'));
 ok('Plan tab removed', !panelHtml.includes('>PLAN<'));
-ok('panel has status/camp bar', panelHtml.includes('blh-panel-status'));
-// speed row + tabs must persist on EVERY tab (so layout/Pause never disappears)
+ok('panel has status/camp bar', panelHtml.includes('blh-dock-status'));
+// dock rows must persist after every panelTab() call (backward-compat shim)
 ['stats', 'gear', 'loot', 'map'].forEach(tab => {
   window.blh.panelTab(tab);
   const h = document.getElementById('blh-panel').innerHTML;
   ok(`tab "${tab}" keeps speed row + status + tabs`,
-    h.includes('blh-panel-speed') && h.includes('blh-panel-status') && h.includes('blh-panel-tabs') && h.includes('blh-panel-body'));
+    h.includes('blh-dock-speed') && h.includes('blh-dock-status') && h.includes('blh-dock-equip') && h.includes('blh-dock-bag'));
 });
 window.blh.panelTab('stats');
 ok('default speed is 1x (slow)', window.blh.__test.BLH.run.speed === 1, 'speed=' + window.blh.__test.BLH.run.speed);
