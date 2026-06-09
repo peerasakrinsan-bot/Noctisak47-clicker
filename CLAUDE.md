@@ -144,7 +144,9 @@ An **independent** auto-battle mode (user-facing name: **LOOP RPG MODE**; intern
 
 **Map-card hand stacking (run-only):** `run.hand` is ordered stack entries `[{cardId, count, order}]` limited by **card-type count** (`MAX_CARD_TYPES = 8`), not total cards. `addCardToHand` stacks duplicates (no overflow), adds new types under the cap, and at 8/8 evicts the oldest stack (lowest `order`) — converting it to Loop Zeny (`CARD_KIND_ZENY`: road 2 / adjacent 3 / terrain 4 per card) via `run.mods.zenyBonus`, with a toast. Placing consumes one via `consumeCardFromHand` (stack 0 removes the type); failed placement consumes nothing. `handZeny(run)` (folded into `estCashOut`) converts remaining stacks on Cash Out. All run-only — hand clears on run end.
 
-**Deferred to follow-up** (see the `DEFERRED` banner in `bossLoopHero.js`): 12-slot gear-bag overflow auto-salvage.
+**Gear bag cap + overflow auto-salvage (run-only):** `run.lootBag` is capped at `bagCap()` = `BASE_BAG (12)` + Arena Training `bagExpand` (+2/level, max 3 → 18). On a gear drop (`rollDrops`), the new piece is pushed, then `enforceBagCap` salvages the **oldest** bag piece(s) (index 0, oldest→newest) at `AUTO_SALVAGE_PCT` (40%) of `gearWorth` into `run.mods.zenyBonus`, with a toast (stronger warning for Epic/Legendary). Equipped gear (`run.gear`) is never auto-salvaged. Manual `sellLoot(idx)` pays 100% of `gearWorth`. Cash Out still values bag ×1 + equipped ×2 (`lootValue`). All run-only.
+
+**Deferred to follow-up:** none — the original Boss Loop Mode spec backlog is complete.
 
 `src/main.js` imports `bossLoopHero.js` **after** `game.js` so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
 

@@ -537,6 +537,8 @@ const UPGRADES = [
   { id: 'campHeal',   name: 'CAMP RECOVERY',   icon: '⛺', desc: 'ฟื้น HP +5%/เลเวล เมื่อถึง Camp (ฐาน 20%, เพดาน 50%)', max: 3, costBase: 100, costGrow: 1.7, per: 0.05 },
   // SAFE RETREAT (สเปก): เพิ่ม % Loop Zeny ที่เก็บได้เมื่อตาย (ฐาน 30% → เพดาน 50%)
   { id: 'safeDeath',  name: 'SAFE RETREAT',    icon: '🪽', desc: 'เก็บ Loop Zeny ตอนตาย +5%/เลเวล (ฐาน 30%, เพดาน 50%)', max: 4, costBase: 200, costGrow: 2.1, per: 0.05 },
+  // LOOT BAG EXPANSION (สเปก): +2 ช่องกระเป๋าลูท/เลเวล (ฐาน 12 → สูงสุด 18)
+  { id: 'bagExpand',  name: 'LOOT BAG',        icon: '🎒', desc: '+2 ช่องกระเป๋าลูท/เลเวล (ฐาน 12, สูงสุด 18)', max: 3, costBase: 130, costGrow: 1.8, per: 2 },
 ];
 const UPGRADE_BY_ID = Object.fromEntries(UPGRADES.map(u => [u.id, u]));
 
@@ -618,12 +620,10 @@ const EXP_PRESETS = [
 ];
 
 // ════════════════════════════════════════════════════════════════════════════
-// DEFERRED — สเปก Boss Loop Mode ส่วนที่ยกไป follow-up (ตามที่ตกลง "core loop first")
-//   ระบบเหล่านี้ "ยังไม่" implement ในรอบนี้ (เพื่อคุมความเสี่ยง/ไม่กระทบ core loop เดิม):
-//     • Gear Bag 12 ช่อง + overflow auto-salvage (เตือนพิเศษเมื่อ Epic/Legendary หลุด)
-//   ทำแล้ว: gear tier/rarity/traits, run EXP/level/stat allocation, Local Danger (per-road),
-//           Map-card hand stacking (8 ชนิด + overflow → Loop Zeny)
-//   ปัจจุบันยังใช้: unlimited gear bag
+// SPEC STATUS — Boss Loop Mode backlog ครบแล้ว (ไม่มี deferred เหลือ)
+//   ทำครบ: gear tier/rarity/traits, run EXP/level/stat allocation (draft→confirm),
+//          Local Danger (per-road), Map-card hand stacking (8 ชนิด + overflow → Zeny),
+//          Gear Bag cap (12→18) + overflow auto-salvage (40%) + manual sell (100%)
 // ════════════════════════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1496,7 +1496,7 @@ function updateHUD() {
     <div class="blh-hud-stats">
       <span>⚔️ ${run.stats.atk}</span><span>🛡️ ${run.stats.def}</span>
       <span>⬆️ Lv.<b>${run.level}</b>${run.pendingStatPoints > 0 ? `<b class="blh-pts-hud">+${run.pendingStatPoints}</b>` : ''}</span>
-      <span>🃏 ${run.hand.length}/${MAX_CARD_TYPES}</span><span>🎒 ${run.lootBag.length}</span>
+      <span>🃏 ${run.hand.length}/${MAX_CARD_TYPES}</span><span>🎒 ${run.lootBag.length}/${bagCap()}</span>
     </div>`;
 }
 
@@ -1941,21 +1941,28 @@ function planGear(run, locked) {
 }
 
 function planLoot(run, locked) {
+  const cap = bagCap();
+  const full = run.lootBag.length >= cap;
+  const head = `<div class="blh-hand-head">🎒 Gear Bag <b>${run.lootBag.length}/${cap}</b>${full ? ' <span class="blh-bag-full">เต็ม — ดรอปใหม่ salvage ตัวเก่าสุด</span>' : ''}</div>`;
   if (!run.lootBag.length)
-    return `<div class="blh-empty">🎒 กระเป๋าลูทว่าง — ล้มศัตรูเพื่อเก็บเกียร์</div>`;
+    return head + `<div class="blh-empty">กระเป๋าลูทว่าง — ล้มศัตรูเพื่อเก็บเกียร์</div>`;
   const items = run.lootBag.map((g, i) => {
     const slot = GEAR_SLOTS.find(s => s.id === g.slot);
-    const btn = locked ? '<span class="blh-mini-lock">🔒</span>' : `<button class="blh-mini-btn" onclick="blh.equipLoot(${i})">สวม</button>`;
-    return `<div class="blh-loot-item">
+    const isOldest = full && i === 0;                  // เก่าสุด = index 0 (oldest → newest)
+    const oldestTag = isOldest ? '<span class="blh-mapcard-oldest" title="เก่าสุด — จะถูก salvage ก่อนถ้ากระเป๋าเต็ม">เก่าสุด</span>' : '';
+    const btns = locked
+      ? '<span class="blh-mini-lock">🔒</span>'
+      : `<div class="blh-loot-btns"><button class="blh-mini-btn" onclick="blh.equipLoot(${i})">สวม</button><button class="blh-mini-btn sell" onclick="blh.sellLoot(${i})" title="ขาย 100% มูลค่า">ขาย 🔷${gearWorth(g)}</button></div>`;
+    return `<div class="blh-loot-item${isOldest ? ' oldest' : ''}">
       <div class="blh-loot-icon">${slot.icon}</div>
       <div class="blh-loot-main">
-        <div class="blh-loot-name">${slot.name}</div>
+        <div class="blh-loot-name">${slot.name}${oldestTag}</div>
         <div class="blh-loot-val">${gearFull(g)}</div>
       </div>
-      ${btn}
+      ${btns}
     </div>`;
   }).join('');
-  return `${locked ? '<div class="blh-gear-note">🔒 สวมเกียร์ไม่ได้ระหว่างสู้</div>' : ''}<div class="blh-loot-list">${items}</div>`;
+  return head + `${locked ? '<div class="blh-gear-note">🔒 สวม/ขายเกียร์ไม่ได้ระหว่างสู้</div>' : ''}<div class="blh-loot-list">${items}</div>`;
 }
 
 function planCards(run, locked) {
@@ -2022,8 +2029,22 @@ function unequip(slot) {
   const g = run.gear[slot];
   if (!g) return;
   run.gear[slot] = null;
-  run.lootBag.push(g);
+  run.lootBag.push(g);            // กลับเข้ากระเป๋า (player action — ไม่ auto-salvage)
   recomputeStats(run);
+  updateHUD();
+  renderPanel();
+}
+// ขายเกียร์จากกระเป๋าด้วยมือ → ได้ 100% ของมูลค่าขาย เป็น Loop Zeny (สะสมใน zenyBonus)
+function sellLoot(idx) {
+  const run = BLH.run;
+  if (run.phase === 'battle') { blhToast('🔒 ขายเกียร์ไม่ได้ระหว่างสู้'); return; }
+  const g = run.lootBag[idx];
+  if (!g) return;
+  const val = gearWorth(g);                 // 100% manual salvage value
+  run.lootBag.splice(idx, 1);
+  run.mods.zenyBonus += val;
+  const slot = GEAR_SLOTS.find(s => s.id === g.slot);
+  blhToast(`💰 ขาย ${slot ? slot.name : ''} → +${val} Zeny`);
   updateHUD();
   renderPanel();
 }
@@ -2562,9 +2583,10 @@ function rollDrops(run, fx = EMPTY_CELL_FX, ctx = {}) {
   const chance = BAL.BASE_LOOT_CHANCE + upgValue('lootChance') + run.mods.lootBonus + (fx.lootBonus || 0) + dropBonus + (tr.luckyFind || 0) + (ctx.gearDropBonus || 0);
   if (Math.random() < chance) {
     const g = makeGear(run, { enemyRole: ctx.enemyRole, treasure: ctx.treasure });
-    run.lootBag.push(g);
+    run.lootBag.push(g);                                // เพิ่มของใหม่ก่อน
     const slot = GEAR_SLOTS.find(s => s.id === g.slot);
     out.push(`🎁 ลูท: ${slot.name} ${gearLabelText(g)}`);
+    enforceBagCap(run).forEach(l => out.push(l));       // กระเป๋าเต็ม → salvage ตัวเก่าสุด (40%)
   }
   // map card (โอกาสเล็ก + Card Sense trait) — stack ตามชนิด; มือเต็มจะ overflow → Zeny เอง
   if (Math.random() < 0.22 + (tr.cardSense || 0)) {
@@ -2828,6 +2850,31 @@ function lootValue(run) {
   return v;
 }
 
+// ── GEAR BAG cap + overflow auto-salvage (run-only; ห้ามแตะเกียร์ที่สวมอยู่) ──
+const BASE_BAG = 12;                                   // ช่องกระเป๋าลูทเริ่มต้น
+const AUTO_SALVAGE_PCT = 0.40;                         // overflow คืน 40% ของมูลค่าขายมือ
+function bagCap() { return BASE_BAG + upgValue('bagExpand'); }   // +2/level, สูงสุด 18
+function autoSalvageValue(g) { return Math.floor(gearWorth(g) * AUTO_SALVAGE_PCT); }
+// เมื่อกระเป๋าลูทเกิน cap → salvage ตัวเก่าสุด (index 0) ทีละชิ้น คืน 40% เป็น Loop Zeny
+//   เฉพาะ lootBag เท่านั้น — เกียร์ที่สวม (run.gear) ไม่ยุ่ง
+//   คืน array ของ log line (ให้ rollDrops เก็บ) + toast (เตือนแรงขึ้นถ้า Epic/Legendary)
+function enforceBagCap(run) {
+  const out = [];
+  const cap = bagCap();
+  while (run.lootBag.length > cap) {
+    const removed = run.lootBag.shift();               // เก่าสุด (oldest → newest)
+    const val = autoSalvageValue(removed);
+    run.mods.zenyBonus += val;
+    const slot = GEAR_SLOTS.find(s => s.id === removed.slot);
+    const rar = rarityOf(removed);
+    const high = rar.id === 'epic' || rar.id === 'legendary';
+    const line = `${high ? '⚠️ เสียของหายาก!' : '🗑️ กระเป๋าเต็ม!'} แปลง T${removed.tier} ${rar.name} ${slot ? slot.name : ''} → +${val} Zeny`;
+    out.push(line);
+    blhToast(line);
+  }
+  return out;
+}
+
 function cashOut() {
   const run = BLH.run;
   if (run.perkPending > 0) { openPerkChoice(); return; }  // เลือกเพิร์กให้เสร็จก่อน
@@ -2910,7 +2957,7 @@ Object.assign(blh, {
   startRun,
   panelTab, cycleSpeed, setSpeed,
   continueLoop, cashOut, placeSignal, abandonRun,
-  equipLoot, unequip,
+  equipLoot, unequip, sellLoot,
   startPlace, cancelPlace, placeAt,
   dismissBattle,
   choosePerk,
@@ -2946,5 +2993,7 @@ if (BLH_DEV) {
     // map-card hand stacking (run-only)
     MAX_CARD_TYPES, CARD_KIND_ZENY, cardZenyValue, stackZeny, handZeny,
     addCardToHand, consumeCardFromHand, findHandStack, oldestHandCardId,
+    // gear bag cap + overflow auto-salvage (run-only)
+    BASE_BAG, AUTO_SALVAGE_PCT, bagCap, gearWorth, autoSalvageValue, enforceBagCap, lootValue,
   };
 }

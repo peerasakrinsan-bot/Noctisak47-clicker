@@ -3709,6 +3709,12 @@
   background: var(--gold); color: #1a1400; border: none; font-family: 'Oswald'; font-size: 13px;
   letter-spacing: 1px; cursor: pointer; }
 .blh-mini-btn:active { filter: brightness(.9); }
+/* loot row: equip + sell stacked (no horizontal scroll on mobile) */
+.blh-loot-btns { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.blh-loot-btns .blh-mini-btn { min-height: 28px; padding: 3px 10px; font-size: 11px; }
+.blh-mini-btn.sell { background: rgba(255,255,255,.10); color: #d7dae2; }
+.blh-loot-item.oldest { opacity: .82; }
+.blh-bag-full { font-size: 9px; letter-spacing: .3px; color: #c89a4a; font-family: 'Sarabun', sans-serif; }
 .blh-foot { margin-top: auto; padding-top: 8px; }
 @keyframes blhPulse { 0%,100%{ filter: brightness(1);} 50%{ filter: brightness(1.25);} }
 

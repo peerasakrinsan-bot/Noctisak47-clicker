@@ -721,6 +721,65 @@ ok('fresh hand uses stack entries {cardId,count,order}', hFresh.hand.every(s =>
 ok('fresh hand within 8-type limit', hFresh.hand.length <= H.MAX_CARD_TYPES);
 window.blh.setSpeed(1);
 
+// 14) GEAR BAG cap + overflow auto-salvage ───────────────────────────────────
+const B = window.blh.__test;
+// fresh run for controlled bag tests
+window.blhOpenModeSelect();
+window.blh.pickMode('blh');
+window.blh.pickHero('noctisak47'); window.blh.heroNext();
+window.blh.pickStage('stage1'); window.blh.startRun();
+const oRun = B.BLH.run;
+const mkG = (slot, mv) => ({ slot, tier: 1, rarity: 'common', mainStat: { k: 'ATK', v: mv }, subStat: { k: 'STR', v: 1 }, traits: [] });
+// gearWorth(mkG(slot,mv)) = mv + 1
+
+// 14a) bag cap = 12 base; Arena Training expansion raises it (+2/level, max 18)
+B.BLH.save.upgrades.bagExpand = 0;
+ok('bag cap base = 12', B.bagCap() === 12, 'cap=' + B.bagCap());
+B.BLH.save.upgrades.bagExpand = 2;
+ok('bag expansion raises cap (+2/level)', B.bagCap() === 16, 'cap=' + B.bagCap());
+B.BLH.save.upgrades.bagExpand = 3;
+ok('bag expansion max cap = 18', B.bagCap() === 18, 'cap=' + B.bagCap());
+B.BLH.save.upgrades.bagExpand = 0;   // back to base for overflow test
+
+// 14b) overflow: new gear stays, OLDEST loot gear auto-salvaged, equipped untouched, 40% paid
+oRun.lootBag = []; oRun.mods.zenyBonus = 0;
+oRun.gear = { weapon: mkG('weapon', 50), glove: null, jacket: null, boots: null, charm: null }; // equipped (worth 51)
+for (let i = 0; i < 12; i++) oRun.lootBag.push(mkG('glove', 10 + i));  // fill to cap; oldest = v10 (worth 11)
+const bagZenyBefore = oRun.mods.zenyBonus;
+const newGear = mkG('boots', 99);                                       // worth 100
+oRun.lootBag.push(newGear);                                            // 13 > cap 12
+const salvaged = B.enforceBagCap(oRun);
+ok('overflow brings bag back to cap (12)', oRun.lootBag.length === 12, 'len=' + oRun.lootBag.length);
+ok('overflow salvages exactly one', salvaged.length === 1, 'n=' + salvaged.length);
+ok('overflow keeps the new gear', oRun.lootBag.includes(newGear));
+ok('overflow removes the OLDEST loot gear (v10 gone)', !oRun.lootBag.some(g => g.mainStat.v === 10));
+ok('auto-salvage pays 40% of manual value', oRun.mods.zenyBonus - bagZenyBefore === Math.floor(11 * 0.40),
+  `got=${oRun.mods.zenyBonus - bagZenyBefore} exp=${Math.floor(11 * 0.40)}`);
+ok('equipped gear is never auto-salvaged', oRun.gear.weapon && oRun.gear.weapon.mainStat.v === 50);
+
+// 14c) auto-salvage value helper = floor(gearWorth * 0.40)
+const sample = mkG('charm', 24);                  // worth 25 → floor(25*0.4)=10
+ok('autoSalvageValue = floor(worth × 0.40)', B.autoSalvageValue(sample) === 10, 'v=' + B.autoSalvageValue(sample));
+
+// 14d) manual sell keeps 100% of salvage value and removes the gear
+oRun.lootBag = [mkG('glove', 20)]; oRun.mods.zenyBonus = 0;  // worth 21
+window.blh.sellLoot(0);
+ok('manual sell pays 100% (worth 21)', oRun.mods.zenyBonus === 21, 'z=' + oRun.mods.zenyBonus);
+ok('manual sell removes gear from bag', oRun.lootBag.length === 0);
+
+// 14e) Cash Out still converts remaining loot + equipped gear (lootValue)
+oRun.gear = { weapon: null, glove: null, jacket: null, boots: null, charm: null };
+oRun.lootBag = [mkG('charm', 5)];                 // bag worth 6 ×1
+ok('cash out counts remaining bag gear ×1', B.lootValue(oRun) === 6, 'lv=' + B.lootValue(oRun));
+oRun.gear.weapon = mkG('weapon', 9);              // equipped worth 10 ×2 = 20
+ok('cash out counts equipped gear ×2', B.lootValue(oRun) === 6 + 20, 'lv=' + B.lootValue(oRun));
+
+// 14f) module exports
+ok('BLH exposes bagCap/enforceBagCap/autoSalvageValue',
+  ['bagCap', 'enforceBagCap', 'autoSalvageValue'].every(f => typeof B[f] === 'function'));
+ok('manual sell exposed on bridge', typeof window.blh.sellLoot === 'function');
+B.BLH.save.upgrades.bagExpand = 0;   // cleanup
+
 // ── report ───────────────────────────────────────────────────────────────────
 for (const c of checks) {
   console.log(`${c.cond ? '✅' : '❌'} ${c.name}${c.detail ? '  (' + c.detail + ')' : ''}`);
