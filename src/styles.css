@@ -3826,11 +3826,11 @@
 .blh-hud-stats { display: flex; gap: 14px; font-size: 14px; color: #d7dae2; }
 
 /* ── Loop Hero-style fixed run layout — สัดส่วนคงที่ ไม่ขยับเมื่อสลับแท็บ ──
-   HUD (auto) · board-wrap (กึ่งกลางพื้นที่เหลือ) · panel (สูงคงที่) */
+   HUD (auto) · board-wrap (พื้นที่เหลือ, map ชิดล่าง) · panel (สูงคงที่) */
 #blh-run { height: 100%; gap: 6px; overflow: hidden; }
 #blh-run .blh-run-hud { flex: 0 0 auto; }
 #blh-run .blh-panel { flex: 0 0 auto; }
-.blh-board-wrap { flex: 1 1 auto; min-height: 0; display: flex; align-items: center;
+.blh-board-wrap { flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-end;
   justify-content: center; overflow: hidden; }
 
 /* CSS grid map (7×7) — กว้างคงที่ (cap ด้วย vh ให้สูงพอดี), cell เป็นสี่เหลี่ยม
@@ -3899,8 +3899,20 @@
   overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 2px; }
 
 /* ── COMPACT DOCK — replaces tab panel ─────────────────────────────────────
-   Panel height = ~35% screen (HUD fills rest); detail panel scrolls inside  */
-#blh-run .blh-panel { height: clamp(210px, 37vh, 290px); gap: 4px; padding: 4px; }
+   Panel height = ~35–40% screen; max raised to 320px so detail area gains height on 812px+ phones */
+#blh-run .blh-panel { height: clamp(210px, 37vh, 320px); gap: 4px; padding: 4px; }
+
+/* ── Short portrait screens (≤700px tall) ───────────────────────────────────
+   align-items:flex-end pushes all overflow to the map top on these screens
+   (~41px on 375×667). Restore symmetric centering and tighten gaps + panel
+   so the residual clip is ~5px each side instead of one-sided ~41px.
+   375×667: panel→220px, gaps→8px total → board-wrap=324px, board=334px → clip=5px/side.
+   360×740 is above this threshold and needs no fix (board-wrap 339 ≥ board 336). */
+@media (max-height: 700px) {
+  .blh-board-wrap { align-items: center; }
+  #blh-run { gap: 4px; }
+  #blh-run .blh-panel { height: clamp(200px, 33vh, 220px); }
+}
 
 /* ── dock ctrl row ── */
 .blh-dock-ctrl { flex: 0 0 auto; display: flex; gap: 4px; align-items: center; }
