@@ -314,8 +314,9 @@ const rsSum = obj => BSK2.reduce((s, k) => s + (obj[k] || 0), 0);
 // 10a) fresh run has correct initial EXP/level/growth-plan state
 ok('fresh run level is 1', expRun.level === 1, 'lv=' + expRun.level);
 ok('fresh run exp is 0', expRun.exp === 0, 'exp=' + expRun.exp);
+ok('fresh run planCursor is 0', (expRun.planCursor || 0) === 0, 'cursor=' + expRun.planCursor);
 ok('fresh run runStats all zero', BSK2.every(k => (expRun.runStats[k] || 0) === 0));
-ok('apologize hero defaults to speed plan', expRun.growthPlan === 'speed',
+ok('apologize hero defaults to default plan', expRun.growthPlan === 'default',
   'plan=' + expRun.growthPlan);
 
 // 10b) expToNext formula: 30 + (level-1)² × 18
@@ -336,10 +337,10 @@ ok('+2 runStats points allocated on level-up', rsSum(expRun.runStats) === 2,
   'sum=' + rsSum(expRun.runStats));
 ok('expToNext updates to level 2 value', expRun.expToNext === expT.expToNext(2),
   `expToNext=${expRun.expToNext}`);
-// SPEED plan order: ['agi','luk','vit'] → 2 pts = agi+1, luk+1
-ok('speed plan level-up: agi+1 luk+1',
-  (expRun.runStats.agi || 0) === 1 && (expRun.runStats.luk || 0) === 1,
-  `agi=${expRun.runStats.agi} luk=${expRun.runStats.luk}`);
+// APOLOGIZE DEFAULT plan order: ['agi','str','dex'] → 2 pts = agi+1, str+1
+ok('apologize default plan level-up: agi+1 str+1',
+  (expRun.runStats.agi || 0) === 1 && (expRun.runStats.str || 0) === 1,
+  `agi=${expRun.runStats.agi} str=${expRun.runStats.str}`);
 ok('level-up immediately affects combat (ATK recomputed)',
   typeof expRun.stats.atk === 'number' && expRun.stats.atk > 0);
 
@@ -349,56 +350,75 @@ ok('level-up immediately affects combat (ATK recomputed)',
     'val=' + expT.ENEMY_EXP[role]));
 ok('elite EXP > basic EXP', expT.ENEMY_EXP.elite > expT.ENEMY_EXP.basic);
 
-// 10e) autoAllocatePoints: cycles through plan order round-robin
+// 10e) autoAllocatePoints: cursor continues across calls (new deterministic behavior)
+// SPEED plan new order: ['agi','str','dex','agi','luk','str'] (6-element)
 const testRs = { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 };
-const speedTestRun = { growthPlan: 'speed', runStats: testRs };
-expT.autoAllocatePoints(speedTestRun, 3); // order: agi, luk, vit → +1 each
-ok('speed plan +3 pts: agi+1 luk+1 vit+1',
-  testRs.agi === 1 && testRs.luk === 1 && testRs.vit === 1,
-  `agi=${testRs.agi} luk=${testRs.luk} vit=${testRs.vit}`);
-expT.autoAllocatePoints(speedTestRun, 4); // wraps: agi+1 luk+1 vit+1 agi+1
-ok('speed plan +4 more: agi=3 luk=2 vit=2',
-  testRs.agi === 3 && testRs.luk === 2 && testRs.vit === 2,
-  `agi=${testRs.agi} luk=${testRs.luk} vit=${testRs.vit}`);
+const speedTestRun = { growthPlan: 'speed', runStats: testRs, planCursor: 0,
+  hero: { id: 'noctisak47' } };
+expT.autoAllocatePoints(speedTestRun, 3); // cursor 0: agi+1, str+1, dex+1 → cursor=3
+ok('speed plan +3 pts: agi+1 str+1 dex+1',
+  testRs.agi === 1 && testRs.str === 1 && testRs.dex === 1,
+  `agi=${testRs.agi} str=${testRs.str} dex=${testRs.dex}`);
+ok('cursor advanced to 3 after first call', speedTestRun.planCursor === 3);
+expT.autoAllocatePoints(speedTestRun, 3); // cursor 3: agi+1, luk+1, str+1 → cursor=6%6=0
+ok('speed plan +3 more (cursor 3): agi=2 luk=1 str=2',
+  testRs.agi === 2 && testRs.luk === 1 && testRs.str === 2,
+  `agi=${testRs.agi} luk=${testRs.luk} str=${testRs.str}`);
+ok('cursor wraps to 0 after full pattern', speedTestRun.planCursor === 0);
 
-const powerRs = { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 };
-const powerTestRun = { growthPlan: 'power', runStats: powerRs };
-expT.autoAllocatePoints(powerTestRun, 2); // order: str, dex, vit → str+1 dex+1
-ok('power plan +2 pts: str+1 dex+1',
-  powerRs.str === 1 && powerRs.dex === 1,
-  `str=${powerRs.str} dex=${powerRs.dex}`);
+// TANK plan order: ['vit','str','dex'] → verify
+const tankRs = { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 };
+const tankTestRun = { growthPlan: 'tank', runStats: tankRs, planCursor: 0,
+  hero: { id: 'noctisak47' } };
+expT.autoAllocatePoints(tankTestRun, 2); // vit+1, str+1
+ok('tank plan +2 pts: vit+1 str+1',
+  tankRs.vit === 1 && tankRs.str === 1,
+  `vit=${tankRs.vit} str=${tankRs.str}`);
 
-// 10f) setGrowthPlan: changes plan outside battle
+// 10e2) cursor continues correctly across multiple level-ups (NOCTISAK47 default: ['agi','str','luk'])
+const cursorRs = { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 };
+const cursorRun = { growthPlan: 'default', runStats: cursorRs, planCursor: 0,
+  hero: { id: 'noctisak47' } };
+expT.autoAllocatePoints(cursorRun, 2); // cursor 0: agi+1, str+1 → cursor=2
+ok('cursor level-up 1: agi+1 str+1', cursorRs.agi === 1 && cursorRs.str === 1,
+  `agi=${cursorRs.agi} str=${cursorRs.str}`);
+ok('cursor advanced to 2', cursorRun.planCursor === 2);
+expT.autoAllocatePoints(cursorRun, 2); // cursor 2: luk+1, agi+1 → cursor=4%3=1
+ok('cursor level-up 2 (continues from cursor 2): luk+1 agi+1',
+  cursorRs.luk === 1 && cursorRs.agi === 2,
+  `luk=${cursorRs.luk} agi=${cursorRs.agi}`);
+ok('cursor wraps correctly across pattern', cursorRun.planCursor === 1);
+
+// 10f) setGrowthPlan: changes plan outside battle + resets cursor
 expRun.phase = 'camp';
-expT.setGrowthPlan('power');
-ok('can change plan in camp phase', expRun.growthPlan === 'power', 'plan=' + expRun.growthPlan);
-expT.setGrowthPlan('speed');
-ok('change back to speed plan', expRun.growthPlan === 'speed', 'plan=' + expRun.growthPlan);
-
-// 10g) setGrowthPlan: blocked during battle
-expRun.phase = 'battle';
 expT.setGrowthPlan('tank');
-ok('plan change blocked during battle', expRun.growthPlan === 'speed', 'plan=' + expRun.growthPlan);
+ok('can change plan in camp phase', expRun.growthPlan === 'tank', 'plan=' + expRun.growthPlan);
+ok('cursor resets to 0 on plan change', expRun.planCursor === 0, 'cursor=' + expRun.planCursor);
+expT.setGrowthPlan('balance');
+ok('change to balance plan', expRun.growthPlan === 'balance', 'plan=' + expRun.growthPlan);
+
+// 10g) setGrowthPlan: blocked during battle; plan stays unchanged
+expRun.phase = 'battle';
+expT.setGrowthPlan('speed');
+ok('plan change blocked during battle', expRun.growthPlan === 'balance', 'plan=' + expRun.growthPlan);
 expRun.phase = 'camp';
 
 // 10h) plan change does NOT retroactively alter already-allocated runStats
 const rsBefore = { ...expRun.runStats };
-expT.setGrowthPlan('power');
+expT.setGrowthPlan('speed');
 ok('changing plan does not alter already-allocated runStats',
   BSK2.every(k => (expRun.runStats[k] || 0) === (rsBefore[k] || 0)));
-expT.setGrowthPlan('speed'); // restore
 
 // 10i) grantExp after plan change uses the new plan
-expRun.phase = 'camp';
+expRun.phase = 'camp'; expT.setGrowthPlan('balance'); // BALANCE order: str>vit>agi>dex>luk>vit
 const strBeforeChange = expRun.runStats.str || 0;
-expT.setGrowthPlan('power'); // power order: str, dex, vit
 expT.grantExp(expRun.expToNext - expRun.exp); // exactly level up once
-ok('after plan change level-up allocates to power plan (STR increases)',
+ok('after plan change level-up allocates to balance plan (STR increases)',
   (expRun.runStats.str || 0) > strBeforeChange,
   `str=${expRun.runStats.str} before=${strBeforeChange}`);
-expT.setGrowthPlan('speed'); // restore for next sections
+expT.setGrowthPlan('default'); // restore default for hero
 
-// 10j) RUN END resets runStats/level/exp, new run gets hero default plan
+// 10j) RUN END resets runStats/level/exp/planCursor; new run gets hero default plan
 window.blhOpenModeSelect();
 window.blh.pickMode('blh');
 window.blh.pickHero('noctisak47'); window.blh.heroNext();
@@ -406,23 +426,78 @@ window.blh.pickStage('stage1'); window.blh.startRun();
 const freshRun = expT.BLH.run;
 ok('run end resets level to 1', freshRun.level === 1, 'lv=' + freshRun.level);
 ok('run end resets exp to 0', freshRun.exp === 0, 'exp=' + freshRun.exp);
+ok('run end resets planCursor to 0', (freshRun.planCursor || 0) === 0, 'cursor=' + freshRun.planCursor);
 ok('run end resets runStats to all zero', BSK2.every(k => (freshRun.runStats[k] || 0) === 0),
   'sum=' + rsSum(freshRun.runStats));
-ok('noctisak47 defaults to luck plan', freshRun.growthPlan === 'luck',
+ok('noctisak47 defaults to default plan', freshRun.growthPlan === 'default',
   'plan=' + freshRun.growthPlan);
 window.blh.setSpeed(1);
 
-// 10k) HERO_DEFAULT_PLAN assignments
-ok('HERO_DEFAULT_PLAN.noctisak47 = luck', expT.HERO_DEFAULT_PLAN.noctisak47 === 'luck');
-ok('HERO_DEFAULT_PLAN.toei = power', expT.HERO_DEFAULT_PLAN.toei === 'power');
-ok('HERO_DEFAULT_PLAN.apologize = speed', expT.HERO_DEFAULT_PLAN.apologize === 'speed');
+// 10k) HERO_DEFAULT_PLAN: all heroes start on 'default'
+ok('HERO_DEFAULT_PLAN.noctisak47 = default', expT.HERO_DEFAULT_PLAN.noctisak47 === 'default');
+ok('HERO_DEFAULT_PLAN.toei = default', expT.HERO_DEFAULT_PLAN.toei === 'default');
+ok('HERO_DEFAULT_PLAN.apologize = default', expT.HERO_DEFAULT_PLAN.apologize === 'default');
+
+// 10k2) HERO_DEFAULT_ORDERS: each hero has a distinct pattern
+ok('HERO_DEFAULT_ORDERS exposed', !!expT.HERO_DEFAULT_ORDERS);
+ok('noctisak47 default order: agi>str>luk',
+  (expT.HERO_DEFAULT_ORDERS.noctisak47 || []).join(',') === 'agi,str,luk');
+ok('toei default order: str>vit>dex',
+  (expT.HERO_DEFAULT_ORDERS.toei || []).join(',') === 'str,vit,dex');
+ok('apologize default order: agi>str>dex',
+  (expT.HERO_DEFAULT_ORDERS.apologize || []).join(',') === 'agi,str,dex');
+
+// 10k3) getPlanOrder resolves default per hero correctly
+ok('getPlanOrder exposed', typeof expT.getPlanOrder === 'function');
+const noct = expT.getPlanOrder({ growthPlan: 'default', hero: { id: 'noctisak47' } });
+const toei = expT.getPlanOrder({ growthPlan: 'default', hero: { id: 'toei' } });
+const apol = expT.getPlanOrder({ growthPlan: 'default', hero: { id: 'apologize' } });
+ok('getPlanOrder noctisak47 default → agi,str,luk', noct.join(',') === 'agi,str,luk');
+ok('getPlanOrder toei default → str,vit,dex', toei.join(',') === 'str,vit,dex');
+ok('getPlanOrder apologize default → agi,str,dex', apol.join(',') === 'agi,str,dex');
+const balOrder = expT.getPlanOrder({ growthPlan: 'balance', hero: { id: 'noctisak47' } });
+ok('getPlanOrder balance returns shared pattern',
+  balOrder.join(',') === 'str,vit,agi,dex,luk,vit');
+ok('default pattern differs by hero', noct.join(',') !== toei.join(','));
 
 // 10l) module exports + preset config sanity
 ok('BLH exposes grantExp/setGrowthPlan/autoAllocatePoints',
   ['grantExp', 'setGrowthPlan', 'autoAllocatePoints'].every(f => typeof expT[f] === 'function'));
-ok('EXP_PRESETS has 5 presets', expT.EXP_PRESETS.length === 5, 'n=' + expT.EXP_PRESETS.length);
-ok('all presets have id/name/icon/order', expT.EXP_PRESETS.every(p =>
-  p.id && p.name && p.icon && Array.isArray(p.order) && p.order.length >= 2));
+ok('EXP_PRESETS has 4 presets', expT.EXP_PRESETS.length === 4, 'n=' + expT.EXP_PRESETS.length);
+ok('all presets have id/name/icon', expT.EXP_PRESETS.every(p => p.id && p.name && p.icon));
+ok('non-default presets have order array', expT.EXP_PRESETS.filter(p => p.id !== 'default').every(p =>
+  Array.isArray(p.order) && p.order.length >= 2));
+ok('default preset has order null (resolved per hero)', expT.EXP_PRESETS[0].id === 'default' && expT.EXP_PRESETS[0].order === null);
+ok('old plan ids removed: power/luck/mystic not in presets',
+  !expT.EXP_PRESETS.some(p => ['power','luck','mystic'].includes(p.id)));
+
+// 10m) Auto Stat chip rendered outside detail panel (always-visible row)
+{
+  const ph = document.getElementById('blh-panel').innerHTML;
+  ok('Auto Stat chip row rendered in panel', ph.includes('blh-autostat-row') && ph.includes('blh-autostat-chip'));
+  ok('Auto Stat chip shows plan name outside detail', ph.includes('DEFAULT') || ph.includes('BALANCE') || ph.includes('TANK') || ph.includes('SPEED'));
+  ok('old plan labels not rendered', !ph.includes('>POWER<') && !ph.includes('>LUCK<') && !ph.includes('>MYSTIC<'));
+}
+
+// 10n) tapping chip opens growth plan detail; battle disables buttons but still allows viewing
+expT.BLH.run.phase = 'camp';
+window.blh.selectItem({type: 'plan'});
+{
+  const ph = document.getElementById('blh-panel').innerHTML;
+  ok('tapping chip opens plan detail', ph.includes('blh-dock-detail-plan'));
+  ok('plan detail has 4 preset buttons', (ph.match(/blh-preset-btn/g) || []).length === 4);
+  ok('plan detail shows pattern', ph.includes('Pattern:'));
+  ok('plan detail notes auto-apply', ph.includes('Auto-applies on level up'));
+}
+expT.BLH.run.phase = 'battle';
+window.blh.selectItem({type: 'plan'});
+{
+  const ph = document.getElementById('blh-panel').innerHTML;
+  ok('plan detail still visible during battle', ph.includes('blh-dock-detail-plan'));
+  ok('plan buttons disabled during battle', ph.includes('disabled'));
+}
+expT.BLH.run.phase = 'camp';
+window.blh.clearSelection();
 
 // 11) GEAR TIER + RARITY + TRAITS ────────────────────────────────────────────
 const G = window.blh.__test;
