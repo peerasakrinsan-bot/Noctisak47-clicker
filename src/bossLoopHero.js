@@ -2119,13 +2119,17 @@ function dockDetailTile(run, cellId) {
     if (rc.enemy) body += `<div style="font-size:12px;margin-top:4px">👾 ${esc(rc.enemy.name)}</div>`;
     const mobStk = run.monsterTiles && run.monsterTiles[cellId];
     if (mobStk && mobStk.length > 0) {
-      body += `<div style="font-size:12px;margin-top:4px">🐾 Natural ×${mobStk.length}: ${mobStk.map(e => esc(e.name)).join(', ')}</div>`;
+      const mobList = mobStk.map(e => {
+        const rankCls = monsterRankClass(e);
+        return `<span class="blh-mob-rank-dot ${rankCls}"></span>${esc(e.name)}`;
+      }).join('&nbsp; ');
+      body += `<div style="font-size:11px;margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:3px">🐾 ×${mobStk.length}: ${mobList}</div>`;
     }
     if (run.eliteEventTile === cellId) {
-      body += `<div style="font-size:12px;margin-top:4px;color:#ffd966">⭐ Elite Event — สู้เพื่อรับ gear (elite) + ${BAL.ELITE_EVENT_ZENY} Zeny</div>`;
+      body += `<div style="font-size:12px;margin-top:5px;color:#ff9944;font-weight:700">◆ Elite Event</div><div style="font-size:10px;color:#ffcc88">รับ gear+Zeny ${BAL.ELITE_EVENT_ZENY} — สู้เพื่อรับรางวัล</div>`;
     }
     if (run.mythicEventTile === cellId) {
-      body += `<div style="font-size:12px;margin-top:4px;color:#d9a0ff">💎 Mythic Event — Mini-Boss! รับ gear (Epic+) + ${BAL.MYTHIC_EVENT_ZENY} Zeny</div>`;
+      body += `<div style="font-size:12px;margin-top:5px;color:#ff4466;font-weight:700">◆ Mythic Event</div><div style="font-size:10px;color:#ff99aa">Mini-Boss! gear (Epic+)+${BAL.MYTHIC_EVENT_ZENY} Zeny — อันตรายสูง</div>`;
     }
   }
   if (def.type === 'terrain' && run.bossTerrainCell === cellId) {
@@ -2138,6 +2142,32 @@ function dockDetailTile(run, cellId) {
   </div>`;
 }
 
+
+// ── Map pixel-sprite helpers (map display only; battle keeps card assets) ──
+function monsterRankClass(e) {
+  if (!e) return 'blh-mob-weak';
+  if (e.role === 'mythic_event') return 'blh-mob-mythic';
+  if (e.role === 'elite_event')  return 'blh-mob-elite';
+  if (e.role === 'fast') return 'blh-mob-normal';
+  // real enemies (from makeEnemy) carry id but not base — boring is the only weak natural
+  if (e.id) return e.id === 'boring' ? 'blh-mob-weak' : 'blh-mob-normal';
+  // bare test objects without id: fall back to base.hp threshold
+  if (e.base && e.base.hp >= 24) return 'blh-mob-normal';
+  return 'blh-mob-weak';
+}
+function monsterSpeciesClass(e) {
+  const map = { boring: 'blh-mob-boring', faburr: 'blh-mob-faburr',
+    looney_tic: 'blh-mob-looney', poporingo: 'blh-mob-poporingo', dripz: 'blh-mob-dripz' };
+  return map[e && e.id] || 'blh-mob-boring';
+}
+function strongestMonsterOnTile(monsters) {
+  if (!monsters || !monsters.length) return null;
+  return monsters.reduce((best, e) => {
+    const pw = e.base ? e.base.hp + e.base.atk * 2 : e.maxhp + e.atk * 2;
+    const bw = best.base ? best.base.hp + best.base.atk * 2 : best.maxhp + best.atk * 2;
+    return pw > bw ? e : best;
+  });
+}
 
 // ── วาด board จาก grid config (CSS grid 7×9) — full-cell map tiles ──
 function renderBoard() {
@@ -2156,11 +2186,22 @@ function renderBoard() {
     if (def.type === 'camp') {
       inner = '<div class="blh-cell-icon">⛺</div>';
     } else if (def.type === 'road') {
-      // natural monster stack แสดงก่อน (ถ้ามี); ไม่งั้นแสดง spawnForLoop enemy
+      // elite/mythic events → pixel sprite; natural stack → species pixel sprite; fallback → card img
       const mobStk = run.monsterTiles && run.monsterTiles[def.id];
       const hasMobs = mobStk && mobStk.length > 0;
-      if (hasMobs) {
-        inner = `<div class="blh-cell-mob-badge" title="${mobStk.length} natural monster(s)">×${mobStk.length}</div>`;
+      if (run.eliteEventTile === def.id) {
+        inner = `<div class="blh-mob-sprite blh-mob-event-shape blh-mob-elite" title="Elite Event — ชนะเพื่อรับ gear+Zeny พิเศษ"></div>`;
+      } else if (run.mythicEventTile === def.id) {
+        inner = `<div class="blh-mob-sprite blh-mob-event-shape blh-mob-mythic" title="Mythic Event — Mini-Boss อันตราย! รางวัลสูงมาก"></div>`;
+      } else if (hasMobs) {
+        const strongest = strongestMonsterOnTile(mobStk);
+        const rankCls = monsterRankClass(strongest);
+        const speciesCls = monsterSpeciesClass(strongest);
+        const cnt = Math.min(mobStk.length, 3);
+        const dots = cnt >= 2
+          ? `<div class="blh-mob-dots">${Array(cnt).fill('<span class="blh-mob-dot"></span>').join('')}</div>`
+          : '';
+        inner = `<div class="blh-mob-sprite ${speciesCls} ${rankCls}" title="${mobStk.length} monster(s) — ${esc(strongest.name)}"></div>${dots}`;
       } else if (rc.enemy) {
         inner = `<div class="blh-cell-enemy"><img src="${rc.enemy.img}" onerror="this.style.display='none'"></div>`;
       }
@@ -2180,14 +2221,7 @@ function renderBoard() {
     if (def.type === 'terrain' && run.bossTerrainCell === def.id) {
       inner += `<div class="blh-cell-boss-terrain" title="Boss Terrain — เดินถนนข้างๆ เพื่อสู้">👹</div>`;
     }
-    // Elite Event marker บนถนน
-    if (def.type === 'road' && run.eliteEventTile === def.id) {
-      inner += `<div class="blh-cell-elite-event" title="Elite Event — ชนะเพื่อรับ gear+Zeny พิเศษ">⭐</div>`;
-    }
-    // Mythic Event marker บนถนน
-    if (def.type === 'road' && run.mythicEventTile === def.id) {
-      inner += `<div class="blh-cell-mythic-event" title="Mythic Event — Mini-Boss อันตราย! รางวัลสูงมาก">💎</div>`;
-    }
+    // (elite/mythic event sprites handled in main road tile block above)
     const cls = ['blh-tile', def.type];     // เช่น "blh-tile road" / "blh-tile terrain"
     if (placeable) cls.push('placeable');
     if (occupied) cls.push('occupied');
@@ -3541,5 +3575,7 @@ if (BLH_DEV) {
     trySpawnEliteEvent, trySpawnMythicEvent,
     makeEliteEventEnemy, makeMythicEventEnemy,
     endBattle,
+    // Monster map pixel sprites
+    monsterRankClass, monsterSpeciesClass, strongestMonsterOnTile, renderBoard,
   };
 }

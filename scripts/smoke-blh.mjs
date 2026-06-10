@@ -556,6 +556,112 @@ ok('trySpawnEliteEvent/trySpawnMythicEvent exposed',
 ok('BAL has Elite/Mythic event constants',
   EV.BAL.ELITE_EVENT_BASE_CHANCE === 0.06 && EV.BAL.MYTHIC_EVENT_BASE_CHANCE === 0.02);
 
+// 7e) MONSTER MAP PIXEL SPRITES ──────────────────────────────────────────────
+// helper functions exposed
+ok('monsterRankClass exposed', typeof EV.monsterRankClass === 'function');
+ok('monsterSpeciesClass exposed', typeof EV.monsterSpeciesClass === 'function');
+ok('strongestMonsterOnTile exposed', typeof EV.strongestMonsterOnTile === 'function');
+
+// monsterRankClass returns correct classes
+ok('rank: mythic_event → blh-mob-mythic', EV.monsterRankClass({ role: 'mythic_event' }) === 'blh-mob-mythic');
+ok('rank: elite_event → blh-mob-elite',   EV.monsterRankClass({ role: 'elite_event' }) === 'blh-mob-elite');
+ok('rank: fast → blh-mob-normal',         EV.monsterRankClass({ role: 'fast', base: { hp: 16, atk: 5 } }) === 'blh-mob-normal');
+ok('rank: basic low-HP → blh-mob-weak',   EV.monsterRankClass({ role: 'basic', base: { hp: 20, atk: 4 } }) === 'blh-mob-weak');
+ok('rank: basic high-HP → blh-mob-normal',EV.monsterRankClass({ role: 'basic', base: { hp: 30, atk: 6 } }) === 'blh-mob-normal');
+
+// monsterSpeciesClass returns correct classes
+ok('species: boring → blh-mob-boring',       EV.monsterSpeciesClass({ id: 'boring' }) === 'blh-mob-boring');
+ok('species: faburr → blh-mob-faburr',       EV.monsterSpeciesClass({ id: 'faburr' }) === 'blh-mob-faburr');
+ok('species: looney_tic → blh-mob-looney',   EV.monsterSpeciesClass({ id: 'looney_tic' }) === 'blh-mob-looney');
+ok('species: poporingo → blh-mob-poporingo', EV.monsterSpeciesClass({ id: 'poporingo' }) === 'blh-mob-poporingo');
+ok('species: dripz → blh-mob-dripz',         EV.monsterSpeciesClass({ id: 'dripz' }) === 'blh-mob-dripz');
+ok('species: unknown → blh-mob-boring',      EV.monsterSpeciesClass({ id: 'unknown' }) === 'blh-mob-boring');
+
+// strongestMonsterOnTile: returns monster with highest power (hp + atk*2)
+// use evRun (real run) so makeEnemy has access to run.mods
+{
+  const boring  = EV.makeEnemy(EV.NATURAL_MONSTERS.find(m => m.id === 'boring'),     evRun);
+  const popo    = EV.makeEnemy(EV.NATURAL_MONSTERS.find(m => m.id === 'poporingo'), evRun);
+  const best    = EV.strongestMonsterOnTile([boring, popo]);
+  ok('strongestMonsterOnTile picks poporingo over boring', best && best.id === 'poporingo',
+    'id=' + (best && best.id));
+  ok('strongestMonsterOnTile([single]) = that monster', EV.strongestMonsterOnTile([boring]) === boring);
+  ok('strongestMonsterOnTile([]) = null', EV.strongestMonsterOnTile([]) === null);
+}
+
+// map renders pixel sprite for monster tile
+// Use a fresh run so state is clean; renderBoard() is exposed for explicit re-renders
+{
+  window.blhOpenModeSelect();
+  window.blh.pickMode('blh');
+  window.blh.pickHero('noctisak47'); window.blh.heroNext();
+  window.blh.pickStage('stage1'); window.blh.startRun();
+  const SP = window.blh.__test;
+  const spRun = SP.BLH.run;
+  const spRoad = SP.roadCellIds()[0];
+
+  // 1 monster → sprite rendered (no dots)
+  SP.roadCellIds().forEach(id => { spRun.monsterTiles[id] = []; });
+  spRun.eliteEventTile = null; spRun.mythicEventTile = null;
+  spRun.monsterTiles[spRoad] = [SP.makeEnemy(SP.NATURAL_MONSTERS[0], spRun)];
+  SP.renderBoard();
+  const spBoard = document.getElementById('blh-board').innerHTML;
+  ok('map renders blh-mob-sprite for monster tile', spBoard.includes('blh-mob-sprite'),
+    'board snippet: ' + spBoard.slice(0, 300));
+
+  // stack 2 monsters → dots appear
+  spRun.monsterTiles[spRoad] = [
+    SP.makeEnemy(SP.NATURAL_MONSTERS[0], spRun),
+    SP.makeEnemy(SP.NATURAL_MONSTERS[1], spRun),
+  ];
+  SP.renderBoard();
+  const sp2Board = document.getElementById('blh-board').innerHTML;
+  ok('stack 2 monsters → blh-mob-dots rendered', sp2Board.includes('blh-mob-dots'));
+  ok('stack 2 monsters → 2 dot spans', (sp2Board.match(/blh-mob-dot/g) || []).length >= 2);
+
+  // stack 3 monsters → 3 dots
+  spRun.monsterTiles[spRoad] = [
+    SP.makeEnemy(SP.NATURAL_MONSTERS[0], spRun),
+    SP.makeEnemy(SP.NATURAL_MONSTERS[1], spRun),
+    SP.makeEnemy(SP.NATURAL_MONSTERS[2], spRun),
+  ];
+  SP.renderBoard();
+  const sp3Board = document.getElementById('blh-board').innerHTML;
+  ok('stack 3 monsters → 3 dot spans', (sp3Board.match(/blh-mob-dot/g) || []).length >= 3);
+
+  // strongest monster determines rank class shown
+  spRun.monsterTiles[spRoad] = [
+    SP.makeEnemy(SP.NATURAL_MONSTERS.find(m => m.id === 'boring'),     spRun),
+    SP.makeEnemy(SP.NATURAL_MONSTERS.find(m => m.id === 'poporingo'), spRun),
+  ];
+  SP.renderBoard();
+  const spStrBoard = document.getElementById('blh-board').innerHTML;
+  ok('strongest (poporingo) determines rank class blh-mob-normal', spStrBoard.includes('blh-mob-normal'));
+
+  // elite event → orange sprite with event-shape class
+  spRun.monsterTiles[spRoad] = [];
+  spRun.eliteEventTile = spRoad;
+  SP.renderBoard();
+  const spEliteBoard = document.getElementById('blh-board').innerHTML;
+  ok('elite event tile renders blh-mob-elite sprite', spEliteBoard.includes('blh-mob-elite'));
+  ok('elite sprite uses blh-mob-event-shape (diamond)', spEliteBoard.includes('blh-mob-event-shape'));
+
+  // mythic event → red sprite
+  spRun.eliteEventTile = null;
+  spRun.mythicEventTile = spRoad;
+  SP.renderBoard();
+  const spMythicBoard = document.getElementById('blh-board').innerHTML;
+  ok('mythic event tile renders blh-mob-mythic sprite', spMythicBoard.includes('blh-mob-mythic'));
+  spRun.mythicEventTile = null;
+
+  // battle still uses card assets (<img> inside blh-battle innerHTML), not pixel sprites
+  // buildBattleDOM sets innerHTML on #blh-battle; check the last rendered battle HTML
+  // (populated by section 7d's elite/mythic_event battles)
+  const btHtml = document.getElementById('blh-battle')._html;
+  ok('battle enemy card uses <img> (card asset), not pixel sprite',
+    btHtml.includes('<img'), 'btHtml snippet: ' + btHtml.slice(0, 200));
+}
+
 // 8) separate economy: Loop Zeny persisted under its own key
 const blhSave = localStorage.getItem('noctisak47_blh');
 ok('Loop Zeny save uses separate key', blhSave !== null);
