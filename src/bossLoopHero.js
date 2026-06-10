@@ -1377,15 +1377,15 @@ function findBossTerrainCell(run) {
     c.type === 'terrain' && !run.cells[c.id].placedCardId && c.id !== run.bossTerrainCell
   );
   if (!empties.length) return null;
-  // sort by Manhattan distance to camp
+  // sort by Manhattan distance to camp (ใกล้ camp = ท้าทาย แต่ผู้เล่นเข้าถึงได้)
   empties.sort((a, b) => {
     const dA = Math.abs(a.row - campDef.row) + Math.abs(a.col - campDef.col);
     const dB = Math.abs(b.row - campDef.row) + Math.abs(b.col - campDef.col);
     return dA - dB;
   });
-  // prefer cell directly adjacent to camp first
-  const adj = empties.find(c => getNeighborCells(c.id).some(n => n.type === 'camp'));
-  return adj || empties[0];
+  // ต้องมีถนนติดกัน — ไม่งั้น terrain_boss ไม่สามารถถูก trigger ได้เลย
+  const withRoad = empties.find(c => getNeighborCells(c.id).some(n => n.type === 'road'));
+  return withRoad || empties[0];
 }
 
 // สร้าง enemy list สำหรับ terrain boss fight (boss + 2 minion — structure เหมือน boss signal)
@@ -2857,6 +2857,11 @@ function endBattle(result) {
     battleLog(`🏆 Terrain Boss ล้มลง! ดินแดนอันตรายสงบแล้ว`);
     run.bossTerrainCell = null;
     run.nextBossTerrainThreshold += BAL.BOSS_TERRAIN_THRESHOLD_BASE;
+    // เคลียร์ศัตรูบนช่อง trigger — กันต่อสู้ซ้ำถ้า rc.enemy หรือ natural monster ยังอยู่
+    if (battle.cellId && run.cells[battle.cellId]) run.cells[battle.cellId].enemy = null;
+    if (battle.cellId && run.monsterTiles && run.monsterTiles[battle.cellId]) {
+      run.monsterTiles[battle.cellId] = [];
+    }
     BLH.save.stats.bossKills = (BLH.save.stats.bossKills || 0) + 1;
     // รางวัล: gear อย่างดี (guaranteed) + Loop Zeny
     const tg = makeGear(run, { enemyRole: 'elite', treasure: true });
@@ -3344,5 +3349,6 @@ if (BLH_DEV) {
     naturalMonsterCount, naturalCap, makeNaturalEnemy, spawnNaturalMonsters, cycleSpawnAttempt,
     startCycleTimer, stopCycleTimer, onCycleTick,
     checkBossTerrainSpawn, findBossTerrainCell, makeTerrainBossEnemies,
+    endBattle,
   };
 }

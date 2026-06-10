@@ -343,19 +343,24 @@ if (nsBossAdjRoads.length > 0) {
     const nstbt = NS.BLH._battle;
     ok('adjacent road to boss terrain triggers terrain_boss', !!nstbt && nstbt.kind === 'terrain_boss', 'kind=' + (nstbt ? nstbt.kind : 'null'));
     ok('terrain_boss has 3 enemies (2 minion + 1 boss)', !!nstbt && nstbt.enemies.length === 3, 'n=' + (nstbt ? nstbt.enemies.length : 0));
+
+    // Drive terrain_boss victory via real endBattle — verifies synchronous state mutations
+    if (nstbt) {
+      const nsVictCell = nsAdjRId;
+      nstbt.enemies.forEach(e => { e.hp = 0; });
+      NS.endBattle('win');
+      ok('terrain_boss victory: bossTerrainCell cleared', nsRun.bossTerrainCell === null);
+      ok('terrain_boss victory: threshold advances by 10',
+        nsRun.nextBossTerrainThreshold === NS.BAL.BOSS_TERRAIN_THRESHOLD_BASE * 2,
+        'thresh=' + nsRun.nextBossTerrainThreshold);
+      ok('terrain_boss victory: trigger cell rc.enemy cleared',
+        !nsRun.cells[nsVictCell] || !nsRun.cells[nsVictCell].enemy);
+      ok('terrain_boss victory: trigger cell monsterTiles cleared',
+        !nsRun.monsterTiles[nsVictCell] || nsRun.monsterTiles[nsVictCell].length === 0);
+    }
     NS.BLH._battle = null; nsRun.phase = 'camp';
   }
 }
-
-// Boss terrain victory: removed + next threshold advances
-const nsBTerrBefore = nsRun.bossTerrainCell;
-if (nsBTerrBefore) {
-  nsRun.bossTerrainCell = null;
-  nsRun.nextBossTerrainThreshold += NS.BAL.BOSS_TERRAIN_THRESHOLD_BASE;
-}
-ok('boss terrain cell cleared after victory', nsRun.bossTerrainCell === null);
-ok('next boss terrain threshold advances by 10', nsRun.nextBossTerrainThreshold === NS.BAL.BOSS_TERRAIN_THRESHOLD_BASE * 2,
-  'thresh=' + nsRun.nextBossTerrainThreshold);
 
 // main clicker untouched (startGameCalls still 1 from section 2)
 ok('main clicker startGame not called by new systems', startGameCalls === 1);
