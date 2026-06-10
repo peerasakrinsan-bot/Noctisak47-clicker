@@ -134,6 +134,16 @@ const MINIONS = {
   zoombie:   { id: 'zoombie',   name: 'ZOOMBIE',    img: 'cards/zoombie.png',    base: { hp: 90,  atk: 8,  def: 4 } },
 };
 
+// ── natural monsters (spawn อัตโนมัติบนแผนที่ — ไม่ใช่จาก spawnForLoop) ──────────
+// อยู่ใน NATURAL_MONSTERS pool แยกต่างหาก; stats ต่ำกว่า ENEMIES เพื่อความปลอดภัยช่วง loop 1–3
+const NATURAL_MONSTERS = [
+  { id: 'boring',     name: 'BORING',     img: 'cards/boring.png',     role: 'basic', base: { hp: 20, atk: 4, def: 0 } },
+  { id: 'faburr',     name: 'FABURR',     img: 'cards/fa-brrr.png',    role: 'fast',  base: { hp: 16, atk: 5, def: 0 } },
+  { id: 'looney_tic', name: 'LOONEY TIC', img: 'cards/looneytic.png',  role: 'basic', base: { hp: 24, atk: 4, def: 1 } },
+  { id: 'poporingo',  name: 'POPORINGO',  img: 'cards/poporingo.png',  role: 'basic', base: { hp: 30, atk: 6, def: 1 } },
+  { id: 'dripz',      name: 'DRIPZ',      img: 'cards/dripz.png',      role: 'fast',  base: { hp: 18, atk: 5, def: 0 } },
+];
+
 // ── บอส (ใช้ boss skin assets + ชื่อเป๊ะตามเดิม) ─────────────────────────────
 // future stage boss pool พร้อมต่อยอด — กำลังรวมใกล้เคียงกันแต่สไตล์/มินเนียนต่าง
 const BOSSES = {
@@ -251,7 +261,10 @@ const BLH_MAP = (() => {
       cells.push({ id: `t_${row}_${col}`, row, col, type: 'terrain' });
     }
   }
-  return { gridWidth: BLH_GRID_W, gridHeight: BLH_GRID_H, cells, route: BLH_ROUTE_DEF.map(c => c.id) };
+  // ฮีโร่เริ่มเดินไปซ้ายก่อน (clockwise: ซ้าย → บน-ซ้าย → บน → บน-ขวา → ขวา → กลับ)
+  const campId = BLH_ROUTE_DEF[0].id;
+  const roads = BLH_ROUTE_DEF.slice(1).reverse().map(c => c.id); // r15→r14→...→r01
+  return { gridWidth: BLH_GRID_W, gridHeight: BLH_GRID_H, cells, route: [campId, ...roads] };
 })();
 const BLH_CELL_BY_ID = Object.fromEntries(BLH_MAP.cells.map(c => [c.id, c]));
 
@@ -557,6 +570,16 @@ const BAL = {
   BATTLE_OPEN_MS: 700,       // หน่วงก่อนรอบแรกหลังเปิด popup
   CASHOUT_PER_LOOP: 40,
   BOSS_BONUS: 350,
+  // ── Natural monster spawning ──
+  CYCLE_MS: 12000,            // รอบสปอว์นทุก 12 วินาที (นับเฉพาะระหว่างเดิน)
+  MONSTER_STACK_MAX: 3,       // สูงสุด 3 ตัว/ช่องถนน
+  NATURAL_CAP_BASE: 3,        // จำนวนสูงสุดพื้นฐาน (จะเพิ่มตาม loop)
+  NATURAL_CAP_MAX: 8,         // เพดานสูงสุด
+  NATURAL_INITIAL_SPAWN: 3,   // เสก natural monster ตอนเริ่มรัน
+  NATURAL_CYCLE_CHANCE: 0.35, // โอกาสสปอว์นต่อรอบ 12 วินาที
+  // ── Boss terrain ──
+  BOSS_TERRAIN_THRESHOLD_BASE: 10,  // terrain power ที่เรียก boss terrain ครั้งแรก
+  TERRAIN_BOSS_ZENY: 100,           // Loop Zeny โบนัสจาก terrain boss victory
   // หมายเหตุ: การแปลงการ์ดแผนที่เหลือเป็น Loop Zeny ใช้ handZeny() (per-kind) — ดู CARD_KIND_ZENY
 };
 
@@ -816,6 +839,7 @@ const BLH = {
   screen: null,     // current screen id
   _walkTimer: null,
   _finishTimer: null, // หน่วงเวลาเปลี่ยนหน้า/จบรันหลังการสู้ (cancel ได้ผ่าน blhAbortTimers)
+  _cycleTimer: null,  // รอบสปอว์น natural monster (12 วินาที; รันเฉพาะระหว่างเดิน)
   _battle: null,    // active battle controller
 };
 
@@ -847,6 +871,7 @@ function blhExitToMenu() {
 function blhAbortTimers() {
   if (BLH._walkTimer) { clearTimeout(BLH._walkTimer); BLH._walkTimer = null; }
   if (BLH._finishTimer) { clearTimeout(BLH._finishTimer); BLH._finishTimer = null; }
+  stopCycleTimer();
   if (BLH._battle && BLH._battle.timer) { clearTimeout(BLH._battle.timer); }
   BLH._battle = null;
 }
@@ -1178,6 +1203,13 @@ function startRun() {
     bossSignalObtained: false,
     bossSignalPlaced: false,
     bossFought: false,
+    // ── Natural monster stacks (run-only) ──────────────────────────────────────
+    // { [cellId]: [enemy, ...] } — สูงสุด MONSTER_STACK_MAX ตัว/ช่อง; ล้างเมื่อจบรัน
+    monsterTiles: {},
+    // ── Boss terrain (run-only) ─────────────────────────────────────────────────
+    terrainPower: 0,                                    // พลังเทอเรนสะสมจากการ์ดที่วาง
+    nextBossTerrainThreshold: BAL.BOSS_TERRAIN_THRESHOLD_BASE, // เกณฑ์ต่อไป
+    bossTerrainCell: null,                              // cellId ของ boss terrain ที่ active
     speed: 1,               // 0 = Pause, 1 = 1x (ช้า, default), 2 = 2x
     ended: false,
     _placing: null,
@@ -1203,12 +1235,14 @@ function startRun() {
   if (typeof window.stopBGM === 'function') window.stopBGM();
 
   spawnForLoop(run); // เสกศัตรูพื้นฐาน loop แรก
+  spawnNaturalMonsters(run, BAL.NATURAL_INITIAL_SPAWN); // เสก natural monster เริ่มต้น
   renderRunScreen();
   applyMods(run);
   recomputeStats(run);
   updateHUD();
   setPhase('walking');
   scheduleStep(700);
+  startCycleTimer();
 }
 
 // ── road cell ids (helper) ──
@@ -1243,6 +1277,131 @@ function makeEnemy(def, run, opts = {}) {
     evasion: def.role === 'fast' ? 0.05 : 0,  // ศัตรูสาย fast หลบได้นิดหน่อย
     defDebuff: 0,                              // armor-break stack (run-only)
   };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// NATURAL MONSTER SYSTEM — สปอว์นอัตโนมัติ, run-only, ไม่ผ่าน spawnForLoop
+// ════════════════════════════════════════════════════════════════════════════
+
+// นับ natural monster ทั้งหมดที่ active อยู่บนแผนที่
+function naturalMonsterCount(run) {
+  return Object.values(run.monsterTiles || {}).reduce((s, stk) => s + stk.length, 0);
+}
+
+// เพดาน natural monster: 3 + floor(loop/2), สูงสุด 8
+function naturalCap(run) {
+  return Math.min(BAL.NATURAL_CAP_BASE + Math.floor(run.loop / 2), BAL.NATURAL_CAP_MAX);
+}
+
+// สร้าง natural enemy instance (ใช้ NATURAL_MONSTERS pool)
+function makeNaturalEnemy(run) {
+  return makeEnemy(pick(NATURAL_MONSTERS), run);
+}
+
+// เสก natural monster เริ่มต้น: count ตัว บนถนนสุ่ม (ไม่ทับ camp, ไม่เกิน 1 ตัว/ช่อง)
+function spawnNaturalMonsters(run, count) {
+  const roads = roadCellIds().filter(id => id !== 'camp');
+  const shuffled = [...roads].sort(() => Math.random() - 0.5);
+  let spawned = 0;
+  for (const id of shuffled) {
+    if (spawned >= count) break;
+    if (naturalMonsterCount(run) >= naturalCap(run)) break;
+    const stk = run.monsterTiles[id] || [];
+    if (stk.length === 0) { // initial spawn: max 1 per tile (loop 1–2 safe)
+      run.monsterTiles[id] = [makeNaturalEnemy(run)];
+      spawned++;
+    }
+  }
+}
+
+// รอบ 12 วินาที: ลองสปอว์น 1 ตัวบนช่องถนนสุ่ม (35% chance)
+function cycleSpawnAttempt(run) {
+  if (naturalMonsterCount(run) >= naturalCap(run)) return;
+  if (Math.random() > BAL.NATURAL_CYCLE_CHANCE) return;
+  const valid = roadCellIds().filter(id => {
+    if (id === 'camp') return false;
+    const stk = run.monsterTiles[id] || [];
+    return stk.length < BAL.MONSTER_STACK_MAX;
+  });
+  if (!valid.length) return;
+  const id = pick(valid);
+  if (!run.monsterTiles[id]) run.monsterTiles[id] = [];
+  run.monsterTiles[id].push(makeNaturalEnemy(run));
+  renderBoard();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CYCLE TIMER — นับแยกจาก loop; รันเฉพาะระหว่าง phase='walking' + speed>0
+// ════════════════════════════════════════════════════════════════════════════
+
+function startCycleTimer() {
+  stopCycleTimer();
+  const run = BLH.run;
+  if (!run || run.speed === 0 || run.ended) return;
+  const ms = Math.round(BAL.CYCLE_MS / run.speed);
+  BLH._cycleTimer = setTimeout(onCycleTick, ms);
+}
+
+function stopCycleTimer() {
+  if (BLH._cycleTimer != null) { clearTimeout(BLH._cycleTimer); }
+  BLH._cycleTimer = null;
+}
+
+function onCycleTick() {
+  BLH._cycleTimer = null;
+  const run = BLH.run;
+  if (!run || run.ended || run.phase !== 'walking') return;
+  cycleSpawnAttempt(run);
+  startCycleTimer(); // ตั้งรอบถัดไป
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// BOSS TERRAIN — terrain power จากการ์ดที่วาง → spawn boss terrain ใกล้ Camp
+// ════════════════════════════════════════════════════════════════════════════
+
+// ตรวจว่าถึง threshold → spawn boss terrain ถ้ายังไม่มี active
+function checkBossTerrainSpawn(run) {
+  if (run.bossTerrainCell) return; // มี active อยู่แล้ว
+  if (run.terrainPower < run.nextBossTerrainThreshold) return;
+  const cell = findBossTerrainCell(run);
+  if (!cell) return;
+  run.bossTerrainCell = cell.id;
+  renderBoard();
+  blhToast(`👹 Boss Terrain โผล่ใกล้ Camp! เหยียบถนนติดกันเพื่อสู้`);
+}
+
+// หาช่องเทอเรนว่างที่ใกล้ Camp และมีถนนติดกัน (เพื่อให้ terrain_boss trigger ได้จริง)
+function findBossTerrainCell(run) {
+  const campDef = BLH_CELL_BY_ID['camp'];
+  const empties = BLH_MAP.cells.filter(c =>
+    c.type === 'terrain' && !run.cells[c.id].placedCardId && c.id !== run.bossTerrainCell
+  );
+  if (!empties.length) return null;
+  // sort by Manhattan distance to camp (ใกล้ camp = ท้าทาย แต่ผู้เล่นเข้าถึงได้)
+  empties.sort((a, b) => {
+    const dA = Math.abs(a.row - campDef.row) + Math.abs(a.col - campDef.col);
+    const dB = Math.abs(b.row - campDef.row) + Math.abs(b.col - campDef.col);
+    return dA - dB;
+  });
+  // ต้องมีถนนติดกัน — ไม่งั้น terrain_boss ไม่สามารถถูก trigger ได้เลย
+  const withRoad = empties.find(c => getNeighborCells(c.id).some(n => n.type === 'road'));
+  return withRoad || empties[0];
+}
+
+// สร้าง enemy list สำหรับ terrain boss fight (boss + 2 minion — structure เหมือน boss signal)
+function makeTerrainBossEnemies(run) {
+  const boss = run.boss;
+  const mult = 1 + 0.10 * (run.loop - 1);
+  const mk = (def, role, slot) => {
+    const hp = Math.max(1, Math.round(def.base.hp * mult * run.mods.enemyHpMult));
+    return { id: def.id, name: def.name, img: def.img, role, slot, maxhp: hp, hp,
+      atk: Math.round(def.base.atk * mult), def: def.base.def, evasion: 0, defDebuff: 0 };
+  };
+  return [
+    mk(MINIONS[boss.minions[0]], 'minion', 0),
+    mk(MINIONS[boss.minions[1]], 'minion', 1),
+    mk(boss, 'boss', 2),
+  ];
 }
 
 // ── recompute hero stats (terrain card → run.mods global; adjacent/road → cell-based) ──
@@ -1488,13 +1647,16 @@ function applySpeedChange() {
   const run = BLH.run; if (!run) return;
   const battle = BLH._battle;
   if (run.speed === 0) {
-    // Pause: หยุดทั้ง walking + battle
+    // Pause: หยุดทั้ง walking + battle + cycle
     if (BLH._walkTimer) { clearTimeout(BLH._walkTimer); BLH._walkTimer = null; BLH._walkPendingMs = BLH._walkPendingMs ?? BAL.WALK_MS; }
     if (battle && battle.timer) { clearTimeout(battle.timer); battle.timer = null; battle._pending = !battle.done; }
+    stopCycleTimer();
   } else {
     // resume เฉพาะลูปที่กำลัง active
     if (battle && !battle.done && battle._pending) { battle._pending = false; scheduleBattleTick(60); }
     else if (run.phase === 'walking' && BLH._walkPendingMs != null) { const ms = BLH._walkPendingMs; BLH._walkPendingMs = null; scheduleStep(ms); }
+    // restart cycle timer ถ้ากำลังเดินอยู่ (ไม่ใช่ระหว่างแบตเทิล)
+    if (run.phase === 'walking' && !(battle && !battle.done)) startCycleTimer();
   }
 }
 
@@ -1853,6 +2015,13 @@ function dockDetailTile(run, cellId) {
          </div>`
       : `<div class="blh-danger-info dim" style="margin-top:5px">⚠️ Danger 0</div>`;
     if (rc.enemy) body += `<div style="font-size:12px;margin-top:4px">👾 ${esc(rc.enemy.name)}</div>`;
+    const mobStk = run.monsterTiles && run.monsterTiles[cellId];
+    if (mobStk && mobStk.length > 0) {
+      body += `<div style="font-size:12px;margin-top:4px">🐾 Natural ×${mobStk.length}: ${mobStk.map(e => esc(e.name)).join(', ')}</div>`;
+    }
+  }
+  if (def.type === 'terrain' && run.bossTerrainCell === cellId) {
+    body += `<div style="font-size:12px;margin-top:4px;color:#ff5577">👹 Boss Terrain — เดินถนนข้างๆ เพื่อสู้!</div>`;
   }
   return `<div class="blh-dock-detail-tile">
     <div class="blh-detail-close-row">
@@ -1876,8 +2045,20 @@ function renderBoard() {
     const placeable = run._placing != null && isPlaceable(def.id, run._placing);
     // เนื้อหาในไทล์ (เต็มช่อง) — camp / enemy / marker
     let inner = '';
-    if (def.type === 'camp') inner = '<div class="blh-cell-icon">⛺</div>';
-    else if (rc.enemy) inner = `<div class="blh-cell-enemy"><img src="${rc.enemy.img}" onerror="this.style.display='none'"></div>`;
+    if (def.type === 'camp') {
+      inner = '<div class="blh-cell-icon">⛺</div>';
+    } else if (def.type === 'road') {
+      // natural monster stack แสดงก่อน (ถ้ามี); ไม่งั้นแสดง spawnForLoop enemy
+      const mobStk = run.monsterTiles && run.monsterTiles[def.id];
+      const hasMobs = mobStk && mobStk.length > 0;
+      if (hasMobs) {
+        inner = `<div class="blh-cell-mob-badge" title="${mobStk.length} natural monster(s)">×${mobStk.length}</div>`;
+      } else if (rc.enemy) {
+        inner = `<div class="blh-cell-enemy"><img src="${rc.enemy.img}" onerror="this.style.display='none'"></div>`;
+      }
+    } else if (rc.enemy) {
+      inner = `<div class="blh-cell-enemy"><img src="${rc.enemy.img}" onerror="this.style.display='none'"></div>`;
+    }
     if (occupied) {
       const c = MAP_CARD_BY_ID[rc.placedCardId];
       inner += `<div class="blh-cell-marker" title="${esc(c.name)}">${c.icon}</div>`;
@@ -1886,6 +2067,10 @@ function renderBoard() {
     if (def.type === 'road') {
       const ld = localDangerForRoad(def.id);
       if (ld > 0) inner += `<div class="blh-cell-danger" title="Local Danger ${ld}">⚠${ld}</div>`;
+    }
+    // Boss terrain marker บนช่องเทอเรน
+    if (def.type === 'terrain' && run.bossTerrainCell === def.id) {
+      inner += `<div class="blh-cell-boss-terrain" title="Boss Terrain — เดินถนนข้างๆ เพื่อสู้">👹</div>`;
     }
     const cls = ['blh-tile', def.type];     // เช่น "blh-tile road" / "blh-tile terrain"
     if (placeable) cls.push('placeable');
@@ -1939,6 +2124,25 @@ function stepWalk() {
     updateHUD();
   }
 
+  // Boss terrain adjacent trigger (ตรวจก่อนสิ่งอื่น — priority สูงสุด)
+  if (run.bossTerrainCell) {
+    const neighbors = getNeighborCells(cellId);
+    if (neighbors.some(n => n.id === run.bossTerrainCell)) {
+      startBattle({ kind: 'terrain_boss', enemies: makeTerrainBossEnemies(run), cellId });
+      return;
+    }
+  }
+
+  // Natural monster stack (ตรวจก่อน rc.enemy)
+  const mobStack = run.monsterTiles[cellId];
+  if (mobStack && mobStack.length > 0) {
+    const enemies = [...mobStack];
+    run.monsterTiles[cellId] = []; // เคลียร์ก่อน startBattle (เพื่อกัน re-trigger)
+    startBattle({ kind: 'normal', enemies, cellId });
+    return;
+  }
+
+  // Existing spawnForLoop enemy (single enemy บน rc)
   const rc = run.cells[cellId];
   if (rc.enemy) {
     startBattle({ kind: 'normal', enemies: [rc.enemy], cellId });
@@ -1971,6 +2175,7 @@ function arriveCamp() {
   const amt = Math.round(run.stats.maxhp * healPct);
   if (amt > 0) run.stats.hp = clamp(run.stats.hp + amt, 0, run.stats.maxhp);
   spawnForLoop(run);   // เสกศัตรูสำหรับ loop ใหม่ (ผู้เล่นได้วางแผนก่อน)
+  stopCycleTimer();    // หยุด cycle timer ขณะอยู่ Camp
   run.speed = 0;       // auto-pause: เข้าโหมดวางแผน (Pause highlight) — กด ▶1x เพื่อ Continue
   renderBoard();
   updateHUD();
@@ -1990,6 +2195,7 @@ function continueLoop() {
   _selection = null;
   setPhase('walking');                        // renderPanel
   scheduleStep(450);
+  startCycleTimer();                          // เริ่ม cycle timer เมื่อออกจาก Camp
 }
 
 // ── PERK TRIGGERS ───────────────────────────────────────────────────────────
@@ -2242,6 +2448,9 @@ function applyCardEffect(c, run, cellId) {
     case 'thornfield': run.mods.enemyHpMult *= 0.85; run.mods.thornSelf += 1; break;
     case 'treasure':   run.mods.lootTierBump += 1; break;
   }
+  // อัปเดต terrain power (สะสม danger ของการ์ดที่วาง → อาจ trigger boss terrain)
+  run.terrainPower += (c.danger || 0);
+  checkBossTerrainSpawn(run);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2249,6 +2458,7 @@ function applyCardEffect(c, run, cellId) {
 // ════════════════════════════════════════════════════════════════════════════
 function startBattle(ctx) {
   const run = BLH.run;
+  stopCycleTimer(); // หยุด cycle timer ตลอด battle
   setPhase('battle');
   // เอฟเฟกต์เฉพาะช่อง (road/adjacent card) — boss ไม่มี cell จึงใช้ EMPTY
   const cellFx = ctx.cellId ? getCellEffectsForRoad(ctx.cellId) : EMPTY_CELL_FX;
@@ -2295,6 +2505,10 @@ function startBattle(ctx) {
   buildBattleDOM();             // สร้าง popup ครั้งเดียว — entrance animation เล่นรอบเดียว
   battleLog(ctx.kind === 'boss'
     ? `⚔️ ${run.boss.name} ปรากฏตัวพร้อมลูกสมุน 2 ตัว!`
+    : ctx.kind === 'terrain_boss'
+    ? `👹 Terrain Boss โจมตี! ${run.boss.name} กับลูกสมุน!`
+    : ctx.enemies.length > 1
+    ? `⚔️ Monster Stack ${ctx.enemies.length} ตัว!`
     : `⚔️ เจอ ${ctx.enemies[0].name}!`);
   scheduleBattleTick(BAL.BATTLE_OPEN_MS);
 }
@@ -2314,10 +2528,10 @@ function aliveEnemies() { return BLH._battle.enemies.filter(e => e.hp > 0); }
 
 function chooseTarget(battle) {
   const run = BLH.run;
-  if (battle.kind !== 'boss') {
+  if (battle.kind !== 'boss' && battle.kind !== 'terrain_boss') {
     return aliveEnemies()[0];
   }
-  // boss priority: 1) minion HP ต่ำสุด 2) ซ้าย 3) ขวา 4) boss
+  // boss / terrain_boss priority: 1) minion HP ต่ำสุด 2) ซ้าย 3) ขวา 4) boss
   const minions = battle.enemies.filter(e => e.role === 'minion' && e.hp > 0);
   if (minions.length) {
     minions.sort((a, b) => (a.hp - b.hp) || (a.slot - b.slot));
@@ -2635,8 +2849,47 @@ function endBattle(result) {
     return;
   }
 
+  if (battle.kind === 'terrain_boss') {
+    // Terrain boss defeated — รันต่อ (ไม่ runEnd) + ลบ boss terrain + รางวัลอย่างดี
+    battleLog(`🏆 Terrain Boss ล้มลง! ดินแดนอันตรายสงบแล้ว`);
+    run.bossTerrainCell = null;
+    run.nextBossTerrainThreshold += BAL.BOSS_TERRAIN_THRESHOLD_BASE;
+    // เคลียร์ศัตรูบนช่อง trigger — กันต่อสู้ซ้ำถ้า rc.enemy หรือ natural monster ยังอยู่
+    if (battle.cellId && run.cells[battle.cellId]) run.cells[battle.cellId].enemy = null;
+    if (battle.cellId && run.monsterTiles && run.monsterTiles[battle.cellId]) {
+      run.monsterTiles[battle.cellId] = [];
+    }
+    BLH.save.stats.bossKills = (BLH.save.stats.bossKills || 0) + 1;
+    // รางวัล: gear อย่างดี (guaranteed) + Loop Zeny
+    const tg = makeGear(run, { enemyRole: 'elite', treasure: true });
+    run.lootBag.push(tg);
+    const salvLogs = enforceBagCap(run);
+    const tslot = GEAR_SLOTS.find(s => s.id === tg.slot);
+    battleLog(`🎁 ลูทอย่างดี: ${tslot ? tslot.name : ''} ${gearLabelText(tg)}`);
+    salvLogs.forEach(l => battleLog(l));
+    const tBonus = BAL.TERRAIN_BOSS_ZENY;
+    run.mods.zenyBonus += tBonus;
+    battleLog(`💰 +${tBonus} Loop Zeny โบนัส Boss Terrain!`);
+    finishBattleBanner('VICTORY');
+    BLH._finishTimer = setTimeout(() => {
+      BLH._finishTimer = null;
+      if (!BLH.run || BLH.run.ended) return;
+      closeBattle();
+      renderBoard();
+      updateHUD();
+      setPhase('walking');
+      scheduleStep(350);
+      startCycleTimer();
+    }, 1100);
+    return;
+  }
+
   // normal win — เคลียร์ศัตรูบนช่อง + ดรอป (รวมเอฟเฟกต์เฉพาะช่อง)
   if (battle.cellId && run.cells[battle.cellId]) run.cells[battle.cellId].enemy = null;
+  // เคลียร์ natural monster stack (ป้องกัน re-trigger ถ้ายังมีเหลือจากการ merge)
+  if (battle.cellId && run.monsterTiles && run.monsterTiles[battle.cellId]) {
+    run.monsterTiles[battle.cellId] = [];
+  }
   // Quick Step (trait): ชนะไฟต์แล้ว ASPD เพิ่มจนจบลูป
   if (run.traitMods && run.traitMods.quickStep > 0 && !run._quickStepActive) {
     run._quickStepActive = true; recomputeStats(run);
@@ -2659,6 +2912,7 @@ function endBattle(result) {
     updateHUD();
     setPhase('walking');
     scheduleStep(350);
+    startCycleTimer();   // เริ่ม cycle timer ต่อหลังชนะ
   }, drops.length ? 1100 : 700);
 }
 
@@ -2858,7 +3112,7 @@ function buildBattleDOM() {
 function setBattleTitle() {
   const battle = BLH._battle, run = BLH.run; const tb = q('blh-bt-titlebar'); if (!tb || !battle) return;
   tb.className = 'blh-bt-titlebar';
-  tb.textContent = `⚔️ ${battle.kind === 'boss' ? run.boss.name : 'BATTLE'}`;
+  tb.textContent = `⚔️ ${battle.kind === 'boss' ? run.boss.name : battle.kind === 'terrain_boss' ? `👹 ${run.boss.name}` : 'BATTLE'}`;
 }
 
 // อัปเดตเฉพาะส่วนที่เปลี่ยน (HP bar/text + dead state) — ไม่แตะ DOM โครงสร้าง/animation
@@ -3087,5 +3341,11 @@ if (BLH_DEV) {
     addCardToHand, consumeCardFromHand, findHandStack, oldestHandCardId,
     // gear bag cap + overflow auto-salvage (run-only)
     BASE_BAG, AUTO_SALVAGE_PCT, bagCap, gearWorth, autoSalvageValue, enforceBagCap, lootValue,
+    // natural monster spawn + cycle timer + boss terrain (new systems)
+    BAL, NATURAL_MONSTERS,
+    naturalMonsterCount, naturalCap, makeNaturalEnemy, spawnNaturalMonsters, cycleSpawnAttempt,
+    startCycleTimer, stopCycleTimer, onCycleTick,
+    checkBossTerrainSpawn, findBossTerrainCell, makeTerrainBossEnemies,
+    endBattle,
   };
 }
