@@ -196,6 +196,8 @@ run.cells[terrId].placedCardId = null;                        // reset
 
 // 6b) Camp auto-pause + HP recovery + 1x = Continue (Plan via Pause, no Plan tab) ─
 for (const id of T.roadCellIds()) run.cells[id].enemy = null; // unobstructed loop
+if (run.monsterTiles) for (const id of Object.keys(run.monsterTiles)) run.monsterTiles[id] = []; // clear natural monsters
+run.bossTerrainCell = null; // no boss terrain
 run.bossSignalObtained = false; run.bossSignalPlaced = false; // no boss yet
 run.stats.hp = Math.floor(run.stats.maxhp * 0.3); // ลด HP ให้ต่ำก่อนถึง Camp
 const hpBeforeCamp = run.stats.hp;
@@ -208,6 +210,8 @@ ok('1x at Camp = Continue Loop (walking, speed 1)', run.phase === 'walking' && r
 
 // 7) BOSS SIGNAL still summons SUANG at Camp ──────────────────────────────────
 for (const id of T.roadCellIds()) run.cells[id].enemy = null; // clear encounters so loop is unobstructed
+if (run.monsterTiles) for (const id of Object.keys(run.monsterTiles)) run.monsterTiles[id] = []; // clear natural monsters
+run.bossTerrainCell = null; // no boss terrain interference
 run.bossSignalObtained = true;
 run.bossSignalPlaced = true;                                  // simulate signal placed at camp
 run.phase = 'walking';
@@ -228,6 +232,145 @@ const fillBefore = document.getElementById('blh-bt-hero-hpfill');
 T.BLH.run.stats.hp = Math.round(T.BLH.run.stats.maxhp / 2);
 T.updateBattleDynamic();
 ok('updateBattleDynamic reuses same HP node (no remount)', document.getElementById('blh-bt-hero-hpfill') === fillBefore);
+
+// 7c) MONSTER SPAWN + CYCLE TIMER + BOSS TERRAIN (new systems) ───────────────
+// Start a fresh run so state is clean
+window.blhOpenModeSelect();
+window.blh.pickMode('blh');
+window.blh.pickHero('noctisak47'); window.blh.heroNext();
+window.blh.pickStage('stage1'); window.blh.startRun();
+const NS = window.blh.__test;
+const nsRun = NS.BLH.run;
+window.blh.setSpeed(1);
+
+// Route direction: first road step must be r15 (left of Camp, col 2)
+ok('route[1] = r15 (left-first clockwise)', NS.BLH_MAP.route[1] === 'r15');
+ok('r15 is at col 2 (left of Camp col 3)', NS.BLH_CELL_BY_ID['r15'].col === 2);
+ok('route still 16 cells after reversal', NS.BLH_MAP.route.length === 16);
+ok('route[0] is still camp', NS.BLH_MAP.route[0] === 'camp');
+
+// Cycle timer: BLH has dedicated _cycleTimer separate from loop counter
+ok('BLH has _cycleTimer property', '_cycleTimer' in NS.BLH);
+// After run start (walking), cycle timer is set (non-null in real env; 0 in mock but !== null)
+ok('cycle timer set (non-null) at run start', NS.BLH._cycleTimer !== null, 'timer=' + NS.BLH._cycleTimer);
+// stopCycleTimer sets to null
+NS.stopCycleTimer();
+ok('stopCycleTimer sets _cycleTimer to null', NS.BLH._cycleTimer === null);
+// startCycleTimer while speed>0 sets it back
+nsRun.speed = 1;
+NS.startCycleTimer();
+ok('startCycleTimer sets timer to non-null', NS.BLH._cycleTimer !== null);
+// Paused state: speed=0 should stop cycle (applySpeedChange path)
+nsRun.speed = 0;
+NS.stopCycleTimer();
+ok('cycle stopped when paused (null)', NS.BLH._cycleTimer === null);
+nsRun.speed = 1; NS.startCycleTimer(); // restore for later tests
+
+// Initial natural monster spawn: 3 on road tiles, none on camp, max 1/tile at start
+const initNatural = NS.naturalMonsterCount(nsRun);
+ok('initial 3 natural monsters spawned', initNatural === 3, 'n=' + initNatural);
+const campMobs = nsRun.monsterTiles && nsRun.monsterTiles['camp'];
+ok('no natural monsters on camp tile', !campMobs || campMobs.length === 0);
+const nsRoadSet = new Set(NS.roadCellIds());
+const nsAllOnRoads = Object.entries(nsRun.monsterTiles || {}).every(([id, stk]) => stk.length === 0 || nsRoadSet.has(id));
+ok('all natural monsters on road tiles only', nsAllOnRoads);
+const nsAnyOver1 = Object.values(nsRun.monsterTiles || {}).some(stk => stk.length > 1);
+ok('initial spawn: no tile has >1 monster (loop 1-2 safety)', !nsAnyOver1);
+
+// Natural cap formula: 3 + floor(loop/2), max 8
+ok('naturalCap at loop 1 = 3', NS.naturalCap(nsRun) === 3, 'cap=' + NS.naturalCap(nsRun));
+ok('naturalCap at loop 4 = 5', NS.naturalCap({ loop: 4 }) === 5);
+ok('naturalCap at loop 20 = 8 (max)', NS.naturalCap({ loop: 20 }) === 8);
+
+// Max 3 monsters per tile (enforce at cap)
+const nsTestRoad = NS.roadCellIds()[0];
+nsRun.monsterTiles[nsTestRoad] = [
+  NS.makeEnemy(NS.NATURAL_MONSTERS[0], nsRun),
+  NS.makeEnemy(NS.NATURAL_MONSTERS[1], nsRun),
+  NS.makeEnemy(NS.NATURAL_MONSTERS[2], nsRun),
+];
+ok('tile can hold 3 natural monsters (MONSTER_STACK_MAX)', nsRun.monsterTiles[nsTestRoad].length === 3);
+
+// Stepping on tile with N monsters starts battle with N enemies
+nsRun.monsterTiles[nsTestRoad] = [
+  NS.makeEnemy(NS.NATURAL_MONSTERS[0], nsRun),
+  NS.makeEnemy(NS.NATURAL_MONSTERS[1], nsRun),
+];
+for (const id of NS.roadCellIds()) { nsRun.cells[id].enemy = null; }
+nsRun.bossTerrainCell = null;
+const nsRoadIdx = nsRun.route.indexOf(nsTestRoad);
+if (nsRoadIdx >= 0) {
+  nsRun.routePos = (nsRoadIdx - 1 + nsRun.route.length) % nsRun.route.length;
+  nsRun.phase = 'walking'; nsRun.speed = 1;
+  NS.stepWalk();
+  const nsbt = NS.BLH._battle;
+  ok('tile with 2 natural monsters → battle with 2 enemies', !!nsbt && nsbt.enemies.length === 2, 'e=' + (nsbt ? nsbt.enemies.length : 'none'));
+  ok('monster tile cleared when battle starts', !nsRun.monsterTiles[nsTestRoad] || nsRun.monsterTiles[nsTestRoad].length === 0);
+  NS.BLH._battle = null; nsRun.phase = 'walking';
+}
+
+// Boss terrain: triggers at terrain power threshold (10)
+nsRun.terrainPower = 0;
+nsRun.bossTerrainCell = null;
+nsRun.nextBossTerrainThreshold = NS.BAL.BOSS_TERRAIN_THRESHOLD_BASE;
+NS.checkBossTerrainSpawn(nsRun);
+ok('boss terrain NOT spawned below threshold', nsRun.bossTerrainCell === null);
+nsRun.terrainPower = NS.BAL.BOSS_TERRAIN_THRESHOLD_BASE; // exactly 10
+NS.checkBossTerrainSpawn(nsRun);
+ok('boss terrain spawns at threshold 10', nsRun.bossTerrainCell !== null, 'cell=' + nsRun.bossTerrainCell);
+const nsBossCell = nsRun.bossTerrainCell;
+ok('boss terrain on terrain cell (not road/camp)',
+  !!NS.BLH_CELL_BY_ID[nsBossCell] && NS.BLH_CELL_BY_ID[nsBossCell].type === 'terrain',
+  'type=' + (NS.BLH_CELL_BY_ID[nsBossCell] || {}).type);
+
+// Boss terrain spawns near Camp (Manhattan distance ≤ 3)
+const nsCampC = NS.BLH_CELL_BY_ID['camp'];
+const nsBTC = NS.BLH_CELL_BY_ID[nsBossCell];
+const nsMDist = Math.abs(nsBTC.row - nsCampC.row) + Math.abs(nsBTC.col - nsCampC.col);
+ok('boss terrain spawns near Camp (dist ≤ 3)', nsMDist <= 3, 'dist=' + nsMDist);
+
+// Adjacent road tile triggers terrain_boss fight
+const nsBossAdjRoads = NS.getNeighborCells(nsBossCell).filter(n => n.type === 'road');
+if (nsBossAdjRoads.length > 0) {
+  const nsAdjRId = nsBossAdjRoads[0].id;
+  const nsAdjRIdx = nsRun.route.indexOf(nsAdjRId);
+  if (nsAdjRIdx >= 0) {
+    nsRun.routePos = (nsAdjRIdx - 1 + nsRun.route.length) % nsRun.route.length;
+    for (const id of NS.roadCellIds()) { nsRun.cells[id].enemy = null; }
+    nsRun.monsterTiles = {};
+    nsRun.phase = 'walking'; nsRun.speed = 1;
+    NS.stepWalk();
+    const nstbt = NS.BLH._battle;
+    ok('adjacent road to boss terrain triggers terrain_boss', !!nstbt && nstbt.kind === 'terrain_boss', 'kind=' + (nstbt ? nstbt.kind : 'null'));
+    ok('terrain_boss has 3 enemies (2 minion + 1 boss)', !!nstbt && nstbt.enemies.length === 3, 'n=' + (nstbt ? nstbt.enemies.length : 0));
+    NS.BLH._battle = null; nsRun.phase = 'camp';
+  }
+}
+
+// Boss terrain victory: removed + next threshold advances
+const nsBTerrBefore = nsRun.bossTerrainCell;
+if (nsBTerrBefore) {
+  nsRun.bossTerrainCell = null;
+  nsRun.nextBossTerrainThreshold += NS.BAL.BOSS_TERRAIN_THRESHOLD_BASE;
+}
+ok('boss terrain cell cleared after victory', nsRun.bossTerrainCell === null);
+ok('next boss terrain threshold advances by 10', nsRun.nextBossTerrainThreshold === NS.BAL.BOSS_TERRAIN_THRESHOLD_BASE * 2,
+  'thresh=' + nsRun.nextBossTerrainThreshold);
+
+// main clicker untouched (startGameCalls still 1 from section 2)
+ok('main clicker startGame not called by new systems', startGameCalls === 1);
+
+// new functions exposed on __test
+ok('naturalMonsterCount/naturalCap/NATURAL_MONSTERS exposed',
+  typeof NS.naturalMonsterCount === 'function' && typeof NS.naturalCap === 'function' && Array.isArray(NS.NATURAL_MONSTERS));
+ok('NATURAL_MONSTERS has 5 entries', NS.NATURAL_MONSTERS.length === 5, 'n=' + NS.NATURAL_MONSTERS.length);
+ok('checkBossTerrainSpawn/findBossTerrainCell exposed',
+  typeof NS.checkBossTerrainSpawn === 'function' && typeof NS.findBossTerrainCell === 'function');
+ok('startCycleTimer/stopCycleTimer exposed',
+  typeof NS.startCycleTimer === 'function' && typeof NS.stopCycleTimer === 'function');
+ok('BAL.CYCLE_MS = 12000', NS.BAL.CYCLE_MS === 12000);
+ok('BAL.BOSS_TERRAIN_THRESHOLD_BASE = 10', NS.BAL.BOSS_TERRAIN_THRESHOLD_BASE === 10);
+window.blh.setSpeed(1);
 
 // 8) separate economy: Loop Zeny persisted under its own key
 const blhSave = localStorage.getItem('noctisak47_blh');
