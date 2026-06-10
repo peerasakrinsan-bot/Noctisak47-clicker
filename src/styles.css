@@ -3912,6 +3912,7 @@
   .blh-board-wrap { align-items: center; }
   #blh-run { gap: 4px; }
   #blh-run .blh-panel { height: clamp(200px, 33vh, 220px); }
+  .blh-autostat-row { min-height: 20px; max-height: 22px; padding: 1px 4px; }
 }
 
 /* ── dock ctrl row ── */
@@ -4131,11 +4132,6 @@
   background: linear-gradient(135deg, #1fbf63, #36d97a); }
 .blh-alloc-confirm:not(:disabled):active { background: linear-gradient(135deg, #18a653, #2cc56b); }
 .blh-alloc-confirm:disabled { opacity: .4; cursor: default; }
-/* ── Growth Plan section (auto-allocation) ── */
-.blh-growth-section { margin-top: 6px; padding: 8px 8px 6px; border-radius: 8px;
-  background: rgba(34,119,255,.06); border: 1px solid rgba(34,119,255,.18); }
-.blh-growth-head { font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .5px; color: var(--gold); margin-bottom: 5px; }
 .blh-preset-btn.on { background: rgba(34,119,255,.35); border-color: rgba(34,119,255,.75);
   color: #fff; font-weight: 700; }
 .blh-growth-note { font-size: 10px; color: #8a9ab0; margin-top: 4px; font-style: italic; }
