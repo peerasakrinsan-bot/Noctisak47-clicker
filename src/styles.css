@@ -4144,6 +4144,30 @@
   50%      { transform: scale(1.25); filter: drop-shadow(0 0 10px #ff6600); }
 }
 
+/* ── Elite Event road marker ── */
+.blh-cell-elite-event {
+  position: absolute; top: 1px; left: 2px;
+  font-size: clamp(11px, 3vw, 15px); line-height: 1;
+  pointer-events: none; z-index: 6;
+  animation: blh-elite-pulse 1.8s ease-in-out infinite;
+}
+@keyframes blh-elite-pulse {
+  0%,100% { filter: drop-shadow(0 0 3px #ffd700); transform: scale(1); }
+  50%      { filter: drop-shadow(0 0 8px #ffee44); transform: scale(1.20); }
+}
+
+/* ── Mythic Event road marker ── */
+.blh-cell-mythic-event {
+  position: absolute; top: 1px; left: 2px;
+  font-size: clamp(11px, 3vw, 15px); line-height: 1;
+  pointer-events: none; z-index: 6;
+  animation: blh-mythic-pulse 1.4s ease-in-out infinite;
+}
+@keyframes blh-mythic-pulse {
+  0%,100% { filter: drop-shadow(0 0 4px #cc44ff); transform: scale(1); }
+  50%      { filter: drop-shadow(0 0 10px #ee88ff); transform: scale(1.25); }
+}
+
 /* ── active perk chips in STATS panel ── */
 .blh-perk-active { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
 .blh-perk-chip { font-size: 10px; letter-spacing: .5px; color: #ffe7a8; padding: 2px 7px; border-radius: 6px;

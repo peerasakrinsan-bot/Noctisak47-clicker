@@ -377,6 +377,185 @@ ok('BAL.CYCLE_MS = 12000', NS.BAL.CYCLE_MS === 12000);
 ok('BAL.BOSS_TERRAIN_THRESHOLD_BASE = 10', NS.BAL.BOSS_TERRAIN_THRESHOLD_BASE === 10);
 window.blh.setSpeed(1);
 
+// 7d) ELITE/MYTHIC ROAD EVENTS ──────────────────────────────────────────────
+// Use a fresh run for clean event state
+window.blhOpenModeSelect();
+window.blh.pickMode('blh');
+window.blh.pickHero('noctisak47'); window.blh.heroNext();
+window.blh.pickStage('stage1'); window.blh.startRun();
+const EV = window.blh.__test;
+const evRun = EV.BLH.run;
+window.blh.setSpeed(1);
+
+// Event pool sizes
+ok('ELITE_EVENT_ENEMIES has 3 entries', Array.isArray(EV.ELITE_EVENT_ENEMIES) && EV.ELITE_EVENT_ENEMIES.length === 3);
+ok('MYTHIC_EVENT_ENEMIES has 3 entries', Array.isArray(EV.MYTHIC_EVENT_ENEMIES) && EV.MYTHIC_EVENT_ENEMIES.length === 3);
+ok('all ELITE_EVENT_ENEMIES have role elite_event',
+  EV.ELITE_EVENT_ENEMIES.every(e => e.role === 'elite_event'));
+ok('all MYTHIC_EVENT_ENEMIES have role mythic_event',
+  EV.MYTHIC_EVENT_ENEMIES.every(e => e.role === 'mythic_event'));
+
+// Unlock conditions
+// Elite: loop >= 3 OR terrainPower >= 6
+evRun.loop = 1; evRun.terrainPower = 0;
+ok('Elite NOT unlocked at loop 1, power 0', !EV.eliteEventUnlocked(evRun));
+evRun.loop = 3; evRun.terrainPower = 0;
+ok('Elite unlocked at loop >= 3', EV.eliteEventUnlocked(evRun));
+evRun.loop = 1; evRun.terrainPower = 6;
+ok('Elite unlocked at terrainPower >= 6', EV.eliteEventUnlocked(evRun));
+evRun.loop = 2; evRun.terrainPower = 5;
+ok('Elite NOT unlocked at loop 2, power 5 (both below threshold)', !EV.eliteEventUnlocked(evRun));
+
+// Mythic: loop >= 6 AND terrainPower >= 12
+evRun.loop = 1; evRun.terrainPower = 0;
+ok('Mythic NOT unlocked at loop 1, power 0', !EV.mythicEventUnlocked(evRun));
+evRun.loop = 6; evRun.terrainPower = 0;
+ok('Mythic NOT unlocked at loop 6, power 0 (missing power)', !EV.mythicEventUnlocked(evRun));
+evRun.loop = 1; evRun.terrainPower = 12;
+ok('Mythic NOT unlocked at loop 1, power 12 (missing loop)', !EV.mythicEventUnlocked(evRun));
+evRun.loop = 6; evRun.terrainPower = 12;
+ok('Mythic unlocked at loop >= 6 AND terrainPower >= 12', EV.mythicEventUnlocked(evRun));
+
+// Reset to locked state and verify trySpawn does nothing before unlock
+evRun.loop = 1; evRun.terrainPower = 0;
+evRun.eliteEventTile = null; evRun.mythicEventTile = null;
+evRun.monsterTiles = {};
+EV.trySpawnEliteEvent(evRun);
+ok('Elite does not spawn before unlock (loop 1, power 0)', evRun.eliteEventTile === null);
+EV.trySpawnMythicEvent(evRun);
+ok('Mythic does not spawn before unlock (loop 1, power 0)', evRun.mythicEventTile === null);
+
+// Max 1 active Elite
+evRun.loop = 3; evRun.terrainPower = 0;
+evRun.eliteEventTile = 'r01'; // already has an active elite event
+EV.trySpawnEliteEvent(evRun);
+ok('Elite: no second spawn when one is already active', evRun.eliteEventTile === 'r01');
+evRun.eliteEventTile = null; // reset
+
+// Max 1 active Mythic
+evRun.loop = 6; evRun.terrainPower = 12;
+evRun.mythicEventTile = 'r05'; // already active
+EV.trySpawnMythicEvent(evRun);
+ok('Mythic: no second spawn when one is already active', evRun.mythicEventTile === 'r05');
+evRun.mythicEventTile = null; // reset
+
+// Event spawn respects tile monster stack cap = 3
+evRun.loop = 3; evRun.terrainPower = 0;
+evRun.eliteEventTile = null;
+const evRoads = EV.roadCellIds();
+evRoads.forEach(id => { evRun.monsterTiles[id] = [
+  EV.makeEnemy(EV.NATURAL_MONSTERS[0], evRun),
+  EV.makeEnemy(EV.NATURAL_MONSTERS[1], evRun),
+  EV.makeEnemy(EV.NATURAL_MONSTERS[2], evRun),
+]; }); // fill all tiles to cap
+// force 100% chance to remove randomness
+const origEliteChance = EV.BAL.ELITE_EVENT_BASE_CHANCE;
+EV.BAL.ELITE_EVENT_BASE_CHANCE = 1.0;
+EV.trySpawnEliteEvent(evRun);
+ok('Elite does not spawn when all tiles are at stack cap', evRun.eliteEventTile === null,
+  'tile=' + evRun.eliteEventTile);
+EV.BAL.ELITE_EVENT_BASE_CHANCE = origEliteChance; // restore
+evRoads.forEach(id => { evRun.monsterTiles[id] = []; }); // clear
+
+// Elite spawn CAN happen on a tile with < 3 monsters
+evRun.loop = 3; evRun.terrainPower = 0;
+evRun.eliteEventTile = null;
+evRoads.forEach(id => { evRun.monsterTiles[id] = []; });
+// Override both base AND cap so the clamp cannot suppress the guaranteed spawn
+EV.BAL.ELITE_EVENT_BASE_CHANCE = 1.0;
+EV.BAL.ELITE_EVENT_CHANCE_CAP = 1.0; // prevent cap from reducing the override
+EV.trySpawnEliteEvent(evRun);
+ok('Elite spawns on a valid road tile when unlocked (loop >= 3)',
+  evRun.eliteEventTile !== null && evRoads.includes(evRun.eliteEventTile),
+  'tile=' + evRun.eliteEventTile);
+EV.BAL.ELITE_EVENT_BASE_CHANCE = origEliteChance; // restore
+EV.BAL.ELITE_EVENT_CHANCE_CAP = 0.12; // restore
+
+// Stepping on Elite tile starts elite_event battle
+const evEliteTile = evRun.eliteEventTile || evRoads[0];
+evRun.eliteEventTile = evEliteTile;
+for (const id of evRoads) { evRun.cells[id].enemy = null; }
+evRun.bossTerrainCell = null;
+evRoads.forEach(id => { evRun.monsterTiles[id] = []; });
+const evEliteIdx = evRun.route.indexOf(evEliteTile);
+if (evEliteIdx >= 0) {
+  evRun.routePos = (evEliteIdx - 1 + evRun.route.length) % evRun.route.length;
+  evRun.phase = 'walking'; evRun.speed = 1;
+  EV.stepWalk();
+  const evBt = EV.BLH._battle;
+  ok('stepping on Elite tile starts elite_event battle', !!evBt && evBt.kind === 'elite_event',
+    'kind=' + (evBt ? evBt.kind : 'none'));
+  ok('elite_event battle has 1 enemy', !!evBt && evBt.enemies.length === 1, 'n=' + (evBt ? evBt.enemies.length : 0));
+  ok('elite_event marker cleared on battle start', evRun.eliteEventTile === null);
+
+  // Elite victory grants gear + Loop Zeny
+  if (evBt) {
+    const zenyBefore = evRun.mods.zenyBonus;
+    const bagBefore = evRun.lootBag.length;
+    evBt.enemies.forEach(e => { e.hp = 0; });
+    EV.endBattle('win');
+    ok('elite_event victory: Loop Zeny bonus granted',
+      evRun.mods.zenyBonus >= zenyBefore + EV.BAL.ELITE_EVENT_ZENY,
+      'bonus=' + (evRun.mods.zenyBonus - zenyBefore));
+    ok('elite_event victory: gear dropped (loot bag grew)',
+      evRun.lootBag.length > bagBefore, 'bag=' + evRun.lootBag.length);
+  }
+  EV.BLH._battle = null; evRun.phase = 'walking';
+}
+
+// Stepping on Mythic tile starts mythic_event battle
+evRun.loop = 6; evRun.terrainPower = 12;
+evRun.mythicEventTile = null;
+EV.BAL.MYTHIC_EVENT_BASE_CHANCE = 1.0; // guarantee spawn
+evRoads.forEach(id => { evRun.monsterTiles[id] = []; });
+EV.trySpawnMythicEvent(evRun);
+EV.BAL.MYTHIC_EVENT_BASE_CHANCE = EV.BAL.MYTHIC_EVENT_BASE_CHANCE; // restore (it's still modified)
+EV.BAL.MYTHIC_EVENT_BASE_CHANCE = 0.02; // restore properly
+const evMythicTile = evRun.mythicEventTile || evRoads[1];
+evRun.mythicEventTile = evMythicTile;
+for (const id of evRoads) { evRun.cells[id].enemy = null; }
+evRun.bossTerrainCell = null;
+evRoads.forEach(id => { evRun.monsterTiles[id] = []; });
+evRun.eliteEventTile = null;
+const evMythicIdx = evRun.route.indexOf(evMythicTile);
+if (evMythicIdx >= 0) {
+  evRun.routePos = (evMythicIdx - 1 + evRun.route.length) % evRun.route.length;
+  evRun.phase = 'walking'; evRun.speed = 1;
+  EV.stepWalk();
+  const evMbt = EV.BLH._battle;
+  ok('stepping on Mythic tile starts mythic_event battle', !!evMbt && evMbt.kind === 'mythic_event',
+    'kind=' + (evMbt ? evMbt.kind : 'none'));
+  ok('mythic_event battle has 1 enemy', !!evMbt && evMbt.enemies.length === 1, 'n=' + (evMbt ? evMbt.enemies.length : 0));
+  ok('mythic_event marker cleared on battle start', evRun.mythicEventTile === null);
+
+  // Mythic victory grants higher gear + Loop Zeny
+  if (evMbt) {
+    const mZenyBefore = evRun.mods.zenyBonus;
+    const mBagBefore = evRun.lootBag.length;
+    evMbt.enemies.forEach(e => { e.hp = 0; });
+    EV.endBattle('win');
+    ok('mythic_event victory: Loop Zeny bonus granted (>= MYTHIC_EVENT_ZENY)',
+      evRun.mods.zenyBonus >= mZenyBefore + EV.BAL.MYTHIC_EVENT_ZENY,
+      'bonus=' + (evRun.mods.zenyBonus - mZenyBefore));
+    ok('mythic_event victory: gear dropped (loot bag grew)',
+      evRun.lootBag.length > mBagBefore, 'bag=' + evRun.lootBag.length);
+  }
+  EV.BLH._battle = null; evRun.phase = 'camp';
+}
+
+// Main clicker still untouched after event section
+ok('main clicker untouched after elite/mythic events', startGameCalls === 1);
+
+// New symbols exposed on __test
+ok('ELITE_EVENT_ENEMIES/MYTHIC_EVENT_ENEMIES exposed',
+  Array.isArray(EV.ELITE_EVENT_ENEMIES) && Array.isArray(EV.MYTHIC_EVENT_ENEMIES));
+ok('eliteEventUnlocked/mythicEventUnlocked exposed',
+  typeof EV.eliteEventUnlocked === 'function' && typeof EV.mythicEventUnlocked === 'function');
+ok('trySpawnEliteEvent/trySpawnMythicEvent exposed',
+  typeof EV.trySpawnEliteEvent === 'function' && typeof EV.trySpawnMythicEvent === 'function');
+ok('BAL has Elite/Mythic event constants',
+  EV.BAL.ELITE_EVENT_BASE_CHANCE === 0.06 && EV.BAL.MYTHIC_EVENT_BASE_CHANCE === 0.02);
+
 // 8) separate economy: Loop Zeny persisted under its own key
 const blhSave = localStorage.getItem('noctisak47_blh');
 ok('Loop Zeny save uses separate key', blhSave !== null);
