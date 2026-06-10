@@ -125,6 +125,8 @@ const ROLE_LABEL = {
   tank:   'TANK',
   cursed: 'CURSED',
   elite:  'ELITE',
+  elite_event:  '⭐ ELITE',   // Elite Event encounter
+  mythic_event: '💎 MYTHIC',  // Mythic Event mini-boss
 };
 
 // ── minions (ใช้ card assets เช่นกัน) ────────────────────────────────────────
@@ -142,6 +144,22 @@ const NATURAL_MONSTERS = [
   { id: 'looney_tic', name: 'LOONEY TIC', img: 'cards/looneytic.png',  role: 'basic', base: { hp: 24, atk: 4, def: 1 } },
   { id: 'poporingo',  name: 'POPORINGO',  img: 'cards/poporingo.png',  role: 'basic', base: { hp: 30, atk: 6, def: 1 } },
   { id: 'dripz',      name: 'DRIPZ',      img: 'cards/dripz.png',      role: 'fast',  base: { hp: 18, atk: 5, def: 0 } },
+];
+
+// ── Elite Event enemies (card assets จาก Elite rarity — ไม่ซ้ำกับ ENEMIES/NATURAL_MONSTERS) ──
+// spawn บน road tile, run-only, ใช้ role 'elite_event' เพื่อแสดง badge ต่าง + vsElite trait ทำงาน
+const ELITE_EVENT_ENEMIES = [
+  { id: 'hydra',       name: 'HYDRA',       img: 'cards/hydra.png',       role: 'elite_event', base: { hp: 120, atk: 16, def: 5 } },
+  { id: 'execusioner', name: 'EXECUSIONER', img: 'cards/execusioner.png', role: 'elite_event', base: { hp: 110, atk: 20, def: 4 } },
+  { id: 'freeoni',     name: 'FREEONI',     img: 'cards/freeoni.png',     role: 'elite_event', base: { hp: 140, atk: 13, def: 7 } },
+];
+
+// ── Mythic Event mini-boss pool (card assets จาก Mythic rarity) ──
+// สู้คนเดียว, แข็งแกร่งกว่า Elite, เริ่มปรากฏ loop >= 6 AND terrainPower >= 12
+const MYTHIC_EVENT_ENEMIES = [
+  { id: 'beelzebruh',  name: 'BEELZEBRUH',  img: 'cards/beelzebruh.png',  role: 'mythic_event', base: { hp: 280, atk: 24, def: 8 } },
+  { id: 'drunkula',    name: 'DRUNKULA',    img: 'cards/drunkula.png',    role: 'mythic_event', base: { hp: 260, atk: 27, def: 6 } },
+  { id: 'nightmayor',  name: 'NIGHTMAYOR',  img: 'cards/nightmayor.png',  role: 'mythic_event', base: { hp: 310, atk: 21, def: 10 } },
 ];
 
 // ── บอส (ใช้ boss skin assets + ชื่อเป๊ะตามเดิม) ─────────────────────────────
@@ -581,6 +599,19 @@ const BAL = {
   BOSS_TERRAIN_THRESHOLD_BASE: 10,  // terrain power ที่เรียก boss terrain ครั้งแรก
   TERRAIN_BOSS_ZENY: 100,           // Loop Zeny โบนัสจาก terrain boss victory
   // หมายเหตุ: การแปลงการ์ดแผนที่เหลือเป็น Loop Zeny ใช้ handZeny() (per-kind) — ดู CARD_KIND_ZENY
+  // ── Elite/Mythic Road Events — spawn บน road tile, max 1 active ──
+  ELITE_EVENT_UNLOCK_LOOP:   3,     // ปลดล็อก loop >= 3
+  ELITE_EVENT_UNLOCK_POWER:  6,     // หรือ terrainPower >= 6 (OR condition)
+  ELITE_EVENT_BASE_CHANCE:   0.06,  // 6% ต่อรอบ cycle
+  ELITE_EVENT_POWER_BONUS:   0.01,  // +1% ทุก 5 terrainPower
+  ELITE_EVENT_CHANCE_CAP:    0.12,  // เพดาน 12%
+  ELITE_EVENT_ZENY:          40,    // Loop Zeny รางวัล Elite
+  MYTHIC_EVENT_UNLOCK_LOOP:  6,     // ปลดล็อก loop >= 6
+  MYTHIC_EVENT_UNLOCK_POWER: 12,    // AND terrainPower >= 12 (AND condition)
+  MYTHIC_EVENT_BASE_CHANCE:  0.02,  // 2% ต่อรอบ cycle
+  MYTHIC_EVENT_POWER_BONUS:  0.01,  // +1% ทุก 10 terrainPower
+  MYTHIC_EVENT_CHANCE_CAP:   0.06,  // เพดาน 6%
+  MYTHIC_EVENT_ZENY:         120,   // Loop Zeny รางวัล Mythic
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -629,7 +660,7 @@ const HERO_PASSIVES = {
 // RUN EXP / LEVEL — run-only (รีเซ็ตเมื่อรันจบ ไม่บันทึกถาวร)
 // ════════════════════════════════════════════════════════════════════════════
 // EXP ที่ศัตรูแต่ละ role ให้เมื่อถูกฆ่า (สเปก)
-const ENEMY_EXP = { basic: 8, fast: 12, tank: 14, cursed: 16, elite: 35 };
+const ENEMY_EXP = { basic: 8, fast: 12, tank: 14, cursed: 16, elite: 35, elite_event: 35, mythic_event: 60 };
 // EXP ที่ต้องการขึ้น level ถัดไป (สเปก: 30 + (level-1)² × 18)
 function expToNext(level) { return 30 + Math.pow(level - 1, 2) * 18; }
 // แผนเติบโต 4 แบบ — deterministic repeating pattern (cursor หมุนต่อเนื่องข้ามการ level-up)
@@ -1210,6 +1241,9 @@ function startRun() {
     terrainPower: 0,                                    // พลังเทอเรนสะสมจากการ์ดที่วาง
     nextBossTerrainThreshold: BAL.BOSS_TERRAIN_THRESHOLD_BASE, // เกณฑ์ต่อไป
     bossTerrainCell: null,                              // cellId ของ boss terrain ที่ active
+    // ── Elite/Mythic Road Events (run-only, max 1 active each) ────────────────
+    eliteEventTile: null,   // cellId ของ Elite Event marker ที่ active บนถนน
+    mythicEventTile: null,  // cellId ของ Mythic Event marker ที่ active บนถนน
     speed: 1,               // 0 = Pause, 1 = 1x (ช้า, default), 2 = 2x
     ended: false,
     _placing: null,
@@ -1314,20 +1348,25 @@ function spawnNaturalMonsters(run, count) {
   }
 }
 
-// รอบ 12 วินาที: ลองสปอว์น 1 ตัวบนช่องถนนสุ่ม (35% chance)
+// รอบ 12 วินาที: ลองสปอว์น natural monster + Elite/Mythic events
 function cycleSpawnAttempt(run) {
-  if (naturalMonsterCount(run) >= naturalCap(run)) return;
-  if (Math.random() > BAL.NATURAL_CYCLE_CHANCE) return;
-  const valid = roadCellIds().filter(id => {
-    if (id === 'camp') return false;
-    const stk = run.monsterTiles[id] || [];
-    return stk.length < BAL.MONSTER_STACK_MAX;
-  });
-  if (!valid.length) return;
-  const id = pick(valid);
-  if (!run.monsterTiles[id]) run.monsterTiles[id] = [];
-  run.monsterTiles[id].push(makeNaturalEnemy(run));
-  renderBoard();
+  // natural monster spawn (ตัวหลัก)
+  if (naturalMonsterCount(run) < naturalCap(run) && Math.random() <= BAL.NATURAL_CYCLE_CHANCE) {
+    const valid = roadCellIds().filter(id => {
+      if (id === 'camp') return false;
+      const stk = run.monsterTiles[id] || [];
+      return stk.length < BAL.MONSTER_STACK_MAX;
+    });
+    if (valid.length) {
+      const id = pick(valid);
+      if (!run.monsterTiles[id]) run.monsterTiles[id] = [];
+      run.monsterTiles[id].push(makeNaturalEnemy(run));
+      renderBoard();
+    }
+  }
+  // Elite/Mythic events (rare, unlock-gated)
+  trySpawnEliteEvent(run);
+  trySpawnMythicEvent(run);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1402,6 +1441,69 @@ function makeTerrainBossEnemies(run) {
     mk(MINIONS[boss.minions[1]], 'minion', 1),
     mk(boss, 'boss', 2),
   ];
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ELITE/MYTHIC ROAD EVENTS — spawn บน road tile (run-only, max 1 active each)
+// ════════════════════════════════════════════════════════════════════════════
+
+// เงื่อนไขปลดล็อก (OR สำหรับ Elite; AND สำหรับ Mythic ตามสเปก)
+function eliteEventUnlocked(run) {
+  return run.loop >= BAL.ELITE_EVENT_UNLOCK_LOOP || run.terrainPower >= BAL.ELITE_EVENT_UNLOCK_POWER;
+}
+function mythicEventUnlocked(run) {
+  return run.loop >= BAL.MYTHIC_EVENT_UNLOCK_LOOP && run.terrainPower >= BAL.MYTHIC_EVENT_UNLOCK_POWER;
+}
+
+// ลองสปอว์น Elite Event (เรียกจาก cycleSpawnAttempt)
+function trySpawnEliteEvent(run) {
+  if (run.eliteEventTile) return;                     // max 1 active
+  if (!eliteEventUnlocked(run)) return;
+  const chance = clamp(
+    BAL.ELITE_EVENT_BASE_CHANCE + Math.floor(run.terrainPower / 5) * BAL.ELITE_EVENT_POWER_BONUS,
+    0, BAL.ELITE_EVENT_CHANCE_CAP
+  );
+  if (Math.random() > chance) return;
+  const valid = roadCellIds().filter(id => {
+    if (id === 'camp') return false;
+    const stk = run.monsterTiles[id] || [];
+    return stk.length < BAL.MONSTER_STACK_MAX;
+  });
+  if (!valid.length) return;
+  run.eliteEventTile = pick(valid);
+  renderBoard();
+  blhToast(`⭐ Elite Event โผล่บนถนน! — สู้เพื่อรางวัลพิเศษ`);
+}
+
+// ลองสปอว์น Mythic Event (เรียกจาก cycleSpawnAttempt)
+function trySpawnMythicEvent(run) {
+  if (run.mythicEventTile) return;                    // max 1 active
+  if (!mythicEventUnlocked(run)) return;
+  const chance = clamp(
+    BAL.MYTHIC_EVENT_BASE_CHANCE + Math.floor(run.terrainPower / 10) * BAL.MYTHIC_EVENT_POWER_BONUS,
+    0, BAL.MYTHIC_EVENT_CHANCE_CAP
+  );
+  if (Math.random() > chance) return;
+  const valid = roadCellIds().filter(id => {
+    if (id === 'camp') return false;
+    if (id === run.eliteEventTile) return false;       // ไม่ทับ Elite Event
+    const stk = run.monsterTiles[id] || [];
+    return stk.length < BAL.MONSTER_STACK_MAX;
+  });
+  if (!valid.length) return;
+  run.mythicEventTile = pick(valid);
+  renderBoard();
+  blhToast(`💎 Mythic Event โผล่บนถนน! — Mini-Boss อันตราย!`);
+}
+
+// สร้าง enemy สำหรับ Elite Event (ใช้ makeEnemy ปกติเพื่อ scale ตาม loop)
+function makeEliteEventEnemy(run) {
+  return makeEnemy(pick(ELITE_EVENT_ENEMIES), run);
+}
+
+// สร้าง enemy สำหรับ Mythic Event (power boost เพิ่มเพื่อให้หนักกว่า Elite Event ชัดเจน)
+function makeMythicEventEnemy(run) {
+  return makeEnemy(pick(MYTHIC_EVENT_ENEMIES), run, { power: 1.15 });
 }
 
 // ── recompute hero stats (terrain card → run.mods global; adjacent/road → cell-based) ──
@@ -2019,6 +2121,12 @@ function dockDetailTile(run, cellId) {
     if (mobStk && mobStk.length > 0) {
       body += `<div style="font-size:12px;margin-top:4px">🐾 Natural ×${mobStk.length}: ${mobStk.map(e => esc(e.name)).join(', ')}</div>`;
     }
+    if (run.eliteEventTile === cellId) {
+      body += `<div style="font-size:12px;margin-top:4px;color:#ffd966">⭐ Elite Event — สู้เพื่อรับ gear (elite) + ${BAL.ELITE_EVENT_ZENY} Zeny</div>`;
+    }
+    if (run.mythicEventTile === cellId) {
+      body += `<div style="font-size:12px;margin-top:4px;color:#d9a0ff">💎 Mythic Event — Mini-Boss! รับ gear (Epic+) + ${BAL.MYTHIC_EVENT_ZENY} Zeny</div>`;
+    }
   }
   if (def.type === 'terrain' && run.bossTerrainCell === cellId) {
     body += `<div style="font-size:12px;margin-top:4px;color:#ff5577">👹 Boss Terrain — เดินถนนข้างๆ เพื่อสู้!</div>`;
@@ -2071,6 +2179,14 @@ function renderBoard() {
     // Boss terrain marker บนช่องเทอเรน
     if (def.type === 'terrain' && run.bossTerrainCell === def.id) {
       inner += `<div class="blh-cell-boss-terrain" title="Boss Terrain — เดินถนนข้างๆ เพื่อสู้">👹</div>`;
+    }
+    // Elite Event marker บนถนน
+    if (def.type === 'road' && run.eliteEventTile === def.id) {
+      inner += `<div class="blh-cell-elite-event" title="Elite Event — ชนะเพื่อรับ gear+Zeny พิเศษ">⭐</div>`;
+    }
+    // Mythic Event marker บนถนน
+    if (def.type === 'road' && run.mythicEventTile === def.id) {
+      inner += `<div class="blh-cell-mythic-event" title="Mythic Event — Mini-Boss อันตราย! รางวัลสูงมาก">💎</div>`;
     }
     const cls = ['blh-tile', def.type];     // เช่น "blh-tile road" / "blh-tile terrain"
     if (placeable) cls.push('placeable');
@@ -2139,6 +2255,20 @@ function stepWalk() {
     const enemies = [...mobStack];
     run.monsterTiles[cellId] = []; // เคลียร์ก่อน startBattle (เพื่อกัน re-trigger)
     startBattle({ kind: 'normal', enemies, cellId });
+    return;
+  }
+
+  // Elite Event trigger
+  if (run.eliteEventTile === cellId) {
+    run.eliteEventTile = null; // เคลียร์ marker ก่อน startBattle (กัน re-trigger)
+    startBattle({ kind: 'elite_event', enemies: [makeEliteEventEnemy(run)], cellId });
+    return;
+  }
+
+  // Mythic Event trigger
+  if (run.mythicEventTile === cellId) {
+    run.mythicEventTile = null; // เคลียร์ marker ก่อน startBattle (กัน re-trigger)
+    startBattle({ kind: 'mythic_event', enemies: [makeMythicEventEnemy(run)], cellId });
     return;
   }
 
@@ -2507,6 +2637,10 @@ function startBattle(ctx) {
     ? `⚔️ ${run.boss.name} ปรากฏตัวพร้อมลูกสมุน 2 ตัว!`
     : ctx.kind === 'terrain_boss'
     ? `👹 Terrain Boss โจมตี! ${run.boss.name} กับลูกสมุน!`
+    : ctx.kind === 'elite_event'
+    ? `⭐ Elite Event! ${ctx.enemies[0].name} ปรากฏ! — รางวัลพิเศษรอคุณอยู่!`
+    : ctx.kind === 'mythic_event'
+    ? `💎 Mythic Mini-Boss! ${ctx.enemies[0].name} ปรากฏ! — อันตรายสูง!`
     : ctx.enemies.length > 1
     ? `⚔️ Monster Stack ${ctx.enemies.length} ตัว!`
     : `⚔️ เจอ ${ctx.enemies[0].name}!`);
@@ -2562,8 +2696,9 @@ function resolveAttack(att, def) {
   if (att.critRate && Math.random() < att.critRate) { dmg = Math.round(dmg * (att.critDamage || 1.5)); crit = true; }
   // 4) execute (backstab vs เป้าหมาย HP ต่ำ)
   if (att.execLowHp && def.maxhp && def.hp / def.maxhp < 0.5) dmg = Math.round(dmg * (1 + att.execLowHp));
-  // 4b) Heavy Grip (trait): ดาเมจใส่ Elite เพิ่ม
-  if (att.vsElite && def.role === 'elite') dmg = Math.round(dmg * (1 + att.vsElite));
+  // 4b) Heavy Grip (trait): ดาเมจใส่ Elite / Elite Event / Mythic Event เพิ่ม
+  if (att.vsElite && (def.role === 'elite' || def.role === 'elite_event' || def.role === 'mythic_event'))
+    dmg = Math.round(dmg * (1 + att.vsElite));
   // 5) เพดานดาเมจสุดท้ายของสกิลพิเศษ (หลังคริต) — สเปกกำหนดต่อฮีโร่
   if (att.capDmg) dmg = Math.min(dmg, att.capDmg);
   // 6) มิทิเกชันของผู้รับ (guard ตอน HP ต่ำ / กันคริต / ลดดาเมจรวม)
@@ -2846,6 +2981,60 @@ function endBattle(result) {
     run.bossFought = true;
     finishBattleBanner('VICTORY');
     BLH._finishTimer = setTimeout(() => runEnd('boss'), 900);
+    return;
+  }
+
+  if (battle.kind === 'elite_event') {
+    // Elite Event victory — รันต่อ + รางวัล gear (elite context) + Loop Zeny
+    battleLog(`⭐ Elite Event ชนะ! ยอดเยี่ยม!`);
+    if (battle.cellId && run.cells[battle.cellId]) run.cells[battle.cellId].enemy = null;
+    if (battle.cellId && run.monsterTiles && run.monsterTiles[battle.cellId]) {
+      run.monsterTiles[battle.cellId] = [];
+    }
+    if (run.traitMods && run.traitMods.quickStep > 0 && !run._quickStepActive) {
+      run._quickStepActive = true; recomputeStats(run);
+    }
+    const eg = makeGear(run, { enemyRole: 'elite' });
+    run.lootBag.push(eg);
+    const eSalvLogs = enforceBagCap(run);
+    const eslot = GEAR_SLOTS.find(s => s.id === eg.slot);
+    battleLog(`🎁 Elite ลูท: ${eslot ? eslot.name : ''} ${gearLabelText(eg)}`);
+    eSalvLogs.forEach(l => battleLog(l));
+    run.mods.zenyBonus += BAL.ELITE_EVENT_ZENY;
+    battleLog(`⭐ +${BAL.ELITE_EVENT_ZENY} Loop Zeny โบนัส Elite Event!`);
+    finishBattleBanner('VICTORY');
+    BLH._finishTimer = setTimeout(() => {
+      BLH._finishTimer = null;
+      if (!BLH.run || BLH.run.ended) return;
+      closeBattle(); renderBoard(); updateHUD(); setPhase('walking'); scheduleStep(350); startCycleTimer();
+    }, 1100);
+    return;
+  }
+
+  if (battle.kind === 'mythic_event') {
+    // Mythic Event victory — รันต่อ + รางวัล gear คุณภาพสูง (elite+treasure) + Loop Zeny สูง
+    battleLog(`💎 Mythic Event ชนะ! น่าทึ่งมาก!`);
+    if (battle.cellId && run.cells[battle.cellId]) run.cells[battle.cellId].enemy = null;
+    if (battle.cellId && run.monsterTiles && run.monsterTiles[battle.cellId]) {
+      run.monsterTiles[battle.cellId] = [];
+    }
+    if (run.traitMods && run.traitMods.quickStep > 0 && !run._quickStepActive) {
+      run._quickStepActive = true; recomputeStats(run);
+    }
+    const mg = makeGear(run, { enemyRole: 'elite', treasure: true }); // Elite+Treasure = prefer Epic+
+    run.lootBag.push(mg);
+    const mSalvLogs = enforceBagCap(run);
+    const mslot = GEAR_SLOTS.find(s => s.id === mg.slot);
+    battleLog(`💎 Mythic ลูท: ${mslot ? mslot.name : ''} ${gearLabelText(mg)}`);
+    mSalvLogs.forEach(l => battleLog(l));
+    run.mods.zenyBonus += BAL.MYTHIC_EVENT_ZENY;
+    battleLog(`💎 +${BAL.MYTHIC_EVENT_ZENY} Loop Zeny โบนัส Mythic Event!`);
+    finishBattleBanner('VICTORY');
+    BLH._finishTimer = setTimeout(() => {
+      BLH._finishTimer = null;
+      if (!BLH.run || BLH.run.ended) return;
+      closeBattle(); renderBoard(); updateHUD(); setPhase('walking'); scheduleStep(350); startCycleTimer();
+    }, 1100);
     return;
   }
 
@@ -3346,6 +3535,11 @@ if (BLH_DEV) {
     naturalMonsterCount, naturalCap, makeNaturalEnemy, spawnNaturalMonsters, cycleSpawnAttempt,
     startCycleTimer, stopCycleTimer, onCycleTick,
     checkBossTerrainSpawn, findBossTerrainCell, makeTerrainBossEnemies,
+    // Elite/Mythic Road Events
+    ELITE_EVENT_ENEMIES, MYTHIC_EVENT_ENEMIES,
+    eliteEventUnlocked, mythicEventUnlocked,
+    trySpawnEliteEvent, trySpawnMythicEvent,
+    makeEliteEventEnemy, makeMythicEventEnemy,
     endBattle,
   };
 }
