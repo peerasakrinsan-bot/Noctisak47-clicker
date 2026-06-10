@@ -3826,11 +3826,13 @@
 .blh-hud-stats { display: flex; gap: 14px; font-size: 14px; color: #d7dae2; }
 
 /* ── Loop Hero-style fixed run layout — สัดส่วนคงที่ ไม่ขยับเมื่อสลับแท็บ ──
-   HUD (auto) · board-wrap (พื้นที่เหลือ, map ชิดล่าง) · panel (สูงคงที่) */
-#blh-run { height: 100%; gap: 6px; overflow: hidden; }
+   HUD (auto) · board-wrap (พื้นที่เหลือ, map ชิดบน) · panel (สูงคงที่) */
+#blh-run { height: 100%; gap: 4px; overflow: hidden;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 4px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px); }
 #blh-run .blh-run-hud { flex: 0 0 auto; }
 #blh-run .blh-panel { flex: 0 0 auto; }
-.blh-board-wrap { flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-end;
+.blh-board-wrap { flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-start;
   justify-content: center; overflow: hidden; }
 
 /* CSS grid map (7×7) — กว้างคงที่ (cap ด้วย vh ให้สูงพอดี), cell เป็นสี่เหลี่ยม
@@ -3899,20 +3901,26 @@
   overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 2px; }
 
 /* ── COMPACT DOCK — replaces tab panel ─────────────────────────────────────
-   Panel height = ~35–40% screen; max raised to 320px so detail area gains height on 812px+ phones */
-#blh-run .blh-panel { height: clamp(210px, 37vh, 320px); gap: 4px; padding: 4px; }
+   Panel height = ~38% screen; max raised to 330px so detail area gains height on 812px+ phones */
+#blh-run .blh-panel { height: clamp(230px, 38vh, 330px); gap: 4px; padding: 4px; }
 
 /* ── Short portrait screens (≤700px tall) ───────────────────────────────────
-   align-items:flex-end pushes all overflow to the map top on these screens
-   (~41px on 375×667). Restore symmetric centering and tighten gaps + panel
-   so the residual clip is ~5px each side instead of one-sided ~41px.
-   375×667: panel→220px, gaps→8px total → board-wrap=324px, board=334px → clip=5px/side.
-   360×740 is above this threshold and needs no fix (board-wrap 339 ≥ board 336). */
+   Default is flex-start (board snaps to top). On extremely short screens where
+   board > board-wrap, center splits any overflow evenly both sides.
+   375×667: board-wrap=344px, board=333px → 11px slack, no clipping. */
 @media (max-height: 700px) {
   .blh-board-wrap { align-items: center; }
-  #blh-run { gap: 4px; }
   #blh-run .blh-panel { height: clamp(200px, 33vh, 220px); }
   .blh-autostat-row { min-height: 20px; max-height: 22px; padding: 1px 4px; }
+}
+
+/* ── Mid-height screens 701–900px (iPhone 12/13/14 class, many mid-range Android) ───────────
+   align-items:center on this range guards against safe-area-inset-top (~44px on notched
+   iPhones in standalone PWA) consuming vertical budget and bottom-clipping the map.
+   On non-notched phones slack ≈ 25px → center adds ~12px above map (acceptable);
+   on notched standalone slack is negative → center splits clip evenly both sides. */
+@media (min-height: 701px) and (max-height: 900px) {
+  .blh-board-wrap { align-items: center; }
 }
 
 /* ── dock ctrl row ── */
