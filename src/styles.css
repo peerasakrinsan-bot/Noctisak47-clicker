@@ -3923,6 +3923,21 @@
   .blh-board-wrap { align-items: center; }
 }
 
+/* ── Safe-area-aware board cap (progressive enhancement) ─────────────────────
+   100cqh = .blh-board-wrap's actual computed height — which already reflects
+   safe-area-adjusted #blh-run padding. On notched iPhones in standalone PWA
+   (safe-area-inset-top ~44px) board-wrap shrinks to ~319–339px; 100cqh then
+   caps the board so it fits without clipping. On non-notched browsers
+   board-wrap >> board's natural size, so min(100%,360px,50vh) wins unchanged.
+   @supports guard: browsers without container-query support fall back to the
+   existing min(100%,360px,50vh) — no invalid-value breakage.
+   Token (position:absolute in .blh-board) keeps .blh-board as containing
+   block (nearest position:relative ancestor), unaffected by this change. */
+@supports (container-type: size) {
+  .blh-board-wrap { container-type: size; }
+  .blh-board { width: min(100%, 360px, 50vh, 100cqh); }
+}
+
 /* ── dock ctrl row ── */
 .blh-dock-ctrl { flex: 0 0 auto; display: flex; gap: 4px; align-items: center; }
 /* flex-shrink:0 so speed segs never compress when camp status is wide */
