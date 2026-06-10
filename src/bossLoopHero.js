@@ -1370,7 +1370,7 @@ function checkBossTerrainSpawn(run) {
   blhToast(`👹 Boss Terrain โผล่ใกล้ Camp! เหยียบถนนติดกันเพื่อสู้`);
 }
 
-// หาช่องเทอเรนว่างที่ใกล้ Camp ที่สุด (ก่อนอื่นดูช่องที่ติด Camp โดยตรง)
+// หาช่องเทอเรนว่างที่ใกล้ Camp และมีถนนติดกัน (เพื่อให้ terrain_boss trigger ได้จริง)
 function findBossTerrainCell(run) {
   const campDef = BLH_CELL_BY_ID['camp'];
   const empties = BLH_MAP.cells.filter(c =>
@@ -1392,14 +1392,11 @@ function findBossTerrainCell(run) {
 function makeTerrainBossEnemies(run) {
   const boss = run.boss;
   const mult = 1 + 0.10 * (run.loop - 1);
-  const mk = (def, role, slot) => ({
-    id: def.id, name: def.name, img: def.img, role, slot,
-    maxhp: Math.round(def.base.hp * mult),
-    hp: Math.round(def.base.hp * mult),
-    atk: Math.round(def.base.atk * mult),
-    def: def.base.def,
-    evasion: 0, defDebuff: 0,
-  });
+  const mk = (def, role, slot) => {
+    const hp = Math.max(1, Math.round(def.base.hp * mult * run.mods.enemyHpMult));
+    return { id: def.id, name: def.name, img: def.img, role, slot, maxhp: hp, hp,
+      atk: Math.round(def.base.atk * mult), def: def.base.def, evasion: 0, defDebuff: 0 };
+  };
   return [
     mk(MINIONS[boss.minions[0]], 'minion', 0),
     mk(MINIONS[boss.minions[1]], 'minion', 1),
