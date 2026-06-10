@@ -3912,6 +3912,7 @@
   .blh-board-wrap { align-items: center; }
   #blh-run { gap: 4px; }
   #blh-run .blh-panel { height: clamp(200px, 33vh, 220px); }
+  .blh-autostat-row { min-height: 20px; max-height: 22px; padding: 1px 4px; }
 }
 
 /* ── dock ctrl row ── */
@@ -4131,18 +4132,25 @@
   background: linear-gradient(135deg, #1fbf63, #36d97a); }
 .blh-alloc-confirm:not(:disabled):active { background: linear-gradient(135deg, #18a653, #2cc56b); }
 .blh-alloc-confirm:disabled { opacity: .4; cursor: default; }
-/* ── Growth Plan section (auto-allocation) ── */
-.blh-growth-section { margin-top: 6px; padding: 8px 8px 6px; border-radius: 8px;
-  background: rgba(34,119,255,.06); border: 1px solid rgba(34,119,255,.18); }
-.blh-growth-head { font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .5px; color: var(--gold); margin-bottom: 5px; }
 .blh-preset-btn.on { background: rgba(34,119,255,.35); border-color: rgba(34,119,255,.75);
   color: #fff; font-weight: 700; }
 .blh-growth-note { font-size: 10px; color: #8a9ab0; margin-top: 4px; font-style: italic; }
 .blh-growth-stats { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.blh-growth-pattern { font-size: 10px; color: #7dcfff; margin-top: 3px; letter-spacing: .3px; }
 .blh-rs-chip { font-size: 10px; background: rgba(100,220,255,.10); border: 1px solid rgba(100,220,255,.22);
   border-radius: 4px; padding: 1px 5px; color: #9de8ff; }
 .blh-plan-hud { font-size: 13px; line-height: 1; }
+
+/* ── Auto Stat row (always visible, outside contextual detail) ── */
+.blh-autostat-row { flex: 0 0 auto; display: flex; align-items: center; gap: 5px;
+  padding: 2px 4px; min-height: 24px; max-height: 28px; }
+.blh-autostat-label { font-size: 10px; color: #8a9ab0; white-space: nowrap; flex-shrink: 0; }
+.blh-autostat-chip { font-size: 11px; letter-spacing: .4px; color: #d0d4df;
+  padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(100,220,255,.30);
+  background: rgba(100,220,255,.08); cursor: pointer; white-space: nowrap; transition: background .1s; }
+.blh-autostat-chip:active { background: rgba(100,220,255,.22); }
+.blh-autostat-chip.sel { border-color: rgba(100,220,255,.75); background: rgba(100,220,255,.20); color: #fff; font-weight: 700; }
+.blh-autostat-chip.locked { opacity: .75; }
 
 /* ── PERK CHOICE overlay (Camp; เกมหยุดจนเลือกเสร็จ) ── */
 .blh-perk-overlay { align-items: center; }

@@ -609,16 +609,22 @@ const HERO_PASSIVES = {
 const ENEMY_EXP = { basic: 8, fast: 12, tank: 14, cursed: 16, elite: 35 };
 // EXP ที่ต้องการขึ้น level ถัดไป (สเปก: 30 + (level-1)² × 18)
 function expToNext(level) { return 30 + Math.pow(level - 1, 2) * 18; }
-// Preset จัดสรรแต้ม stat (ratio รวม = 10; stat แรกในแต่ละ preset รับเศษที่เหลือ)
+// แผนเติบโต 4 แบบ — deterministic repeating pattern (cursor หมุนต่อเนื่องข้ามการ level-up)
+// 'default' = hero-specific pattern จาก HERO_DEFAULT_ORDERS; order:null = resolve ตอน runtime
 const EXP_PRESETS = [
-  { id: 'power',  name: 'POWER',  icon: '⚔️', ratio: { str: 6, vit: 2, dex: 2 },          order: ['str', 'dex', 'vit'] },
-  { id: 'tank',   name: 'TANK',   icon: '🛡️', ratio: { vit: 6, str: 2, int: 2 },          order: ['vit', 'str', 'dex'] },
-  { id: 'speed',  name: 'SPEED',  icon: '⚡', ratio: { agi: 6, dex: 2, luk: 2 },          order: ['agi', 'luk', 'vit'] },
-  { id: 'luck',   name: 'LUCK',   icon: '🍀', ratio: { luk: 5, dex: 2, agi: 2, str: 1 }, order: ['luk', 'dex', 'agi'] },
-  { id: 'mystic', name: 'MYSTIC', icon: '✨', ratio: { int: 5, luk: 3, vit: 2 },          order: ['int', 'vit', 'luk'] },
+  { id: 'default', name: 'DEFAULT', icon: '⭐', order: null },
+  { id: 'balance', name: 'BALANCE', icon: '⚖️', order: ['str','vit','agi','dex','luk','vit'] },
+  { id: 'tank',    name: 'TANK',    icon: '🛡️', order: ['vit','str','dex'] },
+  { id: 'speed',   name: 'SPEED',   icon: '⚡', order: ['agi','str','dex','agi','luk','str'] },
 ];
-// default growth plan per hero (matches playstyle)
-const HERO_DEFAULT_PLAN = { noctisak47: 'luck', toei: 'power', apologize: 'speed' };
+// default pattern per hero (ใช้เมื่อ growthPlan === 'default')
+const HERO_DEFAULT_ORDERS = {
+  noctisak47: ['agi', 'str', 'luk'],
+  toei:       ['str', 'vit', 'dex'],
+  apologize:  ['agi', 'str', 'dex'],
+};
+// ทุก hero เริ่มที่ 'default' plan (pattern เฉพาะตัวแต่ละฮีโร่)
+const HERO_DEFAULT_PLAN = { noctisak47: 'default', toei: 'default', apologize: 'default' };
 
 // ════════════════════════════════════════════════════════════════════════════
 // SPEC STATUS — Boss Loop Mode backlog ครบแล้ว (ไม่มี deferred เหลือ)
@@ -1183,7 +1189,8 @@ function startRun() {
     level: 1,
     exp: 0,
     expToNext: expToNext(1),  // = 30
-    growthPlan: HERO_DEFAULT_PLAN[hero.id] || 'luck',          // แผนเติบโตอัตโนมัติ
+    growthPlan: HERO_DEFAULT_PLAN[hero.id] || 'default',       // แผนเติบโตอัตโนมัติ
+    planCursor: 0,                                              // ตำแหน่ง pattern ปัจจุบัน (ต่อเนื่องข้ามการ level-up)
     runStats: { str: 0, vit: 0, agi: 0, dex: 0, luk: 0, int: 0 }, // stat ที่ได้จาก level-up รันนี้
   };
   BLH.run = run;
@@ -1324,17 +1331,27 @@ function recomputeStats(run) {
 // Level-up → autoAllocatePoints() จัดสรร +2 แต้มตาม growthPlan ทันที
 // ไม่มี draft/confirm/pending — stats ออกฤทธิ์ใน combat ทันที
 
-// cycle ผ่าน plan order และจัดสรร points เข้า runStats; คืน summary ของที่จัดสรรไป
+// resolve pattern array สำหรับ plan ปัจจุบัน ('default' → hero-specific)
+function getPlanOrder(run) {
+  if (run.growthPlan === 'default') {
+    return HERO_DEFAULT_ORDERS[(run.hero && run.hero.id)] || ['str', 'vit', 'agi'];
+  }
+  const preset = EXP_PRESETS.find(p => p.id === run.growthPlan);
+  return (preset && preset.order) || ['str', 'vit', 'agi'];
+}
+
+// cycle ผ่าน plan order ต่อจาก cursor และจัดสรร points เข้า runStats; คืน summary ของที่จัดสรรไป
 function autoAllocatePoints(run, points) {
-  const preset = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
-  const order = preset.order;
+  const order = getPlanOrder(run);
   const rs = run.runStats;
   const gained = {};
+  const cursor = run.planCursor || 0;
   for (let i = 0; i < points; i++) {
-    const k = order[i % order.length];
+    const k = order[(cursor + i) % order.length];
     rs[k] = (rs[k] || 0) + 1;
     gained[k] = (gained[k] || 0) + 1;
   }
+  run.planCursor = (cursor + points) % order.length;
   return gained;
 }
 
@@ -1356,17 +1373,18 @@ function grantExp(amount) {
     const statLine = Object.entries(gained).map(([k, v]) => `${k.toUpperCase()}+${v}`).join(' ');
     blhToast(`⬆️ Lv.${run.level} ${preset.icon}${preset.name}: ${statLine}`);
     updateHUD();
-    if (_selection && _selection.type === 'hero') renderPanel();
+    if (_selection && (_selection.type === 'hero' || _selection.type === 'plan')) renderPanel();
   }
 }
 
-// เปลี่ยน Growth Plan (block ระหว่างสู้; เปลี่ยนแค่ level-up ในอนาคต)
+// เปลี่ยน Growth Plan (block ระหว่างสู้; cursor รีเซ็ต; เปลี่ยนแค่ level-up ในอนาคต)
 function setGrowthPlan(planId) {
   const run = BLH.run; if (!run) return;
   if (run.phase === 'battle') { blhToast('🔒 เปลี่ยนแผนไม่ได้ระหว่างสู้'); return; }
   const preset = EXP_PRESETS.find(p => p.id === planId);
   if (!preset) return;
   run.growthPlan = planId;
+  run.planCursor = 0;
   blhToast(`📈 เปลี่ยนแผน: ${preset.icon} ${preset.name}`);
   updateHUD();
   renderPanel();
@@ -1484,7 +1502,7 @@ function applySpeedChange() {
 // COMPACT DOCK PANEL — replaces tab-based Stats/Gear/Loot/Map UI
 // Always-visible rows: Equipped (A) · Cards (B) · Bag (C) + contextual detail
 // ════════════════════════════════════════════════════════════════════════════
-let _selection = null; // { type:'hero'|'gear'|'loot'|'card'|'tile', slot?,idx?,cardId?,cellId? }
+let _selection = null; // { type:'hero'|'plan'|'gear'|'loot'|'card'|'tile', slot?,idx?,cardId?,cellId? }
 
 function selectItem(sel)   { _selection = sel; renderPanel(); }
 function clearSelection()  { _selection = null; renderPanel(); }
@@ -1538,10 +1556,25 @@ function renderPanel() {
   const locked = run.phase === 'battle';
   el.innerHTML = `
     ${dockCtrlRow(run)}
+    ${dockAutoStatRow(run)}
     ${dockEquipRow(run)}
     ${dockCardRow(run, locked)}
     ${dockBagRow(run, locked)}
     <div class="blh-dock-detail" id="blh-dock-detail">${dockDetail(run, locked)}</div>`;
+}
+
+// ── Auto Stat row (always visible, 24-28px tall, outside detail panel) ──
+function dockAutoStatRow(run) {
+  const preset = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
+  const battle = run.phase === 'battle';
+  const isSel = _selection && _selection.type === 'plan';
+  return `<div class="blh-autostat-row">
+    <span class="blh-autostat-label">Auto Stat:</span>
+    <button class="blh-autostat-chip${isSel ? ' sel' : ''}${battle ? ' locked' : ''}"
+      onclick="blh.selectItem({type:'plan'})">
+      ${preset.icon} ${esc(preset.name)}${battle ? ' 🔒' : ''}
+    </button>
+  </div>`;
 }
 
 // ── Row A: 5 equipped gear chips (always visible, tap → detail) ──
@@ -1615,6 +1648,7 @@ function dockDetail(run, locked) {
   if (!_selection) return dockDetailDefault(run, locked);
   switch (_selection.type) {
     case 'hero': return dockDetailHero(run, locked);
+    case 'plan': return dockDetailGrowthPlan(run, locked);
     case 'gear': return dockDetailGear(run, locked, _selection.slot);
     case 'loot': return dockDetailLoot(run, locked, _selection.idx);
     case 'card': return dockDetailCard(run, locked, _selection.cardId);
@@ -1652,7 +1686,7 @@ function dockDetailDefault(run, locked) {
   </div>`;
 }
 
-// Hero detail: base/combat stats + perks + level/EXP + growth plan selector
+// Hero detail: base/combat stats + perks + level/EXP (growth plan → tap Auto Stat chip)
 function dockDetailHero(run, locked) {
   const s = run.stats, b = run.statBase || run.base;
   const c = { atk: s.atk, def: s.def, maxhp: s.maxhp, aspd: s.aspd,
@@ -1663,11 +1697,7 @@ function dockDetailHero(run, locked) {
         const p = pool.find(x => x.id === id); return p ? `<span class="blh-perk-chip">✨ ${esc(p.name)}</span>` : '';
       }).join('')}</div>` : '';
   const expPct = run.expToNext > 0 ? clamp(run.exp / run.expToNext * 100, 0, 100) : 100;
-  const battle = run.phase === 'battle';
   const curPlan = EXP_PRESETS.find(p => p.id === run.growthPlan) || EXP_PRESETS[0];
-  const rs = run.runStats || {};
-  const statSummary = BASE_STAT_KEYS.filter(k => (rs[k] || 0) > 0)
-    .map(k => `<span class="blh-rs-chip">${k.toUpperCase()}+${rs[k]}</span>`).join('');
   return `<div class="blh-dock-detail-hero">
     <div class="blh-detail-close-row">
       <span class="blh-statbox-name">${esc(run.hero.name)} <span class="blh-statbox-role">${esc(run.hero.role)}</span></span>
@@ -1681,13 +1711,30 @@ function dockDetailHero(run, locked) {
       <div class="blh-expbar"><div class="blh-expfill" style="width:${expPct.toFixed(1)}%"></div>
         <span class="blh-exptext">${run.exp}/${run.expToNext} EXP</span></div>
     </div>
-    <div class="blh-growth-section">
-      <div class="blh-growth-head">📈 Growth Plan${battle ? ' <span class="blh-alloc-lock">🔒</span>' : ''}</div>
-      <div class="blh-preset-row">${EXP_PRESETS.map(p =>
-        `<button class="blh-preset-btn${p.id === run.growthPlan ? ' on' : ''}" ${battle ? 'disabled' : ''} onclick="blh.setGrowthPlan('${p.id}')">${p.icon} ${esc(p.name)}</button>`).join('')}</div>
-      <div class="blh-growth-note">Auto-applies on level up</div>
-      ${statSummary ? `<div class="blh-growth-stats">${statSummary}</div>` : ''}
+  </div>`;
+}
+
+// Growth Plan detail (opens when Auto Stat chip is tapped)
+function dockDetailGrowthPlan(run, locked) {
+  const battle = run.phase === 'battle';
+  const rs = run.runStats || {};
+  const statSummary = BASE_STAT_KEYS.filter(k => (rs[k] || 0) > 0)
+    .map(k => `<span class="blh-rs-chip">${k.toUpperCase()}+${rs[k]}</span>`).join('');
+  const order = getPlanOrder(run);
+  const patternStr = order.map(k => k.toUpperCase()).join(' › ');
+  const close = `<button class="blh-mini-btn ghost" onclick="blh.clearSelection()">✕</button>`;
+  return `<div class="blh-dock-detail-plan">
+    <div class="blh-detail-close-row">
+      <span>📈 Growth Plan${battle ? ' <span class="blh-alloc-lock">🔒</span>' : ''}</span>
+      ${close}
     </div>
+    <div class="blh-preset-row">${EXP_PRESETS.map(p =>
+      `<button class="blh-preset-btn${p.id === run.growthPlan ? ' on' : ''}" ${battle ? 'disabled' : ''}
+        onclick="blh.setGrowthPlan('${p.id}')">${p.icon} ${esc(p.name)}</button>`).join('')}
+    </div>
+    <div class="blh-growth-note">Auto-applies on level up</div>
+    <div class="blh-growth-pattern">Pattern: ${esc(patternStr)}</div>
+    ${statSummary ? `<div class="blh-growth-stats">${statSummary}</div>` : ''}
   </div>`;
 }
 
@@ -3024,8 +3071,8 @@ if (BLH_DEV) {
     // hero passives + spec balance (Boss Loop Mode core)
     HERO_PASSIVES, SPEC_BAL, GEAR_SLOTS, fireSpecial, heroAct,
     // run EXP / level / auto-growth plan
-    ENEMY_EXP, EXP_PRESETS, HERO_DEFAULT_PLAN, expToNext, grantExp,
-    autoAllocatePoints, setGrowthPlan,
+    ENEMY_EXP, EXP_PRESETS, HERO_DEFAULT_ORDERS, HERO_DEFAULT_PLAN,
+    expToNext, grantExp, getPlanOrder, autoAllocatePoints, setGrowthPlan,
     // gear tier + rarity + traits (run-only)
     GEAR_TIER_DEFS, GEAR_RARITIES, GEAR_RARITY_BY_ID, RARITY_WEIGHTS,
     GEAR_TRAITS, GEAR_TRAIT_BY_ID, TRAIT_CHANCE, MAX_TRAITS_BY_TIER,
