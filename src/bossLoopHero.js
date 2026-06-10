@@ -108,11 +108,11 @@ const HEROES = [
 ];
 const BASE_STAT_KEYS = ['str', 'agi', 'vit', 'dex', 'int', 'luk'];
 
-// ── enemy roster (5 ตัว) — curate จาก standard/premium card assets เท่านั้น ──
+// ── enemy roster (4 ตัว) — curate จาก standard/premium card assets เท่านั้น ──
 // ตัด " CARD" ออกจากชื่อที่แสดง ตาม ASSET RULES
+// หมายเหตุ: pekopeko ถูกนำออกจาก normal pool — ไม่ spawn เป็น normal monster บนแผนที่
 const ENEMIES = [
   { id: 'poporingo',   name: 'POPORINGO',    img: 'cards/poporingo.png',   role: 'basic',  base: { hp: 30, atk: 6,  def: 1 } },
-  { id: 'pekopeko',    name: 'PEKO PEKO',    img: 'cards/peko_peko.png',   role: 'fast',   base: { hp: 24, atk: 9,  def: 0 } },
   { id: 'orcworrier',  name: 'ORC WORRIER',  img: 'cards/orc_worrier.png', role: 'tank',   base: { hp: 64, atk: 5,  def: 4 } },
   { id: 'mommy',       name: 'MOMMY',        img: 'cards/mommy.png',       role: 'cursed', base: { hp: 38, atk: 7,  def: 2 } },
   { id: 'skillworker', name: 'SKILL WORKER', img: 'cards/skill_worker.png',role: 'elite',  base: { hp: 82, atk: 11, def: 5 } },
@@ -2186,7 +2186,7 @@ function renderBoard() {
     if (def.type === 'camp') {
       inner = '<div class="blh-cell-icon">⛺</div>';
     } else if (def.type === 'road') {
-      // elite/mythic events → pixel sprite; natural stack → species pixel sprite; fallback → card img
+      // elite/mythic events → pixel sprite; natural stack → species pixel sprite; spawnForLoop enemy → pixel sprite
       const mobStk = run.monsterTiles && run.monsterTiles[def.id];
       const hasMobs = mobStk && mobStk.length > 0;
       if (run.eliteEventTile === def.id) {
@@ -2203,10 +2203,14 @@ function renderBoard() {
           : '';
         inner = `<div class="blh-mob-sprite ${speciesCls} ${rankCls}" title="${mobStk.length} monster(s) — ${esc(strongest.name)}"></div>${dots}`;
       } else if (rc.enemy) {
-        inner = `<div class="blh-cell-enemy"><img src="${rc.enemy.img}" onerror="this.style.display='none'"></div>`;
+        const rankCls = monsterRankClass(rc.enemy);
+        const speciesCls = monsterSpeciesClass(rc.enemy);
+        inner = `<div class="blh-mob-sprite ${speciesCls} ${rankCls}" title="${esc(rc.enemy.name)}"></div>`;
       }
     } else if (rc.enemy) {
-      inner = `<div class="blh-cell-enemy"><img src="${rc.enemy.img}" onerror="this.style.display='none'"></div>`;
+      const rankCls = monsterRankClass(rc.enemy);
+      const speciesCls = monsterSpeciesClass(rc.enemy);
+      inner = `<div class="blh-mob-sprite ${speciesCls} ${rankCls}" title="${esc(rc.enemy.name)}"></div>`;
     }
     if (occupied) {
       const c = MAP_CARD_BY_ID[rc.placedCardId];
