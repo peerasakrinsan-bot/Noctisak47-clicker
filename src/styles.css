@@ -3902,6 +3902,18 @@
    Panel height = ~35–40% screen; max raised to 320px so detail area gains height on 812px+ phones */
 #blh-run .blh-panel { height: clamp(210px, 37vh, 320px); gap: 4px; padding: 4px; }
 
+/* ── Short portrait screens (≤700px tall) ───────────────────────────────────
+   align-items:flex-end pushes all overflow to the map top on these screens
+   (~41px on 375×667). Restore symmetric centering and tighten gaps + panel
+   so the residual clip is ~5px each side instead of one-sided ~41px.
+   375×667: panel→220px, gaps→8px total → board-wrap=324px, board=334px → clip=5px/side.
+   360×740 is above this threshold and needs no fix (board-wrap 339 ≥ board 336). */
+@media (max-height: 700px) {
+  .blh-board-wrap { align-items: center; }
+  #blh-run { gap: 4px; }
+  #blh-run .blh-panel { height: clamp(200px, 33vh, 220px); }
+}
+
 /* ── dock ctrl row ── */
 .blh-dock-ctrl { flex: 0 0 auto; display: flex; gap: 4px; align-items: center; }
 /* flex-shrink:0 so speed segs never compress when camp status is wide */
