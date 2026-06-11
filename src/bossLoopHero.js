@@ -60,8 +60,10 @@ const MODES = [
   {
     id: 'blh',
     name: 'LOOP RPG MODE',
+    badge: 'BETA',
     sub: 'STAT-BUILD AUTO LOOP',
     desc: 'สร้างสเตตัสสาย RPG เดินวนแผนที่ เก็บลูท เลือกเพิร์กที่ Camp แล้วล้มบอส',
+    helper: 'Experimental mode — balance may change',
     icon: '🗺️',
     accent: '#33ddff',
     action: 'blh',
@@ -927,9 +929,13 @@ function renderModeSelect() {
     <button class="blh-mode-card" style="--accent:${m.accent}" onclick="blh.pickMode('${m.id}')">
       <div class="blh-mode-icon">${m.icon}</div>
       <div class="blh-mode-text">
-        <div class="blh-mode-name">${esc(m.name)}</div>
+        <div class="blh-mode-title-row">
+          <div class="blh-mode-name">${esc(m.name)}</div>
+          ${m.badge ? `<span class="blh-mode-badge">${esc(m.badge)}</span>` : ''}
+        </div>
         <div class="blh-mode-sub">${esc(m.sub)}</div>
         <div class="blh-mode-desc">${esc(m.desc)}</div>
+        ${m.helper ? `<div class="blh-mode-helper">${esc(m.helper)}</div>` : ''}
       </div>
       <div class="blh-mode-go">▶</div>
     </button>

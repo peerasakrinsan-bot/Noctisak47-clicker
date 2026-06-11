@@ -3728,9 +3728,15 @@
 .blh-mode-card:active { transform: scale(.98); }
 .blh-mode-icon { font-size: 40px; line-height: 1; flex-shrink: 0; filter: drop-shadow(0 0 8px var(--accent)); }
 .blh-mode-text { flex: 1; min-width: 0; }
+.blh-mode-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .blh-mode-name { font-size: 21px; letter-spacing: 2px; color: var(--accent); }
+.blh-mode-badge { display: inline-flex; align-items: center; min-height: 18px; padding: 1px 7px;
+  border: 1px solid rgba(255,204,0,.65); background: rgba(255,204,0,.10); color: var(--gold);
+  font-size: 10px; line-height: 1; letter-spacing: 1.5px; box-shadow: 0 0 12px -6px var(--gold); }
 .blh-mode-sub { font-size: 11px; letter-spacing: 2px; color: #9aa0ad; margin: 2px 0 6px; }
 .blh-mode-desc { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #c2c6cf; line-height: 1.5; }
+.blh-mode-helper { margin-top: 5px; font-family: 'Sarabun', sans-serif; font-size: 11px; line-height: 1.35;
+  color: #d0b76a; letter-spacing: .2px; }
 .blh-mode-go { font-size: 22px; color: var(--accent); flex-shrink: 0; }
 
 /* ── HERO SELECT ── */
