@@ -146,6 +146,31 @@ const NATURAL_MONSTERS = [
   { id: 'dripz',      name: 'DRIPZ',      img: 'cards/dripz.png',      role: 'fast',  base: { hp: 18, atk: 5, def: 0 } },
 ];
 
+// ── Pixel-sprite patterns (10 × 10; '1' = filled 3×3 block, '0' = transparent) ──────────
+// Each block renders at 3 × 3 px via CSS box-shadow on a single 3×3 px <span>.
+// Sprites are centered in map tiles at 30 × 30 px total. See buildPixelSprite().
+const PIXEL_SPRITES = {
+  // Natural monsters — distinct silhouettes
+  boring:     ["0001111000","0011111100","0111111110","1111111111","1111111111","0111111110","0011111100","0001111000","0000000000","0000000000"],
+  faburr:     ["0110000110","1111111111","1111111111","1111111111","0111111110","0011111100","0001111000","0000000000","0000000000","0000000000"],
+  looney_tic: ["0010001000","0111111100","1111111111","0111111110","0011111100","0001111000","0100000010","0000000000","0000000000","0000000000"],
+  poporingo:  ["0000110000","0001111000","0111111110","1111111111","1111111111","1111111111","0111111110","0011111100","0000000000","0000000000"],
+  dripz:      ["0011111100","0111111110","1111111111","1111111111","0111111110","0011111100","0001111000","0000110000","0000010000","0000000000"],
+  // spawnForLoop enemies — distinct silhouettes per role
+  orcworrier: ["0011111100","0111111110","1111111111","1111111111","1111111111","1111111111","0110000110","0000000000","0000000000","0000000000"],
+  mommy:      ["0001111000","0111111110","1111111111","1111111111","0111111110","1011101101","0000000000","0000000000","0000000000","0000000000"],
+  skillworker:["0001111000","0011111100","0001111000","0011111100","0111111110","1111111111","0110000110","0000000000","0000000000","0000000000"],
+  // Event sprites — special shapes
+  elite:      ["0000110000","0001111000","0011111100","0111111110","1111111111","0111111110","0011111100","0001111000","0000110000","0000000000"],
+  mythic:     ["1000000001","1100000011","0111111110","1111111111","1111111111","1111111111","0111111110","0011111100","0001111000","0000110000"],
+};
+const RANK_COLORS = {
+  'blh-mob-weak':   '#44cc66',
+  'blh-mob-normal': '#ddcc00',
+  'blh-mob-elite':  '#ff8800',
+  'blh-mob-mythic': '#dd1133',
+};
+
 // ── Elite Event enemies (card assets จาก Elite rarity — ไม่ซ้ำกับ ENEMIES/NATURAL_MONSTERS) ──
 // spawn บน road tile, run-only, ใช้ role 'elite_event' เพื่อแสดง badge ต่าง + vsElite trait ทำงาน
 const ELITE_EVENT_ENEMIES = [
@@ -2144,6 +2169,7 @@ function dockDetailTile(run, cellId) {
 
 
 // ── Map pixel-sprite helpers (map display only; battle keeps card assets) ──
+
 function monsterRankClass(e) {
   if (!e) return 'blh-mob-weak';
   if (e.role === 'mythic_event') return 'blh-mob-mythic';
@@ -2155,10 +2181,35 @@ function monsterRankClass(e) {
   if (e.base && e.base.hp >= 24) return 'blh-mob-normal';
   return 'blh-mob-weak';
 }
+// Legacy class helper kept for backward compat (dock detail rank dots, smoke tests)
 function monsterSpeciesClass(e) {
   const map = { boring: 'blh-mob-boring', faburr: 'blh-mob-faburr',
     looney_tic: 'blh-mob-looney', poporingo: 'blh-mob-poporingo', dripz: 'blh-mob-dripz' };
   return map[e && e.id] || 'blh-mob-boring';
+}
+function monsterSpeciesPattern(e) {
+  return (e && PIXEL_SPRITES[e.id]) || PIXEL_SPRITES.boring;
+}
+// Render one pixel-art sprite as a single <span> whose box-shadow paints a 30×30 px grid.
+function buildPixelSprite(pattern, rankCls) {
+  const color = RANK_COLORS[rankCls] || '#44cc66';
+  const sh = [];
+  pattern.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      if (row[x] === '1') sh.push(`${x * 3}px ${y * 3}px 0 0 ${color}`);
+    }
+  });
+  return `<span class="blh-px-c" style="box-shadow:${sh.join(',')}"></span>`;
+}
+// Full map markup for one monster slot: centered anchor + pixel sprite + optional stack dots.
+function monsterMapMarkup(e, stackLen, title) {
+  const sprite = buildPixelSprite(monsterSpeciesPattern(e), monsterRankClass(e));
+  const cnt = stackLen ? Math.min(stackLen, 3) : 0;
+  const dots = cnt >= 2
+    ? `<div class="blh-mob-dots">${Array(cnt).fill('<span class="blh-mob-dot"></span>').join('')}</div>`
+    : '';
+  const tip = title != null ? title : (e ? esc(e.name) : '');
+  return `<div class="blh-mob-anchor" title="${tip}">${sprite}</div>${dots}`;
 }
 function strongestMonsterOnTile(monsters) {
   if (!monsters || !monsters.length) return null;
@@ -2186,31 +2237,22 @@ function renderBoard() {
     if (def.type === 'camp') {
       inner = '<div class="blh-cell-icon">⛺</div>';
     } else if (def.type === 'road') {
-      // elite/mythic events → pixel sprite; natural stack → species pixel sprite; spawnForLoop enemy → pixel sprite
+      // All monster/event map visuals → pixel-art sprites via monsterMapMarkup()
       const mobStk = run.monsterTiles && run.monsterTiles[def.id];
       const hasMobs = mobStk && mobStk.length > 0;
       if (run.eliteEventTile === def.id) {
-        inner = `<div class="blh-mob-sprite blh-mob-event-shape blh-mob-elite" title="Elite Event — ชนะเพื่อรับ gear+Zeny พิเศษ"></div>`;
+        inner = monsterMapMarkup({ id: 'elite', role: 'elite_event' }, 0,
+          'Elite Event — ชนะเพื่อรับ gear+Zeny พิเศษ');
       } else if (run.mythicEventTile === def.id) {
-        inner = `<div class="blh-mob-sprite blh-mob-event-shape blh-mob-mythic" title="Mythic Event — Mini-Boss อันตราย! รางวัลสูงมาก"></div>`;
+        inner = monsterMapMarkup({ id: 'mythic', role: 'mythic_event' }, 0,
+          'Mythic Event — Mini-Boss อันตราย! รางวัลสูงมาก');
       } else if (hasMobs) {
-        const strongest = strongestMonsterOnTile(mobStk);
-        const rankCls = monsterRankClass(strongest);
-        const speciesCls = monsterSpeciesClass(strongest);
-        const cnt = Math.min(mobStk.length, 3);
-        const dots = cnt >= 2
-          ? `<div class="blh-mob-dots">${Array(cnt).fill('<span class="blh-mob-dot"></span>').join('')}</div>`
-          : '';
-        inner = `<div class="blh-mob-sprite ${speciesCls} ${rankCls}" title="${mobStk.length} monster(s) — ${esc(strongest.name)}"></div>${dots}`;
+        inner = monsterMapMarkup(strongestMonsterOnTile(mobStk), mobStk.length);
       } else if (rc.enemy) {
-        const rankCls = monsterRankClass(rc.enemy);
-        const speciesCls = monsterSpeciesClass(rc.enemy);
-        inner = `<div class="blh-mob-sprite ${speciesCls} ${rankCls}" title="${esc(rc.enemy.name)}"></div>`;
+        inner = monsterMapMarkup(rc.enemy, 0);
       }
     } else if (rc.enemy) {
-      const rankCls = monsterRankClass(rc.enemy);
-      const speciesCls = monsterSpeciesClass(rc.enemy);
-      inner = `<div class="blh-mob-sprite ${speciesCls} ${rankCls}" title="${esc(rc.enemy.name)}"></div>`;
+      inner = monsterMapMarkup(rc.enemy, 0);
     }
     if (occupied) {
       const c = MAP_CARD_BY_ID[rc.placedCardId];
@@ -3580,6 +3622,9 @@ if (BLH_DEV) {
     makeEliteEventEnemy, makeMythicEventEnemy,
     endBattle,
     // Monster map pixel sprites
-    monsterRankClass, monsterSpeciesClass, strongestMonsterOnTile, renderBoard,
+    PIXEL_SPRITES, RANK_COLORS,
+    monsterRankClass, monsterSpeciesClass, monsterSpeciesPattern,
+    buildPixelSprite, monsterMapMarkup,
+    strongestMonsterOnTile, renderBoard,
   };
 }

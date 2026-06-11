@@ -557,25 +557,56 @@ ok('BAL has Elite/Mythic event constants',
   EV.BAL.ELITE_EVENT_BASE_CHANCE === 0.06 && EV.BAL.MYTHIC_EVENT_BASE_CHANCE === 0.02);
 
 // 7e) MONSTER MAP PIXEL SPRITES ──────────────────────────────────────────────
-// helper functions exposed
-ok('monsterRankClass exposed', typeof EV.monsterRankClass === 'function');
-ok('monsterSpeciesClass exposed', typeof EV.monsterSpeciesClass === 'function');
+// helper functions / data exposed
+ok('monsterRankClass exposed',       typeof EV.monsterRankClass === 'function');
+ok('monsterSpeciesClass exposed',    typeof EV.monsterSpeciesClass === 'function');
+ok('monsterSpeciesPattern exposed',  typeof EV.monsterSpeciesPattern === 'function');
+ok('buildPixelSprite exposed',       typeof EV.buildPixelSprite === 'function');
+ok('monsterMapMarkup exposed',       typeof EV.monsterMapMarkup === 'function');
 ok('strongestMonsterOnTile exposed', typeof EV.strongestMonsterOnTile === 'function');
+ok('PIXEL_SPRITES exposed',          typeof EV.PIXEL_SPRITES === 'object' && EV.PIXEL_SPRITES !== null);
 
-// monsterRankClass returns correct classes
+// monsterRankClass returns correct rank-color CSS class names
 ok('rank: mythic_event → blh-mob-mythic', EV.monsterRankClass({ role: 'mythic_event' }) === 'blh-mob-mythic');
 ok('rank: elite_event → blh-mob-elite',   EV.monsterRankClass({ role: 'elite_event' }) === 'blh-mob-elite');
 ok('rank: fast → blh-mob-normal',         EV.monsterRankClass({ role: 'fast', base: { hp: 16, atk: 5 } }) === 'blh-mob-normal');
 ok('rank: basic low-HP → blh-mob-weak',   EV.monsterRankClass({ role: 'basic', base: { hp: 20, atk: 4 } }) === 'blh-mob-weak');
 ok('rank: basic high-HP → blh-mob-normal',EV.monsterRankClass({ role: 'basic', base: { hp: 30, atk: 6 } }) === 'blh-mob-normal');
 
-// monsterSpeciesClass returns correct classes
+// monsterSpeciesClass (legacy, kept for backward compat) returns CSS class strings
 ok('species: boring → blh-mob-boring',       EV.monsterSpeciesClass({ id: 'boring' }) === 'blh-mob-boring');
 ok('species: faburr → blh-mob-faburr',       EV.monsterSpeciesClass({ id: 'faburr' }) === 'blh-mob-faburr');
 ok('species: looney_tic → blh-mob-looney',   EV.monsterSpeciesClass({ id: 'looney_tic' }) === 'blh-mob-looney');
 ok('species: poporingo → blh-mob-poporingo', EV.monsterSpeciesClass({ id: 'poporingo' }) === 'blh-mob-poporingo');
 ok('species: dripz → blh-mob-dripz',         EV.monsterSpeciesClass({ id: 'dripz' }) === 'blh-mob-dripz');
 ok('species: unknown → blh-mob-boring',      EV.monsterSpeciesClass({ id: 'unknown' }) === 'blh-mob-boring');
+
+// monsterSpeciesPattern returns a 10-row pixel pattern array
+ok('speciesPattern: boring is 10-row array',
+  Array.isArray(EV.monsterSpeciesPattern({ id: 'boring' })) &&
+  EV.monsterSpeciesPattern({ id: 'boring' }).length === 10);
+ok('speciesPattern: all rows are 10-char strings',
+  EV.monsterSpeciesPattern({ id: 'boring' }).every(r => r.length === 10));
+ok('speciesPattern: faburr first row has two ear bumps',
+  EV.monsterSpeciesPattern({ id: 'faburr' })[0] === '0110000110');
+ok('speciesPattern: unknown id → boring fallback',
+  EV.monsterSpeciesPattern({ id: 'zzz_unknown' }) === EV.PIXEL_SPRITES.boring);
+ok('PIXEL_SPRITES.elite has 10 rows',
+  Array.isArray(EV.PIXEL_SPRITES.elite) && EV.PIXEL_SPRITES.elite.length === 10);
+ok('PIXEL_SPRITES.mythic has corner horns in row 0',
+  EV.PIXEL_SPRITES.mythic[0] === '1000000001');
+
+// buildPixelSprite produces blh-px-c with inline box-shadow color
+{
+  const html = EV.buildPixelSprite(EV.PIXEL_SPRITES.boring, 'blh-mob-normal');
+  ok('buildPixelSprite produces blh-px-c element',      html.includes('blh-px-c'));
+  ok('buildPixelSprite embeds yellow color (normal)',    html.includes('#ddcc00'));
+  ok('buildPixelSprite has box-shadow property',         html.includes('box-shadow'));
+  ok('buildPixelSprite embeds orange color (elite)',
+    EV.buildPixelSprite(EV.PIXEL_SPRITES.elite, 'blh-mob-elite').includes('#ff8800'));
+  ok('buildPixelSprite embeds red color (mythic)',
+    EV.buildPixelSprite(EV.PIXEL_SPRITES.mythic, 'blh-mob-mythic').includes('#dd1133'));
+}
 
 // strongestMonsterOnTile: returns monster with highest power (hp + atk*2)
 // use evRun (real run) so makeEnemy has access to run.mods
@@ -589,7 +620,7 @@ ok('species: unknown → blh-mob-boring',      EV.monsterSpeciesClass({ id: 'unk
   ok('strongestMonsterOnTile([]) = null', EV.strongestMonsterOnTile([]) === null);
 }
 
-// map renders pixel sprite for monster tile
+// map renders true pixel-art sprites (blh-px-c canvas + blh-mob-anchor)
 // Use a fresh run so state is clean; renderBoard() is exposed for explicit re-renders
 {
   window.blhOpenModeSelect();
@@ -600,14 +631,15 @@ ok('species: unknown → blh-mob-boring',      EV.monsterSpeciesClass({ id: 'unk
   const spRun = SP.BLH.run;
   const spRoad = SP.roadCellIds()[0];
 
-  // 1 monster → sprite rendered (no dots)
+  // 1 monster → pixel canvas rendered, no dots
   SP.roadCellIds().forEach(id => { spRun.monsterTiles[id] = []; });
   spRun.eliteEventTile = null; spRun.mythicEventTile = null;
   spRun.monsterTiles[spRoad] = [SP.makeEnemy(SP.NATURAL_MONSTERS[0], spRun)];
   SP.renderBoard();
   const spBoard = document.getElementById('blh-board').innerHTML;
-  ok('map renders blh-mob-sprite for monster tile', spBoard.includes('blh-mob-sprite'),
+  ok('map renders pixel-art canvas (blh-px-c)', spBoard.includes('blh-px-c'),
     'board snippet: ' + spBoard.slice(0, 300));
+  ok('map renders mob anchor wrapper', spBoard.includes('blh-mob-anchor'));
 
   // stack 2 monsters → dots appear
   spRun.monsterTiles[spRoad] = [
@@ -629,30 +661,41 @@ ok('species: unknown → blh-mob-boring',      EV.monsterSpeciesClass({ id: 'unk
   const sp3Board = document.getElementById('blh-board').innerHTML;
   ok('stack 3 monsters → 3 dot spans', (sp3Board.match(/blh-mob-dot/g) || []).length >= 3);
 
-  // strongest monster determines rank class shown
+  // strongest monster (poporingo) encodes yellow color in sprite
   spRun.monsterTiles[spRoad] = [
     SP.makeEnemy(SP.NATURAL_MONSTERS.find(m => m.id === 'boring'),     spRun),
     SP.makeEnemy(SP.NATURAL_MONSTERS.find(m => m.id === 'poporingo'), spRun),
   ];
   SP.renderBoard();
   const spStrBoard = document.getElementById('blh-board').innerHTML;
-  ok('strongest (poporingo) determines rank class blh-mob-normal', spStrBoard.includes('blh-mob-normal'));
+  ok('strongest (poporingo) encodes yellow color in sprite', spStrBoard.includes('#ddcc00'));
 
-  // elite event → orange sprite with event-shape class
+  // elite event → orange pixel sprite (no card art)
   spRun.monsterTiles[spRoad] = [];
   spRun.eliteEventTile = spRoad;
   SP.renderBoard();
   const spEliteBoard = document.getElementById('blh-board').innerHTML;
-  ok('elite event tile renders blh-mob-elite sprite', spEliteBoard.includes('blh-mob-elite'));
-  ok('elite sprite uses blh-mob-event-shape (diamond)', spEliteBoard.includes('blh-mob-event-shape'));
+  ok('elite event tile renders orange pixel sprite', spEliteBoard.includes('#ff8800'));
+  ok('elite event uses blh-mob-anchor', spEliteBoard.includes('blh-mob-anchor'));
+  ok('elite event uses blh-px-c canvas', spEliteBoard.includes('blh-px-c'));
 
-  // mythic event → red sprite
+  // mythic event → red pixel sprite (no card art)
   spRun.eliteEventTile = null;
   spRun.mythicEventTile = spRoad;
   SP.renderBoard();
   const spMythicBoard = document.getElementById('blh-board').innerHTML;
-  ok('mythic event tile renders blh-mob-mythic sprite', spMythicBoard.includes('blh-mob-mythic'));
+  ok('mythic event tile renders red pixel sprite', spMythicBoard.includes('#dd1133'));
+  ok('mythic event uses blh-px-c canvas', spMythicBoard.includes('blh-px-c'));
   spRun.mythicEventTile = null;
+
+  // board must NOT contain card-art <img> tags for monsters
+  SP.roadCellIds().forEach(id => {
+    spRun.monsterTiles[id] = [SP.makeEnemy(SP.NATURAL_MONSTERS[0], spRun)];
+  });
+  SP.renderBoard();
+  const spNoImgBoard = document.getElementById('blh-board').innerHTML;
+  ok('map board has no card-art <img> for monsters',
+    !spNoImgBoard.match(/<img[^>]+cards\//));
 
   // battle still uses card assets (<img> inside blh-battle innerHTML), not pixel sprites
   // buildBattleDOM sets innerHTML on #blh-battle; check the last rendered battle HTML

@@ -4124,62 +4124,31 @@
 .blh-cell-danger { position: absolute; top: 1px; right: 2px; font-size: 9px; line-height: 1;
   color: #ffcf9a; text-shadow: 0 1px 2px #000; pointer-events: none; }
 
-/* ── Natural monster stack badge (legacy — no longer emitted in markup) ── */
-.blh-cell-mob-badge {
-  position: absolute; bottom: 2px; right: 2px;
-  background: rgba(255,90,0,.90); color: #fff;
-  font-size: 9px; font-weight: 700; padding: 1px 4px;
-  border-radius: 4px; line-height: 1.3; pointer-events: none; z-index: 4;
-  text-shadow: 0 1px 2px #000;
-}
-
-/* ── Monster pixel-sprite (map display only; battle keeps card assets) ── */
-.blh-mob-sprite {
-  position: absolute; inset: 14%;
-  border-radius: 50%;           /* default shape: round blob (boring/poporingo) */
+/* ── Monster pixel-art sprites (map display only; battle keeps card assets) ── */
+/* Positioning anchor: placed at tile center, animated bob. No background — color is
+   embedded in the box-shadow of .blh-px-c so transparent pixels stay transparent. */
+.blh-mob-anchor {
+  position: absolute;
+  top: 50%; left: 50%;
   z-index: 3; pointer-events: none;
-  animation: blh-mob-bob 1.6s ease-in-out infinite;
+  animation: blh-px-bob 1.8s ease-in-out infinite;
+}
+/* 3×3 px canvas; inline box-shadow paints a 30×30 sprite (10×10 grid, 3px/block)
+   right-ward and downward. margin -15px centers the 30px sprite around the anchor. */
+.blh-px-c {
+  display: block;
+  width: 3px; height: 3px;
+  margin: -15px 0 0 -15px;
+  image-rendering: pixelated;
 }
 
-/* Species silhouettes */
-.blh-mob-faburr {
-  clip-path: polygon(20% 30%, 0% 0%, 40% 18%, 50% 10%, 60% 18%, 100% 0%, 80% 30%, 100% 100%, 0% 100%);
-  border-radius: 0;
-}
-.blh-mob-looney {
-  clip-path: polygon(50% 0%, 38% 18%, 5% 18%, 5% 100%, 95% 100%, 95% 18%, 62% 18%);
-  border-radius: 0;
-}
-.blh-mob-poporingo { border-radius: 50%; }
-.blh-mob-poporingo::before {
-  content: ''; position: absolute;
-  top: 22%; left: 28%; width: 44%; height: 38%;
-  border-radius: 50%; background: rgba(0,0,0,.28);
-}
-.blh-mob-dripz { border-radius: 50% 50% 40% 40% / 40% 40% 60% 60%; }
-.blh-mob-dripz::after {
-  content: ''; position: absolute;
-  bottom: -16%; left: 30%; width: 40%; height: 22%;
-  border-radius: 0 0 50% 50%; background: inherit;
-}
-
-/* Rank / strength colors */
+/* Rank / strength colors — background referenced only by .blh-mob-rank-dot */
 .blh-mob-weak   { background: #44cc66; }
 .blh-mob-normal { background: #ddcc00; }
-.blh-mob-elite  { background: #ff8800; box-shadow: 0 0 0 1px rgba(255,255,255,.45), 0 0 6px #ff8800; }
-.blh-mob-mythic {
-  background: #dd1133;
-  animation: blh-mob-bob 1.6s ease-in-out infinite,
-             blh-mythic-mob-glow 1.4s ease-in-out infinite;
-}
+.blh-mob-elite  { background: #ff8800; }
+.blh-mob-mythic { background: #dd1133; }
 
-/* Event shape (elite/mythic tile) — diamond silhouette */
-.blh-mob-event-shape {
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  border-radius: 0;
-}
-
-/* Stack count dots — top-left corner */
+/* Stack count dots — top-left corner of the tile */
 .blh-mob-dots {
   position: absolute; top: 2px; left: 2px;
   display: flex; gap: 1px; z-index: 5; pointer-events: none;
@@ -4190,7 +4159,7 @@
   box-shadow: 0 1px 2px rgba(0,0,0,.75);
 }
 
-/* Rank dot used in tile detail panel */
+/* Rank dot used in tile detail panel (dock) */
 .blh-mob-rank-dot {
   display: inline-block; width: 8px; height: 8px;
   border-radius: 50%; vertical-align: middle;
@@ -4198,16 +4167,12 @@
 }
 
 /* Idle bob animation */
-@keyframes blh-mob-bob {
+@keyframes blh-px-bob {
   0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-12%); }
-}
-@keyframes blh-mythic-mob-glow {
-  0%, 100% { filter: drop-shadow(0 0 3px #dd1133); }
-  50%       { filter: drop-shadow(0 0 7px #ff3355); }
+  50%       { transform: translateY(-2px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .blh-mob-sprite { animation: none !important; }
+  .blh-mob-anchor { animation: none !important; }
 }
 
 /* ── Boss terrain map marker ── */
