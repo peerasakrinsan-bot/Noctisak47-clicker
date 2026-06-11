@@ -78,6 +78,8 @@ window.blhOpenModeSelect();
 ok('Mode Select renders title', blhHtml().includes('SELECT MODE'));
 ok('Mode Select lists Classic Mode', blhHtml().includes('CLASSIC MODE'));
 ok('Mode Select lists Loop RPG Mode', blhHtml().includes('LOOP RPG MODE'));
+ok('Boss Loop mode shows BETA badge', blhHtml().includes('blh-mode-badge') && blhHtml().includes('BETA'));
+ok('Boss Loop mode shows beta helper text', blhHtml().includes('Experimental mode — balance may change'));
 ok('overlay visible on open', blhDisplay() === 'flex');
 
 // 2) Classic Mode still calls original startGame() and hides the overlay
