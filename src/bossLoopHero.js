@@ -19,6 +19,15 @@
 
 const LS_KEY = 'noctisak47_blh';
 
+// ── FEATURE FLAG: โหมด RPG / Boss Loop (ปิดชั่วคราว) ─────────────────────────
+// false = ปิดโหมด RPG: ปุ่ม PLAY ข้าม Mode Select เข้าสู่เกมปกติทันที และซ่อนการ์ด
+//         โหมด RPG ออกจากหน้า Mode Select → ไม่มีปุ่ม/การ์ดที่มองเห็นให้กดเข้าโหมด RPG.
+//         (window.blh.pickMode ยังคงอยู่เป็น bridge สำหรับ dev/smoke เท่านั้น —
+//          ไม่มีตัวเรียกที่ผู้เล่นมองเห็น เพราะการ์ดถูกซ่อนและทางเข้าถูกข้าม)
+// true  = เปิดโหมด RPG กลับมาเหมือนเดิม (Mode Select + Loop RPG Mode).
+// โค้ดเอนจินของโหมด RPG ยังอยู่ครบ ไม่ได้ลบ — แค่ปิดทางเข้าเท่านั้น.
+const BOSS_LOOP_ENABLED = false;
+
 // dev/test เท่านั้น: ใช้กำหนดว่าจะเปิด debug hook (blh.__test) หรือไม่
 // จริง = รันใน Node smoke (ไม่มี location) หรือ localhost dev → เปิด
 // production (github.io ฯลฯ) → ปิด ไม่ expose internal state ออก window
@@ -945,12 +954,22 @@ function setScreen(id, html) {
 // 1) MODE SELECT
 // ════════════════════════════════════════════════════════════════════════════
 function blhOpenModeSelect() {
+  // โหมด RPG ปิดอยู่ → ข้าม Mode Select เข้าสู่เกมปกติทันที (Mode Select มีไว้
+  // เพื่อเลือกโหมด RPG เท่านั้น เมื่อปิดจึงไม่ต้องแสดง)
+  if (!BOSS_LOOP_ENABLED) {
+    const r = root();
+    if (r) { r.style.display = 'none'; r.innerHTML = ''; }
+    if (typeof window.startGame === 'function') window.startGame();
+    return;
+  }
   blhEnter();
   renderModeSelect();
 }
 
 function renderModeSelect() {
-  const cards = MODES.map(m => `
+  // ซ่อนการ์ดโหมด RPG เมื่อปิดฟีเจอร์ (กันการเข้าถึงผ่านปุ่มที่มองเห็น)
+  const visibleModes = BOSS_LOOP_ENABLED ? MODES : MODES.filter(m => m.action !== 'blh');
+  const cards = visibleModes.map(m => `
     <button class="blh-mode-card" style="--accent:${m.accent}" onclick="blh.pickMode('${m.id}')">
       <div class="blh-mode-icon">${m.icon}</div>
       <div class="blh-mode-text">
@@ -3588,6 +3607,7 @@ Object.assign(blh, {
 // ── debug/test hooks — เปิดเฉพาะ dev/test (smoke) ไม่ expose ใน production ──
 if (BLH_DEV) {
   blh.__test = {
+    BOSS_LOOP_ENABLED, blhEnter,
     BLH, BLH_MAP, BLH_CELL_BY_ID,
     getNeighborCells, getAdjacentRoadCells, getCellEffectsForRoad,
     isPlaceable, validPlacementTargets, startBossFight, stepWalk,
