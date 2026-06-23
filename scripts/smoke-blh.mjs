@@ -73,22 +73,25 @@ await import('../src/bossLoopHero.js');
 ok('module exposes blhOpenModeSelect', typeof window.blhOpenModeSelect === 'function');
 ok('module exposes blh bridge', window.blh && typeof window.blh.pickMode === 'function');
 
-// 1) PLAY → Mode Select
+// 1) Boss Loop / RPG mode is DISABLED → PLAY bypasses Mode Select into Classic
+ok('BOSS_LOOP_ENABLED flag is false', window.blh.__test.BOSS_LOOP_ENABLED === false);
 window.blhOpenModeSelect();
-ok('Mode Select renders title', blhHtml().includes('SELECT MODE'));
-ok('Mode Select lists Classic Mode', blhHtml().includes('CLASSIC MODE'));
-ok('Mode Select lists Loop RPG Mode', blhHtml().includes('LOOP RPG MODE'));
-ok('Boss Loop mode shows BETA badge', blhHtml().includes('blh-mode-badge') && blhHtml().includes('BETA'));
-ok('Boss Loop mode shows beta helper text', blhHtml().includes('Experimental mode — balance may change'));
-ok('overlay visible on open', blhDisplay() === 'flex');
+ok('disabled: PLAY does not render Mode Select', !blhHtml().includes('SELECT MODE'));
+ok('disabled: PLAY starts Classic directly (startGame called)', startGameCalls === 1);
+ok('disabled: overlay hidden after bypass', blhDisplay() === 'none');
 
-// 2) Classic Mode still calls original startGame() and hides the overlay
+// 2) Mode Select (forced open, dev only) no longer lists the RPG card; Classic still works
+window.blh.__test.blhEnter();
+window.blh.toModeSelect();
+ok('disabled: Mode Select hides Loop RPG card', !blhHtml().includes('LOOP RPG MODE'));
+ok('disabled: Mode Select still lists Classic Mode', blhHtml().includes('CLASSIC MODE'));
+startGameCalls = 0; // reset to isolate the explicit classic-path assertion
 window.blh.pickMode('classic');
 ok('Classic Mode calls original startGame()', startGameCalls === 1);
 ok('overlay hidden after Classic handoff', blhDisplay() === 'none');
 
-// 3) Boss Loop Hero path: hero → stage → lobby → run
-window.blhOpenModeSelect();
+// 3) Boss Loop Hero engine path (driven via dev bridge): hero → stage → lobby → run
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 ok('Hero Select renders', blhHtml().includes('SELECT HERO'));
 ['NOCTISAK47', 'TOEI', 'APOLOGIZE'].forEach(h =>
@@ -237,7 +240,7 @@ ok('updateBattleDynamic reuses same HP node (no remount)', document.getElementBy
 
 // 7c) MONSTER SPAWN + CYCLE TIMER + BOSS TERRAIN (new systems) ───────────────
 // Start a fresh run so state is clean
-window.blhOpenModeSelect();
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 window.blh.pickHero('noctisak47'); window.blh.heroNext();
 window.blh.pickStage('stage1'); window.blh.startRun();
@@ -381,7 +384,7 @@ window.blh.setSpeed(1);
 
 // 7d) ELITE/MYTHIC ROAD EVENTS ──────────────────────────────────────────────
 // Use a fresh run for clean event state
-window.blhOpenModeSelect();
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 window.blh.pickHero('noctisak47'); window.blh.heroNext();
 window.blh.pickStage('stage1'); window.blh.startRun();
@@ -625,7 +628,7 @@ ok('PIXEL_SPRITES.mythic has corner horns in row 0',
 // map renders true pixel-art sprites (blh-px-c canvas + blh-mob-anchor)
 // Use a fresh run so state is clean; renderBoard() is exposed for explicit re-renders
 {
-  window.blhOpenModeSelect();
+  window.blh.__test.blhEnter();
   window.blh.pickMode('blh');
   window.blh.pickHero('noctisak47'); window.blh.heroNext();
   window.blh.pickStage('stage1'); window.blh.startRun();
@@ -774,7 +777,7 @@ ok('gear has rarity id', typeof sampleGear.rarity === 'string' && !!T.GEAR_RARIT
 ok('gear main stat has key+value', sampleGear.mainStat && typeof sampleGear.mainStat.k === 'string' && typeof sampleGear.mainStat.v === 'number');
 ok('gear sub stat has key+value', sampleGear.subStat && typeof sampleGear.subStat.k === 'string' && typeof sampleGear.subStat.v === 'number');
 // 9j) perks are run-only — a fresh run starts with an empty perk list
-window.blhOpenModeSelect();
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 window.blh.pickHero('apologize'); window.blh.heroNext();
 window.blh.pickStage('stage1'); window.blh.startRun();
@@ -897,7 +900,7 @@ ok('after plan change level-up allocates to balance plan (STR increases)',
 expT.setGrowthPlan('default'); // restore default for hero
 
 // 10j) RUN END resets runStats/level/exp/planCursor; new run gets hero default plan
-window.blhOpenModeSelect();
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 window.blh.pickHero('noctisak47'); window.blh.heroNext();
 window.blh.pickStage('stage1'); window.blh.startRun();
@@ -1085,7 +1088,7 @@ const gearLS = G.deriveCombat({ str: 0, agi: 0, vit: 0, dex: 0, int: 0, luk: 0 }
 ok('gear lifesteal applies and is capped at 20%', Math.abs(gearLS.lifesteal - 0.20) < 1e-9, 'ls=' + gearLS.lifesteal);
 
 // 11h) gear remains run-only — equipped/loot gear vanishes on run end (BLH.run = null → fresh init)
-window.blhOpenModeSelect();
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 window.blh.pickHero('toei'); window.blh.heroNext();
 window.blh.pickStage('stage1'); window.blh.startRun();
@@ -1107,7 +1110,7 @@ ok('drop bonus capped at +40%', Math.abs(dropCap.dropBonus - 0.40) < 1e-9, 'drop
 // 12) LOCAL DANGER (per-road, derived from placed tiles) ─────────────────────
 const D = window.blh.__test;
 // fresh run for controlled danger tests
-window.blhOpenModeSelect();
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 window.blh.pickHero('noctisak47'); window.blh.heroNext();
 window.blh.pickStage('stage1'); window.blh.startRun();
@@ -1189,7 +1192,7 @@ ok('BLH exposes localDangerForRoad/localDangerScaling/cardDanger',
 // 13) MAP CARD HAND — stacking by type (8 max) + overflow → Loop Zeny ─────────
 const H = window.blh.__test;
 // fresh run, empty the hand for controlled tests
-window.blhOpenModeSelect();
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 window.blh.pickHero('apologize'); window.blh.heroNext();
 window.blh.pickStage('stage1'); window.blh.startRun();
@@ -1252,7 +1255,7 @@ ok('Cash Out conversion values are small (per-kind 2–4)',
   H.cardZenyValue('spawn_rift') === 2 && H.cardZenyValue('shrine') === 3 && H.cardZenyValue('rock') === 4);
 
 // 13h) cards are run-only — fresh run starts with a stacked-shape hand (entries, not raw ids)
-window.blhOpenModeSelect();
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 window.blh.pickHero('toei'); window.blh.heroNext();
 window.blh.pickStage('stage1'); window.blh.startRun();
@@ -1265,7 +1268,7 @@ window.blh.setSpeed(1);
 // 14) GEAR BAG cap + overflow auto-salvage ───────────────────────────────────
 const B = window.blh.__test;
 // fresh run for controlled bag tests
-window.blhOpenModeSelect();
+window.blh.__test.blhEnter();
 window.blh.pickMode('blh');
 window.blh.pickHero('noctisak47'); window.blh.heroNext();
 window.blh.pickStage('stage1'); window.blh.startRun();
