@@ -19,6 +19,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Card audit (normal-mode CARD_POOL integrity)
+        run: npm run card-audit
       - name: Build (Vite + service-worker postbuild)
         run: npm run build
       - name: Smoke check (mode select + Boss Loop Hero wiring)
