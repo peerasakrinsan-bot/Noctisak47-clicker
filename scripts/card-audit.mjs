@@ -116,6 +116,31 @@ console.log('   rarity counts:', JSON.stringify(counts));
 if (counts.elite > 0 && counts.mythic > 0) ok(`elite (${counts.elite}) and mythic (${counts.mythic}) tiers populated`);
 else bad('elite or mythic tier is empty');
 
+// ── 7) Elite/Mythic logic wiring — guards for the text↔logic audit fixes ──────
+// These pin the specific effects whose code paths were repaired so they can't
+// silently regress back to the mismatched behavior.
+const has = (re, label) => { if (re.test(src)) ok(label); else bad(`logic regressed: ${label}`); };
+
+// DRAKE TAKE: damage multiplier is ×2 (not the old ×1.30)
+has(/_drakeTakeEndTime\s*&&\s*performance\.now\(\)\s*<\s*cs\._drakeTakeEndTime\)\s*d\s*\*=\s*2(\.0)?\b/,
+  'DRAKE TAKE damage ×2');
+// DRAKE TAKE: BREAK ×2 progress per tap during the window
+has(/cs_drakeIgnoreThreshold[^\n]*_drakeTakeEndTime[^\n]*PRESSURE\.targetHits\s*\+=\s*1/,
+  'DRAKE TAKE BREAK ×2 progress');
+// DRAKE TAKE: AK47 FAST spawn during the window
+has(/cs_drakeIgnoreThreshold[^\n]*_drakeTakeEndTime[^\n]*delay\s*\*=/,
+  'DRAKE TAKE AK47 fast spawn');
+// THANABROS: OD time +1s on AK47 complete while Thanatos Phase active
+has(/_thanatosPhaseEndTime[^\n]*godLevel\s*>\s*0\)\s*\{[^}]*godSecondsLeft\s*\+=\s*1/,
+  'THANABROS OD +1s during Thanatos Phase');
+// DEVILINGO: AK47 spawn +20% faster, wired into the spawn scheduler (delay ×)
+has(/cs_devilingo[^\n]*_devilingoCombatStart[^\n]*delay\s*\*=\s*0\.8/,
+  'DEVILINGO AK47 spawn +20%');
+// TURTLE SHOGUN: no longer carries the −15% Zeny penalty
+if (/cs_turtleShogun[^\n]*(baseCoins|bossCoins)\s*=\s*Math\.round\([^\n]*\*\s*0\.85/.test(src))
+  bad('TURTLE SHOGUN still has the −15% Zeny penalty');
+else ok('TURTLE SHOGUN free of −15% Zeny penalty');
+
 // ── result ────────────────────────────────────────────────────────────────────
 console.log(`\n${failures === 0 ? '✅' : '❌'} card audit: ${cards.length} cards checked, ${failures} failure(s)`);
 process.exit(failures === 0 ? 0 : 1);

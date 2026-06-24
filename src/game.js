@@ -1876,6 +1876,10 @@ function scheduleWeakPoint() {
   if(window._csState && window._csState.cs_incantation && window._csState._incantationContractEndTime && performance.now() < window._csState._incantationContractEndTime) delay *= 0.75;
   // LORD OF DEBT: ANALYZED state — AK47 spawn +35%
   if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_akSpawnFast) delay *= (1 - window._csState._lod_akSpawnFast);
+  // DEVILINGO: 15 วิแรกของ encounter → AK47 spawn +20% เร็วขึ้น
+  if(window._csState && window._csState.cs_devilingo && window._csState._devilingoCombatStart && Date.now() - window._csState._devilingoCombatStart <= 15000) delay *= 0.80;
+  // DRAKE TAKE: AK47 FAST during the 6s window
+  if(window._csState && window._csState.cs_drakeIgnoreThreshold && window._csState._drakeTakeEndTime && performance.now() < window._csState._drakeTakeEndTime) delay *= 0.60;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -2236,6 +2240,11 @@ function triggerBombExplosion() {
   if(window._csState && window._csState.cs_thanatos) {
     _el.godFill.style.width = '100%';
     if(canEnterGod && godLevel === 0) activateGodLevel(1);
+    // THANABROS: ระหว่าง Thanatos Phase และ OD active → ต่อเวลา OD +1 วิ
+    if(window._csState._thanatosPhaseEndTime && performance.now() < window._csState._thanatosPhaseEndTime && godLevel > 0) {
+      godSecondsLeft += 1;
+      updateUI();
+    }
   }
   // KTULLANUX: combo protect 5s
   if(window._csState && window._csState.cs_ktullanux) {
@@ -4378,7 +4387,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_goblinLeader && combo >= 25) d *= 1.20;
   if(cs.cs_freeoni && cs._freeoniOdDmgStack) d *= (1 + cs._freeoniOdDmgStack);
   if(cs.cs_drakeIgnoreThreshold && cs._drakeDmgEndTime && performance.now() < cs._drakeDmgEndTime) d *= (1 + (cs._drakeDmgBonus || 0));
-  if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 1.30;
+  if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 2.0;
   // Baphomet: accumulated dmg bonus from AK47 completions
   if(cs.cs_baphomet && cs._baphometSinStack) d *= (1 + cs._baphometSinStack);
   // Orc Hero: accumulated dmg bonus from OD completions
@@ -6497,6 +6506,8 @@ function pressureHitTarget(x, y) {
   // cs_breakPower: extra BREAK progress per tap (HYDRA +0.15, CATULLANUX +0.20, stacks)
   const _bpBonus = (window._csState && window._csState.cs_breakPower) || 0;
   if(_bpBonus > 0) PRESSURE.targetHits += _bpBonus;
+  // DRAKE TAKE: BREAK x2 progress per tap during the 6s window (base ++ → +1 doubles it)
+  if(window._csState && window._csState.cs_drakeIgnoreThreshold && window._csState._drakeTakeEndTime && performance.now() < window._csState._drakeTakeEndTime) PRESSURE.targetHits += 1;
   // INCANTATION SCAMURAI: contract adds BREAK progress
   if(window._csState && window._csState.cs_incantation && window._csState._incantationContractEndTime && performance.now() < window._csState._incantationContractEndTime) PRESSURE.targetHits += 0.20;
   // EXECUSIONER: +15% BREAK progress when boss/enemy HP < 25%
@@ -7716,8 +7727,8 @@ function normalKO() {
   ko++; waveKO++;
   window._wqRunKO = (window._wqRunKO || 0) + 1; // weekly per-run KO counter
   let baseCoins = Math.round((1 + Math.floor(combo * 0.05)) * (1.25 + (_sc.coinMult||0)));
-  // Turtle Shogun: KO Zeny -15%
-  if(window._csState && (window._csState.cs_turtleShogun || window._csState.cs_dorkLord)) baseCoins = Math.round(baseCoins * 0.85);
+  // DORK LORD: KO Zeny -15% (documented tradeoff). Turtle Shogun no longer shares this.
+  if(window._csState && window._csState.cs_dorkLord) baseCoins = Math.round(baseCoins * 0.85);
   baseCoins = csApplyCoinMod(baseCoins);
   // ── Zeny KO reduction (late-game economy rebalance) ──
   // Applied per-KO at earn time so totalRunZeny is never reduced retroactively.
@@ -7776,9 +7787,7 @@ function bossKO() {
   bossTapCount = 0; lastTapTime = 0; // reset tap ramp on boss KO
   window._bossesDefeated = (window._bossesDefeated||0) + 1;
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
-  // Turtle Shogun: KO Zeny -15%
-  if(window._csState && window._csState.cs_turtleShogun) bossCoins = Math.round(bossCoins * 0.85);
-    if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
+  if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
   // DEVILINGO: boss defeated within 15s → Boss KO Zeny +30%
   if(window._csState && window._csState.cs_devilingo && window._csState._devilingoCombatStart) {
     if(Date.now() - window._csState._devilingoCombatStart <= 15000) {
