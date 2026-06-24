@@ -4390,3 +4390,228 @@
 
 /* headings = ตัวหนา ตัวพิมพ์ใหญ่ สี gold (เข้าชุด shop-title) */
 .blh-title, .blh-bt-titlebar { text-transform: uppercase; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ELITE / MYTHIC CARD VFX  (src/cardVfx.js)  — cosmetic only, normal mode
+   เบา + ปลอดภัยบนมือถือ: ทุกตัวใช้ transform/opacity, pointer-events:none,
+   อายุสั้น, สีต่อใบผ่าน --cv. เคารพ prefers-reduced-motion (ดูท้ายบล็อก).
+   ═══════════════════════════════════════════════════════════════════════════ */
+#cardVfxLayer {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  z-index: 16; /* เหนือ #fxLayer (15) แต่ใต้ HUD/ปุ่ม */
+  transform: translateZ(0);
+}
+#cardVfxLayer > div {
+  position: absolute; pointer-events: none; will-change: transform, opacity;
+}
+
+/* ── PERSISTENT AURA (active Elite/Mythic card) ── */
+/* child element เฉพาะ (#cvAuraEl) — ไม่ชนกับ ::before/::after ของบอสสกิน.
+   วางใต้ตัวละคร (z-index ต่ำกว่า #boxer) ไม่บังเลข/ปุ่ม. สีจาก --cv-aura. */
+#cvAuraEl {
+  position: absolute; left: 50%; top: 46%;
+  width: 168px; height: 168px; transform: translate(-50%, -50%);
+  border-radius: 50%; pointer-events: none; z-index: 0; display: none;
+  background: radial-gradient(circle, var(--cv-aura, #fff) 0%, transparent 68%);
+  opacity: .16; filter: blur(2px);
+}
+#cvAuraEl.cv-aura {
+  display: block;
+  animation: cvAuraBreath 2.6s ease-in-out infinite;
+}
+@keyframes cvAuraBreath {
+  0%, 100% { opacity: .13; transform: translate(-50%, -50%) scale(.96); }
+  50%      { opacity: .22; transform: translate(-50%, -50%) scale(1.06); }
+}
+/* aura variants — ปรับ texture/จังหวะให้แต่ละสไตล์รู้สึกต่างกัน */
+#cvAuraEl.cv-aura--glow   { opacity: .18; }
+#cvAuraEl.cv-aura--pulse  { animation-duration: 1.5s; }
+#cvAuraEl.cv-aura--drain  { background: radial-gradient(circle, var(--cv-aura) 0%, transparent 60%);
+  animation: cvAuraDrain 2.1s ease-in-out infinite; }
+#cvAuraEl.cv-aura--holy   { opacity: .2; filter: blur(3px); animation-duration: 3.2s; }
+#cvAuraEl.cv-aura--shadow { opacity: .24; filter: blur(4px);
+  background: radial-gradient(circle, var(--cv-aura) 0%, transparent 72%); }
+#cvAuraEl.cv-aura--gold   { opacity: .2; filter: blur(1px); }
+#cvAuraEl.cv-aura--frost  { opacity: .15; animation-duration: 3.6s; }
+#cvAuraEl.cv-aura--fire   { animation: cvAuraFire 1.3s ease-in-out infinite; }
+#cvAuraEl.cv-aura--tech   { border-radius: 12%; filter: blur(1px); animation-duration: 1.8s; }
+@keyframes cvAuraDrain {
+  0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
+  50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
+}
+@keyframes cvAuraFire {
+  0%, 100% { opacity: .16; transform: translate(-50%, -52%) scale(1); }
+  50%      { opacity: .26; transform: translate(-50%, -56%) scale(1.05); }
+}
+
+/* ── PRIMITIVE: flash (จอวาบสีเต็มกรอบ) ── */
+.cv-flash {
+  inset: 0; left: 0; top: 0; width: 100%; height: 100%;
+  background: var(--cv, #fff); opacity: 0;
+  animation: cvFlash .34s ease-out forwards;
+}
+@keyframes cvFlash { 0% { opacity: .26; } 100% { opacity: 0; } }
+
+/* ── PRIMITIVE: pulse (วงแหวนขยายรอบตัว) ── */
+.cv-pulse {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 3px solid var(--cv, #fff);
+  transform: translate(-50%, -50%) scale(.4); opacity: 0;
+  box-shadow: 0 0 14px var(--cv, #fff);
+  animation: cvPulse .5s ease-out forwards;
+}
+@keyframes cvPulse {
+  0%   { opacity: .9; transform: translate(-50%, -50%) scale(.4); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(3.4); }
+}
+
+/* ── PRIMITIVE: slash (รอยฟันเฉียง) ── */
+.cv-slash {
+  width: 132px; height: 7px; border-radius: 4px;
+  background: linear-gradient(90deg, transparent, var(--cv, #fff) 45%, #fff 50%, var(--cv, #fff) 55%, transparent);
+  box-shadow: 0 0 12px var(--cv, #fff);
+  transform: translate(-50%, -50%) rotate(var(--rot, -30deg)) scaleX(.2);
+  opacity: 0; animation: cvSlash .32s ease-out forwards;
+}
+@keyframes cvSlash {
+  0%   { opacity: 0;  transform: translate(-50%, -50%) rotate(var(--rot, -30deg)) scaleX(.2); }
+  35%  { opacity: 1;  transform: translate(-50%, -50%) rotate(var(--rot, -30deg)) scaleX(1.05); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) rotate(var(--rot, -30deg)) scaleX(1.15); }
+}
+
+/* ── PRIMITIVE: spark (อนุภาคกระจาย) ── */
+.cv-spark {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--cv, #fff); box-shadow: 0 0 6px var(--cv, #fff);
+  transform: translate(-50%, -50%); opacity: 1;
+  animation: cvSpark .36s ease-out forwards;
+}
+@keyframes cvSpark {
+  to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))); opacity: 0; }
+}
+
+/* ── PRIMITIVE: shadowBurst (คลื่นมืดแผ่ออก) ── */
+.cv-shadowburst {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: radial-gradient(circle, var(--cv, #000) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(.3); opacity: 0;
+  animation: cvShadow .55s ease-out forwards;
+}
+@keyframes cvShadow {
+  0%   { opacity: .85; transform: translate(-50%, -50%) scale(.3); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(3.2); }
+}
+
+/* ── PRIMITIVE: coin (เหรียญพุ่ง) ── */
+.cv-coin {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c0, var(--cv, #ffcc00) 60%, #b8860b);
+  box-shadow: 0 0 8px var(--cv, #ffcc00);
+  transform: translate(-50%, -50%); opacity: 1;
+  animation: cvCoin .7s cubic-bezier(.2,.6,.3,1) forwards;
+}
+@keyframes cvCoin {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(.6); }
+  60%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 36px)) scale(1); }
+}
+
+/* ── PRIMITIVE: crack (รอยร้าว BREAK) ── */
+.cv-crack {
+  width: 4px; height: 4px; transform: translate(-50%, -50%);
+  animation: cvCrackFade .42s ease-out forwards;
+}
+.cv-crack span {
+  position: absolute; left: 0; top: 0; width: 3px; height: 44px;
+  background: linear-gradient(var(--cv, #fff), transparent);
+  box-shadow: 0 0 7px var(--cv, #fff); transform-origin: top center;
+}
+.cv-crack span:nth-child(1) { transform: rotate(8deg); }
+.cv-crack span:nth-child(2) { transform: rotate(75deg); }
+.cv-crack span:nth-child(3) { transform: rotate(150deg); }
+.cv-crack span:nth-child(4) { transform: rotate(220deg); }
+.cv-crack span:nth-child(5) { transform: rotate(295deg); }
+.cv-crack.heavy span { height: 60px; width: 4px; }
+@keyframes cvCrackFade {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.4); }
+  30%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
+}
+
+/* ── PRIMITIVE: odGlow (วาบ OD เข้ม) ── */
+.cv-odglow {
+  width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, var(--cv, #fff) 0%, transparent 65%);
+  transform: translate(-50%, -50%) scale(.5); opacity: 0;
+  animation: cvOdGlow .6s ease-out forwards;
+}
+@keyframes cvOdGlow {
+  0%   { opacity: 0;  transform: translate(-50%, -50%) scale(.5); }
+  40%  { opacity: .55; transform: translate(-50%, -50%) scale(1.05); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) scale(1.4); }
+}
+
+/* ── PRIMITIVE: streak (เส้นความเร็ว AK47/ghost) ── */
+.cv-streak {
+  width: 150px; height: 4px; border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--cv, #fff));
+  box-shadow: 0 0 8px var(--cv, #fff);
+  transform: translate(-30%, -50%) scaleX(0); opacity: 0;
+  transform-origin: right center;
+  animation: cvStreak .4s ease-out forwards;
+}
+@keyframes cvStreak {
+  0%   { opacity: 0;  transform: translate(40%, -50%) scaleX(0); }
+  40%  { opacity: .9; transform: translate(-10%, -50%) scaleX(1); }
+  100% { opacity: 0;  transform: translate(-60%, -50%) scaleX(1); }
+}
+
+/* ── PRIMITIVE: drain (พัลส์ดูดเข้า แดง-ม่วง) ── */
+.cv-drain {
+  width: 130px; height: 130px; border-radius: 50%;
+  border: 3px solid var(--cv, #c25);
+  box-shadow: 0 0 16px var(--cv, #c25), inset 0 0 16px var(--cv, #c25);
+  transform: translate(-50%, -50%) scale(1.4); opacity: 0;
+  animation: cvDrain .55s ease-in forwards;
+}
+@keyframes cvDrain {
+  0%   { opacity: .85; transform: translate(-50%, -50%) scale(1.4); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(.3); }
+}
+
+/* ── PRIMITIVE: comboRing (วงคอมโบ) ── */
+.cv-comboring {
+  width: 70px; height: 70px; border-radius: 50%;
+  border: 4px dashed var(--cv, #fff);
+  box-shadow: 0 0 12px var(--cv, #fff);
+  transform: translate(-50%, -50%) scale(.6) rotate(0deg); opacity: 0;
+  animation: cvComboRing .5s ease-out forwards;
+}
+@keyframes cvComboRing {
+  0%   { opacity: 0;  transform: translate(-50%, -50%) scale(.6) rotate(0deg); }
+  40%  { opacity: 1;  transform: translate(-50%, -50%) scale(1.1) rotate(60deg); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) scale(1.5) rotate(120deg); }
+}
+
+/* ── PRIMITIVE: bossFlare (แฟลร์ที่บอส) ── */
+.cv-bossflare {
+  width: 90px; height: 90px; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--cv, #f33) 35%, transparent 70%);
+  transform: translate(-50%, -50%) scale(.3); opacity: 0;
+  mix-blend-mode: screen;
+  animation: cvBossFlare .5s ease-out forwards;
+}
+@keyframes cvBossFlare {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(.3); }
+  35%  { opacity: .95; transform: translate(-50%, -50%) scale(1.1); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.6); }
+}
+
+/* ── reduced-motion: ตัด aura ที่วน + ย่นเอฟเฟกต์ ── */
+@media (prefers-reduced-motion: reduce) {
+  #cvAuraEl.cv-aura { animation: none !important; opacity: .14; }
+  #cardVfxLayer > div {
+    animation-duration: .14s !important;
+    animation-iteration-count: 1 !important;
+  }
+}

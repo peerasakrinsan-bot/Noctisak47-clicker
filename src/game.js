@@ -2268,6 +2268,7 @@ function triggerBombExplosion() {
 // Called ONLY when all 5 weak points have been collected (wp1–wp5 sounds play).
 // ONE OCA roll per completion. No partial-progress rolls.
 function onAk47Complete(x, y) {
+  _cardFx('ak47', { x, y }); // Elite/Mythic VFX: เอฟเฟกต์ตอน AK47 ครบชุด (cosmetic)
   tryOcaBombDrop(x, y);
 }
 
@@ -3694,6 +3695,8 @@ function _csConfirmClick() {
   card.apply(cs);
   window._csState = cs;
   _csRefreshVolatileCardEffects(cs);
+  // Elite/Mythic VFX: ตั้ง aura ถาวรของการ์ดที่เลือก (cosmetic, no-op สำหรับ tier อื่น)
+  if (window.CardVFX) window.CardVFX.setActiveCard(card.id, card.rarity);
 
   // Release guard after this tick so both events in the gesture are absorbed.
   setTimeout(() => { _confirmInProgress = false; }, 0);
@@ -4812,6 +4815,7 @@ function csOnBreakEnd() {
 function csOnBreakSuccess() {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
+  _cardFx('break'); // Elite/Mythic VFX: เอฟเฟกต์ตอน BREAK สำเร็จ (cosmetic)
   // GLOOM UNDER SIDE: bonus coins on BREAK success proportional to stacks (+1.5% of roundCoins per stack)
   if(cs.cs_gloomUnderSide && cs._gloomStacks) {
     const bonus = Math.max(1, Math.round(roundCoins * cs._gloomStacks * 0.02));
@@ -4935,6 +4939,7 @@ function csOnBreakSuccess() {
     if(_el && _el.godFill) _el.godFill.style.width = '100%';
     if(canEnterGod && godLevel === 0) activateGodLevel(1);
     cs._thanatosPhaseEndTime = performance.now() + 5000;
+    _cardFx('thanatos'); // THANABROS — time-stop OD aura
     showBigSplash('THANATOS PHASE', 'DMG x2 — 5s', '#cc0000', false);
   }
   // NOSIRIS: Soul Stack accumulation → Judgment at 5 stacks
@@ -5058,6 +5063,7 @@ function _csValkyrieRandgrisSwap() {
 function csOnOdStart() {
   if(!window._csState) return;
   const cs = window._csState;
+  _cardFx('od'); // Elite/Mythic VFX: เอฟเฟกต์ตอนเข้า OVERDRIVE (cosmetic)
   _csOdUseCount++;
   // track peak OD level reached this OD session (godLevel is set before csOnOdStart is called)
   cs._currentOdPeakLevel = Math.max(cs._currentOdPeakLevel || 0, godLevel);
@@ -5170,6 +5176,7 @@ function _csHandleDrakeThreshold(ratio, key){
   if(key === '25') cs.cs_breakPower = (cs.cs_breakPower||0) + 0.35;
   if(cs._drakeTriggered.has('75') && cs._drakeTriggered.has('50') && cs._drakeTriggered.has('25')) {
     cs._drakeTakeEndTime = performance.now()+6000;
+    _cardFx('drake'); // DRAKE — golden dragon burst
     showBigSplash('DRAKE TAKE', 'OD x2 • BREAK x2 • AK47 FAST', '#66ccff', false);
   } else {
     triggerFlash('flash-boss');
@@ -5199,6 +5206,7 @@ function csGetEndBonusCoins() {
 
 // ── reset card state ──
 function csReset(clearSavedCards = false) {
+  if (window.CardVFX) window.CardVFX.clearActive();
   activeCard = null;
   window._csState = null;
   _csKoTimeAcc = 0;
@@ -7537,6 +7545,7 @@ function processHit(e, now) {
       roundCoins += _execCoin;
       score += 600;
       spawnCoinPopup(_execCoin);
+      _cardFx('execute'); // ABYSMELL KNIGHT — dark execute slash
       showBigSplash('EXECUTE', 'BOSS FINISH +30% ZENY', '#ff3355', false);
       _cs._aknightReadyEndTime = 0;
       _cs._aknightReadyCooldownUntil = _now + 12000;
@@ -7608,6 +7617,7 @@ function processHit(e, now) {
         const _p = pos2;
         showHitNum(_p.x + 24, _p.y - 24, _shadowDmg, godLevel > 0, _shadowWillCrit);
         applyBossDamage(_shadowDmg, 'doppel-shadow');
+        _cardFx('hit', { x: _p.x + 24, y: _p.y - 24 }); // DOPPELGANGER mirror slash
       }, 80);
     }
     // LORD OF DEBT: BERSERK state — extra shadow hit 35% DMG, no combo/OD/break/recursive
@@ -7618,6 +7628,7 @@ function processHit(e, now) {
         if(!gameRunning || gamePaused) return;
         showHitNum(pos2.x - 20, pos2.y - 30, _bsDmg, false, false);
         applyBossDamage(_bsDmg, 'lod-berserk-shadow');
+        _cardFx('hit', { x: pos2.x - 20, y: pos2.y - 30 }); // LORD OF DEBT berserk shadow slash
       }, 120);
     }
     // boss phase / KO checks (mirrors applyDamage logic)
@@ -7772,6 +7783,7 @@ function spawnBoss() {
 function csOnBossKO() {
   if(!window._csState) return;
   const cs = window._csState;
+  _cardFx('boss'); // Elite/Mythic VFX: boss flare ตอนล้มบอส (MAYA PROBLEM / DEVILINGO)
   // ABYSMELL KNIGHT: clear transient ready window safely on boss transition
   cs._aknightReadyEndTime = 0;
   cs._mayaBossBreakUsed = false;
@@ -8246,6 +8258,16 @@ function _hnReset() {
 }
 
 function getGodColor(){return godLevel===3?'#ff2233':godLevel===2?'#4488ff':'#00ffee';}
+
+// ── Elite/Mythic card VFX bridge (cosmetic only — src/cardVfx.js) ──
+// ส่ง event ของ mechanic ที่ยิงจริงไปให้ layer ภาพ. ไม่แตะ logic การ์ด/บาลานซ์
+// และ safe no-op ถ้า module ยังไม่โหลด / ไม่มีการ์ด active.
+function _cardFx(context, ctx){
+  try {
+    if (window.CardVFX && typeof activeCard !== 'undefined' && activeCard)
+      window.CardVFX.trigger(activeCard.id, context, ctx);
+  } catch(e){}
+}
 
 // ══════════════════════════════════════════
 // FX & PARTICLES
