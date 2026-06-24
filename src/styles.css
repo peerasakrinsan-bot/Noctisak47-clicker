@@ -4401,6 +4401,14 @@
   z-index: 16; /* เหนือ #fxLayer (15) แต่ใต้ HUD/ปุ่ม */
   transform: translateZ(0);
 }
+/* ── CANVAS VFX LAYER (src/canvasVfx.js) ──
+   particle/transient ทั้งหมดของการ์ด render ลง canvas เดียวนี้แทน DOM node
+   (ลด DOM ตอนยิงถี่บนมือถือ). อยู่ระนาบเดียวกับ #cardVfxLayer — เหนือ #fxLayer
+   แต่ใต้ HUD/ปุ่ม/โมดอล. ไม่รับ input. */
+#vfxCanvas {
+  position: absolute; inset: 0; pointer-events: none;
+  z-index: 16; transform: translateZ(0);
+}
 #cardVfxLayer > div {
   position: absolute; pointer-events: none; will-change: transform, opacity;
 }

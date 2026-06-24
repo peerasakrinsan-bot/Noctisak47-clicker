@@ -91,10 +91,22 @@ function _emit(el, ms) {
 // reduced-motion → ย่นเวลาเหลือสั้นมาก (คงฟีดแบ็กแต่ไม่กวน)
 function _dur(base) { return _reduced ? Math.min(base, 0.16) : base; }
 
+// ── canvas routing ───────────────────────────────────────────────────────────
+// ถ้า canvas VFX layer (src/canvasVfx.js) พร้อม ให้มันรับเอฟเฟกต์ transient แทน
+// การ spawn DOM node — ลดจำนวน DOM node ตอนยิงถี่บนมือถือ. ถ้า canvas ไม่รองรับ
+// (เช่น สภาพแวดล้อม audit/Node หรือเบราว์เซอร์เก่า) → คืน false แล้วใช้ DOM เดิม
+// เป็น fallback ครบทุก primitive (พฤติกรรมเดิม 100%).
+function _toCanvas(type, opts) {
+  const C = (typeof window !== 'undefined') && window.CanvasVFX;
+  if (C && C.supported && C.supported()) { C.spawnCanvasVfx(type, opts); return true; }
+  return false;
+}
+
 // ── PRIMITIVES ───────────────────────────────────────────────────────────────
 // แต่ละตัวเบา: 1 element + CSS class + ตัวแปรสี (--cv). reduced-motion ลดของ/เวลา.
 
 function pFlash(color, dur = 0.34) {
+  if (_toCanvas('flash', { color, dur })) return;
   const el = _take('cv-flash');
   el.style.setProperty('--cv', color);
   el.style.animationDuration = _dur(dur) + 's';
@@ -103,6 +115,7 @@ function pFlash(color, dur = 0.34) {
 
 function pPulse(color, dur = 0.5) {
   const c = _fighterCenter();
+  if (_toCanvas('pulse', { color, dur, x: c.x, y: c.y })) return;
   const el = _take('cv-pulse');
   el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
   el.style.setProperty('--cv', color);
@@ -112,6 +125,7 @@ function pPulse(color, dur = 0.5) {
 
 function pSlash(color, count = 1, dur = 0.32) {
   const c = _fighterCenter();
+  if (_toCanvas('slash', { color, count, dur, x: c.x, y: c.y })) return;
   const n = _reduced ? 1 : count;
   for (let i = 0; i < n; i++) {
     const el = _take('cv-slash');
@@ -127,6 +141,7 @@ function pSlash(color, count = 1, dur = 0.32) {
 
 function pSpark(color, count = 6, x, y, dur = 0.36) {
   const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('spark', { color, count, dur, x: p.x, y: p.y })) return;
   const n = _reduced ? Math.min(count, 3) : count;
   for (let i = 0; i < n; i++) {
     const el = _take('cv-spark');
@@ -143,6 +158,7 @@ function pSpark(color, count = 6, x, y, dur = 0.36) {
 
 function pShadowBurst(color, dur = 0.55) {
   const c = _fighterCenter();
+  if (_toCanvas('shadowBurst', { color, dur, x: c.x, y: c.y })) return;
   const el = _take('cv-shadowburst');
   el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
   el.style.setProperty('--cv', color);
@@ -152,6 +168,7 @@ function pShadowBurst(color, dur = 0.55) {
 
 function pCoinBurst(color, x, y, dur = 0.7) {
   const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('coinBurst', { color, dur, x: p.x, y: p.y })) return;
   const n = _reduced ? 3 : 7;
   for (let i = 0; i < n; i++) {
     const el = _take('cv-coin');
@@ -169,6 +186,7 @@ function pCoinBurst(color, x, y, dur = 0.7) {
 
 function pBreakCrack(color, heavy = false, dur = 0.42) {
   const c = _fighterCenter();
+  if (_toCanvas('breakCrack', { color, heavy, dur, x: c.x, y: c.y })) return;
   const el = _take('cv-crack' + (heavy ? ' heavy' : ''));
   el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
   el.style.setProperty('--cv', color);
@@ -179,6 +197,7 @@ function pBreakCrack(color, heavy = false, dur = 0.42) {
 
 function pOdGlow(color, dur = 0.6) {
   const c = _fighterCenter();
+  if (_toCanvas('odGlow', { color, dur, x: c.x, y: c.y })) return;
   const el = _take('cv-odglow');
   el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
   el.style.setProperty('--cv', color);
@@ -188,6 +207,7 @@ function pOdGlow(color, dur = 0.6) {
 
 function pStreak(color, x, y, dur = 0.4) {
   const c = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('streak', { color, dur, x: c.x, y: c.y })) return;
   const n = _reduced ? 2 : 4;
   for (let i = 0; i < n; i++) {
     const el = _take('cv-streak');
@@ -202,6 +222,7 @@ function pStreak(color, x, y, dur = 0.4) {
 
 function pDrainPulse(color, dur = 0.55) {
   const c = _fighterCenter();
+  if (_toCanvas('drainPulse', { color, dur, x: c.x, y: c.y })) return;
   const el = _take('cv-drain');
   el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
   el.style.setProperty('--cv', color);
@@ -211,6 +232,7 @@ function pDrainPulse(color, dur = 0.55) {
 
 function pComboRing(color, dur = 0.5) {
   const c = _fighterCenter();
+  if (_toCanvas('comboRing', { color, dur, x: c.x, y: c.y })) return;
   const el = _take('cv-comboring');
   el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
   el.style.setProperty('--cv', color);
@@ -224,6 +246,7 @@ function pComboRing(color, dur = 0.5) {
 // รูปทรงพระจันทร์เสี้ยวทำให้ต่างจาก frost(FREEONI/GHOSTPING) / dark(THANABROS) / holy(VALKYRIZZ).
 function pMoonRing(color, variant) {
   const c = _fighterCenter();
+  if (_toCanvas('moonRing', { color, variant, x: c.x, y: c.y })) return;
   const peak = (variant === 'peak');
   const base = peak ? 0.95 : 0.7;
   const dur = _dur(base);
@@ -244,6 +267,7 @@ function pBossFlare(color, dur = 0.5) {
     cx = r.left + r.width / 2; cy = r.top + r.height / 2;
   }
   if (!cx) { const c = _fighterCenter(); cx = c.x; cy = c.y; }
+  if (_toCanvas('bossFlare', { color, dur, x: cx, y: cy })) return;
   const el = _take('cv-bossflare');
   el.style.left = cx + 'px'; el.style.top = cy + 'px';
   el.style.setProperty('--cv', color);
@@ -255,6 +279,7 @@ function pBossFlare(color, dur = 0.5) {
 // 1 element + glow flash สั้น ๆ; รูปทรงต่างจาก slash (ตรง) และ spark (จุดกระจาย).
 function pBolt(color, x, y, dur = 0.34) {
   const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('bolt', { color, dur, x: p.x, y: p.y })) return;
   const el = _take('cv-bolt');
   el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
   el.style.setProperty('--cv', color || '#9be7ff');
@@ -269,6 +294,7 @@ function pBolt(color, x, y, dur = 0.34) {
 // แกนเปลว 1 ตัว + embers ลอยขึ้นไม่กี่จุด → ต่างจาก shadowBurst (คลื่นมืดแผ่ออกแนวกลม).
 function pFireBurst(color, x, y, dur = 0.55) {
   const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('fireBurst', { color, dur, x: p.x, y: p.y })) return;
   const el = _take('cv-fireburst');
   el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
   el.style.setProperty('--cv', color || '#ff5511');
@@ -294,6 +320,7 @@ function pFireBurst(color, x, y, dur = 0.55) {
 // วงแกนสว่าง + ก้านแสง 8 ทิศ (conic-ish) → ความรู้สึก "divine/spotlight" ชัดเจน.
 function pHolyBurst(color, dur = 0.6) {
   const c = _fighterCenter();
+  if (_toCanvas('holyBurst', { color, dur, x: c.x, y: c.y })) return;
   const el = _take('cv-holyburst');
   el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
   el.style.setProperty('--cv', color || '#ffe9a8');
@@ -305,6 +332,7 @@ function pHolyBurst(color, dur = 0.6) {
 // GLITCH — แถบ scanline เลื่อน/สั่น (KILL-D01 / RSICK / DETAILED / FALLEN WECHAT / MAYA / RSICK).
 // 3 แถบแนวนอนเหลื่อมกัน — สื่อ "ข้อมูลรวน/ไซเบอร์" ต่างจากทุก primitive อื่น.
 function pGlitch(color, dur = 0.36) {
+  if (_toCanvas('glitch', { color, dur })) return;
   const el = _take('cv-glitch');
   el.style.setProperty('--cv', color || '#00ffee');
   el.style.animationDuration = _dur(dur) + 's';
@@ -488,7 +516,11 @@ function setActiveCard(id, rarity) {
   if (!VFX_MAP[id]) { clearCardAura(); return; }
   setCardAura(id, true);
 }
-function clearActive() { clearCardAura(); _lastFire = {}; }
+function clearActive() {
+  clearCardAura(); _lastFire = {};
+  // เคลียร์ particle ที่ค้างบน canvas layer ด้วย (จบรัน → ไม่ค้างข้ามรอบ)
+  try { if (typeof window !== 'undefined' && window.CanvasVFX) window.CanvasVFX.clearCanvasVfx(); } catch (e) {}
+}
 
 // ── TRIGGER (เรียกตอน mechanic ยิงจริง) ──────────────────────────────────────
 // แต่ละ arg ของ primitive ที่เป็นพิกัดจะถูกแทนด้วย ctx.x/ctx.y โดยอัตโนมัติสำหรับ
