@@ -177,7 +177,7 @@ Legend — **Cat** = primary power category (see §3). **VFX** = has `VFX_MAP` e
 | mi | MINORAGE | execute/thresh | HP-gated buffs (>70/>50/≤30) → RAGE RUSH | cs_minorous | break |
 | ex | EXECUSIONER | execute/thresh | HP<30% → EXECUTION MODE 5s (DMG+60%, CD 18s) | cs_executioner | break |
 | wh | WHIZPER | AK47/combo | BREAK → GHOST PROTOCOL 4s (combo pause, CD 10s); AK47 dup +35% | cs_whisper, cs_whizperGhostProtocol, cs_ak47DuplicateChance | ak47 |
-| gl | GOBLIN WEEBER | combo gain | click → Combo +2; full(47) → WEEB FOCUS 5s | cs_goblinLeader | break |
+| gl | GOBLIN WEEBER | combo gain | click → Combo +2; full(47) → WEEB FOCUS 5s | cs_goblinLeader | combo |
 | ar | AMOG RA | risk/reward | Combo hits 20 → 70% buff / 30% SUS (CD 8s) | cs_amogRa | break |
 | mp | MAYA PROBLEM | boss dmg | Boss DMG +30%, Crit +10%; BREAK → +40%/+25% 6s | cs_bossDmgBonus, cs_critChanceBonus, cs_mayaProblem | break, boss |
 | ed | WEEBVIL DUDE | risk/reward | −6s start; first BREAK → OTAKU AWAKENING (rest of round) | cs_timePenalty, cs_weebvilDude | break |
@@ -193,7 +193,7 @@ Legend — **Cat** = primary power category (see §3). **VFX** = has `VFX_MAP` e
 | eg | EDGEGA | OD/special | OD Lv1 permanent; every 15s → Lv2 Burst 5s | locked at Lv1 | cs_eddga | od |
 | os | NOSIRIS | break/special | BREAK → Soul Stack (≤5); 5 → JUDGMENT 8s; death-deny once | once/round | cs_osiris | break |
 | mt | MISSSTRESS | OD/coin | OD click → +12 zeny (ICD 0.3s) & OD +0.35s (cap +4s) & Crit +10% | OD-only, capped | cs_mistress | od |
-| gb | GOLDEN BRUH | coin/special | click → Combo+1, Zeny×3; full(47) → GOLD RUSH 12s ×9 | **no OD charge**, CD 14s | cs_goldenbug | break |
+| gb | GOLDEN BRUH | coin/special | click → Combo+1, Zeny×3; full(47) → GOLD RUSH 12s ×9 | **no OD charge**, CD 14s | cs_goldenbug | combo |
 | oh | COKE ZERO | OD scaling | OD charge ×4; OD-end DMG +15% stack (cap +90%) | start −5s | cs_orchero | break |
 | ld | LORD OF DEBT | risk/reward | 10s → DEBT CONTRACT (random forbidden power 8s); BREAK clears debt | stacking decay pressure | cs_lordofdeath | break, hit |
 | kn | CATULLANUX | AK47 | AK47 DMG×4; AK47/BREAK → combo lock 5s, BREAK +20% | **enemy HP +50%** | cs_ktullanux, cs_breakPower, cs_enemyHpReduce | break |
