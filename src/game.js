@@ -1203,6 +1203,7 @@ function showMainMenu() {
   playBGM();
   // Startup cloud restore — runs once, background, non-blocking
   setTimeout(() => startupCloudRestore(), 300);
+  window.dispatchEvent(new CustomEvent('noctis:main-menu-shown'));
 }
 
 function updateShopCoinUI() {
@@ -7037,6 +7038,7 @@ function endGame(opts = {}) {
     // Show pending badge immediately if previous save was not flushed yet
     _acsShowPendingIfNeeded();
     setTimeout(() => { autoCloudSave(); }, 200);
+    window.dispatchEvent(new CustomEvent('noctis:first-run-complete'));
   }
 
   // score >= 10k → ลุ้นการ์ด
