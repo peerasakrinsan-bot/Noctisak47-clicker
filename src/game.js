@@ -302,6 +302,10 @@ function applyFlashEffectSetting() {
   const fe = gameSettings.flashEffect || 'low';
   document.body.classList.toggle('flash-low', fe === 'low');
   document.body.classList.toggle('flash-off', fe === 'off');
+  // ── เชื่อม flashEffect → canvas VFX intensity ────────────────────────────
+  if (typeof window !== 'undefined' && window.CanvasVFX && typeof window.CanvasVFX.setVFXLevel === 'function') {
+    window.CanvasVFX.setVFXLevel(fe);
+  }
 }
 
 function setFlashEffect(value) {
@@ -8461,7 +8465,8 @@ const _TOAST_CONFIG = {
   pending:  { cls: 'st-pending', icon: '⏳', label: 'Sync Pending'           },
   offline:  { cls: 'st-offline', icon: '⚠️', label: 'Offline — Local Saved'  },
   failed:   { cls: 'st-failed',  icon: '❌', label: 'Cloud Failed'           },
-  localonly:{ cls: 'st-local',   icon: '💾', label: 'Local Save Active'      }
+  localonly:{ cls: 'st-local',   icon: '💾', label: 'Local Save Active'      },
+  vfxlow:   { cls: 'st-offline', icon: '⚡', label: 'VFX Auto-Reduced'       },
 };
 
 let _toastEl        = null;
@@ -9144,6 +9149,18 @@ window.addEventListener('beforeunload', () => {
 window.addEventListener('online', () => {
   DEV_LOG('[online] reconnected — flushing pending sync');
   flushPendingCloudSync();
+});
+
+// ── VFX auto-downscale: รับ event จาก canvasVfx เมื่อ FPS ตำ ──────────────
+// อัปเดต gameSettings + บันทึก + แสดง toast ครั้งเดียว
+window.addEventListener('noctis:vfx-auto-downscale', function(e) {
+  const newLevel = (e && e.detail && e.detail.level) || 'low';
+  if (gameSettings.flashEffect === newLevel) return;
+  gameSettings.flashEffect = newLevel;
+  applyFlashEffectSetting();
+  syncSettingsUI();
+  persistSettings();
+  showSaveToast('vfxlow');
 });
 
 // ══ END CLOUD SAVE ENGINE v2 ══

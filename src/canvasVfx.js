@@ -38,6 +38,13 @@ try {
   else if (_mq.addListener) _mq.addListener(_on);
 } catch (e) { _reduced = false; }
 
+// ── VFX intensity level (in-game Flash Effect: on=1.0, low=0.5, off=0.0) ────
+// ตั้งค่าโดย applyFlashEffectSetting() ใน game.js ผ่าน setVFXLevel() public API
+let _intensity      = 1.0;   // default: full
+let _autoDownscaled = false;  // set true ครั้งเดียวหลัง auto-reduce จาก FPS ต่ำ
+let _smoothFps      = 60;     // EMA FPS (อัปเดตเฉพาะช่วงมี particle ใน rAF)
+let _lowFpsStart    = 0;      // timestamp เมื่อ FPS เริ่มตำกว่า 30 ต่อเนื่อง
+
 // ── canvas / context state ───────────────────────────────────────────────────
 let _canvas = null, _ctx = null;
 let _cw = 0, _ch = 0;           // CSS-pixel size of the layer
@@ -157,6 +164,15 @@ function _mk(kind, x, y, life, color) {
 
 function _rmLife(base) { return _reduced ? Math.min(base, 0.2) : base; }
 
+// คำนวณจำนวน particle ตาม OS reduced-motion + in-game intensity
+// คงพฤติกรรม _reduced เดิมไว้ ต่อยอดด้วย intensity scalar
+function _nParts(n) {
+  n = n | 0;
+  if (_reduced) return Math.min(n, 3);
+  if (_intensity <= 0.5) return Math.max(1, Math.ceil(n * 0.55));
+  return n;
+}
+
 // resolve spawn origin → layer-local coords (หัก host offset)
 function _ox0(o) { return (o.x !== undefined && o.x !== null) ? (o.x - _ox) : _cw / 2; }
 function _oy0(o) { return (o.y !== undefined && o.y !== null) ? (o.y - _oy) : _ch * 0.42; }
@@ -170,8 +186,7 @@ const BUILD = {
   },
   // อนุภาคกระจายรอบทิศ
   spark(o) {
-    let n = (o.count || 6) | 0;
-    if (_reduced) n = Math.min(n, 3);
+    let n = _nParts(o.count || 6);
     const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.36);
     for (let i = 0; i < n; i++) {
       const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5;
@@ -196,7 +211,7 @@ const BUILD = {
   },
   // เหรียญพุ่งขึ้นโค้งตามแรงโน้มถ่วง
   coinBurst(o) {
-    let n = _reduced ? 3 : 7;
+    let n = _nParts(7);
     const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.7);
     for (let i = 0; i < n; i++) {
       const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.32;
@@ -217,7 +232,7 @@ const BUILD = {
   fireBurst(o) {
     const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.55), col = o.color || '#ff5511';
     const core = _mk('fire', x, y, life, col); core.size = 26; _push(core);
-    let n = _reduced ? 2 : 5;
+    let n = _nParts(5);
     for (let i = 0; i < n; i++) {
       const p = _mk('spark', x, y, life, col);
       p.vx = (Math.random() - 0.5) * 90; p.vy = -(120 + Math.random() * 130);
@@ -240,7 +255,7 @@ const BUILD = {
   // รอยร้าวแผ่ออกจากจุดศูนย์กลาง
   breakCrack(o) {
     const x = _ox0(o), y = _oy0(o), heavy = !!o.heavy;
-    let n = heavy ? 7 : 5; if (_reduced) n = Math.min(n, 3);
+    let n = _nParts(heavy ? 7 : 5);
     const life = _rmLife(o.dur || 0.42), col = o.color || '#ffffff';
     for (let i = 0; i < n; i++) {
       const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
@@ -252,7 +267,7 @@ const BUILD = {
   },
   // เส้นความเร็วแนวนอน
   streak(o) {
-    let n = _reduced ? 2 : 4;
+    let n = _nParts(4);
     const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.4);
     for (let i = 0; i < n; i++) {
       const p = _mk('streak', x, (y - 30 + i * 20), life, o.color || '#ffffff');
@@ -286,7 +301,7 @@ const BUILD = {
   comboRing(o) {
     const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.5), col = o.color || '#ffffff';
     const a = _mk('ring', x, y, life, col); a.size = 34; _push(a);
-    if (!_reduced) { const b = _mk('ring', x, y, life * 0.86, col); b.size = 22; b.data = 1; _push(b); }
+    if (!_reduced && _intensity > 0.4) { const b = _mk('ring', x, y, life * 0.86, col); b.size = 22; b.data = 1; _push(b); }
   },
   // พระจันทร์เสี้ยว + วงแหวนพัลส์
   moonRing(o) {
@@ -294,7 +309,7 @@ const BUILD = {
     const life = _rmLife(o.dur || (peak ? 0.95 : 0.7)), col = o.color || '#cfd8ff';
     const disc = _mk('moon', x, y, life, col); disc.size = peak ? 46 : 36; _push(disc);
     const r1 = _mk('ring', x, y, life, col); r1.size = peak ? 40 : 32; _push(r1);
-    if (!_reduced) { const r2 = _mk('ring', x, y, life * 0.85, col); r2.size = peak ? 26 : 20; r2.data = 1; _push(r2); }
+    if (!_reduced && _intensity > 0.4) { const r2 = _mk('ring', x, y, life * 0.85, col); r2.size = peak ? 26 : 20; r2.data = 1; _push(r2); }
   },
   // แสงศักดิ์สิทธิ์ก้านแสง (core + rays)
   holyBurst(o) {
@@ -303,7 +318,7 @@ const BUILD = {
   },
   // แถบ scanline กระตุก
   glitch(o) {
-    let n = _reduced ? 1 : 3;
+    let n = _nParts(3);
     const life = _rmLife(o.dur || 0.36), col = o.color || '#00ffee';
     for (let i = 0; i < n; i++) {
       const top = (0.18 + Math.random() * 0.64) * _ch;
@@ -316,10 +331,34 @@ const BUILD = {
   },
 };
 
+// ── PUBLIC: set intensity from in-game Flash Effect setting ──────────────────
+function setVFXLevel(level) {
+  if (level === 'off')      { _intensity = 0.0; }
+  else if (level === 'low') { _intensity = 0.5; _autoDownscaled = false; }
+  else                      { _intensity = 1.0; _autoDownscaled = false; }
+  _smoothFps   = 60;
+  _lowFpsStart = 0;
+}
+
+// ── auto-downscale เมื่อ FPS ตำกว่า 30 ต่อเนื่อง 3 วินาที ─────────────────
+function _autoDownscaleFps() {
+  _autoDownscaled = true;
+  _intensity   = Math.max(0.0, _intensity - 0.5);
+  _lowFpsStart = 0;
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('noctis:vfx-auto-downscale', {
+        detail: { level: _intensity <= 0.0 ? 'off' : 'low' }
+      }));
+    }
+  } catch(e) {}
+}
+
 // ── PUBLIC: spawn one primitive's particles ──────────────────────────────────
 function spawnCanvasVfx(type, options) {
   if (!_ensure()) return;            // unsupported / no host → no-op
   if (_hidden) return;               // แท็บถูกซ่อน → ไม่ปล่อยของ
+  if (_intensity <= 0.0) return;     // 'off' mode → ข้าม transient ทั้งหมด
   const b = BUILD[type];
   if (!b) return;                    // unknown primitive → safe no-op
   try { b(options || {}); } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
@@ -369,6 +408,18 @@ function _tick(ts) {
   if (_hidden || !_ctx) return;
   const dt = _last ? Math.min((ts - _last) / 1000, MAX_DT) : 0.016;
   _last = ts;
+
+  // ── FPS auto-downscale: ตรวจ FPS เฉลี่ยผ่าน EMA; ถ้าตำกว่า 30 ติดต่อ 3 วิ → ลด level อัตโนมัติ
+  if (dt > 0 && !_autoDownscaled && _intensity > 0.4) {
+    _smoothFps = _smoothFps * 0.92 + (1 / dt) * 0.08;
+    if (_smoothFps < 30) {
+      if (!_lowFpsStart) _lowFpsStart = ts;
+      else if (ts - _lowFpsStart > 3000) _autoDownscaleFps();
+    } else {
+      _lowFpsStart = 0;
+    }
+  }
+
   _ctx.clearRect(0, 0, _cw, _ch);
   let n = 0;
   for (let i = 0; i < _parts.length; i++) {
@@ -587,7 +638,9 @@ const CanvasVFX = {
   clearCanvasVfx,
   resizeCanvasVfx,
   supported,
+  setVFXLevel,                        // ← รับ 'on'|'low'|'off' จาก applyFlashEffectSetting
   reducedMotion: () => _reduced,
+  vfxIntensity:  () => _intensity,    // debug / audit
   // debug-only introspection (ไม่ใช่ส่วนหนึ่งของ logic เกม)
   _count: () => _parts.length,
   _running: () => !!_raf,
