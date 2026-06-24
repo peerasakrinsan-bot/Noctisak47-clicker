@@ -21,6 +21,10 @@ import './game.js';
 // เป็น layer ภาพล้วน ไม่แตะ logic การ์ด/บาลานซ์.
 import './cardVfx.js';
 
+// ── SOFT PWA INSTALL PROMPT (normal flow only) ─────────────────────────────
+// Listens to menu/result lifecycle events and manages browser/iOS install UX.
+import './installPrompt.js';
+
 // ── BOSS LOOP HERO MODE (โหมดแยกอิสระ) ──────────────────────────────────────
 // โหลดหลัง game.js เพื่อให้ window bridge ของเกมหลัก (startGame / showMainMenu /
 // stopBGM) พร้อมใช้งานก่อน. โหมดนี้ผูกเข้ากับ flow ผ่านปุ่ม PLAY → Mode Select.
