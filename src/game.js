@@ -2880,10 +2880,10 @@ const CARD_POOL = [
 
   // ── ELITE ใหม่ ──
   { id:'mi',   name:'MINORAGE CARD',      img:'cards/minorage.png',    rarity:'elite',
-    effect:'>70% HP: DMG <strong>+40%</strong> + Combo ไม่ลด<br>>50% HP: คลิกมีโอกาส <strong>20%</strong> ได้ Rage Stack (+4%/stack)<br>≤30% HP: DMG <strong>+50%</strong><br><br>ผ่าน 70/50/30 เร็วพอ: <strong>RAGE RUSH</strong> 4s<br>Combo <strong>+2/คลิก</strong> + Crit <strong>+25%</strong>', tradeoff:null,
-    shortDescription:'HP สูง บุกหนัก — ผ่านแต่ละเฟสเร็วพอ ปลด RAGE RUSH',
-    fullDescription:'[HP > 70%]\nDMG +40% + Combo ไม่ลด\n\n[HP > 50%]\nคลิกมีโอกาส 20% ได้ Rage Stack (+4%/stack สูงสุด 5)\n\n[HP ≤ 30%]\nDMG +50%\n\n[RAGE RUSH]\nผ่าน 3 เฟสเร็วพอ — เปิด 4 วิ\n• Combo +2 ต่อคลิก\n• Crit +25%',
-    balanceNote:'REBALANCE - ปรับให้มีเพดานความแรงและลดจุดเสี่ยง abuse',
+    effect:'ทุก <strong>18</strong> คลิก: +1 Ore Crack (สูงสุด 3)<br>Ore Crack: DMG <strong>+8%</strong>/stack<br>เริ่ม BREAK: ใช้ Ore Crack หมด → BREAK DMG <strong>+20%</strong>/stack<br>ใช้ครบ 3: <strong>RAGE RUSH</strong> 4s — Combo <strong>+2/คลิก</strong> • Crit <strong>+25%</strong> • DMG <strong>+25%</strong><br>HP ≤30%: เก็บ Ore Crack เร็วขึ้น (12 คลิก)', tradeoff:null,
+    shortDescription:'ขุด Ore Crack ทุก 18 คลิก (สูงสุด 3) แล้วระเบิดใส่ BREAK\nDMG +8%/stack • BREAK DMG +20%/stack • ครบ 3 = RAGE RUSH 4s',
+    fullDescription:'[ORE CRACK]\nทุก 18 คลิก ได้ Ore Crack (สูงสุด 3)\nแต่ละ stack: DMG +8%\n\n[เริ่ม BREAK]\nใช้ Ore Crack ทั้งหมด\nแต่ละ stack ที่ใช้: BREAK DMG +20% (เฉพาะ BREAK รอบนั้น)\n\n[RAGE RUSH] — ใช้ครบ 3 stack\nเปิด 4 วิ\n• Combo +2 ต่อคลิก\n• Crit +25%\n• DMG +25%\n\n[HP ≤ 30%]\nเก็บ Ore Crack เร็วขึ้น (ทุก 12 คลิก)',
+    balanceNote:'REWORK - ORE RAGE: สะสม Ore Crack จากการคลิกแล้วระเบิดตอน BREAK แทนบัฟ HP-threshold ที่ติดเกือบถาวร',
     apply(s){ s.cs_minorous = true; }
   },
   { id:'ex',name:'EXECUSIONER CARD',   img:'cards/execusioner.png', rarity:'elite',
@@ -4367,12 +4367,14 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_zenorc_active) d *= (1 + cs.cs_zenorc_active);
   if(cs.cs_moonlightflower) d *= 2;
   if(cs.cs_stormyKnight && godLevel > 0) d *= 1.30;
-  // Minorous: +35% when HP > 60%
+  // MINORAGE — ORE RAGE
   if(cs.cs_minorous) {
-    const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
-    if(ratio > 0.70) d *= 1.40;
-    // Rage Stack bonus: +4% per stack (gained at HP > 50%)
-    if(cs._minorageRageStacks) d *= (1 + cs._minorageRageStacks * 0.04);
+    // Ore Crack: DMG +8%/stack (passive ระหว่างที่ยังถืออยู่ — สูงสุด 3 stack = +24%)
+    if(cs.cs_minorageOreStacks) d *= (1 + cs.cs_minorageOreStacks * 0.08);
+    // ใช้ Ore Crack ตอนเริ่ม BREAK: BREAK DMG +20%/stack (เฉพาะหน้าต่าง BREAK รอบนั้น)
+    if(cs._minorageBreakDmgBonus && typeof pressureIsBreak === 'function' && pressureIsBreak()) d *= (1 + cs._minorageBreakDmgBonus);
+    // RAGE RUSH: DMG +25%
+    if(cs.cs_minorageRageRushUntil && performance.now() < cs.cs_minorageRageRushUntil) d *= 1.25;
   }
   // Executioner: +50% when HP < 25%
   if(cs._executionModeEndTime && performance.now() < cs._executionModeEndTime) d *= 1.60;
@@ -4548,22 +4550,16 @@ function csOnClick(isGod) {
     cs._weebFocusEndTime = performance.now() + 5000;
     if(!_wfWasActive) _cardFx('combo');
   }
-  if(cs.cs_minorous) {
-    const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
-    const prev = cs._minorageLastRatio ?? 1;
-    if(prev > 0.70 && ratio <= 0.70) cs._minorageCross70 = performance.now();
-    if(prev > 0.50 && ratio <= 0.50) cs._minorageCross50 = performance.now();
-    if(prev > 0.30 && ratio <= 0.30) {
-      const t0 = cs._minorageCross70 || 0, t1 = cs._minorageCross50 || 0, now = performance.now();
-      if(t0 && t1 && now - t0 <= 8000 && now - t1 <= 5000) {
-        cs._rageRushEndTime = now + 4000;
-        showBigSplash('RAGE RUSH', 'CRIT +25% • COMBO SURGE 4s', '#ff2233', false);
-      }
-    }
-    cs._minorageLastRatio = ratio;
-    // HP > 50%: 20% chance per click to gain Rage Stack (+4% DMG each, max 5)
-    if(ratio > 0.50 && Math.random() < 0.20) {
-      cs._minorageRageStacks = Math.min(5, (cs._minorageRageStacks || 0) + 1);
+  // MINORAGE — ORE RAGE: สะสม Ore Crack จากการคลิก (สูงสุด 3)
+  // HP ≤30% เก็บเร็วขึ้น (ทุก 12 คลิก แทน 18) — เปลี่ยนแค่ความเร็วการเก็บ ไม่ใช่ดาเมจตรง
+  if(cs.cs_minorous && (cs.cs_minorageOreStacks || 0) < 3) {
+    const _miRatio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
+    const _miInterval = (_miRatio <= 0.30) ? 12 : 18;
+    cs.cs_minorageOreClicks = (cs.cs_minorageOreClicks || 0) + 1;
+    if(cs.cs_minorageOreClicks >= _miInterval) {
+      cs.cs_minorageOreClicks = 0;
+      cs.cs_minorageOreStacks = (cs.cs_minorageOreStacks || 0) + 1;
+      _cardFx('oregain'); // mining spark (cosmetic)
     }
   }
   // MARVELC: low-time dmg bonus (<15s)
@@ -4693,13 +4689,8 @@ function csOnKO() {
   if(cs.cs_drakeIgnoreThreshold) {
     cs._drakeTriggered = new Set();
   }
-  // MINORAGE: reset Rage Stacks on each KO — prevents permanent +20% DMG inflation at 250+ KO
-  if(cs.cs_minorous) {
-    cs._minorageRageStacks = 0;
-    cs._minorageCross70 = 0;
-    cs._minorageCross50 = 0;
-    cs._minorageLastRatio = 1;
-  }
+  // MINORAGE — ORE RAGE: Ore Crack ไม่รีเซ็ตตอน KO (สะสมข้ามศัตรูภายในรอบ
+  // แล้วระเบิดตอน BREAK) — เคลียร์เฉพาะตอนเริ่ม/จบรอบผ่าน _csState ใหม่
   // Nightmare: +2% OD charge per KO
   if(cs.cs_koOdCharge && !cs.cs_baphomet && !cs.cs_goldenbug) {
     const cur = parseFloat(_el.godFill.style.width)||0;
@@ -4797,11 +4788,26 @@ function csOnBreakStart() {
     PRESSURE.breakDuration += cs._lod_breakWinBonus;
     PRESSURE.breakEndsAt += cs._lod_breakWinBonus;
   }
+  // MINORAGE — ORE RAGE: ใช้ Ore Crack ทั้งหมดตอนเริ่ม BREAK (ครั้งเดียวต่อ BREAK)
+  if(cs.cs_minorous) {
+    const _miStacks = cs.cs_minorageOreStacks || 0;
+    cs._minorageBreakDmgBonus = _miStacks * 0.20; // BREAK DMG +20%/stack เฉพาะ BREAK รอบนี้
+    cs.cs_minorageOreStacks = 0;
+    cs.cs_minorageOreClicks = 0;
+    if(_miStacks > 0) _cardFx('break'); // rock crack burst (cosmetic)
+    if(_miStacks >= 3) {
+      cs.cs_minorageRageRushUntil = performance.now() + 4000; // RAGE RUSH 4 วิ
+      _cardFx('rage'); // rage pulse + sparks (cosmetic)
+      showBigSplash('RAGE RUSH', 'COMBO +2 • CRIT +25% • DMG +25%', '#ff3322', false);
+    }
+  }
 }
 
 function csOnBreakEnd() {
   if(!window._csState) return;
   const cs = window._csState;
+  // MINORAGE — ORE RAGE: เคลียร์โบนัส BREAK DMG เมื่อ BREAK จบ (ใช้ได้เฉพาะหน้าต่าง BREAK)
+  if(cs.cs_minorous) cs._minorageBreakDmgBonus = 0;
   // DETAILED: reset Analysis stacks after BREAK ends
   if(cs.cs_detailed) {
     cs._analysisStacks = 0;
@@ -7288,7 +7294,7 @@ function processHit(e, now) {
   // คอมโบ: WP hit ไม่รีเซ็ตคอมโบ (นับเป็น "ตีทัน" เสมอ)
   let _comboInc = (window._csState && window._csState.cs_goblinLeader) ? 2 : 1;
   if(window._csState && window._csState.cs_taoFunka && window._csState._taoFunkFeverEndTime && performance.now() < window._csState._taoFunkFeverEndTime) _comboInc += 1;
-  if(window._csState && window._csState._rageRushEndTime && performance.now() < window._csState._rageRushEndTime) _comboInc += 2;
+  if(window._csState && window._csState.cs_minorageRageRushUntil && performance.now() < window._csState.cs_minorageRageRushUntil) _comboInc += 2;
   // LORD OF DEBT: MASSACRE state — +1 combo per hit
   if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_comboGainBonus) _comboInc += window._csState._lod_comboGainBonus;
   // FABRE/STAINER: extend combo window; STING tradeoff: shorten combo window
@@ -7305,7 +7311,6 @@ function processHit(e, now) {
   const _suppressReset = window._csState && (
     (window._csState._whizperComboPauseUntil && performance.now() < window._csState._whizperComboPauseUntil) ||
     window._csState._ktullanuxComboProtect ||
-    (window._csState.cs_minorous && ((isBoss ? (bossHP/bossMaxHP) : (hp/maxHP)) > 0.70)) ||
     (window._csState._freeModeEndTime && performance.now() < window._csState._freeModeEndTime) ||
     (window._csState._weebFocusEndTime && performance.now() < window._csState._weebFocusEndTime) ||
     (window._csState._drakeComboLockEndTime && performance.now() < window._csState._drakeComboLockEndTime) ||
@@ -7462,8 +7467,8 @@ function processHit(e, now) {
   let _critChance = (_sc.critChance||0);
   if(window._csState) {
     if(window._csState.cs_critChanceBonus) _critChance += window._csState.cs_critChanceBonus;
-    if(window._csState.cs_minorous && ((isBoss ? (bossHP/bossMaxHP) : (hp/maxHP)) <= 0.30)) dmg = Math.round(dmg * 1.5);
-    if(window._csState._rageRushEndTime && performance.now() < window._csState._rageRushEndTime) _critChance += 0.25;
+    // MINORAGE — ORE RAGE: RAGE RUSH crit +25%
+    if(window._csState.cs_minorageRageRushUntil && performance.now() < window._csState.cs_minorageRageRushUntil) _critChance += 0.25;
     if(window._csState._weebFocusEndTime && performance.now() < window._csState._weebFocusEndTime) _critChance += 0.20;
     if(window._csState.cs_jakkCrit && godLevel>0) _critChance += 0.20;
     // JACKED: +8% crit during BREAK (even outside OD)

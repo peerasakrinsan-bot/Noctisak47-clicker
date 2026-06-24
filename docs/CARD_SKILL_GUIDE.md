@@ -174,7 +174,7 @@ Legend — **Cat** = primary power category (see §3). **VFX** = has `VFX_MAP` e
 | sk | STORMYNITE | OD/window | OD → STORM CHARGE; 12 clicks → +1s (cap +3s) + burst | cs_stormyKnight | od |
 | dl | DORK LORD | passive scaling | 15s → NIGHT STACK (≤5): DMG+6%/stack / timer +3%, KO zeny −15% | cs_dorkLord | break |
 | mf | MOONLIGHT FEVER | special | DMG/Zeny/OD ×2, AK47 3+×2, BREAK+0.5s / **time halved** | cs_moonlightflower, cs_breakDuration | od, break, ak47 |
-| mi | MINORAGE | execute/thresh | HP-gated buffs (>70/>50/≤30) → RAGE RUSH | cs_minorous | break |
+| mi | MINORAGE | build/burst | ORE RAGE: 18 clicks → +1 Ore Crack (max 3, DMG+8%/stack); BREAK consumes all → BREAK DMG+20%/stack; 3 used → RAGE RUSH 4s (Combo+2/click, Crit+25%, DMG+25%); HP≤30% gains every 12 clicks | cs_minorous | oregain, break, rage |
 | ex | EXECUSIONER | execute/thresh | HP<30% → EXECUTION MODE 5s (DMG+60%, CD 18s) | cs_executioner | break |
 | wh | WHIZPER | AK47/combo | BREAK → GHOST PROTOCOL 4s (combo pause, CD 10s); AK47 dup +35% | cs_whisper, cs_whizperGhostProtocol, cs_ak47DuplicateChance | ak47 |
 | gl | GOBLIN WEEBER | combo gain | click → Combo +2; full(47) → WEEB FOCUS 5s | cs_goblinLeader | combo |

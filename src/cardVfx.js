@@ -371,8 +371,13 @@ const VFX_MAP = {
   dl:  { rarity: 'elite', aura: ['shadow', '#7744aa'], on: { break: ['breakCrack', '#9a66cc'] } },
   // MOONLIGHT FEVER — พระจันทร์เสี้ยวเงิน + วงแหวนพัลส์; ยิงตามบูสต์จริง (OD ×2 = peak, BREAK, AK47)
   mf:  { rarity: 'elite', aura: ['moon',  '#cfd8ff'],  on: { od: ['moonRing', '#dbe4ff', 'peak'], break: ['moonRing', '#cfd8ff'], ak47: ['moonRing', '#bcd0ff'] } },
-  // MINORAGE — ขุดแร่/jackpot: วาบทอง + สะเก็ดเหมือง
-  mi:  { rarity: 'elite', aura: ['glow',  '#bb8844'],  on: { break: [['flash', '#3a2a10'], ['spark', '#d8a14e', 7]] } },
+  // MINORAGE — ORE RAGE (ขุดแร่/เกรี้ยว): aura เรืองส้มจาง ๆ; เก็บแร่ = สะเก็ดเหมือง,
+  // ใช้แร่ตอน BREAK = หินแตก, ครบ 3 (RAGE RUSH) = พัลส์แดง-ส้ม + ไฟ + สะเก็ดแรงขึ้น
+  mi:  { rarity: 'elite', aura: ['glow', '#cc7733'], on: {
+           oregain: ['spark', '#ffb733', 5],
+           break:   [['breakCrack', '#d8a14e', true], ['spark', '#ffaa44', 6]],
+           rage:    [['pulse', '#ff3322'], ['fireBurst', '#ff5522'], ['spark', '#ff8844', 7]],
+         } },
   // EXECUSIONER — ฟันขวาน: รอยฟัน + รอยร้าวหนัก (chop impact)
   ex:  { rarity: 'elite', aura: ['shadow', '#cc3333'], on: { break: [['slash', '#ff5544', 1], ['breakCrack', '#ff7755', true]] } },
   // WHIZPER — GHOST PROTOCOL: เส้นความเร็วที่จุด AK47 + เงาจาง (ghost fade)
