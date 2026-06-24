@@ -31,11 +31,12 @@ There are no automated browser tests or linters. CI runs `npm run card-audit && 
 ```
 index.html              # HTML shell; loads src/styles.css and src/main.js
 src/
-  main.js               # ES module entry point; imports game.js → cardVfx.js → bossLoopHero.js
-  game.js               # All core game logic (~10,385 lines) — Stage 2A verbatim lift
+  main.js               # ES module entry point; imports game.js → cardVfx.js → installPrompt.js → bossLoopHero.js
+  game.js               # All core game logic (~10,387 lines) — Stage 2A verbatim lift
   bossLoopHero.js       # Boss Loop Hero / Loop RPG mode (~3,656 lines) — independent module
-  cardVfx.js            # Elite/Mythic card VFX layer (~392 lines) — cosmetic, normal mode only
-  styles.css            # All game styles (~4,617 lines)
+  cardVfx.js            # Elite/Mythic card VFX layer (~409 lines) — cosmetic, normal mode only
+  installPrompt.js      # Soft PWA install prompt — isolated from gameplay, no game logic
+  styles.css            # All game styles (~4,766 lines)
 public/
   sw.js                 # Service Worker (copied verbatim to dist/)
   manifest.json         # PWA manifest
@@ -46,6 +47,8 @@ scripts/
   smoke-blh.mjs         # Headless smoke test for mode-select + BLH wiring (Node only)
   card-audit.mjs        # Static CARD_POOL integrity audit (npm run card-audit)
   card-vfx-audit.mjs    # Elite/Mythic VFX layer integrity audit (npm run card-vfx-audit)
+docs/
+  CARD_SKILL_GUIDE.md   # Reference guide for all 90 normal-mode cards (power budget, cs_* flags, design notes)
 vite.config.js          # base: './', outDir: 'dist/', minify: false (Stage 2A)
 .github/workflows/
   smoke.yml             # CI: card-audit + build + smoke on every push / PR
@@ -106,22 +109,22 @@ The **card VFX audit** (`npm run card-vfx-audit`, not yet wired into CI) guards 
 |------|-------------|
 | `SHOP_DEF` (line 56) | 7 shop items (OCA, RNGESUS, DE-SO-LATER, METH SHARD, BUFF STICK, TIME SKIP CORE, STONKS HAND), each with 5 upgrade levels |
 | `GOD_LEVELS` (line 1143) | 4 entries (index 0 = idle; 1–3 = active tiers): NOCTIS OVERDRIVE (5× dmg, 10 s), OVERDRIVE BURST (8× dmg, 6 s), ANNIHILATION MODE (12× dmg, 4 s) |
-| `BOSS_SKINS` (line 1397) | 10 purchasable boss skins |
-| `ARENA_SKINS` (line 1633) | 3 purchasable arena backgrounds |
-| `CARD_POOL` (line 2396) | 90-card definitions across 4 rarities |
+| `BOSS_SKINS` (line 1398) | 10 purchasable boss skins |
+| `ARENA_SKINS` (line 1634) | 3 purchasable arena backgrounds |
+| `CARD_POOL` (line 2397) | 90-card definitions across 4 rarities |
 | Sound system | Web Audio API (`AudioContext`) for SFX; `<audio>` elements for BGM (`fight1-4.mp3`) |
 | `save` object | All player state — coins, cards, items, skins, arenas — persisted to `localStorage` and synced to cloud (Supabase) |
 | Hit/damage loop | Tap zones, weak-point detection, crit/overdrive multipliers, card bonuses |
 | Card system | 90 cards across 4 rarities. Mastery tracked via `save.cardRuns` (run count per card). |
 | Particle system | Object-pooled particles, rings, and break impacts — do not increase per-hit particle counts |
-| PRESSURE/BREAK (line 5963) | Rage-meter survival system: buildup → BREAK target mini-game → rewards/fail-rage |
-| AK47 system (line ~1808) | Sequential 5-round weak-point chain with safe-spawn layout algorithm (`wpRound`/`wpCollected` state) |
+| PRESSURE/BREAK (line 5964) | Rage-meter survival system: buildup → BREAK target mini-game → rewards/fail-rage |
+| AK47 system (line 1809) | Sequential 5-round weak-point chain with safe-spawn layout algorithm (`wpRound`/`wpCollected` state) |
 | Daily reward system | 7-day streak with 06:00 rollover; state in `save.dailyQuest` |
 | Weekly challenge | 3 progressive tiers reset every Monday 06:00; state in `save.weeklyChallenge` |
 | Supabase cloud save (line 406) | Cloud save URL and anon key; upsert/download against `cloud_saves` table |
-| Card mastery (line 10261) | `CM_TIER` constants, `cmRecordRun`, `cmShowEvolutionReveal` |
+| Card mastery (line 10263) | `CM_TIER` constants, `cmRecordRun` (line 10283), `cmShowEvolutionReveal` (line 10336) |
 | Card VFX hooks | `CardVFX.setActiveCard` / `clearActive` / `trigger` calls fired from existing mechanic hooks (BREAK, AK47, OD, etc.) — see `src/cardVfx.js` |
-| Window bridge (line 10359) | `Object.assign(window, {...})` — exposes game functions for inline `onclick` in index.html |
+| Window bridge (line 10361) | `Object.assign(window, {...})` — exposes game functions for inline `onclick` in index.html |
 
 ### Loop RPG Mode (`src/bossLoopHero.js`)
 
@@ -159,7 +162,21 @@ An **independent** auto-battle mode (user-facing name: **LOOP RPG MODE**; intern
 
 **Deferred to follow-up:** none — the original Boss Loop Mode spec backlog is complete.
 
-`src/main.js` imports in order: `game.js` → `cardVfx.js` → `bossLoopHero.js`. `cardVfx.js` loads after `game.js` so `window.CardVFX` exists before the game's hooks call it; `bossLoopHero.js` loads last so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
+`src/main.js` imports in order: `game.js` → `cardVfx.js` → `installPrompt.js` → `bossLoopHero.js`. `cardVfx.js` loads after `game.js` so `window.CardVFX` exists before the game's hooks call it; `installPrompt.js` is self-contained (no game dependencies) but loads after `cardVfx.js` to match file order; `bossLoopHero.js` loads last so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
+
+### PWA Install Prompt (`src/installPrompt.js`)
+
+A small, **self-contained** module that shows a dismissible install-to-home-screen prompt at natural pauses in gameplay. It is completely isolated from game logic and does not read or write `save` or any game state.
+
+- **Triggers**: listens for two custom window events dispatched by `game.js`:
+  - `noctis:main-menu-shown` (dispatched at `game.js:1206`) — shown on first visit to the main menu
+  - `noctis:first-run-complete` (dispatched at `game.js:7041`) — shown after the first completed run
+- **Platform detection**: separate flows for Android/Chrome (`beforeinstallprompt` API) and iOS (manual "Add to Home Screen" guidance)
+- **Cooldown**: 7 days after dismissal on Android, 14 days on iOS; a per-session `sessionStorage` guard prevents re-showing after in-session reloads (version-guard redirect, SW update)
+- **DOM**: appends `#installPromptOverlay` to `document.body` lazily on first show — never inside `#gameRoot`
+- **Global**: exposes `window.NoctisInstallPrompt` (`{ maybeShow, isStandalone, keys }`) for debugging
+- **localStorage keys**: `installPromptSeenMain`, `installPromptSeenFirstRun`, `installPromptLastDismissedAt`, `installPromptInstalled`
+- **sessionStorage keys**: `installPromptSessionShown`
 
 ### Elite/Mythic Card VFX (`src/cardVfx.js`)
 
@@ -201,9 +218,9 @@ All screens are children of `#gameRoot` (position: fixed, 100vw/100vh):
 
 When making any change that players will receive, update the version string in **three places** to bust the Service Worker cache:
 
-1. `index.html` (~line 19): `window.NOCTISAK47_APP_VERSION = '2026.06.24.2'`
-2. `index.html` manifest link: `<link rel="manifest" href="/manifest.json?v=2026.06.24.2">`
-3. `public/sw.js` (~line 2): `const APP_VERSION = '2026.06.24.2'`
+1. `index.html` (~line 19): `window.NOCTISAK47_APP_VERSION = '2026.06.24.6'`
+2. `index.html` manifest link: `<link rel="manifest" href="/manifest.json?v=2026.06.24.6">`
+3. `public/sw.js` (~line 2): `const APP_VERSION = '2026.06.24.6'`
 
 Version format: `YYYY.MM.DD.n` (n = daily increment, starting at 1).
 
@@ -220,6 +237,16 @@ Version format: `YYYY.MM.DD.n` (n = daily increment, starting at 1).
 | `noctisak47_app_version` | Cached version string for update detection |
 | `noctisak47_version_reload_done` | Flag preventing reload loops on version change |
 | `noctisak47_blh` | Boss Loop Hero mode save (BLH economy + progress, isolated) |
+| `installPromptSeenMain` | Flag: main-menu one-shot prompt has been shown |
+| `installPromptSeenFirstRun` | Flag: first-run-complete one-shot prompt has been shown |
+| `installPromptLastDismissedAt` | Timestamp (ms) of last prompt dismissal — drives cooldown |
+| `installPromptInstalled` | Flag: user accepted the install prompt |
+
+**sessionStorage** (cleared on tab close / non-reload navigation):
+
+| Key | Purpose |
+|-----|---------|
+| `installPromptSessionShown` | Per-session guard — prevents re-showing after in-session SW reload |
 
 Schema changes to the save object require a migration guard on load to avoid wiping existing saves. The key `noctisak47_v3` already implies two prior schema migrations.
 
@@ -246,7 +273,7 @@ save.updatedAt / deviceId / lastRunId   metadata for cloud sync conflict resolut
 
 ## Card Mastery System
 
-Mastery is tracked via `save.cardRuns[cardId]` (integer run count, incremented by `cmRecordRun` at end of each run, `game.js:10250`).
+Mastery is tracked via `save.cardRuns[cardId]` (integer run count, incremented by `cmRecordRun` at end of each run, `game.js:10283`).
 
 | Tier | Constant | Threshold | Visual |
 |------|----------|-----------|--------|
@@ -254,7 +281,7 @@ Mastery is tracked via `save.cardRuns[cardId]` (integer run count, incremented b
 | Glossy | `CM_TIER.GLOSSY` | ≥ 10 runs | `.cm-glossy-wrap` CSS class |
 | Prismatic | `CM_TIER.PRISMATIC` | ≥ 30 runs | `.cm-prismatic-wrap` CSS class |
 
-`cmShowEvolutionReveal()` (`game.js:10303`) fires a toast overlay when a card evolves tier at the end of a run.
+`CM_TIER` constants defined at `game.js:10263`. `cmShowEvolutionReveal()` (`game.js:10336`) fires a toast overlay when a card evolves tier at the end of a run.
 
 ## Shop Items (`SHOP_DEF`)
 
@@ -322,16 +349,16 @@ Card IDs use a short 2-letter abbreviation (e.g. `po`, `lu`). A legacy `_MIGRATE
 
 ## PRESSURE / BREAK System
 
-Rage-meter mini-game that activates during combat (`PRESSURE` object, `game.js:5946`):
+Rage-meter mini-game that activates during combat (`PRESSURE` object, `game.js:5964`):
 
 - **Buildup phase**: rage meter fills over time; escalating aura FX
-- **BREAK phase**: a tappable `#breakTarget` appears with a short window (2.75–3.1 s scaled by `PRESSURE_BREAK_TABLE` at `game.js:5973`); player must hit it to succeed
+- **BREAK phase**: a tappable `#breakTarget` appears with a short window (2.75–3.1 s scaled by `PRESSURE_BREAK_TABLE` at `game.js:5991`); player must hit it to succeed
 - **Success**: grants score/coin rewards + clears rage; `save.weeklyChallenge.breakSuccess` incremented
-- **Fail**: rage spikes via `PRESSURE_FAIL_RAGE_TABLE` (`game.js:5981`); subsequent BREAKs harder
+- **Fail**: rage spikes via `PRESSURE_FAIL_RAGE_TABLE` (`game.js:5999`); subsequent BREAKs harder
 
 ## AK47 System
 
-Sequential 5-round weak-point chain (`game.js:1883`):
+Sequential 5-round weak-point chain (`game.js:1809`, safe-spawn system comment at `game.js:1888`):
 
 - Rounds spawn in order WP 1 → 5; position chosen by a safe-spawn algorithm that avoids overlapping the previous position
 - Collecting all 5 triggers **AK47 BOMB** with coin/score bonuses; `save.weeklyChallenge.ak47Complete` incremented
@@ -361,10 +388,12 @@ The cloud save backend is **Supabase** (table `cloud_saves`, columns `player_id`
 - **Performance-sensitive paths**: The tap/hit handler runs on every touch event. Avoid DOM queries, allocations, or layout-triggering reads inside it. Use the existing object pools for particles.
 - **Shop balancing**: Keep new items within the ~250 coins/round economy described above.
 - **CSS**: Lives in `src/styles.css`. Use CSS custom properties and `transform`/`opacity` for animations. The layout uses `contain: layout paint` and `will-change` on animated elements.
-- **window bridge**: During Stage 2A/2B, globals that inline `onclick` attributes reference must remain on `window`. The bridge is the `Object.assign(window, {...})` block at `game.js:10328`. Do not remove entries without updating all callers in `index.html`.
+- **window bridge**: During Stage 2A/2B, globals that inline `onclick` attributes reference must remain on `window`. The bridge is the `Object.assign(window, {...})` block at `game.js:10361`. Do not remove entries without updating all callers in `index.html`.
 - **Vite base path**: `vite.config.js` sets `base: './'` for GitHub Pages subpath compatibility. All asset references in code must be relative or use the Vite asset import system.
 - **Save schema migrations**: Any new field added to the save object must be seeded in both `defaultSave()` and `normalizeSaveData()` with a safe default, so existing saves load without breakage.
 - **Version bumps required**: Every deploy that changes game behavior must update the version string in all three locations (see Releasing section above).
 - **Boss Loop Hero isolation**: `bossLoopHero.js` must never read or write `save` (core save object) or `noctisak47_v3`. Its own persistence key is `noctisak47_blh`. It interacts with the core only through the `window` bridge (`showMainMenu`, `startGame`, `stopBGM`).
 - **Smoke test**: `npm run smoke` must stay green after any change that touches mode-select wiring, BLH entry/exit flow, or the window bridge. Run it locally before pushing.
 - **Interaction hardening** (`src/main.js`): `dragstart` and `contextmenu` are suppressed on game visual elements to prevent drag-ghost and long-press save-image dialogs on mobile/desktop. Do not remove these listeners.
+- **Install prompt isolation** (`src/installPrompt.js`): the PWA install prompt is fully self-contained. It must never import or mutate game state, `save`, or BLH state. Its only coupling to the game is the two custom events (`noctis:main-menu-shown`, `noctis:first-run-complete`) that `game.js` dispatches. Do not add gameplay logic to this module.
+- **Card Skill Guide** (`docs/CARD_SKILL_GUIDE.md`): a human- and AI-readable reference for all 90 normal-mode cards. Update it after adding, removing, or rebalancing any card. When creating a new card, consult it first to avoid duplicating an existing power or breaking the rarity power budget. The guide is documentation only — the code in `src/game.js` is always authoritative.
