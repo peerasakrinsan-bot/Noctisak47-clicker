@@ -16,6 +16,11 @@
 // ไม่เกิด FOUC) — ไม่ import ที่นี่เพื่อเลี่ยงการโหลดซ้ำ.
 import './game.js';
 
+// ── ELITE/MYTHIC CARD VFX LAYER (normal mode, cosmetic only) ────────────────
+// โหลดหลัง game.js เพื่อให้ window.CardVFX พร้อมก่อนที่ hook ใน game.js จะเรียก.
+// เป็น layer ภาพล้วน ไม่แตะ logic การ์ด/บาลานซ์.
+import './cardVfx.js';
+
 // ── BOSS LOOP HERO MODE (โหมดแยกอิสระ) ──────────────────────────────────────
 // โหลดหลัง game.js เพื่อให้ window bridge ของเกมหลัก (startGame / showMainMenu /
 // stopBGM) พร้อมใช้งานก่อน. โหมดนี้ผูกเข้ากับ flow ผ่านปุ่ม PLAY → Mode Select.
