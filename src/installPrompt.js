@@ -6,13 +6,13 @@ const KEYS = {
   seenFirstRun: 'installPromptSeenFirstRun',
   lastDismissedAt: 'installPromptLastDismissedAt',
   installed: 'installPromptInstalled',
+  sessionShown: 'installPromptSessionShown',
 };
 
 const COOLDOWN_ANDROID_MS = 7 * 24 * 60 * 60 * 1000;
 const COOLDOWN_IOS_MS = 14 * 24 * 60 * 60 * 1000;
 
 let deferredPrompt = null;
-let promptShownThisSession = false;
 let promptOpen = false;
 let dom = null;
 
@@ -22,6 +22,20 @@ function read(key) {
 
 function write(key, value) {
   try { localStorage.setItem(key, String(value)); } catch (e) {}
+}
+
+// Per-session guard backed by sessionStorage so an in-session reload
+// (version-guard location.replace / SW controllerchange) cannot re-show it.
+function readSession(key) {
+  try { return sessionStorage.getItem(key); } catch (e) { return null; }
+}
+
+function writeSession(key, value) {
+  try { sessionStorage.setItem(key, String(value)); } catch (e) {}
+}
+
+function sessionAlreadyShown() {
+  return readSession(KEYS.sessionShown) === 'true';
 }
 
 function now() { return Date.now(); }
@@ -51,15 +65,15 @@ function isInstalled() {
 }
 
 function cooldownAllows(platform) {
-  const last = Number(read(KEYS.lastDismissedAt) || 0);
-  if (!last) return true;
+  const last = Number(read(KEYS.lastDismissedAt));
+  if (!Number.isFinite(last) || last <= 0) return true; // missing/corrupted → allow
   const cooldown = platform === 'ios' ? COOLDOWN_IOS_MS : COOLDOWN_ANDROID_MS;
   return (now() - last) >= cooldown;
 }
 
 function canShowForPlatform(platform) {
   if (!hasManifest() || !hasServiceWorkerSupport() || isInstalled()) return false;
-  if (promptShownThisSession || promptOpen) return false;
+  if (sessionAlreadyShown() || promptOpen) return false;
   if (platform === 'ios') return isIos();
   return !!deferredPrompt;
 }
@@ -133,16 +147,20 @@ async function onInstallClick() {
 
 function showPrompt({ platform, placement, trigger }) {
   const ui = ensureDom();
-  promptShownThisSession = true;
+  const ios = platform === 'ios';
+  writeSession(KEYS.sessionShown, 'true');
   promptOpen = true;
   ui.overlay.classList.toggle('install-prompt-result', placement === 'result');
-  ui.overlay.classList.toggle('install-prompt-ios', platform === 'ios');
-  ui.title.textContent = 'Install NOCTISAK47?';
-  ui.body.textContent = platform === 'ios'
+  ui.overlay.classList.toggle('install-prompt-ios', ios);
+  // iOS has no beforeinstallprompt → manual "Add to Home Screen" guidance only.
+  ui.title.textContent = ios ? 'Add to Home Screen' : 'Install NOCTISAK47?';
+  ui.body.textContent = ios
     ? 'กด Share แล้วเลือก Add to Home Screen'
     : 'เล่นง่ายขึ้น เปิดจากหน้าโฮมได้เลย';
-  ui.primary.textContent = platform === 'ios' ? 'Got it' : 'Install';
-  ui.secondary.textContent = 'Later';
+  // On iOS the primary (native-prompt) button is hidden via CSS; the single
+  // visible dismiss button is the secondary → label it "Got it".
+  ui.primary.textContent = 'Install';
+  ui.secondary.textContent = ios ? 'Got it' : 'Later';
   ui.primary.disabled = false;
   ui.overlay.dataset.trigger = trigger || '';
   ui.overlay.removeAttribute('hidden');
@@ -172,6 +190,10 @@ function maybeShow(trigger) {
   if (!firstTimeMain && !firstRunPrompt && !rarePrompt) return;
   if (firstTimeMain) write(KEYS.seenMain, 'true');
   if (firstRunPrompt) write(KEYS.seenFirstRun, 'true');
+  // The "rare" reminder (both one-shot prompts already consumed) must obey the
+  // cooldown even if the user never explicitly dismisses it — otherwise it would
+  // re-show on the main menu every session. Stamp the cooldown at show time.
+  if (rarePrompt) markDismissed();
   showPrompt({ platform, placement: isFirstRun ? 'result' : 'menu', trigger });
 }
 
