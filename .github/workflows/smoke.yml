@@ -21,6 +21,8 @@ jobs:
       - run: npm ci
       - name: Card audit (normal-mode CARD_POOL integrity)
         run: npm run card-audit
+      - name: Card VFX audit
+        run: npm run card-vfx-audit
       - name: Build (Vite + service-worker postbuild)
         run: npm run build
       - name: Smoke check (mode select + Boss Loop Hero wiring)
