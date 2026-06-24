@@ -4539,7 +4539,12 @@ function csOnClick(isGod) {
   if(cs.cs_horong)      cs.cs_horong_active = timeLeft < 15;
   // WRONG CARD tradeoff: when horong_active, add combo decay penalty
   if(cs.cs_horong && cs.cs_horongTradeoff) cs._horongDecayActive = cs.cs_horong_active;
-  if(cs.cs_goblinLeader && combo >= 47) cs._weebFocusEndTime = performance.now() + 5000;
+  if(cs.cs_goblinLeader && combo >= 47) {
+    // GOBLIN WEEBER — fire WEEB FOCUS VFX เฉพาะตอนเริ่มต้นรอบ focus (transition guard, ไม่สแปม)
+    const _wfWasActive = cs._weebFocusEndTime && performance.now() < cs._weebFocusEndTime;
+    cs._weebFocusEndTime = performance.now() + 5000;
+    if(!_wfWasActive) _cardFx('combo');
+  }
   if(cs.cs_minorous) {
     const ratio = isBoss ? (bossHP/bossMaxHP) : (hp/maxHP);
     const prev = cs._minorageLastRatio ?? 1;
@@ -7410,6 +7415,7 @@ function processHit(e, now) {
       window._csState._goldRushEndTime       = _grNow + 12000;
       window._csState._goldRushCooldownUntil = _grNow + 14000; // CD > Duration — no chain overlap
       showBigSplash('GOLD RUSH', 'ZENY x9 — 12s', '#ffcc00', false);
+      _cardFx('combo'); // GOLDEN BRUH — gold coin explosion ตอน GOLD RUSH เปิดจริง (cosmetic)
     }
   }
   // MOONLIGHT FLOWER / VITATA / ELDER WILLOW / METALLER / THIEF BUG: ถ้า bar เต็ม 100% ก่อน combo 47 → trigger OD ทันที

@@ -4651,6 +4651,101 @@
   100% { opacity: 0;   transform: translate(-50%, -50%) scale(2.9); }
 }
 
+/* ── PRIMITIVE: bolt (สายฟ้าซิกแซก — STORMYNITE / MISSSTRESS) ──
+   2 ก้านเหลื่อมมุมเล็กน้อย + glow → รูปทรง "ฟ้าผ่า" ต่างจาก slash (ตรงเรียบ). */
+.cv-bolt {
+  width: 6px; height: 96px; transform: translate(-50%, -60%) rotate(var(--rot, 0deg));
+  animation: cvBoltFade .34s ease-out forwards;
+}
+.cv-bolt > i {
+  position: absolute; left: 50%; top: 0; width: 4px; height: 50%;
+  background: linear-gradient(var(--cv, #9be7ff), #fff);
+  box-shadow: 0 0 10px var(--cv, #9be7ff), 0 0 4px #fff;
+  transform-origin: top center;
+}
+.cv-bolt > i:nth-child(1) { transform: translateX(-50%) rotate(12deg); }
+.cv-bolt > i:nth-child(2) { top: 48%; transform: translateX(-50%) rotate(-16deg); }
+@keyframes cvBoltFade {
+  0%   { opacity: 0;  transform: translate(-50%, -60%) rotate(var(--rot, 0deg)) scaleY(.5); }
+  25%  { opacity: 1;  transform: translate(-50%, -60%) rotate(var(--rot, 0deg)) scaleY(1); }
+  60%  { opacity: 1; }
+  100% { opacity: 0;  transform: translate(-50%, -60%) rotate(var(--rot, 0deg)) scaleY(1.05); }
+}
+
+/* ── PRIMITIVE: fireBurst (แกนเปลวไฟ — IFRIED / EDGEGA / ATROSUS / BAPHOBET / TAO FUNKA) ──
+   ต่างจาก shadowBurst: ไล่สีร้อน + ยืดขึ้นเล็กน้อย (เปลวลอย). embers แยก node. */
+.cv-fireburst {
+  width: 54px; height: 54px; border-radius: 50% 50% 48% 48%;
+  background: radial-gradient(circle at 50% 62%, #fff7c0 0%, var(--cv, #ff5511) 42%, transparent 72%);
+  transform: translate(-50%, -50%) scale(.3); opacity: 0;
+  mix-blend-mode: screen; animation: cvFire .55s ease-out forwards;
+}
+@keyframes cvFire {
+  0%   { opacity: .9; transform: translate(-50%, -50%) scale(.3); }
+  45%  { opacity: .85; transform: translate(-50%, -58%) scale(1.15); }
+  100% { opacity: 0;  transform: translate(-50%, -70%) scale(1.5); }
+}
+.cv-ember {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--cv, #ff7722); box-shadow: 0 0 7px var(--cv, #ff7722);
+  transform: translate(-50%, -50%); opacity: 1; mix-blend-mode: screen;
+  animation: cvEmber .55s ease-out forwards;
+}
+@keyframes cvEmber {
+  to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))); opacity: 0; }
+}
+
+/* ── PRIMITIVE: holyBurst (แสงศักดิ์สิทธิ์รัศมีก้าน — VALKYRIZZ / NOSIRIS / LADY TRAINEE) ──
+   แกนสว่าง + ก้านแสง 8 ทิศ (conic) → "divine/spotlight" ต่างจาก pulse/odGlow. */
+.cv-holyburst { width: 4px; height: 4px; transform: translate(-50%, -50%); }
+.cv-holyburst > i { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); mix-blend-mode: screen; }
+.cv-holyburst .cv-holy-core {
+  width: 70px; height: 70px; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--cv, #ffe9a8) 45%, transparent 72%);
+  opacity: 0; animation: cvHolyCore .6s ease-out forwards;
+}
+.cv-holyburst .cv-holy-rays {
+  width: 120px; height: 120px; border-radius: 50%;
+  background: conic-gradient(var(--cv, #ffe9a8) 0deg 6deg, transparent 6deg 45deg,
+    var(--cv, #ffe9a8) 45deg 51deg, transparent 51deg 90deg,
+    var(--cv, #ffe9a8) 90deg 96deg, transparent 96deg 135deg,
+    var(--cv, #ffe9a8) 135deg 141deg, transparent 141deg 180deg,
+    var(--cv, #ffe9a8) 180deg 186deg, transparent 186deg 225deg,
+    var(--cv, #ffe9a8) 225deg 231deg, transparent 231deg 270deg,
+    var(--cv, #ffe9a8) 270deg 276deg, transparent 276deg 315deg,
+    var(--cv, #ffe9a8) 315deg 321deg, transparent 321deg 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 26%, #000 28%, #000 50%, transparent 62%);
+          mask: radial-gradient(circle, transparent 26%, #000 28%, #000 50%, transparent 62%);
+  opacity: 0; animation: cvHolyRays .6s ease-out forwards;
+}
+@keyframes cvHolyCore {
+  0%   { opacity: 0;  transform: translate(-50%, -50%) scale(.4); }
+  40%  { opacity: .9; transform: translate(-50%, -50%) scale(1.05); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) scale(1.25); }
+}
+@keyframes cvHolyRays {
+  0%   { opacity: 0;  transform: translate(-50%, -50%) scale(.3) rotate(0deg); }
+  45%  { opacity: .75; transform: translate(-50%, -50%) scale(1) rotate(14deg); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) scale(1.5) rotate(26deg); }
+}
+
+/* ── PRIMITIVE: glitch (scanline เลื่อน/สั่น — KILL-D01 / RSICK / DETAILED / FALLEN WECHAT / MAYA) ──
+   แถบแนวนอนเหลื่อมแกน X → "ข้อมูลรวน/ไซเบอร์". แต่ละแถบตั้ง top/height/--gx เองจาก JS. */
+.cv-glitch { inset: 0; left: 0; top: 0; width: 100%; height: 100%; }
+.cv-glitch > i {
+  position: absolute; left: 0; width: 100%;
+  background: var(--cv, #00ffee); opacity: 0; mix-blend-mode: screen;
+  box-shadow: 0 0 6px var(--cv, #00ffee);
+  animation: cvGlitch .36s steps(3, end) forwards;
+}
+@keyframes cvGlitch {
+  0%   { opacity: 0;   transform: translateX(0); }
+  20%  { opacity: .55; transform: translateX(var(--gx, 12px)); }
+  50%  { opacity: .4;  transform: translateX(calc(var(--gx, 12px) * -.6)); }
+  80%  { opacity: .5;  transform: translateX(calc(var(--gx, 12px) * .3)); }
+  100% { opacity: 0;   transform: translateX(0); }
+}
+
 /* ── reduced-motion: ตัด aura ที่วน + ย่นเอฟเฟกต์ (รวมลูกของ node ด้วย เช่น moonRing) ── */
 @media (prefers-reduced-motion: reduce) {
   #cvAuraEl.cv-aura { animation: none !important; opacity: .14; }
