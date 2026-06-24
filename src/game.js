@@ -892,8 +892,11 @@ function hasStat(id, key) {
 // ══════════════════════════════════════════
 const ASSETS = {
   images: [
-    // backgrounds / title first-screen
-    'title_bg.png','default_bg.png','one_bg.png','colosseum_bg.webp','colosseum_bg.png',
+    // backgrounds / title first-screen (default + menu only).
+    // Purchasable arena bgs (one_bg / colosseum_bg) are NOT eagerly preloaded —
+    // they lazily load on-demand when the arena shop opens (_drawArenaPreview) or
+    // the arena is equipped (_applyArenaBg, CSS url), and the SW caches them then.
+    'title_bg.png','default_bg.png',
     // XUANG skin
     'xuang_icon.webp','xuang.png','xuang_hit1.png','xuang_hit2.png','xuang_hit3.png','xuang_hit4.png',
     // default skin
