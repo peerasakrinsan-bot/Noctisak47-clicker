@@ -36,6 +36,14 @@ import './installPrompt.js';
 // stopBGM) พร้อมใช้งานก่อน. โหมดนี้ผูกเข้ากับ flow ผ่านปุ่ม PLAY → Mode Select.
 import './bossLoopHero.js';
 
+// ── VERCEL WEB ANALYTICS ───────────────────────────────────────────────────
+// inject() is the vanilla-JS / non-Next.js path from @vercel/analytics.
+// It appends a deferred <script src="/_vercel/insights/script.js"> to <head>
+// — same-origin when deployed on Vercel, graceful 404 everywhere else.
+// No custom events, no user data, no cookies.
+import { inject } from '@vercel/analytics';
+inject();
+
 // ── INTERACTION HARDENING ──────────────────────────────────────────────────
 // Prevent drag-ghost images on game assets (desktop + Android).
 document.addEventListener('dragstart', (e) => {
