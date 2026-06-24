@@ -16,11 +16,13 @@ npm run dev          # Vite dev server with HMR at http://localhost:5173
 npm run build        # production build → dist/
 npm run preview      # serve dist/ locally
 npm run smoke        # headless smoke check (mode-select + Boss Loop Hero wiring)
+npm run card-audit   # static integrity audit of normal-mode CARD_POOL (no browser)
+npm run card-vfx-audit # integrity audit of the Elite/Mythic card VFX layer (no browser)
 ```
 
 For mobile testing, use browser DevTools device emulation or connect a real device on the same local network.
 
-There are no automated browser tests or linters. CI runs `npm run build && npm run smoke` (see `.github/workflows/smoke.yml`).
+There are no automated browser tests or linters. CI runs `npm run card-audit && npm run build && npm run smoke` (see `.github/workflows/smoke.yml`).
 
 ## Architecture
 
@@ -29,10 +31,11 @@ There are no automated browser tests or linters. CI runs `npm run build && npm r
 ```
 index.html              # HTML shell; loads src/styles.css and src/main.js
 src/
-  main.js               # ES module entry point; imports game.js then bossLoopHero.js
-  game.js               # All core game logic (~10,354 lines) — Stage 2A verbatim lift
-  bossLoopHero.js       # Boss Loop Hero / Loop RPG mode (~3,000 lines) — independent module
-  styles.css            # All game styles (~4,190 lines)
+  main.js               # ES module entry point; imports game.js → cardVfx.js → bossLoopHero.js
+  game.js               # All core game logic (~10,385 lines) — Stage 2A verbatim lift
+  bossLoopHero.js       # Boss Loop Hero / Loop RPG mode (~3,656 lines) — independent module
+  cardVfx.js            # Elite/Mythic card VFX layer (~392 lines) — cosmetic, normal mode only
+  styles.css            # All game styles (~4,617 lines)
 public/
   sw.js                 # Service Worker (copied verbatim to dist/)
   manifest.json         # PWA manifest
@@ -41,9 +44,11 @@ public/
 scripts/
   postbuild-sw.js       # Post-build: injects hashed bundle paths into dist/sw.js
   smoke-blh.mjs         # Headless smoke test for mode-select + BLH wiring (Node only)
+  card-audit.mjs        # Static CARD_POOL integrity audit (npm run card-audit)
+  card-vfx-audit.mjs    # Elite/Mythic VFX layer integrity audit (npm run card-vfx-audit)
 vite.config.js          # base: './', outDir: 'dist/', minify: false (Stage 2A)
 .github/workflows/
-  smoke.yml             # CI: build + smoke on every push / PR
+  smoke.yml             # CI: card-audit + build + smoke on every push / PR
 ```
 
 ### Migration stage
@@ -60,7 +65,7 @@ npm run build
   2. node scripts/postbuild-sw.js
        reads dist/assets/*.js and *.css
        injects their hashed filenames into PRECACHE_ASSETS in dist/sw.js
-       appends a build tag to CACHE_NAME (e.g. noctisak47-2026.06.08.3-abc123)
+       appends a build tag to CACHE_NAME (e.g. noctisak47-2026.06.24.2-abc123)
 ```
 
 The post-build step is required for the service worker to cache the hashed Vite bundles correctly; skipping it breaks offline mode.
@@ -70,8 +75,9 @@ The post-build step is required for the service worker to cache the hashed Vite 
 `.github/workflows/smoke.yml` runs on every push and pull request:
 
 1. Checkout → Node 20 → `npm ci`
-2. `npm run build` (Vite + postbuild-sw)
-3. `npm run smoke` — executes `scripts/smoke-blh.mjs` against a minimal DOM stub
+2. `npm run card-audit` — static `CARD_POOL` integrity audit (`scripts/card-audit.mjs`)
+3. `npm run build` (Vite + postbuild-sw)
+4. `npm run smoke` — executes `scripts/smoke-blh.mjs` against a minimal DOM stub
 
 The smoke script verifies:
 - Mode Select opens from the PLAY entrypoint (`window.blhOpenModeSelect`)
@@ -80,6 +86,10 @@ The smoke script verifies:
 - Loop Zeny lives in its own localStorage key (economy isolation)
 
 The smoke script does **not** exercise gameplay timers or balance — it only confirms wiring.
+
+The **card audit** (`npm run card-audit`) is a static guard over `CARD_POOL` in `src/game.js` (no browser). It asserts: every card has a unique id + valid rarity; every artwork file exists under `public/`; every card's `apply(s)` sets ≥1 `cs_*` effect flag; every `cs_*` flag a card sets is actually read by game logic (no dead effects); every rarity tier is reachable from the gacha drop weights; and Elite/Mythic counts match the documented collection size. It exits non-zero on the first failed assertion.
+
+The **card VFX audit** (`npm run card-vfx-audit`, not yet wired into CI) guards `src/cardVfx.js`: every Elite/Mythic card has a `VFX_MAP` entry (and no orphan mappings), auras/contexts use known primitives, the helper no-ops when DOM targets are missing, unknown ids don't throw, reduced-motion is honored, and the layer never touches card logic (`save` / `cs_*` writes).
 
 ### Service Worker (`public/sw.js`)
 
@@ -98,19 +108,20 @@ The smoke script does **not** exercise gameplay timers or balance — it only co
 | `GOD_LEVELS` (line 1143) | 4 entries (index 0 = idle; 1–3 = active tiers): NOCTIS OVERDRIVE (5× dmg, 10 s), OVERDRIVE BURST (8× dmg, 6 s), ANNIHILATION MODE (12× dmg, 4 s) |
 | `BOSS_SKINS` (line 1397) | 10 purchasable boss skins |
 | `ARENA_SKINS` (line 1633) | 3 purchasable arena backgrounds |
-| `CARD_POOL` (line 2386) | 90-card definitions across 4 rarities |
+| `CARD_POOL` (line 2396) | 90-card definitions across 4 rarities |
 | Sound system | Web Audio API (`AudioContext`) for SFX; `<audio>` elements for BGM (`fight1-4.mp3`) |
 | `save` object | All player state — coins, cards, items, skins, arenas — persisted to `localStorage` and synced to cloud (Supabase) |
 | Hit/damage loop | Tap zones, weak-point detection, crit/overdrive multipliers, card bonuses |
 | Card system | 90 cards across 4 rarities. Mastery tracked via `save.cardRuns` (run count per card). |
 | Particle system | Object-pooled particles, rings, and break impacts — do not increase per-hit particle counts |
-| PRESSURE/BREAK (line 5946) | Rage-meter survival system: buildup → BREAK target mini-game → rewards/fail-rage |
-| AK47 system (line 1883) | Sequential 5-round weak-point chain with safe-spawn layout algorithm |
+| PRESSURE/BREAK (line 5963) | Rage-meter survival system: buildup → BREAK target mini-game → rewards/fail-rage |
+| AK47 system (line ~1808) | Sequential 5-round weak-point chain with safe-spawn layout algorithm (`wpRound`/`wpCollected` state) |
 | Daily reward system | 7-day streak with 06:00 rollover; state in `save.dailyQuest` |
 | Weekly challenge | 3 progressive tiers reset every Monday 06:00; state in `save.weeklyChallenge` |
 | Supabase cloud save (line 406) | Cloud save URL and anon key; upsert/download against `cloud_saves` table |
-| Card mastery (line 10230) | `CM_TIER` constants, `cmRecordRun`, `cmShowEvolutionReveal` |
-| Window bridge (line 10328) | `Object.assign(window, {...})` — exposes game functions for inline `onclick` in index.html |
+| Card mastery (line 10261) | `CM_TIER` constants, `cmRecordRun`, `cmShowEvolutionReveal` |
+| Card VFX hooks | `CardVFX.setActiveCard` / `clearActive` / `trigger` calls fired from existing mechanic hooks (BREAK, AK47, OD, etc.) — see `src/cardVfx.js` |
+| Window bridge (line 10359) | `Object.assign(window, {...})` — exposes game functions for inline `onclick` in index.html |
 
 ### Loop RPG Mode (`src/bossLoopHero.js`)
 
@@ -148,7 +159,19 @@ An **independent** auto-battle mode (user-facing name: **LOOP RPG MODE**; intern
 
 **Deferred to follow-up:** none — the original Boss Loop Mode spec backlog is complete.
 
-`src/main.js` imports `bossLoopHero.js` **after** `game.js` so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
+`src/main.js` imports in order: `game.js` → `cardVfx.js` → `bossLoopHero.js`. `cardVfx.js` loads after `game.js` so `window.CardVFX` exists before the game's hooks call it; `bossLoopHero.js` loads last so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
+
+### Elite/Mythic Card VFX (`src/cardVfx.js`)
+
+A small, **self-contained, purely cosmetic** visual-feedback layer for normal/clicker mode only. It gives every Elite and Mythic card a recognizable look when its real mechanic fires. It **never reads or writes card logic, `save`, `cs_*` flags, or balance**, and is safe to call from anywhere (no-ops if a DOM target is missing or `prefers-reduced-motion` is set).
+
+- **Public API (the only entry points `game.js` uses):**
+  - `CardVFX.setActiveCard(id, rarity)` — on run start; sets a persistent card aura
+  - `CardVFX.clearActive()` — on run end; clears the aura
+  - `CardVFX.trigger(id, context, ctx)` — when a card's mechanic activates
+- **Wiring** lives at existing mechanic hooks (BREAK success, AK47 complete, Overdrive start, Drake Take, Thanatos Phase, boss interactions, Doppelganger shadow strike, Abyssmell execute). Passive-damage cards get the aura only — **no per-hit particle spam** (mobile-safe brief).
+- **DOM**: renders into its own `#cardVfxLayer` (separate from the game's `#fxLayer`) with a minimal node pool; never touches the core particle pools.
+- Guarded by `scripts/card-vfx-audit.mjs` (`npm run card-vfx-audit`).
 
 ### Game screen IDs
 
@@ -178,9 +201,9 @@ All screens are children of `#gameRoot` (position: fixed, 100vw/100vh):
 
 When making any change that players will receive, update the version string in **three places** to bust the Service Worker cache:
 
-1. `index.html` (~line 19): `window.NOCTISAK47_APP_VERSION = '2026.06.08.3'`
-2. `index.html` manifest link: `<link rel="manifest" href="/manifest.json?v=2026.06.08.3">`
-3. `public/sw.js` (~line 2): `const APP_VERSION = '2026.06.08.3'`
+1. `index.html` (~line 19): `window.NOCTISAK47_APP_VERSION = '2026.06.24.2'`
+2. `index.html` manifest link: `<link rel="manifest" href="/manifest.json?v=2026.06.24.2">`
+3. `public/sw.js` (~line 2): `const APP_VERSION = '2026.06.24.2'`
 
 Version format: `YYYY.MM.DD.n` (n = daily increment, starting at 1).
 
@@ -334,7 +357,7 @@ The cloud save backend is **Supabase** (table `cloud_saves`, columns `player_id`
 ## Key Conventions
 
 - **Language**: UI strings and in-code comments are in Thai. Maintain this.
-- **No runtime dependencies**: Do not introduce npm packages beyond Vite (devDependency only), CDN imports, or external frameworks.
+- **Minimal dependencies**: The only build dependency is Vite (devDependency). The only runtime dependency is `@vercel/analytics` (declared in `package.json`; not a gameplay framework). Do not introduce additional npm packages, CDN imports, or external game frameworks — keep the game itself vanilla JS.
 - **Performance-sensitive paths**: The tap/hit handler runs on every touch event. Avoid DOM queries, allocations, or layout-triggering reads inside it. Use the existing object pools for particles.
 - **Shop balancing**: Keep new items within the ~250 coins/round economy described above.
 - **CSS**: Lives in `src/styles.css`. Use CSS custom properties and `transform`/`opacity` for animations. The layout uses `contain: layout paint` and `will-change` on animated elements.
