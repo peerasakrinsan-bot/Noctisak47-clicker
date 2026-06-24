@@ -8,6 +8,9 @@
     --cyan: #00ffee;
     --blue: #4488ff;
     --dark: #0a0a0a;
+    /* button-press feedback tokens (phase 3) — ใช้ที่เดียว ปรับครั้งเดียวทั้งเกม */
+    --ui-press-down: scale(0.96) translateY(2px);  /* ปุ่มมาตรฐาน */
+    --ui-press-soft: scale(0.98);                   /* การ์ด/แถวกว้าง */
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -258,7 +261,7 @@
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
     flex-shrink:0;
   }
-  .back-btn:active { background:#1a1a1a; border-color:#888; color:#fff; }
+  .back-btn:active { background:#1a1a1a; border-color:#888; color:#fff; transform:var(--ui-press-down); }
   /* CSS chevron < — หัวแหลม */
   .back-btn .back-arrow {
     display:inline-block; flex-shrink:0;
@@ -295,7 +298,7 @@
     position:relative;
   }
   .shop-level-row:last-child { border-bottom:none; }
-  .shop-level-row:active { background:#1a1a1a; }
+  .shop-level-row:active { background:#1a1a1a; transform:var(--ui-press-soft); }
   .shop-level-row.current { background:#111; }
   .shop-level-row.locked { opacity:0.4; pointer-events:none; }
   .shop-level-row.maxed { pointer-events:none; }
@@ -324,7 +327,7 @@
     background:transparent; cursor:pointer; margin-top:4px;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   }
-  .slr-buy-btn:active { background:rgba(0,255,238,0.1); }
+  .slr-buy-btn:active { background:rgba(0,255,238,0.1); transform:var(--ui-press-down); }
   .slr-buy-btn.cant-afford { border-color:#333; color:#444; pointer-events:none; }
   .slr-current-tag {
     position:absolute; left:14px; top:50%; transform:translateY(-50%);
@@ -352,7 +355,7 @@
     background:#0d0d0d; border:2px solid #222;
     display:flex; flex-direction:column; align-items:center;
     padding:12px 10px 14px; gap:8px;
-    cursor:pointer; transition:border-color 0.15s, background 0.15s;
+    cursor:pointer; transition:border-color 0.15s, background 0.15s, transform 0.1s ease;
     position:relative;
   }
   .arena-skin-card.active-arena { border-color:#00b4ff; background:#00090f; }
@@ -360,7 +363,7 @@
     content:'ACTIVE'; position:absolute; top:8px; right:8px;
     font-size:8px; letter-spacing:2px; color:#00b4ff;
   }
-  .arena-skin-card:active { background:#1a1a1a; }
+  .arena-skin-card:active { background:#1a1a1a; transform:var(--ui-press-soft); }
   .arena-skin-preview {
     width:100%; height:70px; border-radius:6px;
     border:1px solid #333;
@@ -377,7 +380,7 @@
     background:transparent; cursor:pointer; width:100%;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   }
-  .arena-skin-action:active { background:rgba(0,180,255,0.1); }
+  .arena-skin-action:active { background:rgba(0,180,255,0.1); transform:var(--ui-press-down); }
   .arena-skin-action.apply-arena-btn { border-color:#00b4ff; color:#00b4ff; }
   .arena-skin-action.cant-afford { border-color:#333; color:#444; pointer-events:none; }
   /* arenaBackBtn uses .back-btn */
@@ -402,7 +405,7 @@
     background:#0d0d0d; border:2px solid #222;
     display:flex; flex-direction:column; align-items:center;
     padding:16px 10px 14px; gap:10px;
-    cursor:pointer; transition:border-color 0.15s, background 0.15s;
+    cursor:pointer; transition:border-color 0.15s, background 0.15s, transform 0.1s ease;
     position:relative;
   }
   .boss-skin-card.active-skin { border-color:var(--gold); background:#100e00; }
@@ -410,7 +413,7 @@
     content:'ACTIVE'; position:absolute; top:8px; right:8px;
     font-size:8px; letter-spacing:2px; color:var(--gold);
   }
-  .boss-skin-card:active { background:#1a1a1a; }
+  .boss-skin-card:active { background:#1a1a1a; transform:var(--ui-press-soft); }
   .boss-skin-icon {
     width:80px; height:80px; border-radius:8px;
     object-fit:cover; border:1px solid #333;
@@ -423,9 +426,9 @@
     background:transparent; cursor:pointer; width:100%;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   }
-  .boss-skin-action:active { background:rgba(0,255,238,0.1); }
+  .boss-skin-action:active { background:rgba(0,255,238,0.1); transform:var(--ui-press-down); }
   .boss-skin-action.apply-btn { border-color:var(--gold); color:var(--gold); }
-  .boss-skin-action.apply-btn:active { background:rgba(255,204,0,0.1); }
+  .boss-skin-action.apply-btn:active { background:rgba(255,204,0,0.1); transform:var(--ui-press-down); }
   .boss-skin-action.cant-afford { border-color:#333; color:#444; pointer-events:none; }
   .boss-skin-locked { font-size:10px; letter-spacing:2px; color:#ff2233; margin-top:2px; }
 
@@ -782,14 +785,14 @@
     padding:11px 0; cursor:pointer;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   }
-  #rerollCancelBtn:active { background:#1a1a1a; }
+  #rerollCancelBtn:active { background:#1a1a1a; transform:var(--ui-press-down); }
   #rerollDoRerollBtn {
     flex:1.4; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:2px;
     background:var(--gold); border:none; color:#000;
     padding:11px 0; cursor:pointer; white-space:nowrap;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   }
-  #rerollDoRerollBtn:active { filter:brightness(0.85); }
+  #rerollDoRerollBtn:active { filter:brightness(0.85); transform:var(--ui-press-down); }
 
   /* penalty warning — จองพื้นที่ไว้เสมอ */
   #csPenaltyWarn {
@@ -819,7 +822,7 @@
     visibility:visible;
     animation: confirmPulse 1s ease-in-out infinite;
   }
-  #csConfirmBtn:active { filter:brightness(0.85); animation:none; }
+  #csConfirmBtn:active { filter:brightness(0.85); animation:none; transform:var(--ui-press-down); }
   @keyframes confirmPulse {
     0%,100%{ box-shadow:0 0 12px rgba(255,204,0,0.4); }
     50%    { box-shadow:0 0 28px rgba(255,204,0,1); }
@@ -855,14 +858,14 @@
     padding:10px 0; cursor:pointer;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   }
-  .oca-btn-cancel:active { background:#1a1a1a; }
+  .oca-btn-cancel:active { background:#1a1a1a; transform:var(--ui-press-down); }
   .oca-btn-confirm {
     flex:1; font-family:'Oswald',sans-serif; font-size:14px; letter-spacing:2px;
     background:var(--gold); border:none; color:#000;
     padding:10px 0; cursor:pointer;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   }
-  .oca-btn-confirm:active { filter:brightness(0.85); }
+  .oca-btn-confirm:active { filter:brightness(0.85); transform:var(--ui-press-down); }
   .oca-btn-confirm.cant-afford { background:#333; color:#666; pointer-events:none; }
   /* OCA special shop card */
   .shop-card-oca {
@@ -880,7 +883,7 @@
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
     transition:background 0.15s;
   }
-  .oca-buy-btn:active { background:rgba(0,180,255,0.15); }
+  .oca-buy-btn:active { background:rgba(0,180,255,0.15); transform:var(--ui-press-down); }
   .oca-buy-btn.cant-afford { border-color:#333; color:#444; pointer-events:none; }
 
   /* ══ CARD COLLECTION SCREEN ══ */
@@ -1087,7 +1090,7 @@
     visibility:visible;
     animation:confirmPulse 1s ease-in-out infinite;
   }
-  #cardDrawCollectBtn:active { filter:brightness(0.85); animation:none; }
+  #cardDrawCollectBtn:active { filter:brightness(0.85); animation:none; transform:var(--ui-press-down); }
   #resultScreen {
     position:absolute; top:0; left:0; right:0; bottom:0; z-index:997;
     display:none; flex-direction:column;
@@ -3145,9 +3148,9 @@
     transition: filter 0.15s;
   }
   .wq-claim-btn.btn-claim   { background: var(--cyan); color: #000; }
-  .wq-claim-btn.btn-claim:active { filter: brightness(0.85); }
+  .wq-claim-btn.btn-claim:active { filter: brightness(0.85); transform: var(--ui-press-down); }
   .wq-claim-btn.btn-tier3   { background: var(--gold); color: #000; }
-  .wq-claim-btn.btn-tier3:active { filter: brightness(0.85); }
+  .wq-claim-btn.btn-tier3:active { filter: brightness(0.85); transform: var(--ui-press-down); }
   .wq-claim-btn.btn-inprog  { background: #111; color: #333; border: 1px solid #1a1a1a; cursor: default; pointer-events: none; }
   .wq-claim-btn.btn-claimed { background: #0a1a1a; color: #226655; border: 1px solid #0a2020; cursor: default; font-size: 10px; }
 
@@ -4868,4 +4871,57 @@
 @media (prefers-reduced-motion: reduce) {
   .install-prompt-overlay,
   .install-prompt-card { transition:none; }
+}
+
+/* ══ SCREEN ENTER TRANSITION ══
+   screens ใช้ display:none→flex ผ่าน JS; ทุกครั้งที่ display เปลี่ยน browser re-runs animation
+   ทำให้ fade+slide เล่นอัตโนมัติโดยไม่ต้องเพิ่ม class / แก้ JS ──────────────────────────── */
+@keyframes screenFadeSlide {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes screenFadeOnly {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+#mainMenu,
+#shopScreen,
+#bossScreen,
+#arenaScreen,
+#cardSlotScreen,
+#cardCollectionScreen,
+#resultScreen {
+  animation: screenFadeSlide 0.18s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #mainMenu,
+  #shopScreen,
+  #bossScreen,
+  #arenaScreen,
+  #cardSlotScreen,
+  #cardCollectionScreen,
+  #resultScreen {
+    animation: screenFadeOnly 0.1s ease forwards;
+  }
+}
+
+/* ══ BUTTON TRANSITION BASE ══
+   ปุ่มทั่วไปที่ต้องการ transform จาก :active ให้ใช้ transition ที่สั้น (100ms)
+   เพื่อให้ scale snap กลับสู่ปกติอย่าง snappy ────────────────────────────────────────── */
+.back-btn,
+.slr-buy-btn,
+.oca-buy-btn,
+.wq-claim-btn.btn-claim,
+.wq-claim-btn.btn-tier3,
+#rerollDoRerollBtn,
+#csConfirmBtn,
+#cardDrawCollectBtn,
+.arena-skin-action,
+.boss-skin-action,
+#rerollCancelBtn,
+.oca-btn-cancel,
+.oca-btn-confirm {
+  transition: transform 0.1s ease, filter 0.1s ease, background 0.1s ease;
 }

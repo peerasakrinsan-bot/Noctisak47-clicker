@@ -302,6 +302,10 @@ function applyFlashEffectSetting() {
   const fe = gameSettings.flashEffect || 'low';
   document.body.classList.toggle('flash-low', fe === 'low');
   document.body.classList.toggle('flash-off', fe === 'off');
+  // ── เชื่อม flashEffect → canvas VFX intensity ────────────────────────────
+  if (typeof window !== 'undefined' && window.CanvasVFX && typeof window.CanvasVFX.setVFXLevel === 'function') {
+    window.CanvasVFX.setVFXLevel(fe);
+  }
 }
 
 function setFlashEffect(value) {
@@ -7061,6 +7065,16 @@ function endGame(opts = {}) {
     })();
 
     $('resultScreen').style.display = 'flex';
+    // ── reward burst: coin shower เมื่อได้เหรียญ ────────────────────────────
+    if (roundCoins > 0 && window.CanvasVFX && window.CanvasVFX.spawnCanvasVfx) {
+      setTimeout(function() {
+        const el = $('coinsEarned');
+        const pos = el ? el.getBoundingClientRect() : null;
+        window.CanvasVFX.spawnCanvasVfx('coinBurst', pos
+          ? { x: pos.left + pos.width / 2, y: pos.top + pos.height / 2 }
+          : {});
+      }, 280);
+    }
     updateShopCoinUI(); _syncSoundBtns();
     // ── Card Mastery: show evolution reveal if tier changed this run
     if (_cmNewTier) setTimeout(() => cmShowEvolutionReveal(_cmNewTier), 800);
@@ -8461,7 +8475,8 @@ const _TOAST_CONFIG = {
   pending:  { cls: 'st-pending', icon: '⏳', label: 'Sync Pending'           },
   offline:  { cls: 'st-offline', icon: '⚠️', label: 'Offline — Local Saved'  },
   failed:   { cls: 'st-failed',  icon: '❌', label: 'Cloud Failed'           },
-  localonly:{ cls: 'st-local',   icon: '💾', label: 'Local Save Active'      }
+  localonly:{ cls: 'st-local',   icon: '💾', label: 'Local Save Active'      },
+  vfxlow:   { cls: 'st-offline', icon: '⚡', label: 'VFX Auto-Reduced'       },
 };
 
 let _toastEl        = null;
@@ -9146,6 +9161,18 @@ window.addEventListener('online', () => {
   flushPendingCloudSync();
 });
 
+// ── VFX auto-downscale: รับ event จาก canvasVfx เมื่อ FPS ตำ ──────────────
+// อัปเดต gameSettings + บันทึก + แสดง toast ครั้งเดียว
+window.addEventListener('noctis:vfx-auto-downscale', function(e) {
+  const newLevel = (e && e.detail && e.detail.level) || 'low';
+  if (gameSettings.flashEffect === newLevel) return;
+  gameSettings.flashEffect = newLevel;
+  applyFlashEffectSetting();
+  syncSettingsUI();
+  persistSettings();
+  showSaveToast('vfxlow');
+});
+
 // ══ END CLOUD SAVE ENGINE v2 ══
 
 
@@ -9629,6 +9656,9 @@ function tryClaimDailyReward() {
   markSaveDirty('daily_reward');
   doSave();
   scheduleCloudSync('daily_reward');
+  if (window.CanvasVFX && window.CanvasVFX.spawnCanvasVfx) {
+    window.CanvasVFX.spawnCanvasVfx('coinBurst', { count: 5 });
+  }
   showDailyRewardToast(dq.streak, ticketType);
   updateDailyQuestUI();
 }
@@ -10080,7 +10110,9 @@ function wqClaimTier(tier) {
     markSaveDirty('weekly_reset');
     doSave();
     scheduleCloudSync('weekly_reset'); // background, non-blocking
-
+    if (window.CanvasVFX && window.CanvasVFX.spawnCanvasVfx) {
+      window.CanvasVFX.spawnCanvasVfx('coinBurst', { count: tier >= 3 ? 9 : 7 });
+    }
     updateWeeklyBadgesUI();
     renderWeeklyPanel();
     updateShopCoinUI();
