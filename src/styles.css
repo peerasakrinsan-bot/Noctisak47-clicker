@@ -902,7 +902,9 @@
     transition:transform 0.15s, box-shadow 0.15s;
     touch-action:manipulation;
   }
-  .cc-card:active { transform:scale(0.95); }
+  .cc-card.unlocked:active { transform:scale(0.95); }
+  /* Locked ? slots are not interactive — no pointer affordance, no press feedback */
+  .cc-card.locked { cursor:default; }
   .cc-card.unlocked { border-color:#444; }
   .cc-card.rarity-standard.unlocked  { border-color:#444; }
   .cc-card.rarity-premium.unlocked   { border-color:#0088ff; box-shadow:0 0 6px rgba(0,136,255,0.4); }

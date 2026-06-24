@@ -5660,9 +5660,11 @@ function renderCardCollection() {
     const div = document.createElement('div');
     const isUnlocked = unlocked.includes(card.id);
     div.className = 'cc-card' + (isUnlocked ? ' unlocked rarity-' + card.rarity : ' locked');
-    div.dataset.cardId = card.id; // used by delegated listener
 
     if (isUnlocked) {
+      // Only unlocked slots carry the real card id — locked ? slots must not leak
+      // the hidden card identity into the DOM, and must not be openable.
+      div.dataset.cardId = card.id; // used by delegated listener
       const img = document.createElement('img');
       img.src = card.img || '';
       img.alt = card.name;
@@ -5674,6 +5676,7 @@ function renderCardCollection() {
       // Card Mastery visual overlay (no save/cloud calls)
       cmDecorateCollectionCard(div, card);
     } else {
+      div.setAttribute('aria-disabled', 'true');
       div.innerHTML = '<div class="cc-card-locked">?</div>';
     }
 
@@ -5698,8 +5701,8 @@ function renderCardCollection() {
       _tapStartX = touch.clientX;
       _tapStartY = touch.clientY;
       _tapStartT = Date.now();
-      // Find nearest cc-card ancestor
-      const ccCard = e.target.closest('.cc-card');
+      // Find nearest UNLOCKED cc-card ancestor — locked ? slots are not tappable
+      const ccCard = e.target.closest('.cc-card.unlocked');
       _tapTargetId = ccCard ? ccCard.dataset.cardId : null;
     }, { passive: true });
 
@@ -5727,6 +5730,9 @@ function renderCardCollection() {
 }
 
 function openCardModal(card) {
+  // Defense-in-depth: never reveal a card the player has not unlocked, no matter
+  // which path calls this. Locked cards stay secret.
+  if (!card || !isCardUnlocked(card.id)) return;
   const img = $('cardModalImg');
   img.src = card.img||'';
   img.className = 'aura-'+card.rarity;
