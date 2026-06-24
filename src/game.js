@@ -1876,6 +1876,10 @@ function scheduleWeakPoint() {
   if(window._csState && window._csState.cs_incantation && window._csState._incantationContractEndTime && performance.now() < window._csState._incantationContractEndTime) delay *= 0.75;
   // LORD OF DEBT: ANALYZED state — AK47 spawn +35%
   if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_akSpawnFast) delay *= (1 - window._csState._lod_akSpawnFast);
+  // DEVILINGO: 15 วิแรกของ encounter → AK47 spawn +20% เร็วขึ้น
+  if(window._csState && window._csState.cs_devilingo && window._csState._devilingoCombatStart && Date.now() - window._csState._devilingoCombatStart <= 15000) delay *= 0.80;
+  // DRAKE TAKE: AK47 FAST during the 6s window
+  if(window._csState && window._csState.cs_drakeIgnoreThreshold && window._csState._drakeTakeEndTime && performance.now() < window._csState._drakeTakeEndTime) delay *= 0.60;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -2236,6 +2240,11 @@ function triggerBombExplosion() {
   if(window._csState && window._csState.cs_thanatos) {
     _el.godFill.style.width = '100%';
     if(canEnterGod && godLevel === 0) activateGodLevel(1);
+    // THANABROS: ระหว่าง Thanatos Phase และ OD active → ต่อเวลา OD +1 วิ
+    if(window._csState._thanatosPhaseEndTime && performance.now() < window._csState._thanatosPhaseEndTime && godLevel > 0) {
+      godSecondsLeft += 1;
+      updateUI();
+    }
   }
   // KTULLANUX: combo protect 5s
   if(window._csState && window._csState.cs_ktullanux) {
@@ -2502,9 +2511,9 @@ const CARD_POOL = [
     apply(s){ s.cs_freeoni=true; }
   },
   { id:'tg',name:'TURTLE SHOGUN CARD',img:'cards/turtle_shogun.png',rarity:'elite',
-    effect:'Combo ≥25 เปิด SHOGUN STANCE 6วิ: DMG +45% | BREAK DMG +25% | KO +250', tradeoff:'ระหว่าง STANCE คอมโบร่วงเร็วขึ้น 35%',
+    effect:'Combo ≥25 เปิด SHOGUN STANCE 6วิ: DMG +45% | BREAK gauge +25% | KO +250', tradeoff:'ระหว่าง STANCE คอมโบร่วงเร็วขึ้น 35%',
     shortDescription:'คอมโบ 25+ เปิด SHOGUN STANCE 6วิ\nแรงขึ้น แต่คอมโบร่วงไว',
-    fullDescription:'[SHOGUN STANCE]\nเมื่อ Combo ถึง 25\nเข้า Stance 6 วิ (CD 12 วิ)\n\n• DMG +45%\n• BREAK DMG +25%\n• KO score +250',
+    fullDescription:'[SHOGUN STANCE]\nเมื่อ Combo ถึง 25\nเข้า Stance 6 วิ (CD 12 วิ)\n\n• DMG +45%\n• BREAK gauge +25% ต่อแตะ\n• KO score +250',
     balanceNote:'REWORK - สายโมเมนตัม burst เป็นช่วง มีความเสี่ยงคอมโบร่วงชัดเจน',
     apply(s){ s.cs_turtleShogun = true; }
   },
@@ -2734,9 +2743,9 @@ const CARD_POOL = [
     apply(s){ s.cs_drunkula=true; s.cs_critDmgBonus=(s.cs_critDmgBonus||0)+0.35; }
   },
   { id:'ic',name:'INCANTATION SCAMURAI CARD',img:'cards/incantation_scamurai.png',rarity:'elite',
-    effect:'Combo ≥35: เปิด <strong>SCAMURAI CONTRACT</strong> 6 วิ (CD 18 วิ)<br>DMG <strong>+70%</strong> | AK47 spawn <strong>+25%</strong> | BREAK DMG <strong>+20%</strong>', tradeoff:'เมื่อหมดสัญญา Combo จะถูกรีเซ็ตเหลือ 15',
+    effect:'Combo ≥35: เปิด <strong>SCAMURAI CONTRACT</strong> 6 วิ (CD 18 วิ)<br>DMG <strong>+70%</strong> | AK47 spawn <strong>+25%</strong> | BREAK gauge <strong>+20%</strong>', tradeoff:'เมื่อหมดสัญญา Combo จะถูกรีเซ็ตเหลือ 15',
     shortDescription:'เร่งคอมโบถึง 35 เพื่อเปิดสัญญา 6 วิ\nจบสัญญาโดนตัดคอมโบเหลือ 15',
-    fullDescription:'[SCAMURAI CONTRACT]\nเมื่อ Combo ถึง 35\nเปิด 6 วิ (CD 18 วิ)\n\n• DMG +70%\n• AK47 spawn +25%\n• BREAK DMG +20%',
+    fullDescription:'[SCAMURAI CONTRACT]\nเมื่อ Combo ถึง 35\nเปิด 6 วิ (CD 18 วิ)\n\n• DMG +70%\n• AK47 spawn +25%\n• BREAK gauge +20% ต่อแตะ',
     balanceNote:'REWORK - บูสต์แรงเป็นช่วงพร้อมค่าเสียโอกาสหลังจบ ป้องกัน uptime ถาวร',
     apply(s){ s.cs_incantation = true; }
   },
@@ -2749,8 +2758,8 @@ const CARD_POOL = [
   },
   { id:'dl',   name:'DORK LORD CARD',      img:'cards/dork_lord.png',   rarity:'elite',
     shortDescription:'ทุก 15วิได้ NIGHT STACK\nยิ่งแรง แต่เวลาเดินเร็วขึ้น',
-    effect:'ทุก 15วิรับ NIGHT STACK (สูงสุด 5): ต่อ Stack DMG +6% / BREAK DMG +4%', tradeoff:'ต่อ Stack timer speed +3% (สูงสุด +15%) | Zeny per KO <strong>-15%</strong>',
-    fullDescription:'[NIGHT STACK]\nทุก 15 วิ: +1 Stack (สูงสุด 5)\n\nต่อ Stack:\n• DMG +6%\n• BREAK DMG +4%',
+    effect:'ทุก 15วิรับ NIGHT STACK (สูงสุด 5): ต่อ Stack DMG +6% / BREAK gauge +4%', tradeoff:'ต่อ Stack timer speed +3% (สูงสุด +15%) | Zeny per KO <strong>-15%</strong>',
+    fullDescription:'[NIGHT STACK]\nทุก 15 วิ: +1 Stack (สูงสุด 5)\n\nต่อ Stack:\n• DMG +6%\n• BREAK gauge +4% ต่อแตะ',
     balanceNote:'REWORK - การ์ดคอร์รัปชันสะสมแบบมีเพดาน ป้องกันยืดเวลาเกินขอบเขต',
     apply(s){ s.cs_dorkLord = true; }
   },
@@ -2882,21 +2891,21 @@ const CARD_POOL = [
   { id:'wh',    name:'WHIZPER CARD',       img:'cards/whizper.png',     rarity:'elite',
     effect:'BREAK สำเร็จ: เปิด <strong>GHOST PROTOCOL</strong> 4 วิ (CD 10 วิ)', tradeoff:null,
     shortDescription:'BREAK สำเร็จเปิด GHOST PROTOCOL 4วิ (CD 10วิ)\nพักคอมโบ 1.2วิ + BREAK window +0.15วิ + OD +6%',
-    fullDescription:'[GHOST PROTOCOL]\nหลัง BREAK สำเร็จ (CD 10 วิ)\nเปิด 4 วิ\n\n• หยุด Combo decay 1.2 วิ\n• BREAK window +0.15 วิ\n• OD +6%\n\n[PASSIVE]\n• AK47 spawn +35% เร็วขึ้น',
+    fullDescription:'[GHOST PROTOCOL]\nหลัง BREAK สำเร็จ (CD 10 วิ)\nเปิด 4 วิ\n\n• หยุด Combo decay 1.2 วิ\n• BREAK window +0.15 วิ\n• OD +6%\n\n[PASSIVE]\n• AK47 spawn เร็วขึ้น ~17%',
     balanceNote:'REWORK - สายคุมจังหวะหลัง BREAK แบบชั่วคราว ไม่ยืดเวลา ไม่ลูป BREAK/OD และยังมีความเสี่ยงจากจุดซ้ำ',
     apply(s){ s.cs_whisper = true; s.cs_whizperGhostProtocol = true; s.cs_ak47DuplicateChance = (s.cs_ak47DuplicateChance||0) + 0.35; }
   },
   { id:'gl',name:'GOBLIN WEEBER CARD',img:'cards/goblin_weeber.png',rarity:'elite',
-    effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥35: คลิกซ้ำฟรี <strong>20%</strong> (ทุก 0.25 วิ)<br>Combo ≥75: <strong>WEEB FOCUS</strong> 5 วิ<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
-    shortDescription:'ทุกคลิก Combo +2 ยิ่งคอมโบสูง ยิ่งแรง\nถึง 75 ปลด WEEB FOCUS',
-    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +2\n\nCombo ≥25: DMG +20%\nCombo ≥35: คลิกซ้ำฟรี 20%\n(คลิกซ้ำมี ICD 0.25 วิ ป้องกัน cascade)\n\n[WEEB FOCUS]\nCombo ≥75 เปิด 5 วิ\n• Combo ไม่ลด\n• OD gain +35%\n• Crit +20%',
+    effect:'คลิก = Combo <strong>+2</strong><br>Combo ≥25: DMG <strong>+20%</strong><br>Combo ≥35: คลิกซ้ำฟรี <strong>20%</strong> (ทุก 0.25 วิ)<br>Combo เต็ม (47): <strong>WEEB FOCUS</strong> 5 วิ<br>Combo ไม่ลด + OD gain <strong>+35%</strong> + Crit <strong>+20%</strong>', tradeoff:null,
+    shortDescription:'ทุกคลิก Combo +2 ยิ่งคอมโบสูง ยิ่งแรง\nคอมโบเต็ม (47) ปลด WEEB FOCUS',
+    fullDescription:'[PASSIVE]\nทุกคลิก: Combo +2\n\nCombo ≥25: DMG +20%\nCombo ≥35: คลิกซ้ำฟรี 20%\n(คลิกซ้ำมี ICD 0.25 วิ ป้องกัน cascade)\n\n[WEEB FOCUS]\nCombo เต็ม (47) เปิด 5 วิ\n• Combo ไม่ลด\n• OD gain +35%\n• Crit +20%',
     balanceNote:'FIXED - เพิ่ม ICD 250ms สำหรับ free-click proc ป้องกัน cascade burst',
     apply(s){ s.cs_goblinLeader = true; }
   },
   { id:'ar',     name:'AMOG RA CARD',       img:'cards/amog_ra.png',     rarity:'elite',
     effect:'ทุกครั้งที่ Combo แตะ 20 จะสุ่มผล 5วิ: 70% ได้ DMG +35% + Crit +20% | 30% SUS EVENT', tradeoff:null,
     shortDescription:'แตะคอมโบ 20 = สุ่มบัฟ 5วิ\n70% ดีจัด / 30% SUS แลกเวลา',
-    fullDescription:'[AMOG GAMBLE]\nทุกครั้งที่ Combo แตะ 20\nสุ่มเอฟเฟกต์ 5 วิ (CD 8 วิ)\n\n• 70% — BLESSED\nDMG +35%, Crit +20%\n\n• 30% — SUS EVENT\nเวลา -2 วิ\nBREAK DMG +60%\nAK47 spawn +30% (4 วิ)',
+    fullDescription:'[AMOG GAMBLE]\nทุกครั้งที่ Combo แตะ 20\nสุ่มเอฟเฟกต์ 5 วิ (CD 8 วิ)\n\n• 70% — BLESSED\nDMG +35%, Crit +20%\n\n• 30% — SUS EVENT\nเวลา -2 วิ\nBREAK gauge +60% ต่อแตะ\nAK47 spawn +30% (4 วิ)',
     balanceNote:'REWORK - สายพนันจังหวะ มี burst สูงและความเสี่ยงคุมได้',
     apply(s){ s.cs_amogRa = true; }
   },
@@ -4378,7 +4387,7 @@ function csApplyDmgMod(baseDmg, isGod) {
   if(cs.cs_goblinLeader && combo >= 25) d *= 1.20;
   if(cs.cs_freeoni && cs._freeoniOdDmgStack) d *= (1 + cs._freeoniOdDmgStack);
   if(cs.cs_drakeIgnoreThreshold && cs._drakeDmgEndTime && performance.now() < cs._drakeDmgEndTime) d *= (1 + (cs._drakeDmgBonus || 0));
-  if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 1.30;
+  if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 2.0;
   // Baphomet: accumulated dmg bonus from AK47 completions
   if(cs.cs_baphomet && cs._baphometSinStack) d *= (1 + cs._baphometSinStack);
   // Orc Hero: accumulated dmg bonus from OD completions
@@ -6497,6 +6506,8 @@ function pressureHitTarget(x, y) {
   // cs_breakPower: extra BREAK progress per tap (HYDRA +0.15, CATULLANUX +0.20, stacks)
   const _bpBonus = (window._csState && window._csState.cs_breakPower) || 0;
   if(_bpBonus > 0) PRESSURE.targetHits += _bpBonus;
+  // DRAKE TAKE: BREAK x2 progress per tap during the 6s window (base ++ → +1 doubles it)
+  if(window._csState && window._csState.cs_drakeIgnoreThreshold && window._csState._drakeTakeEndTime && performance.now() < window._csState._drakeTakeEndTime) PRESSURE.targetHits += 1;
   // INCANTATION SCAMURAI: contract adds BREAK progress
   if(window._csState && window._csState.cs_incantation && window._csState._incantationContractEndTime && performance.now() < window._csState._incantationContractEndTime) PRESSURE.targetHits += 0.20;
   // EXECUSIONER: +15% BREAK progress when boss/enemy HP < 25%
@@ -7716,8 +7727,8 @@ function normalKO() {
   ko++; waveKO++;
   window._wqRunKO = (window._wqRunKO || 0) + 1; // weekly per-run KO counter
   let baseCoins = Math.round((1 + Math.floor(combo * 0.05)) * (1.25 + (_sc.coinMult||0)));
-  // Turtle Shogun: KO Zeny -15%
-  if(window._csState && (window._csState.cs_turtleShogun || window._csState.cs_dorkLord)) baseCoins = Math.round(baseCoins * 0.85);
+  // DORK LORD: KO Zeny -15% (documented tradeoff). Turtle Shogun no longer shares this.
+  if(window._csState && window._csState.cs_dorkLord) baseCoins = Math.round(baseCoins * 0.85);
   baseCoins = csApplyCoinMod(baseCoins);
   // ── Zeny KO reduction (late-game economy rebalance) ──
   // Applied per-KO at earn time so totalRunZeny is never reduced retroactively.
@@ -7776,9 +7787,7 @@ function bossKO() {
   bossTapCount = 0; lastTapTime = 0; // reset tap ramp on boss KO
   window._bossesDefeated = (window._bossesDefeated||0) + 1;
   let bossCoins=Math.round((8+Math.floor(combo*0.2)) * (1.25 + (_sc.coinMult||0)));
-  // Turtle Shogun: KO Zeny -15%
-  if(window._csState && window._csState.cs_turtleShogun) bossCoins = Math.round(bossCoins * 0.85);
-    if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
+  if(window._csState && window._csState.cs_bossCoinPct) bossCoins = Math.round(bossCoins * (1 + window._csState.cs_bossCoinPct));
   // DEVILINGO: boss defeated within 15s → Boss KO Zeny +30%
   if(window._csState && window._csState.cs_devilingo && window._csState._devilingoCombatStart) {
     if(Date.now() - window._csState._devilingoCombatStart <= 15000) {
