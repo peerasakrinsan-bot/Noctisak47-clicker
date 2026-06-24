@@ -31,10 +31,11 @@ There are no automated browser tests or linters. CI runs `npm run card-audit && 
 ```
 index.html              # HTML shell; loads src/styles.css and src/main.js
 src/
-  main.js               # ES module entry point; imports game.js → cardVfx.js → installPrompt.js → bossLoopHero.js
+  main.js               # ES module entry point; imports game.js → canvasVfx.js → cardVfx.js → installPrompt.js → bossLoopHero.js
   game.js               # All core game logic (~10,387 lines) — Stage 2A verbatim lift
   bossLoopHero.js       # Boss Loop Hero / Loop RPG mode (~3,656 lines) — independent module
   cardVfx.js            # Elite/Mythic card VFX layer (~409 lines) — cosmetic, normal mode only
+  canvasVfx.js          # Canvas 2D engine for transient card VFX (~598 lines) — cosmetic, normal mode only
   installPrompt.js      # Soft PWA install prompt — isolated from gameplay, no game logic
   styles.css            # All game styles (~4,766 lines)
 public/
@@ -162,7 +163,7 @@ An **independent** auto-battle mode (user-facing name: **LOOP RPG MODE**; intern
 
 **Deferred to follow-up:** none — the original Boss Loop Mode spec backlog is complete.
 
-`src/main.js` imports in order: `game.js` → `cardVfx.js` → `installPrompt.js` → `bossLoopHero.js`. `cardVfx.js` loads after `game.js` so `window.CardVFX` exists before the game's hooks call it; `installPrompt.js` is self-contained (no game dependencies) but loads after `cardVfx.js` to match file order; `bossLoopHero.js` loads last so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
+`src/main.js` imports in order: `game.js` → `canvasVfx.js` → `cardVfx.js` → `installPrompt.js` → `bossLoopHero.js`. `canvasVfx.js` loads before `cardVfx.js` so `window.CanvasVFX` exists when `cardVfx.js` routes transient effects onto the canvas; `cardVfx.js` loads after `game.js` so `window.CardVFX` exists before the game's hooks call it; `installPrompt.js` is self-contained (no game dependencies) but loads after `cardVfx.js` to match file order; `bossLoopHero.js` loads last so the window bridge (`startGame`, `showMainMenu`, `stopBGM`) is populated before BLH binds its entry points.
 
 ### PWA Install Prompt (`src/installPrompt.js`)
 
@@ -187,8 +188,18 @@ A small, **self-contained, purely cosmetic** visual-feedback layer for normal/cl
   - `CardVFX.clearActive()` — on run end; clears the aura
   - `CardVFX.trigger(id, context, ctx)` — when a card's mechanic activates
 - **Wiring** lives at existing mechanic hooks (BREAK success, AK47 complete, Overdrive start, Drake Take, Thanatos Phase, boss interactions, Doppelganger shadow strike, Abyssmell execute). Passive-damage cards get the aura only — **no per-hit particle spam** (mobile-safe brief).
-- **DOM**: renders into its own `#cardVfxLayer` (separate from the game's `#fxLayer`) with a minimal node pool; never touches the core particle pools.
+- **Rendering**: transient effects (sparks, slashes, coin bursts, glow pulses, break cracks, etc.) are routed to the Canvas VFX layer (`src/canvasVfx.js`) when available; the original DOM `#cardVfxLayer` node pool remains as a fallback (canvas-unsupported browsers / audit env). The **persistent aura** (`#cvAuraEl`) stays DOM — it is one CSS-state-driven node, not performance-heavy.
 - Guarded by `scripts/card-vfx-audit.mjs` (`npm run card-vfx-audit`).
+
+### Canvas VFX (`src/canvasVfx.js`)
+
+A small, **self-contained, purely cosmetic** Canvas 2D engine that renders the *transient* card VFX into one pooled `#vfxCanvas` instead of spawning a fresh DOM node per particle. It exists purely for performance: under rapid Elite/Mythic triggers the old DOM path could push dozens of short-lived `<div>`s per second; this layer caps everything to one canvas + a bounded particle pool. Like `cardVfx.js`, it **never reads or writes card logic, `save`, `cs_*` flags, or balance**.
+
+- **Public API:** `spawnCanvasVfx(type, options)`, `spawnCardCanvasVfx(cardId, context, coord)`, `clearCanvasVfx()`, `resizeCanvasVfx()`, `supported()`. All safe no-ops when Canvas 2D is unsupported or no DOM host exists.
+- **Integration:** `cardVfx.js` keeps its public API (`trigger` / `setActiveCard` / `clearActive`) unchanged. Each primitive tries `window.CanvasVFX.spawnCanvasVfx(...)` first via the `_toCanvas()` helper and only falls back to its DOM body if canvas is unavailable — so the change is fully reversible and the audit (which runs in a canvas-less Node env) still exercises the DOM path.
+- **Primitives supported on canvas:** flash, spark, slash, coinBurst, shadowBurst, fireBurst, bolt, breakCrack, streak, drainPulse, odGlow, bossFlare, pulse, comboRing, moonRing, holyBurst, glitch — each kept visually distinct (color/shape/movement) to preserve per-card identity.
+- **Safeguards:** global particle cap (`MAX_PARTICLES = 340`, drops oldest on overflow), per-effect counts reduced under `prefers-reduced-motion`, DPR capped at 2.5, `requestAnimationFrame` loop **starts only when particles exist and stops when idle**, particles cleared + loop paused while the tab is hidden, and layout reads happen only in `resizeCanvasVfx()` (never inside the draw loop). `clearCanvasVfx()` is also called from `CardVFX.clearActive()` on run end.
+- **DOM:** `#vfxCanvas` lives in `#gameRoot` at `z-index: 16` (same plane as `#cardVfxLayer`), `pointer-events: none`.
 
 ### Game screen IDs
 

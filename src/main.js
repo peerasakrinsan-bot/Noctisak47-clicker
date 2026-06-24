@@ -16,9 +16,15 @@
 // ไม่เกิด FOUC) — ไม่ import ที่นี่เพื่อเลี่ยงการโหลดซ้ำ.
 import './game.js';
 
+// ── CANVAS VFX LAYER (normal mode, cosmetic only) ───────────────────────────
+// เอนจิน Canvas 2D สำหรับ particle/transient ของการ์ด (spark/slash/coin/…).
+// โหลดก่อน cardVfx.js เพื่อให้ window.CanvasVFX พร้อมตอน cardVfx route เอฟเฟกต์
+// ไปลง canvas (ลด DOM node บนมือถือ). safe no-op ถ้า canvas ไม่รองรับ.
+import './canvasVfx.js';
+
 // ── ELITE/MYTHIC CARD VFX LAYER (normal mode, cosmetic only) ────────────────
 // โหลดหลัง game.js เพื่อให้ window.CardVFX พร้อมก่อนที่ hook ใน game.js จะเรียก.
-// เป็น layer ภาพล้วน ไม่แตะ logic การ์ด/บาลานซ์.
+// เป็น layer ภาพล้วน ไม่แตะ logic การ์ด/บาลานซ์. route transient → canvasVfx.
 import './cardVfx.js';
 
 // ── SOFT PWA INSTALL PROMPT (normal flow only) ─────────────────────────────
