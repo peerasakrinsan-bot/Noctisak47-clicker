@@ -4435,6 +4435,16 @@
 #cvAuraEl.cv-aura--frost  { opacity: .15; animation-duration: 3.6s; }
 #cvAuraEl.cv-aura--fire   { animation: cvAuraFire 1.3s ease-in-out infinite; }
 #cvAuraEl.cv-aura--tech   { border-radius: 12%; filter: blur(1px); animation-duration: 1.8s; }
+/* moon — เงินวาวเย็น แกนขาวนุ่ม (MOONLIGHT FEVER): ต่างจาก holy (ม่วง-ขาว) ชัดเจน */
+#cvAuraEl.cv-aura--moon {
+  opacity: .17; filter: blur(2px);
+  background: radial-gradient(circle at 50% 44%, #ffffff 0%, var(--cv-aura, #cfd8ff) 42%, transparent 72%);
+  animation: cvAuraMoon 3s ease-in-out infinite;
+}
+@keyframes cvAuraMoon {
+  0%, 100% { opacity: .12; transform: translate(-50%, -50%) scale(.97); }
+  50%      { opacity: .2;  transform: translate(-50%, -50%) scale(1.05); }
+}
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
@@ -4607,10 +4617,45 @@
   100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.6); }
 }
 
-/* ── reduced-motion: ตัด aura ที่วน + ย่นเอฟเฟกต์ ── */
+/* ── PRIMITIVE: moonRing (MOONLIGHT FEVER — พระจันทร์เสี้ยวเงิน + วงแหวนพัลส์ + แสงระยิบ) ──
+   ไม่จ้า (mix-blend screen + opacity ปานกลาง) แต่เห็นชัดบนมือถือ. duration อ่านจาก --md. */
+.cv-moonring { width: 4px; height: 4px; transform: translate(-50%, -50%); }
+.cv-moonring > i { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); mix-blend-mode: screen; }
+/* จานพระจันทร์เสี้ยว: ตัดวงกลมเยื้องศูนย์ด้วย mask → เป็นเสี้ยว */
+.cv-moonring .cv-moon-disc {
+  width: 66px; height: 66px; border-radius: 50%;
+  background: radial-gradient(circle at 42% 40%, #ffffff 0%, var(--cv, #cfd8ff) 60%, rgba(150,170,230,0) 78%);
+  -webkit-mask: radial-gradient(circle at 67% 35%, transparent 44%, #000 45%);
+          mask: radial-gradient(circle at 67% 35%, transparent 44%, #000 45%);
+  box-shadow: 0 0 24px var(--cv, #cfd8ff);
+  opacity: 0; animation: cvMoonDisc var(--md, .7s) ease-out forwards;
+}
+.cv-moonring .cv-moon-ring {
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 2px solid var(--cv, #cfd8ff);
+  box-shadow: 0 0 12px var(--cv, #cfd8ff), inset 0 0 8px var(--cv, #cfd8ff);
+  opacity: 0; animation: cvMoonRing var(--md, .7s) ease-out forwards;
+}
+.cv-moonring .cv-moon-ring2 { animation-delay: .13s; }
+.cv-moonring.peak .cv-moon-disc { width: 94px; height: 94px; }
+.cv-moonring.peak .cv-moon-ring { width: 60px; height: 60px; }
+@keyframes cvMoonDisc {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(.5) rotate(-12deg); }
+  35%  { opacity: .85; transform: translate(-50%, -50%) scale(1.04) rotate(0deg); }
+  70%  { opacity: .5;  transform: translate(-50%, -50%) scale(1.07) rotate(5deg); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.13) rotate(9deg); }
+}
+@keyframes cvMoonRing {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(.4); }
+  30%  { opacity: .8;  transform: translate(-50%, -50%) scale(1.1); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(2.9); }
+}
+
+/* ── reduced-motion: ตัด aura ที่วน + ย่นเอฟเฟกต์ (รวมลูกของ node ด้วย เช่น moonRing) ── */
 @media (prefers-reduced-motion: reduce) {
   #cvAuraEl.cv-aura { animation: none !important; opacity: .14; }
-  #cardVfxLayer > div {
+  #cardVfxLayer > div,
+  #cardVfxLayer > div > * {
     animation-duration: .14s !important;
     animation-iteration-count: 1 !important;
   }

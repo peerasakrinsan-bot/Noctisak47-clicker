@@ -217,6 +217,23 @@ function pComboRing(color, dur = 0.5) {
   _emit(el, _dur(dur) * 1000 + 80);
 }
 
+// MOONLIGHT FEVER — silver/blue moon: crescent disc + circular ring pulse + night-fever shimmer.
+// variant 'peak' (ยิงตอน OD ซึ่งการ์ดบูสต์ OD charge ×2) ใหญ่/สว่างกว่าเล็กน้อย.
+// ตั้งใจให้ "ไม่จ้าแต่เห็นชัดบนมือถือ" — ใช้ mix-blend screen + opacity ปานกลาง.
+// รูปทรงพระจันทร์เสี้ยวทำให้ต่างจาก frost(FREEONI/GHOSTPING) / dark(THANABROS) / holy(VALKYRIZZ).
+function pMoonRing(color, variant) {
+  const c = _fighterCenter();
+  const peak = (variant === 'peak');
+  const base = peak ? 0.95 : 0.7;
+  const dur = _dur(base);
+  const el = _take('cv-moonring' + (peak ? ' peak' : ''));
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#cfd8ff');
+  el.style.setProperty('--md', dur + 's'); // children อ่านค่า duration จากตัวแปรนี้
+  el.innerHTML = '<i class="cv-moon-disc"></i><i class="cv-moon-ring"></i><i class="cv-moon-ring cv-moon-ring2"></i>';
+  _emit(el, dur * 1000 + 160);
+}
+
 function pBossFlare(color, dur = 0.5) {
   // หา target ของบอส (bossBar/boxer) ถ้าไม่มีก็ fallback กลางตัวละคร
   const boss = document.getElementById('boxer') || document.getElementById('bossBar') || _fighter();
@@ -238,7 +255,7 @@ const PRIM = {
   flash: pFlash, pulse: pPulse, slash: pSlash, spark: pSpark,
   shadowBurst: pShadowBurst, coinBurst: pCoinBurst, breakCrack: pBreakCrack,
   odGlow: pOdGlow, streak: pStreak, drainPulse: pDrainPulse,
-  comboRing: pComboRing, bossFlare: pBossFlare,
+  comboRing: pComboRing, bossFlare: pBossFlare, moonRing: pMoonRing,
 };
 
 // ── PER-CARD VFX MAPPING (Elite + Mythic) ────────────────────────────────────
@@ -261,7 +278,7 @@ const VFX_MAP = {
   ic:  { rarity: 'elite', aura: ['glow',  '#cc66ff'],  on: { break: [['breakCrack', '#d49bff'], ['flash', '#2a0a3a']] } }, // INCANTATION SCAMURAI — talisman glyph
   sk:  { rarity: 'elite', aura: ['tech',  '#66ddff'],  on: { od: [['flash', '#bff0ff'], ['spark', '#9be7ff', 6]] } }, // STORMYNITE — lightning strike
   dl:  { rarity: 'elite', aura: ['shadow', '#7744aa'], on: { break: ['breakCrack', '#9a66cc'] } },            // DORK LORD — dark break crack
-  mf:  { rarity: 'elite', aura: ['holy',  '#ccccff'],  on: { break: ['pulse', '#d6d6ff'] } },                 // MOONLIGHT FEVER — silver moon glow
+  mf:  { rarity: 'elite', aura: ['moon',  '#cfd8ff'],  on: { od: ['moonRing', '#dbe4ff', 'peak'], break: ['moonRing', '#cfd8ff'], ak47: ['moonRing', '#bcd0ff'] } }, // MOONLIGHT FEVER — silver crescent-moon glow + ring pulse; fires on its real boosts (OD ×2 = peak, BREAK window, AK47)
   mi:  { rarity: 'elite', aura: ['glow',  '#bb8844'],  on: { break: ['spark', '#d8a14e', 5] } },              // MINORAGE — mining hit spark
   ex:  { rarity: 'elite', aura: ['shadow', '#cc3333'], on: { break: ['slash', '#ff5544', 1] } },              // EXECUSIONER — axe chop
   wh:  { rarity: 'elite', aura: ['frost', '#aaffee'],  on: { ak47: ['streak', '#aaffee'] } },                 // WHIZPER — ghost fade speed streak
@@ -299,7 +316,7 @@ const VFX_MAP = {
 // ใช้ child element เฉพาะ (#cvAuraEl) แทน ::before เพื่อไม่ชนกับ aura ของบอสสกิน
 // (toei-enigma-aura ใช้ทั้ง ::before และ ::after บน #fighter อยู่แล้ว).
 let _activeAuraId = null;
-const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech'];
+const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon'];
 
 function _auraEl(create) {
   const f = _fighter();
