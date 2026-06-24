@@ -379,6 +379,21 @@ function toggleSound() {
   persistSettings();
 }
 
+// เล่นเสียง SFX ที่เป็น <audio> element (เช่น countdown) ผ่าน gate เดียวกับ _playSfx
+// ใช้ตัวกลางตัวเดียวกัน: เคารพ sfxOn + sfxVolume และมี fallback กัน error
+// (ไฟล์หาย / browser block autoplay) — ไม่มี SFX ใด bypass ค่า setting
+function _playSfxEl(id, baseVol) {
+  if(!gameSettings.sfxOn) return;
+  const el = $(id);
+  if(!el) return;
+  try {
+    el.currentTime = 0;
+    el.volume = _sfxGain(baseVol == null ? 1 : baseVol);
+    const p = el.play();
+    if(p && typeof p.catch === 'function') p.catch(()=>{});
+  } catch(e) {}
+}
+
 // ── SFX play functions ──
 let _akLastPlay = 0;
 function playAK() {
@@ -5853,13 +5868,8 @@ function startCountdown(onDone) {
   overlay.style.display = 'flex';
   let count = 3;
 
-  // เล่นเสียง countdown
-  const cdSound = $('countdownSound');
-  if(cdSound && gameSettings.sfxOn) {
-    cdSound.currentTime = 0;
-    cdSound.volume = _sfxGain(1.0);
-    cdSound.play().catch(()=>{});
-  }
+  // เล่นเสียง countdown (ผ่านตัวกลาง SFX เดียวกัน — เคารพ sfxOn + sfxVolume)
+  _playSfxEl('countdownSound', 1.0);
 
   function tick() {
     numEl.className = ''; // reset animation
