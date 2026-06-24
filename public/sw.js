@@ -1,24 +1,27 @@
 // NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker 2026.06.07.1
-const APP_VERSION = '2026.06.24.2';
+const APP_VERSION = '2026.06.24.3';
 const CACHE_NAME = 'noctisak47-' + APP_VERSION;
 
+// Precache = first-run / default-offline experience only. Heavy progressive
+// content (purchasable boss skins, alt fight tracks) is intentionally NOT
+// precached: the fetch handler below caches images/audio cache-first on first
+// use, so they persist offline after being seen once without forcing a ~70MB
+// download on the very first visit. Card artwork (public/cards/*) was never in
+// this list and likewise streams in on demand.
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  // Backgrounds
+  // Backgrounds (menu + default/owned-by-default arenas)
   './default_bg.png',
   './one_bg.png',
   './colosseum_bg.webp',
   './colosseum_bg.png',
   './title_bg.png',
   './collect_bg.png',
-  // Audio
+  // Audio — title + first fight track (extra tracks load on demand)
   './47title.mp3',
   './fight1.mp3',
-  './fight2.mp3',
-  './fight3.mp3',
-  './fight4.mp3',
   './countdown.mp3',
   './collect.mp3',
   // UI images
@@ -59,95 +62,19 @@ const PRECACHE_ASSETS = [
   './buff-stick.webp',
   './time-skip-core.webp',
   './stonks-hand.webp',
-  // Default boss skin
+  // Default boss skin (alt skins cache on demand when equipped)
   './boxer.png',
   './boxer_hit1.png',
   './boxer_hit2.png',
   './boxer_hit3.png',
   './boxer_hit4.png',
   './boxer_icon.webp',
-  // TOEI (ENIGMA) skin
-  './toei.png',
-  './toei_hit1.png',
-  './toei_hit2.png',
-  './toei_hit3.png',
-  './toei_hit4.png',
-  './toei_icon.webp',
-  // TOEI BOXER skin
-  './toei_boxer.png',
-  './toei_boxer_hit1.png',
-  './toei_boxer_hit2.png',
-  './toei_boxer_hit3.png',
-  './toei_boxer_hit4.png',
-  './toei_boxer_icon.webp',
-  // APOLOGIZE skin
-  './apologize.png',
-  './apologize_hit1.png',
-  './apologize_hit2.png',
-  './apologize_hit3.png',
-  './apologize_hit4.png',
-  './apologize_icon.webp',
-  // XUANG skin
-  './xuang.png',
-  './xuang_hit1.png',
-  './xuang_hit2.png',
-  './xuang_hit3.png',
-  './xuang_hit4.png',
-  './xuang_icon.webp',
-  // RUKAWA skin
-  './rukawa.png',
-  './rukawa_hit1.png',
-  './rukawa_hit2.png',
-  './rukawa_hit3.png',
-  './rukawa_hit4.png',
-  './rukawa_icon.webp',
-  // SORNSIT SPIRIT skin
-  './sornsit.png',
-  './sornsit_hit1.png',
-  './sornsit_hit2.png',
-  './sornsit_hit3.png',
-  './sornsit_hit4.png',
-  './sornsit_icon.webp',
-  // SUANG skin
-  './suang.png',
-  './suang_hit1.png',
-  './suang_hit2.png',
-  './suang_hit3.png',
-  './suang_hit4.png',
-  './suang_icon.webp',
-  // ARTHUR MORGAN skin
-  './morgan.png',
-  './morgan_hit1.png',
-  './morgan_hit2.png',
-  './morgan_hit3.png',
-  './morgan_hit4.png',
-  './morgan_icon.webp',
-  // STANDARD cards (18)
-  './poring.png','./lunatic.png','./fabre.png','./condor.png','./pecopeco.png',
-  './spore.png','./poporing.png','./drops.png','./stainer.png','./rocker.png',
-  './caramel.png','./roda_frog.png','./metaller.png','./mandragora.png','./willow.png',
-  './hornet.png','./thief_bug.png','./mastering.png',
-  // PREMIUM cards (18)
-  './zombie.png','./savage.png','./orc.png','./mummy.png','./skel_worker.png',
-  './hunter_fly.png','./elder_willow.png','./sting.png','./nightmare.png',
-  './zenorc.png','./horong.png','./raydric.png',
-  './greatest_general.png','./jakk.png','./marina.png',
-  './demon_pungus.png','./vitata.png','./alligator.png',
-  // ELITE cards (16)
-  './doppelganger.png','./hydra.png','./phreeoni.png','./turtle_general.png',
-  './drake.png','./tao_gunka.png','./dracula.png','./incantation_samurai.png',
-  './stormy_knight.png','./dark_lord.png','./moonlight_flower.png',
-  './minorous.png','./executioner.png','./whisper.png','./goblin_leader.png','./amon_ra.png',
   // SFX
   './ak47.mp3',
   './punch.mp3',
   './wpball.mp3',
   './wp1.mp3','./wp2.mp3','./wp3.mp3','./wp4.mp3','./wp5.mp3',
   './wk1.mp3','./wk2.mp3','./wk3.mp3','./wk4.mp3','./wk5.mp3',
-  // MYTHIC cards (12)
-  './thanatos.png','./baphomet.png','./eddga.png','./osiris.png',
-  './mistress.png','./golden_bug.png','./orc_hero.png','./lord_of_death.png',
-  './ktullanux.png','./beelzebub.png','./valkyrie_randgris.png','./rsx_0806.png',
 ];
 
 self.addEventListener('install', event => {
