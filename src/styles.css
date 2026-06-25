@@ -944,8 +944,21 @@
     object-fit:cover; border-radius:10px; border:2px solid #333;
   }
   #bossSkinModalName { font-family:'Oswald',sans-serif; font-size:18px; letter-spacing:3px; color:#fff; text-align:center; }
-  #cardModalImg.aura-standard { border-color:#444; box-shadow:none; }
-  #cardModalImg.aura-premium  { border-color:#0088ff; box-shadow:0 0 16px rgba(0,136,255,0.7); }
+  /* Standard — clean depth: neutral frame + soft inner highlight, no glow */
+  #cardModalImg.aura-standard {
+    border-color:#4a4a52;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 3px 12px rgba(0,0,0,0.55);
+  }
+  /* Premium — refined themed glow hugging the frame (replaces generic cyan).
+     --cd-theme / --cd-theme2 are set per-card in openCardModal so each premium
+     card carries its own accent instead of one shared blue. */
+  #cardModalImg.aura-premium  {
+    border-color:var(--cd-theme,#4aa8ff);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.07),
+      0 0 12px -2px var(--cd-theme,#4aa8ff),
+      0 0 2px var(--cd-theme2,var(--cd-theme,#4aa8ff));
+  }
   #cardModalImg.aura-elite    { border-color:#c8a400; box-shadow:0 0 20px rgba(255,204,0,0.9); animation:eliteGlow 2s ease-in-out infinite; }
   #cardModalImg.aura-mythic   {
     border-color:#8b0000;
@@ -1016,9 +1029,11 @@
     border-radius: 6px;
     transform: translateY(8px) scale(.97);
     opacity: .6;
-    transition: transform .5s cubic-bezier(.2,.85,.25,1), opacity .4s ease;
+    transition: transform .36s cubic-bezier(.2,.85,.25,1), opacity .3s ease;
   }
   .card-detail-vfx.opened .card-detail-frame { transform: none; opacity: 1; }
+  /* Higher rarities rise a touch slower for drama; Standard/Premium stay snappy */
+  .card-detail-vfx--elite.opened  .card-detail-frame { transition-duration: .54s, .42s; }
   .card-detail-vfx--mythic.opened .card-detail-frame { transition-duration: .68s, .5s; }
 
   .card-detail-frame-glow,
@@ -1028,7 +1043,9 @@
     border-radius: inherit;
     pointer-events: none;
   }
-  .card-detail-frame-glow { z-index: 3; }
+  /* Frame-glow is shared by every rarity (thin ring / sheen / shimmer); it stays
+     hidden until the modal becomes .active, then each rarity styles its look. */
+  .card-detail-frame-glow { z-index: 3; opacity: 0; transition: opacity .4s ease; }
   .card-detail-particles  { z-index: 5; overflow: hidden; }
   .card-detail-sweep      { z-index: 6; overflow: hidden; }
 
@@ -1043,9 +1060,9 @@
   }
   .card-detail-vfx.active .card-detail-aura { opacity: 1; }
 
-  .card-detail-vfx--premium .card-detail-aura {
-    background: radial-gradient(60% 55% at 50% 42%, rgba(0,136,255,.18), transparent 72%);
-  }
+  /* Premium has NO full modal aura (that's reserved for Elite/Mythic). Its
+     "valuable" feel comes from a frame-hugging themed glow + static sheen +
+     one-time sweep only — see the frame-glow / sweep blocks below. */
   /* Elite — warm gold stage light, refined and steady */
   .card-detail-vfx--elite .card-detail-aura {
     background:
@@ -1075,6 +1092,25 @@
   }
   @keyframes cdAuraMythic { 0%,72%,100% { opacity:.85; } 86% { opacity:1; } }
   @keyframes cdAuraSpin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+  /* ── Standard — thin static neutral border highlight (no animation) ── */
+  .card-detail-vfx--standard .card-detail-frame-glow {
+    padding: 1px;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.02) 50%, rgba(255,255,255,.10));
+  }
+  /* fades in via the shared `.card-detail-vfx.active .card-detail-frame-glow` rule */
+
+  /* ── Premium — static sheen layer on the frame (a fixed diagonal gloss,
+        no animation; the moving light is the one-time sweep below) ── */
+  .card-detail-vfx--premium .card-detail-frame-glow {
+    background: linear-gradient(135deg,
+      rgba(255,255,255,.18) 0%, rgba(255,255,255,.05) 22%,
+      transparent 48%, transparent 100%);
+    transition: opacity .45s ease .05s;
+  }
 
   /* ── Frame border shimmer (gradient-mask ring, no blur) ── */
   .card-detail-vfx--elite .card-detail-frame-glow,
@@ -1112,8 +1148,13 @@
   .card-detail-vfx--mythic .card-detail-sweep::before {
     background: linear-gradient(100deg, transparent, rgba(206,176,255,.55), rgba(186,232,255,.4), transparent);
   }
-  .card-detail-vfx.active .card-detail-sweep::before,
-  .card-detail-vfx.triggered .card-detail-sweep::before {
+  /* Standard never sweeps. Premium sweeps once on open only (not on burst).
+     Elite/Mythic sweep on open AND on each activation burst. */
+  .card-detail-vfx--premium.active .card-detail-sweep::before,
+  .card-detail-vfx--elite.active    .card-detail-sweep::before,
+  .card-detail-vfx--elite.triggered .card-detail-sweep::before,
+  .card-detail-vfx--mythic.active    .card-detail-sweep::before,
+  .card-detail-vfx--mythic.triggered .card-detail-sweep::before {
     animation: cdSweep .8s ease-out;
   }
   .card-detail-vfx--mythic.active .card-detail-sweep::before { animation-duration: .9s; }
@@ -1177,7 +1218,13 @@
   }
   .card-detail-vfx--elite  #cardModalEffect .ability-vfx { color: #ffe08a; }
   .card-detail-vfx--mythic #cardModalEffect .ability-vfx { color: #e7b8ff; }
-  .ability-vfx::before {
+  /* Premium — section headers tinted with the card's accent (no glowing bar) */
+  .card-detail-vfx--premium #cardModalEffect .ability-vfx { color: var(--cd-theme, #9fb4d6); }
+  /* The accent bar is ONLY for Elite/Mythic, where the span is position:relative
+     (padding-left set above). Scoping it here prevents the bar from escaping to
+     the modal's left edge on Standard/Premium (the stray vertical yellow line). */
+  .card-detail-vfx--elite  #cardModalEffect .ability-vfx::before,
+  .card-detail-vfx--mythic #cardModalEffect .ability-vfx::before {
     content: ''; position: absolute; left: 0; top: 12%; bottom: 12%;
     width: 3px; border-radius: 2px;
     background: var(--cd-theme, #ffd86a);

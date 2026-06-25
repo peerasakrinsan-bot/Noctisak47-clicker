@@ -5838,6 +5838,27 @@ function renderCardCollection() {
 // prefers-reduced-motion + body.low-vfx / body.flash-off (Low VFX Mode).
 const _CD_MOTES = { elite: 4, mythic: 8 };   // Elite = burst-only, Mythic = ambient orbs
 
+// Premium detail-modal accent palettes. Premium cards have NO VFX_MAP entry
+// (that signature-colour layer is Elite/Mythic only), so without this every
+// premium card fell back to one identical generic cyan glow. A small curated
+// set of refined two-tone "premium" accents — keyed deterministically off the
+// card id — gives each premium card its own stylish look while staying clearly
+// BELOW Elite (cool jewel tones, no gold shimmer ring, no aura, no particles).
+// Cosmetic only; never touches card logic / save / cs_* / balance.
+const _CD_PREMIUM_THEMES = [
+  { style: 'rizz',    accent: '#ff5fa8', accent2: '#36e6ff' }, // influencer / love / rizz — pink + cyan
+  { style: 'fame',    accent: '#e6ecff', accent2: '#4aa8ff' }, // fame / sponsor — pearl + blue
+  { style: 'charm',   accent: '#e04fff', accent2: '#3a7bff' }, // charm / confidence — magenta + electric blue
+  { style: 'azure',   accent: '#39b8ff', accent2: '#8fe6ff' }, // refined sky + ice
+  { style: 'verdant', accent: '#3fe0b8', accent2: '#2bbfd6' }, // mint + teal
+  { style: 'violet',  accent: '#8f7bff', accent2: '#45d6ff' }, // periwinkle + cyan
+];
+function _cdPremiumTheme(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return _CD_PREMIUM_THEMES[h % _CD_PREMIUM_THEMES.length];
+}
+
 let _cdActiveCardId = null;
 
 // Build the per-card themed orb pool inside the frame's particle layer.
@@ -5905,9 +5926,21 @@ function openCardModal(card) {
     ? window.CardVFX.VFX_MAP[card.id].aura[0] : '';
   content.className = 'card-detail-vfx card-detail-vfx--' + card.rarity;
   content.classList.remove('opened', 'active', 'triggered');
-  content.dataset.cdTheme = themeStyle || '';
-  if (themeColor) content.style.setProperty('--cd-theme', themeColor);
-  else            content.style.removeProperty('--cd-theme');
+  // Per-rarity accent: Premium pulls a curated two-tone palette (no VFX_MAP),
+  // Elite/Mythic use their gameplay signature colour, Standard stays neutral.
+  content.style.removeProperty('--cd-theme2');
+  if (card.rarity === 'premium') {
+    const pt = _cdPremiumTheme(card.id);
+    content.dataset.cdTheme = pt.style;
+    content.style.setProperty('--cd-theme',  pt.accent);
+    content.style.setProperty('--cd-theme2', pt.accent2);
+  } else if (themeColor) {                       // Elite / Mythic signature colour
+    content.dataset.cdTheme = themeStyle || '';
+    content.style.setProperty('--cd-theme', themeColor);
+  } else {                                       // Standard — clean neutral baseline
+    content.dataset.cdTheme = '';
+    content.style.removeProperty('--cd-theme');
+  }
   _cdBuildParticles(card.rarity, themeColor);
 
   $('cardModal').style.display = 'flex';
