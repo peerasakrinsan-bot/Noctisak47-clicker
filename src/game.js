@@ -302,6 +302,8 @@ function applyFlashEffectSetting() {
   const fe = gameSettings.flashEffect || 'low';
   document.body.classList.toggle('flash-low', fe === 'low');
   document.body.classList.toggle('flash-off', fe === 'off');
+  // Premium card VFX collapse to a static look when effects are fully off
+  document.body.classList.toggle('low-vfx', fe === 'off');
   // ── เชื่อม flashEffect → canvas VFX intensity ────────────────────────────
   if (typeof window !== 'undefined' && window.CanvasVFX && typeof window.CanvasVFX.setVFXLevel === 'function') {
     window.CanvasVFX.setVFXLevel(fe);
@@ -3329,6 +3331,7 @@ function _csRenderRerollCards() {
       div.addEventListener('click', () => _csSelectRerollCard(div, card));
       div.addEventListener('touchstart', e => { e.preventDefault(); _csSelectRerollCard(div, card); }, { passive: false });
       cmDecorateCardSlotCard(div, card);
+      applyCardRarityVfx(div, card.rarity);
       wrap.appendChild(div);
     });
 
@@ -3348,6 +3351,7 @@ function _csSelectRerollCard(el, card) {
   // Deselect all
   document.querySelectorAll('.cs-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
+  pulseCardRarityVfx(el); // premium sparkle/sweep on Elite/Mythic select (no-op otherwise)
   // POLISH: dim unselected cards when one is active
   const wrap = $('csCardsWrap');
   if (wrap) wrap.classList.add('has-selection');
@@ -5625,6 +5629,55 @@ function _ccDisconnectShimmerObserver() {
 }
 // ── END PERF R2 observer helpers ──────────────────────────────────────
 
+// ── PREMIUM RARITY CARD VFX (Elite/Mythic) — cosmetic DOM layers ───────
+// Injects the GPU-only visual layers (.card-vfx-*) that give Elite/Mythic
+// cards their premium look. Purely cosmetic: never touches save / cs_* /
+// balance. No-op for Standard/Premium. Idempotent per node.
+const _RARITY_VFX_CLASS = { standard: 'card--normal', premium: 'card--premium', elite: 'card--elite', mythic: 'card--mythic' };
+const _RARITY_VFX_MOTES = { elite: 4, mythic: 6 };
+const _MYTHIC_MOTE_COLORS = ['#b066ff', '#33e6ff', '#ffd86a', '#cc99ff', '#66f0ff', '#e0b8ff'];
+function applyCardRarityVfx(el, rarity) {
+  const cls = el && _RARITY_VFX_CLASS[rarity];
+  if (!cls || el.classList.contains(cls)) return; // unknown rarity or already decorated
+  el.classList.add(cls);
+  // Normal = clean CSS-only baseline: no injected layers, no glow, no particles
+  if (rarity === 'standard') return;
+  // Premium = refined static look: surface depth + sheen + ring + interaction sweep
+  if (rarity === 'premium') {
+    el.insertAdjacentHTML('beforeend',
+      '<div class="card-vfx-surface"></div>' +
+      '<div class="card-vfx-highlight"></div>' +
+      '<div class="card-vfx-border"></div>' +
+      '<div class="card-vfx-sweep"></div>');
+    return;
+  }
+  // Elite / Mythic = animated premium layers (+ particles)
+  const n = _RARITY_VFX_MOTES[rarity] || 0;
+  let motes = '';
+  for (let i = 0; i < n; i++) {
+    const left  = (8 + (i + 0.5) * (84 / n)).toFixed(1);
+    const dur   = (6 + (i % 3) * 1.4).toFixed(1);
+    const delay = (i * 0.9).toFixed(1);
+    const color = rarity === 'mythic' ? _MYTHIC_MOTE_COLORS[i % _MYTHIC_MOTE_COLORS.length] : '#ffe680';
+    motes += `<i class="card-vfx-particle" style="left:${left}%;--mdur:${dur}s;--mdelay:${delay}s;--mote:${color}"></i>`;
+  }
+  el.insertAdjacentHTML('beforeend',
+    '<div class="card-vfx-aura"></div>' +
+    '<div class="card-vfx-border"></div>' +
+    '<div class="card-vfx-sweep"></div>' +
+    (n ? `<div class="card-vfx-particles">${motes}</div>` : ''));
+}
+
+// One-shot sparkle + light-sweep burst on obtain / select / upgrade.
+function pulseCardRarityVfx(el) {
+  if (!el || !(el.classList.contains('card--premium') || el.classList.contains('card--elite') || el.classList.contains('card--mythic'))) return;
+  el.classList.remove('card-vfx-burst');
+  void el.offsetWidth; // restart the one-shot animations
+  el.classList.add('card-vfx-burst');
+  setTimeout(() => el && el.classList.remove('card-vfx-burst'), 900);
+}
+// ── END PREMIUM RARITY CARD VFX ───────────────────────────────────────
+
 function openCardCollection() {
   $('mainMenu').style.display = 'none';
   $('dailyQuestWidget').classList.remove('visible');
@@ -5638,7 +5691,7 @@ function openCardCollection() {
     _ccEnsureShimmerObserver();
     const grid = $('cardCollectionGrid');
     if (_ccShimmerObserver && grid) {
-      const shimmerCards = grid.querySelectorAll('.cm-glossy-wrap, .cm-prismatic-wrap');
+      const shimmerCards = grid.querySelectorAll('.cm-glossy-wrap, .cm-prismatic-wrap, .card--elite, .card--mythic');
       for (const el of shimmerCards) {
         _ccShimmerObserver.observe(el);
       }
@@ -5694,6 +5747,7 @@ function renderCardCollection() {
       div.appendChild(img);
       // Card Mastery visual overlay (no save/cloud calls)
       cmDecorateCollectionCard(div, card);
+      applyCardRarityVfx(div, card.rarity);
     } else {
       div.setAttribute('aria-disabled', 'true');
       div.innerHTML = '<div class="cc-card-locked">?</div>';

@@ -599,14 +599,14 @@
   /* rarity border & glow */
   .cs-card.rarity-standard  { border-color:#333; }
   .cs-card.rarity-premium{ border-color:#0088ff; box-shadow:0 0 14px rgba(0,136,255,0.35), inset 0 0 20px rgba(0,136,255,0.05); }
-  .cs-card.rarity-elite    { border-color:#c8a400; box-shadow:0 0 18px rgba(255,204,0,0.55), inset 0 0 24px rgba(255,204,0,0.08); animation:csCardReveal 0.4s ease forwards, rareGold 2s ease-in-out infinite; }
-  .cs-card.rarity-elite.selected { animation:rareGold 2s ease-in-out infinite; }
+  .cs-card.rarity-elite    { border-color:#c8a400; box-shadow:0 0 18px rgba(255,204,0,0.55), inset 0 0 24px rgba(255,204,0,0.08); animation:csCardReveal 0.4s ease forwards; }
+  .cs-card.rarity-elite.selected { animation:none; }
   @keyframes rareGold {
     0%,100%{ box-shadow:0 0 14px rgba(255,204,0,0.4), inset 0 0 20px rgba(255,204,0,0.06); border-color:#c8a400; }
     50%    { box-shadow:0 0 28px rgba(255,204,0,0.9), inset 0 0 30px rgba(255,204,0,0.12); border-color:#ffcc00; }
   }
-  .cs-card.rarity-mythic    { border-color:#ff2233; box-shadow:0 0 18px rgba(255,34,51,0.6), inset 0 0 24px rgba(255,34,51,0.08); animation:csCardReveal 0.4s ease forwards, voidRed 2s ease-in-out infinite; }
-  .cs-card.rarity-mythic.selected { animation:voidRed 2s ease-in-out infinite; }
+  .cs-card.rarity-mythic    { border-color:#ff2233; box-shadow:0 0 18px rgba(255,34,51,0.6), inset 0 0 24px rgba(255,34,51,0.08); animation:csCardReveal 0.4s ease forwards; }
+  .cs-card.rarity-mythic.selected { animation:none; }
   @keyframes voidRed {
     0%,100%{ box-shadow:0 0 14px rgba(255,34,51,0.5), inset 0 0 20px rgba(255,34,51,0.07); border-color:#ff2233; }
     50%    { box-shadow:0 0 30px rgba(255,34,51,1),   inset 0 0 30px rgba(255,34,51,0.12); border-color:#ff5566; }
@@ -911,8 +911,8 @@
   .cc-card.unlocked { border-color:#444; }
   .cc-card.rarity-standard.unlocked  { border-color:#444; }
   .cc-card.rarity-premium.unlocked   { border-color:#0088ff; box-shadow:0 0 6px rgba(0,136,255,0.4); }
-  .cc-card.rarity-elite.unlocked     { border-color:#c8a400; box-shadow:0 0 8px rgba(255,204,0,0.5); animation:rareGold 2s ease-in-out infinite; }
-  .cc-card.rarity-mythic.unlocked    { animation:voidRed 2s ease-in-out infinite; }
+  .cc-card.rarity-elite.unlocked     { border-color:#c8a400; box-shadow:0 0 9px rgba(255,204,0,0.45), inset 0 0 10px rgba(255,204,0,0.06); }
+  .cc-card.rarity-mythic.unlocked    { border-color:#ff2233; box-shadow:0 0 10px rgba(255,34,51,0.5), inset 0 0 12px rgba(255,34,51,0.08); }
   .cc-card img { width:100%; height:100%; object-fit:cover; display:block; }
   .cc-card-locked {
     width:100%; height:100%; display:flex; align-items:center; justify-content:center;
@@ -3369,6 +3369,263 @@
     animation-play-state: paused !important;
   }
   /* ══ END CARD MASTERY SYSTEM ══ */
+
+  /* ══════════════════════════════════════════════════════════════════
+     PREMIUM RARITY CARD VFX — Elite / Mythic
+     Reusable, GPU-only (transform + opacity), readable at mobile size.
+     Layer nodes are injected by applyCardRarityVfx() in game.js:
+       .card-vfx-aura      — soft inset glow (Elite) / iridescent aura (Mythic)
+       .card-vfx-border    — thin animated rarity edge + energy edge (Mythic)
+       .card-vfx-sweep     — diagonal light sweep (tap / select / unlock burst)
+       .card-vfx-particles — tiny floating motes (Mythic ambient / Elite burst)
+     Gating: prefers-reduced-motion, body.low-vfx, body.flash-off all collapse
+     to a static premium look (no loops, no particles). Off-screen collection
+     cards are paused via .cm-paused (IntersectionObserver). No box-shadow,
+     blur or layout animation; no global will-change.
+     ════════════════════════════════════════════════════════════════ */
+  :root {
+    --elite-gold:    #ffcc33;
+    --elite-gold-d:  #c8a400;
+    --elite-blue:    #34508c;
+    --elite-silver:  #dfe4ef;
+    --mythic-violet: #b066ff;
+    --mythic-cyan:   #33e6ff;
+    --mythic-gold:   #ffd86a;
+  }
+
+  .card--normal, .card--premium, .card--elite, .card--mythic { position: relative; }
+
+  .card-vfx-surface,
+  .card-vfx-highlight,
+  .card-vfx-aura,
+  .card-vfx-border,
+  .card-vfx-sweep,
+  .card-vfx-particles {
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .card-vfx-surface   { z-index: 1; }   /* depth, behind the artwork */
+  .card-vfx-highlight { z-index: 2; }   /* static sheen, over the artwork */
+  .card-vfx-aura      { z-index: 2; overflow: hidden; }
+  .card-vfx-border    { z-index: 3; }
+  .card-vfx-particles { z-index: 7; overflow: hidden; }
+  .card-vfx-sweep     { z-index: 8; overflow: hidden; }
+
+  /* Keep card content above the persistent fill layers (Premium/Elite/Mythic slot cards) */
+  .cs-card.card--premium > .cs-rarity-tag,
+  .cs-card.card--premium > .cs-card-img,
+  .cs-card.card--premium > .cs-card-name,
+  .cs-card.card--premium > .cs-card-effect,
+  .cs-card.card--premium > .cs-card-tradeoff,
+  .cs-card.card--elite  > .cs-rarity-tag,
+  .cs-card.card--elite  > .cs-card-img,
+  .cs-card.card--elite  > .cs-card-name,
+  .cs-card.card--elite  > .cs-card-effect,
+  .cs-card.card--elite  > .cs-card-tradeoff,
+  .cs-card.card--mythic > .cs-rarity-tag,
+  .cs-card.card--mythic > .cs-card-img,
+  .cs-card.card--mythic > .cs-card-name,
+  .cs-card.card--mythic > .cs-card-effect,
+  .cs-card.card--mythic > .cs-card-tradeoff { position: relative; z-index: 4; }
+
+  /* ── NORMAL: clean polished baseline (CSS-only, no layers, no glow) ── */
+  .cs-card.card--normal {
+    background: linear-gradient(165deg, #16171c, #0a0a0b 58%, #0c0d11);
+    border-color: #2c2e36;
+    box-shadow: 0 2px 6px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.045);
+  }
+  .cc-card.card--normal.unlocked {
+    border-color: #3a3d47;
+    background: linear-gradient(165deg, #16171b, #0b0b0d);
+    box-shadow: 0 1px 4px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.045);
+  }
+
+  /* ── PREMIUM: refined, valuable — static shine + ring, no aura/particles ── */
+  .cs-card.card--premium {
+    border-color: #3b5a8c;
+    box-shadow: 0 2px 10px rgba(0,0,0,.5), 0 0 12px rgba(96,142,212,.22), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .cc-card.card--premium.unlocked {
+    border-color: #4a6aa0;
+    box-shadow: 0 0 8px rgba(96,142,212,.32), inset 0 0 10px rgba(130,168,224,.07);
+  }
+  /* Premium surface — subtle pearl/blue depth (no animation) */
+  .card--premium .card-vfx-surface {
+    background:
+      linear-gradient(160deg, rgba(96,142,212,.10), transparent 46%, rgba(18,28,52,.20));
+  }
+  /* Premium highlight — single static diagonal sheen over the artwork */
+  .card--premium .card-vfx-highlight {
+    background: linear-gradient(115deg,
+      transparent 36%, rgba(214,230,255,.16) 48%,
+      rgba(255,255,255,.07) 53%, transparent 66%);
+    mix-blend-mode: screen;
+    opacity: .85;
+  }
+  /* Premium border — refined pearl ring, NO breathing energy edge */
+  .card--premium .card-vfx-border {
+    --vfx-ring: linear-gradient(135deg, #8aa6d8, #e8eef7 45%, #b9c8e6 60%, #5f7bb0);
+  }
+  .card--premium .card-vfx-border::after { content: none; }
+
+  /* ── BORDER: thin static rarity ring + breathing energy edge ── */
+  .card-vfx-border::before,
+  .card-vfx-border::after {
+    content: ''; position: absolute; inset: 0;
+    border-radius: inherit; padding: 1.5px;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+  .card-vfx-border::before { background: var(--vfx-ring); opacity: .9; }
+  .card-vfx-border::after  {
+    background: var(--vfx-ring-glow); opacity: 0;
+    animation: cardEdgeBreathe var(--vfx-breathe, 4.5s) ease-in-out infinite;
+  }
+  @keyframes cardEdgeBreathe { 0%,100% { opacity: 0; } 50% { opacity: .85; } }
+
+  .card--elite .card-vfx-border {
+    --vfx-ring: linear-gradient(135deg, var(--elite-gold-d), var(--elite-silver) 38%, var(--elite-gold) 60%, var(--elite-blue));
+    --vfx-ring-glow: linear-gradient(135deg, transparent 10%, var(--elite-gold) 50%, transparent 90%);
+  }
+  .card--mythic .card-vfx-border {
+    --vfx-ring: linear-gradient(135deg, var(--mythic-violet), var(--mythic-cyan) 45%, var(--mythic-gold) 70%, var(--mythic-violet));
+    --vfx-ring-glow: linear-gradient(135deg, transparent 5%, var(--mythic-cyan) 45%, var(--mythic-gold) 65%, transparent 95%);
+    --vfx-breathe: 6s;
+  }
+
+  /* ── AURA: Elite soft corner highlights ── */
+  .card--elite .card-vfx-aura {
+    background:
+      radial-gradient(58% 50% at 0% 0%,    rgba(255,204,51,.20), transparent 70%),
+      radial-gradient(58% 50% at 100% 0%,  rgba(223,228,239,.15), transparent 70%),
+      radial-gradient(70% 55% at 50% 100%, rgba(255,204,51,.12), transparent 75%);
+    mix-blend-mode: screen;
+    animation: cardAuraSoft 7s ease-in-out infinite;
+  }
+  @keyframes cardAuraSoft { 0%,100% { opacity: .5; } 50% { opacity: .82; } }
+
+  /* ── AURA: Mythic iridescent rotating energy + rare bright pulse ── */
+  .card--mythic .card-vfx-aura {
+    mix-blend-mode: screen;
+    animation: cardAuraPulse 9s ease-in-out infinite;
+  }
+  .card--mythic .card-vfx-aura::before {
+    content: ''; position: absolute;
+    left: 50%; top: 50%; width: 200%; height: 200%;
+    transform: translate(-50%, -50%) rotate(0deg);
+    background: conic-gradient(from 0deg,
+      rgba(176,102,255,0), rgba(176,102,255,.34), rgba(51,230,255,.30),
+      rgba(255,216,106,.26), rgba(176,102,255,0));
+    animation: cardAuraSpin 14s linear infinite;
+  }
+  @keyframes cardAuraSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+  @keyframes cardAuraPulse { 0%,72%,100% { opacity: .42; } 86% { opacity: .8; } }
+
+  /* ── SWEEP: diagonal light pass on tap / select / unlock burst ── */
+  .card-vfx-sweep::before {
+    content: ''; position: absolute;
+    top: -25%; left: -55%; width: 38%; height: 150%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+    transform: translateX(0) skewX(-18deg);
+    opacity: 0;
+  }
+  .card--mythic .card-vfx-sweep::before {
+    background: linear-gradient(100deg, transparent, rgba(186,232,255,.55), transparent);
+  }
+  .card--premium:active .card-vfx-sweep::before,
+  .card--elite:active  .card-vfx-sweep::before,
+  .card--mythic:active .card-vfx-sweep::before,
+  .card--premium.selected .card-vfx-sweep::before,
+  .card--elite.selected  .card-vfx-sweep::before,
+  .card--mythic.selected .card-vfx-sweep::before,
+  .card-vfx-burst .card-vfx-sweep::before,
+  .card-vfx-new   .card-vfx-sweep::before {
+    animation: cardSweep .7s ease-out;
+  }
+  @keyframes cardSweep {
+    0%   { opacity: 0;  transform: translateX(0)    skewX(-18deg); }
+    12%  { opacity: .9; }
+    100% { opacity: 0;  transform: translateX(440%) skewX(-18deg); }
+  }
+
+  /* ── PARTICLES: tiny motes (Mythic ambient, Elite burst-only) ── */
+  .card-vfx-particle {
+    position: absolute; bottom: -6%;
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--mote, #fff);
+    box-shadow: 0 0 4px var(--mote, #fff);
+    opacity: 0;
+  }
+  .card--mythic .card-vfx-particle {
+    animation: cardMoteFloat var(--mdur, 8s) ease-in-out infinite;
+    animation-delay: var(--mdelay, 0s);
+  }
+  @keyframes cardMoteFloat {
+    0%   { transform: translateY(0)      scale(.55); opacity: 0; }
+    18%  { opacity: .9; }
+    82%  { opacity: .45; }
+    100% { transform: translateY(-180px) scale(1);   opacity: 0; }
+  }
+  /* Elite motes are silent until an obtain / select / upgrade burst */
+  .card--elite .card-vfx-particle { animation: none; }
+  .card--elite.card-vfx-burst .card-vfx-particle,
+  .card--elite.card-vfx-new   .card-vfx-particle {
+    animation: cardSpark .8s ease-out;
+    animation-delay: var(--mdelay, 0s);
+  }
+  @keyframes cardSpark {
+    0%   { transform: translateY(0)     scale(.4); opacity: 0; }
+    20%  { opacity: 1; }
+    100% { transform: translateY(-58px) scale(1);  opacity: 0; }
+  }
+
+  /* ── Newly-unlocked / upgraded one-shot reveal (collection grid) ── */
+  .cc-card.card-vfx-new { animation: cardRevealPop .9s cubic-bezier(.2,.8,.2,1); }
+  @keyframes cardRevealPop {
+    0%   { transform: scale(.82); }
+    45%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+
+  /* ── Off-screen pause (IntersectionObserver toggles .cm-paused) ── */
+  .cm-paused .card-vfx-border::after,
+  .cm-paused .card-vfx-aura,
+  .cm-paused .card-vfx-aura::before,
+  .cm-paused .card-vfx-particle { animation-play-state: paused !important; }
+
+  /* ── Reduced motion / Low VFX / Flash-OFF → static premium look ── */
+  @media (prefers-reduced-motion: reduce) {
+    .card-vfx-border::after,
+    .card-vfx-aura,
+    .card-vfx-aura::before,
+    .card-vfx-sweep::before,
+    .card-vfx-particle,
+    .cc-card.card-vfx-new { animation: none !important; }
+    .card-vfx-particles { display: none !important; }
+    .card--mythic .card-vfx-aura { opacity: .4 !important; }
+    .card--elite  .card-vfx-aura { opacity: .55 !important; }
+  }
+  body.low-vfx   .card-vfx-border::after,
+  body.flash-off .card-vfx-border::after,
+  body.low-vfx   .card-vfx-aura,
+  body.flash-off .card-vfx-aura,
+  body.low-vfx   .card-vfx-aura::before,
+  body.flash-off .card-vfx-aura::before,
+  body.low-vfx   .card-vfx-sweep::before,
+  body.flash-off .card-vfx-sweep::before,
+  body.low-vfx   .card-vfx-particle,
+  body.flash-off .card-vfx-particle,
+  body.low-vfx   .cc-card.card-vfx-new,
+  body.flash-off .cc-card.card-vfx-new { animation: none !important; }
+  body.low-vfx   .card-vfx-particles,
+  body.flash-off .card-vfx-particles { display: none !important; }
+  body.low-vfx   .card--mythic .card-vfx-aura,
+  body.flash-off .card--mythic .card-vfx-aura { opacity: .35 !important; }
+  body.low-vfx   .card--elite  .card-vfx-aura,
+  body.flash-off .card--elite  .card-vfx-aura { opacity: .5 !important; }
+  /* ══ END PREMIUM RARITY CARD VFX ══ */
 
   /* ══ PERF R2: reduce-flash — additional suppressions not covered by FIX 6 ══ */
   body.reduce-flash .card-heavy-shimmer {
