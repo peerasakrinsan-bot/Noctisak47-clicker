@@ -1312,11 +1312,13 @@
      CARD DRAW / REVEAL SCREEN — premium gacha reveal sequence
      ──────────────────────────────────────────────────────────────────
      State machine lives on #cardDrawScreen:
-       .is-idle → .is-charging → .is-flipping → .is-revealed → .is-settled
+       .is-idle → .is-charging → .is-hinting → .is-flipping → .is-burst → .is-settled
+     (idle → tap impact/charge → rarity colour hint → flip → rarity burst → settle)
      Rarity is a class on the same node: .reveal--standard / --premium /
      --elite / --mythic, exposing --rc (primary) and --rc2 (secondary).
-     Reveal timing is fed from JS as CSS vars (--charge-dur / --flip-half /
-     --burst-dur) so JS sequencing and CSS animation length stay in sync.
+     Reveal timing is fed from JS as CSS vars (--charge-dur / --hint-dur /
+     --flip-half / --burst-dur) so JS sequencing and CSS animation length
+     stay in sync. Rarer cards charge + hint longer (more suspense).
      PERFORMANCE: transient layers animate transform/opacity ONLY. Idle
      loops are scoped to .is-idle so they STOP once the reveal begins.
      Particles are spawned by JS (event-based, capped per rarity) — never
@@ -1329,7 +1331,7 @@
     /* rarity palette defaults (overridden by .reveal--* below) */
     --rc:  #cfd6dd; --rc2: #ffffff;
     /* timing defaults — JS overrides per rarity */
-    --charge-dur: 360ms; --flip-half: 280ms; --burst-dur: 520ms;
+    --charge-dur: 360ms; --hint-dur: 240ms; --flip-half: 280ms; --burst-dur: 520ms;
   }
   /* ── rarity palettes ── */
   #cardDrawScreen.reveal--standard { --rc:#cfd6dd; --rc2:#ffffff; }
@@ -1361,9 +1363,9 @@
     animation: revealRitualIdle 6s ease-in-out infinite, revealRitualSpin 60s linear infinite;
   }
   #cardDrawScreen.is-charging .reveal-ritual-ring { animation: revealRitualCharge var(--charge-dur) ease-out forwards, revealRitualSpin 24s linear infinite; }
-  #cardDrawScreen.is-revealed .reveal-ritual-ring,
+  #cardDrawScreen.is-burst .reveal-ritual-ring,
   #cardDrawScreen.is-settled  .reveal-ritual-ring { opacity:0.30; animation: revealRitualSpin 40s linear infinite; }
-  #cardDrawScreen.reveal--mythic.is-revealed .reveal-ritual-ring { opacity:0.55; }
+  #cardDrawScreen.reveal--mythic.is-burst .reveal-ritual-ring { opacity:0.55; }
   @keyframes revealRitualIdle {
     0%,100% { opacity:0.14; transform:translate(-50%,-50%) scale(0.99); }
     50%     { opacity:0.24; transform:translate(-50%,-50%) scale(1.02); }
@@ -1385,7 +1387,7 @@
     z-index:1; pointer-events:none; opacity:0.5; will-change:opacity;
   }
   #cardDrawScreen.is-idle .reveal-floor-glow { animation: revealFloorIdle 6s ease-in-out infinite; }
-  #cardDrawScreen.is-revealed .reveal-floor-glow { animation: revealFloorPulse var(--burst-dur) ease-out; }
+  #cardDrawScreen.is-burst .reveal-floor-glow { animation: revealFloorPulse var(--burst-dur) ease-out; }
   @keyframes revealFloorIdle { 0%,100%{opacity:0.40;} 50%{opacity:0.62;} }
   @keyframes revealFloorPulse { 0%{opacity:0.9;} 100%{opacity:0.5;} }
 
@@ -1466,14 +1468,39 @@
     83% { filter:drop-shadow(0 0 16px rgba(200,0,255,0.9)); }
     100%{ filter:drop-shadow(0 0 16px rgba(255,34,51,0.9)); }
   }
-  /* ── tap / charge: press spring on the card back ── */
+  /* ── tap impact + suspense charge: press down, then rise & hold lifted ──
+     The .charging class is kept through the HINT phase so the lifted hold
+     persists until the flip starts (transform only). */
   #cardDrawHidden.charging { animation:revealChargePress var(--charge-dur) cubic-bezier(.34,1.56,.64,1) forwards; }
   @keyframes revealChargePress {
-    0%   { transform:scale(1); }
-    30%  { transform:scale(0.9); }
-    62%  { transform:scale(1.06); }
-    100% { transform:scale(1); }
+    0%   { transform:translateY(0) scale(1); }
+    24%  { transform:translateY(3px) scale(0.9); }    /* tap impact — press down */
+    64%  { transform:translateY(-11px) scale(1.05); } /* suspense — rise */
+    100% { transform:translateY(-8px) scale(1.02); }  /* hold lifted into hint */
   }
+
+  /* ══ RARITY HINT — a colour-only tease BEFORE the flip (no card face) ══
+     Card stays lifted (held by .charging); rarity colour pulses behind it
+     via the burst layer + a second energy ring + a static rarity glow on
+     the back. Pure transform/opacity (+ one static filter). Rarer = longer. */
+  #cardDrawScreen.is-hinting #cardDrawHidden {
+    filter:drop-shadow(0 0 20px color-mix(in srgb, var(--rc) 80%, transparent));
+  }
+  #cardDrawScreen.is-hinting .reveal-energy-ring { animation:revealHintRing var(--hint-dur) ease-out forwards; }
+  @keyframes revealHintRing {
+    0%   { transform:translate(-50%,-50%) scale(0.5); opacity:0; }
+    35%  { opacity:0.75; }
+    100% { transform:translate(-50%,-50%) scale(1.25); opacity:0; }
+  }
+  #cardDrawScreen.is-hinting .reveal-burst { animation:revealHintPulse var(--hint-dur) ease-out forwards; }
+  @keyframes revealHintPulse {
+    0%   { transform:translate(-50%,-50%) scale(0.45); opacity:0; }
+    45%  { opacity:0.45; }
+    100% { transform:translate(-50%,-50%) scale(1.05); opacity:0; }
+  }
+  /* mythic/elite get one extra ray tease during the hint */
+  #cardDrawScreen.reveal--elite.is-hinting  .reveal-rays,
+  #cardDrawScreen.reveal--mythic.is-hinting .reveal-rays { animation:revealRays var(--hint-dur) ease-out forwards; }
   /* ── flip: Y-axis rotation, swap at midpoint (transform only) ── */
   #cardDrawHidden.flip-out  { animation:revealFlipOut var(--flip-half) ease-in forwards; pointer-events:none; }
   #cardDrawRevealedImg.flip-in { animation:revealFlipIn var(--flip-half) ease-out forwards; }
@@ -1504,8 +1531,8 @@
     -webkit-mask:radial-gradient(circle, #000 16%, transparent 60%);
             mask:radial-gradient(circle, #000 16%, transparent 60%);
   }
-  #cardDrawScreen.reveal--elite.is-revealed  .reveal-rays,
-  #cardDrawScreen.reveal--mythic.is-revealed .reveal-rays { animation:revealRays var(--burst-dur) ease-out forwards; }
+  #cardDrawScreen.reveal--elite.is-burst  .reveal-rays,
+  #cardDrawScreen.reveal--mythic.is-burst .reveal-rays { animation:revealRays var(--burst-dur) ease-out forwards; }
   @keyframes revealRays {
     0%   { transform:translate(-50%,-50%) scale(0.6) rotate(-8deg); opacity:0; }
     30%  { opacity:0.7; }
@@ -1518,7 +1545,7 @@
     z-index:2; pointer-events:none; border-radius:50%; will-change:transform,opacity;
     background:radial-gradient(circle, color-mix(in srgb, var(--rc) 75%, transparent) 0%, color-mix(in srgb, var(--rc2) 28%, transparent) 32%, transparent 62%);
   }
-  #cardDrawScreen.is-revealed .reveal-burst { animation:revealBurst var(--burst-dur) ease-out forwards; }
+  #cardDrawScreen.is-burst .reveal-burst { animation:revealBurst var(--burst-dur) ease-out forwards; }
   @keyframes revealBurst {
     0%   { transform:translate(-50%,-50%) scale(0.2); opacity:0; }
     25%  { opacity:0.85; }
@@ -1541,8 +1568,8 @@
     background:linear-gradient(100deg, transparent, rgba(255,255,255,0.85), transparent);
     transform:translateX(0) rotate(8deg); will-change:transform;
   }
-  #cardDrawScreen.is-revealed .reveal-sweep { opacity:1; }
-  #cardDrawScreen.is-revealed .reveal-sweep::before { animation:revealSweep var(--burst-dur) ease-out forwards; }
+  #cardDrawScreen.is-burst .reveal-sweep { opacity:1; }
+  #cardDrawScreen.is-burst .reveal-sweep::before { animation:revealSweep var(--burst-dur) ease-out forwards; }
   @keyframes revealSweep { 0%{transform:translateX(0) rotate(8deg);} 100%{transform:translateX(430%) rotate(8deg);} }
   /* event-based particle field (JS spawns .rp nodes, capped per rarity) */
   .reveal-particles { position:absolute; left:50%; top:50%; width:0; height:0; z-index:7; pointer-events:none; }
@@ -1593,16 +1620,27 @@
   #cardDrawRevealedTier.tier-mythic   { color:#ff2233; }
   #cardDrawRevealedEffect { font-family:'Sarabun',sans-serif; font-size:12px; color:#aaa; text-align:center; line-height:1.5; max-width:260px; }
   #cardDrawRevealedTradeoff { font-family:'Sarabun',sans-serif; font-size:11px; color:#ff5555; text-align:center; }
+  /* fixed-height reserved slot — present from the moment the info column
+     shows, so the DUPLICATE banner appearing at settle never adds height /
+     shifts the card, info text, or COLLECT button. */
+  .reveal-reward-slot {
+    position:relative; width:100%; height:60px; margin-top:6px;
+    pointer-events:none;
+  }
+  /* DUPLICATE reward — absolutely positioned inside the reserved slot
+     (out of flow → zero layout impact); animates transform/opacity only. */
   #cardDrawDupeBanner {
-    margin-top:10px; padding:10px 20px;
+    position:absolute; left:50%; top:0; transform:translateX(-50%) translateY(8px) scale(0.8);
+    padding:10px 20px; white-space:nowrap;
     background:rgba(255,204,0,0.12); border:1px solid rgba(255,204,0,0.5);
     text-align:center;
     font-family:'Oswald',sans-serif; letter-spacing:3px;
+    opacity:0;
     animation: dupeBannerIn 0.5s cubic-bezier(0.22,1,0.36,1) forwards;
   }
   @keyframes dupeBannerIn {
-    0%  { opacity:0; transform:scale(0.8) translateY(10px); }
-    100%{ opacity:1; transform:scale(1) translateY(0); }
+    0%  { opacity:0; transform:translateX(-50%) translateY(18px) scale(0.8); }
+    100%{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
   }
   .dupe-label { font-size:10px; color:#888; margin-bottom:4px; }
   .dupe-amount { font-size:clamp(20px,6vw,28px); color:var(--gold); text-shadow:0 0 16px rgba(255,204,0,0.8); }
