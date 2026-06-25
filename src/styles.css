@@ -1308,18 +1308,114 @@
   body.low-vfx   .card-detail-frame-glow,  body.flash-off .card-detail-frame-glow { opacity: 1 !important; }
   /* ══ END CARD DETAIL MODAL VFX ══ */
 
-  /* ══ CARD DRAW SCREEN ══ */
+  /* ══════════════════════════════════════════════════════════════════
+     CARD DRAW / REVEAL SCREEN — premium gacha reveal sequence
+     ──────────────────────────────────────────────────────────────────
+     State machine lives on #cardDrawScreen:
+       .is-idle → .is-charging → .is-flipping → .is-revealed → .is-settled
+     Rarity is a class on the same node: .reveal--standard / --premium /
+     --elite / --mythic, exposing --rc (primary) and --rc2 (secondary).
+     Reveal timing is fed from JS as CSS vars (--charge-dur / --flip-half /
+     --burst-dur) so JS sequencing and CSS animation length stay in sync.
+     PERFORMANCE: transient layers animate transform/opacity ONLY. Idle
+     loops are scoped to .is-idle so they STOP once the reveal begins.
+     Particles are spawned by JS (event-based, capped per rarity) — never
+     a permanent loop. Low VFX / reduced-motion fallbacks at end of block.
+     ══════════════════════════════════════════════════════════════════ */
   #cardDrawScreen {
     position:absolute; top:0; left:0; right:0; bottom:0; z-index:999;
     display:none; flex-direction:column; align-items:center; justify-content:center;
     overflow:hidden;
+    /* rarity palette defaults (overridden by .reveal--* below) */
+    --rc:  #cfd6dd; --rc2: #ffffff;
+    /* timing defaults — JS overrides per rarity */
+    --charge-dur: 360ms; --flip-half: 280ms; --burst-dur: 520ms;
   }
+  /* ── rarity palettes ── */
+  #cardDrawScreen.reveal--standard { --rc:#cfd6dd; --rc2:#ffffff; }
+  #cardDrawScreen.reveal--premium  { --rc:#39b9ff; --rc2:#eaf6ff; }
+  #cardDrawScreen.reveal--elite    { --rc:#ffcc33; --rc2:#2f6bff; }
+  #cardDrawScreen.reveal--mythic   { --rc:#ff3a66; --rc2:#b14bff; }
   #cardDrawBg {
     position:absolute; top:0; left:0; right:0; bottom:0;
     background: url("/collect_bg.png") center/cover no-repeat #000;
     z-index:0;
     pointer-events:none;
   }
+
+  /* ══ LAYERED REVEAL BACKGROUND ══ */
+  /* Ritual circle — slow idle pulse, brightens during charge, fully
+     activates at reveal (mythic strongest). transform+opacity only. */
+  .reveal-ritual-ring {
+    position:absolute; left:50%; top:50%;
+    width:min(118vw, 560px); aspect-ratio:1;
+    transform:translate(-50%,-50%) scale(1);
+    border-radius:50%;
+    background:
+      radial-gradient(circle, transparent 60%, color-mix(in srgb, var(--rc) 26%, transparent) 61%, transparent 64%),
+      radial-gradient(circle, transparent 72%, color-mix(in srgb, var(--rc) 18%, transparent) 73%, transparent 75%),
+      conic-gradient(from 0deg, transparent 0 6deg, color-mix(in srgb, var(--rc) 22%, transparent) 7deg 8deg, transparent 9deg 30deg) ;
+    z-index:1; pointer-events:none; opacity:0.18; will-change:transform,opacity;
+  }
+  #cardDrawScreen.is-idle .reveal-ritual-ring {
+    animation: revealRitualIdle 6s ease-in-out infinite, revealRitualSpin 60s linear infinite;
+  }
+  #cardDrawScreen.is-charging .reveal-ritual-ring { animation: revealRitualCharge var(--charge-dur) ease-out forwards, revealRitualSpin 24s linear infinite; }
+  #cardDrawScreen.is-revealed .reveal-ritual-ring,
+  #cardDrawScreen.is-settled  .reveal-ritual-ring { opacity:0.30; animation: revealRitualSpin 40s linear infinite; }
+  #cardDrawScreen.reveal--mythic.is-revealed .reveal-ritual-ring { opacity:0.55; }
+  @keyframes revealRitualIdle {
+    0%,100% { opacity:0.14; transform:translate(-50%,-50%) scale(0.99); }
+    50%     { opacity:0.24; transform:translate(-50%,-50%) scale(1.02); }
+  }
+  @keyframes revealRitualCharge {
+    0%   { opacity:0.20; }
+    100% { opacity:0.45; }
+  }
+  @keyframes revealRitualSpin { to { transform:translate(-50%,-50%) rotate(360deg); } }
+  /* keep idle/charge scale while spinning needs combined transform; spin
+     dominates once it runs — acceptable since ring is symmetric. */
+
+  /* Bottom floor glow */
+  .reveal-floor-glow {
+    position:absolute; left:50%; bottom:-8%;
+    width:min(120vw, 640px); height:38%;
+    transform:translateX(-50%);
+    background:radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--rc) 30%, transparent) 0%, transparent 70%);
+    z-index:1; pointer-events:none; opacity:0.5; will-change:opacity;
+  }
+  #cardDrawScreen.is-idle .reveal-floor-glow { animation: revealFloorIdle 6s ease-in-out infinite; }
+  #cardDrawScreen.is-revealed .reveal-floor-glow { animation: revealFloorPulse var(--burst-dur) ease-out; }
+  @keyframes revealFloorIdle { 0%,100%{opacity:0.40;} 50%{opacity:0.62;} }
+  @keyframes revealFloorPulse { 0%{opacity:0.9;} 100%{opacity:0.5;} }
+
+  /* Subtle vignette to keep card readable */
+  .reveal-vignette {
+    position:absolute; inset:0; z-index:1; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 42%, transparent 42%, rgba(0,0,0,0.55) 100%);
+  }
+
+  /* Idle embers — a few drifting motes near the bottom (idle only) */
+  .reveal-embers { position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .reveal-embers span {
+    position:absolute; bottom:6%; width:5px; height:5px; border-radius:50%;
+    background:radial-gradient(circle, #ff7a3a 0%, rgba(255,60,30,0) 70%);
+    opacity:0; will-change:transform,opacity;
+  }
+  .reveal-embers span:nth-child(1){ left:30%; }
+  .reveal-embers span:nth-child(2){ left:46%; width:4px; height:4px; }
+  .reveal-embers span:nth-child(3){ left:62%; }
+  .reveal-embers span:nth-child(4){ left:54%; width:3px; height:3px; }
+  #cardDrawScreen.is-idle .reveal-embers span { animation: revealEmber 5s ease-in infinite; }
+  #cardDrawScreen.is-idle .reveal-embers span:nth-child(2){ animation-delay:1.3s; }
+  #cardDrawScreen.is-idle .reveal-embers span:nth-child(3){ animation-delay:2.6s; }
+  #cardDrawScreen.is-idle .reveal-embers span:nth-child(4){ animation-delay:3.7s; }
+  @keyframes revealEmber {
+    0%   { transform:translateY(0) scale(0.6); opacity:0; }
+    15%  { opacity:0.9; }
+    100% { transform:translateY(-160px) scale(1); opacity:0; }
+  }
+
   #cardDrawPityBanner {
     position:relative; z-index:2; font-family:'Oswald',sans-serif;
     font-size:clamp(14px,4vw,20px); letter-spacing:4px;
@@ -1331,20 +1427,32 @@
   }
   #cardDrawArea {
     position:relative; z-index:2; display:flex; flex-direction:column;
-    align-items:center; gap:16px;
+    align-items:center; gap:14px;
   }
-  #cardDrawHidden {
+
+  /* ══ CARD STAGE — holds card back, revealed face + transient FX ══ */
+  #cardDrawStage {
+    position:relative; z-index:3;
     width:clamp(160px,45vw,220px); aspect-ratio:3/4;
-    cursor:pointer; position:relative; z-index:3;
-    animation:cardDrawFloat 2s ease-in-out infinite, cardDrawAura 3s linear infinite;
+    perspective:1000px;
+  }
+  /* card back + revealed face share the stage box (absolute fill) so the
+     transient FX layers stay perfectly centred on the card art */
+  #cardDrawHidden {
+    position:absolute; inset:0; z-index:3; cursor:pointer;
+    backface-visibility:hidden; transform-style:preserve-3d;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   }
   #cardDrawHiddenImg { width:100%; height:100%; object-fit:cover; border-radius:8px; display:block; pointer-events:none; }
-  /* OCA hidden card — same float + aura as endgame */
-  #ocaDrawHidden {
+  #cardDrawRevealedImg {
+    position:absolute; inset:0; z-index:3;
+    width:100%; height:100%; object-fit:cover; border-radius:8px;
+    backface-visibility:hidden;
+  }
+  /* idle: card back floats + rainbow "hidden rarity" aura (idle only) */
+  #cardDrawScreen.is-idle #cardDrawHidden {
     animation:cardDrawFloat 2s ease-in-out infinite, cardDrawAura 3s linear infinite;
   }
-  #ocaDrawHidden img { pointer-events:none; border-radius:8px; display:block; }
   @keyframes cardDrawFloat {
     0%,100%{ transform:translateY(0); }
     50%    { transform:translateY(-12px); }
@@ -1358,27 +1466,125 @@
     83% { filter:drop-shadow(0 0 16px rgba(200,0,255,0.9)); }
     100%{ filter:drop-shadow(0 0 16px rgba(255,34,51,0.9)); }
   }
+  /* ── tap / charge: press spring on the card back ── */
+  #cardDrawHidden.charging { animation:revealChargePress var(--charge-dur) cubic-bezier(.34,1.56,.64,1) forwards; }
+  @keyframes revealChargePress {
+    0%   { transform:scale(1); }
+    30%  { transform:scale(0.9); }
+    62%  { transform:scale(1.06); }
+    100% { transform:scale(1); }
+  }
+  /* ── flip: Y-axis rotation, swap at midpoint (transform only) ── */
+  #cardDrawHidden.flip-out  { animation:revealFlipOut var(--flip-half) ease-in forwards; pointer-events:none; }
+  #cardDrawRevealedImg.flip-in { animation:revealFlipIn var(--flip-half) ease-out forwards; }
+  @keyframes revealFlipOut { from{ transform:rotateY(0deg) scale(1);} to{ transform:rotateY(90deg) scale(0.97);} }
+  @keyframes revealFlipIn  { from{ transform:rotateY(-90deg) scale(0.97);} to{ transform:rotateY(0deg) scale(1);} }
+
+  /* ══ TRANSIENT REVEAL FX (all transform/opacity; one-shot) ══ */
+  /* energy ring — expands from behind the card on charge */
+  .reveal-energy-ring {
+    position:absolute; left:50%; top:50%; width:108%; aspect-ratio:1;
+    transform:translate(-50%,-50%) scale(0.35);
+    border-radius:50%; border:2px solid color-mix(in srgb, var(--rc) 85%, transparent);
+    box-shadow:0 0 18px color-mix(in srgb, var(--rc) 45%, transparent);
+    opacity:0; z-index:2; pointer-events:none; will-change:transform,opacity;
+  }
+  #cardDrawScreen.is-charging .reveal-energy-ring { animation:revealRingExpand var(--charge-dur) ease-out forwards; }
+  @keyframes revealRingExpand {
+    0%   { transform:translate(-50%,-50%) scale(0.35); opacity:0; }
+    25%  { opacity:0.9; }
+    100% { transform:translate(-50%,-50%) scale(1.55); opacity:0; }
+  }
+  /* sharp light rays behind card — Elite + Mythic only */
+  .reveal-rays {
+    position:absolute; left:50%; top:50%; width:230%; aspect-ratio:1;
+    transform:translate(-50%,-50%) scale(0.6); opacity:0;
+    z-index:2; pointer-events:none; will-change:transform,opacity;
+    background:repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--rc) 24%, transparent) 0deg 3.5deg, transparent 3.5deg 18deg);
+    -webkit-mask:radial-gradient(circle, #000 16%, transparent 60%);
+            mask:radial-gradient(circle, #000 16%, transparent 60%);
+  }
+  #cardDrawScreen.reveal--elite.is-revealed  .reveal-rays,
+  #cardDrawScreen.reveal--mythic.is-revealed .reveal-rays { animation:revealRays var(--burst-dur) ease-out forwards; }
+  @keyframes revealRays {
+    0%   { transform:translate(-50%,-50%) scale(0.6) rotate(-8deg); opacity:0; }
+    30%  { opacity:0.7; }
+    100% { transform:translate(-50%,-50%) scale(1.05) rotate(8deg); opacity:0; }
+  }
+  /* radial rarity burst — sits BEHIND the card so art stays readable */
+  .reveal-burst {
+    position:absolute; left:50%; top:50%; width:150%; aspect-ratio:1;
+    transform:translate(-50%,-50%) scale(0.2); opacity:0;
+    z-index:2; pointer-events:none; border-radius:50%; will-change:transform,opacity;
+    background:radial-gradient(circle, color-mix(in srgb, var(--rc) 75%, transparent) 0%, color-mix(in srgb, var(--rc2) 28%, transparent) 32%, transparent 62%);
+  }
+  #cardDrawScreen.is-revealed .reveal-burst { animation:revealBurst var(--burst-dur) ease-out forwards; }
+  @keyframes revealBurst {
+    0%   { transform:translate(-50%,-50%) scale(0.2); opacity:0; }
+    25%  { opacity:0.85; }
+    100% { transform:translate(-50%,-50%) scale(1.6); opacity:0; }
+  }
+  /* white/gold flash mask — fires at the flip midpoint to hide the swap */
+  .reveal-flash {
+    position:absolute; inset:-4%; z-index:5; pointer-events:none; opacity:0; border-radius:12px;
+    background:radial-gradient(circle, #fff 0%, color-mix(in srgb, var(--rc2) 55%, #fff) 42%, transparent 72%);
+    will-change:opacity;
+  }
+  .reveal-flash.fire { animation:revealFlash var(--flip-half) ease-out; }
+  @keyframes revealFlash { 0%{opacity:0;} 35%{opacity:0.95;} 100%{opacity:0;} }
+  /* diagonal shine sweep across the card face */
+  .reveal-sweep {
+    position:absolute; inset:0; z-index:6; pointer-events:none; overflow:hidden; border-radius:8px; opacity:0;
+  }
+  .reveal-sweep::before {
+    content:''; position:absolute; top:-30%; left:-60%; width:42%; height:160%;
+    background:linear-gradient(100deg, transparent, rgba(255,255,255,0.85), transparent);
+    transform:translateX(0) rotate(8deg); will-change:transform;
+  }
+  #cardDrawScreen.is-revealed .reveal-sweep { opacity:1; }
+  #cardDrawScreen.is-revealed .reveal-sweep::before { animation:revealSweep var(--burst-dur) ease-out forwards; }
+  @keyframes revealSweep { 0%{transform:translateX(0) rotate(8deg);} 100%{transform:translateX(430%) rotate(8deg);} }
+  /* event-based particle field (JS spawns .rp nodes, capped per rarity) */
+  .reveal-particles { position:absolute; left:50%; top:50%; width:0; height:0; z-index:7; pointer-events:none; }
+  .reveal-particles .rp {
+    position:absolute; left:0; top:0; width:7px; height:7px; border-radius:50%;
+    background:radial-gradient(circle, var(--rc2) 0%, var(--rc) 48%, transparent 74%);
+    transform:translate(-50%,-50%); opacity:0; will-change:transform,opacity;
+    animation:revealParticle var(--pdur,720ms) ease-out var(--pdelay,0ms) forwards;
+  }
+  @keyframes revealParticle {
+    0%   { transform:translate(-50%,-50%) scale(0.4); opacity:0; }
+    15%  { opacity:1; }
+    100% { transform:translate(calc(-50% + var(--tx,0px)), calc(-50% + var(--ty,0px))) scale(0.2); opacity:0; }
+  }
+  /* rarity stamp — impact pop-in, fades out at settle so it never covers art at rest */
+  .reveal-rarity-label {
+    position:absolute; left:50%; top:62%; transform:translate(-50%,-50%) scale(0.4);
+    z-index:8; pointer-events:none; opacity:0;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:6px;
+    font-size:clamp(20px,7vw,34px); white-space:nowrap;
+    color:var(--rc);
+    text-shadow:0 0 18px color-mix(in srgb, var(--rc) 70%, transparent), 0 2px 0 rgba(0,0,0,0.6);
+    transition:opacity .35s ease;
+  }
+  .reveal-rarity-label.pop { animation:revealLabelPop 640ms cubic-bezier(.22,1,.36,1) forwards; }
+  @keyframes revealLabelPop {
+    0%   { opacity:0; transform:translate(-50%,-50%) scale(0.4); }
+    45%  { opacity:1; transform:translate(-50%,-50%) scale(1.12); }
+    72%  { transform:translate(-50%,-50%) scale(0.96); }
+    100% { opacity:1; transform:translate(-50%,-50%) scale(1); }
+  }
+
+  /* ══ REVEALED CARD INFO (text column below the stage) ══ */
   #cardDrawRevealed {
     display:flex; flex-direction:column; align-items:center; gap:8px;
   }
-  #cardDrawRevealed img {
-    width:clamp(160px,45vw,220px); aspect-ratio:3/4; object-fit:cover; border-radius:8px;
-  }
-  #cardDrawRevealed img.aura-standard  { filter:drop-shadow(0 0 8px rgba(150,150,150,0.6)); }
-  #cardDrawRevealed img.aura-premium   { filter:drop-shadow(0 0 14px rgba(0,136,255,0.9)); }
-  #cardDrawRevealed img.aura-elite     { filter:drop-shadow(0 0 18px rgba(255,204,0,1)); animation:eliteRevealAura 1.5s ease-in-out infinite; }
-  #cardDrawRevealed img.aura-mythic    { filter:drop-shadow(0 0 22px rgba(255,34,51,0.9)); animation:mythicRevealAura 2s linear infinite; }
-  @keyframes eliteRevealAura {
-    0%,100%{ filter:drop-shadow(0 0 14px rgba(255,204,0,0.7)); }
-    50%    { filter:drop-shadow(0 0 28px rgba(255,204,0,1)); }
-  }
-  @keyframes mythicRevealAura {
-    0%  { filter:drop-shadow(0 0 20px rgba(255,34,51,0.9)); }
-    25% { filter:drop-shadow(0 0 20px rgba(200,0,255,0.9)); }
-    50% { filter:drop-shadow(0 0 20px rgba(255,140,0,0.9)); }
-    75% { filter:drop-shadow(0 0 20px rgba(0,255,120,0.9)); }
-    100%{ filter:drop-shadow(0 0 20px rgba(255,34,51,0.9)); }
-  }
+  /* settle aura on the revealed card — STATIC drop-shadow (no animated filter).
+     Standard = none; Premium = pearl edge; Elite/Mythic stronger rarity glow. */
+  #cardDrawRevealedImg.aura-standard  { filter:none; }
+  #cardDrawRevealedImg.aura-premium   { filter:drop-shadow(0 0 12px rgba(57,185,255,0.85)); }
+  #cardDrawRevealedImg.aura-elite     { filter:drop-shadow(0 0 16px rgba(255,204,51,0.95)); }
+  #cardDrawRevealedImg.aura-mythic    { filter:drop-shadow(0 0 20px rgba(255,58,102,0.92)); }
   #cardDrawRevealedName { font-family:'Oswald',sans-serif; font-size:clamp(14px,4vw,20px); letter-spacing:2px; color:#fff; text-align:center; }
   #cardDrawRevealedTier { font-size:10px; letter-spacing:3px; }
   #cardDrawRevealedTier.tier-standard { color:#888; }
@@ -1538,27 +1744,64 @@
   #res-run-card.no-card { border-color: #111; box-shadow: none; opacity: 0.5; }
   #res-run-card.no-card #res-run-card-name { color: #444; }
   .result-btns { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
-  /* ── card reveal animation ── */
-  @keyframes cardRevealFadeIn {
-    0%   { opacity:0; transform:scale(0.7) translateY(30px); filter:brightness(3); }
-    40%  { opacity:1; transform:scale(1.08) translateY(-8px); filter:brightness(1.5); }
-    70%  { transform:scale(0.97) translateY(2px); filter:brightness(1); }
-    100% { opacity:1; transform:scale(1) translateY(0); filter:brightness(1); }
+  /* ── revealed card-info text column: settle-in (transform/opacity only) ── */
+  #cardDrawRevealed { opacity:0; }
+  #cardDrawRevealed.show { animation: cardRevealInfoIn 0.42s cubic-bezier(0.22,1,0.36,1) forwards; }
+  @keyframes cardRevealInfoIn {
+    0%   { opacity:0; transform:translateY(12px); }
+    100% { opacity:1; transform:translateY(0); }
   }
-  @keyframes cardHiddenFlipOut {
-    0%   { opacity:1; transform:scale(1) rotateY(0deg); }
-    100% { opacity:0; transform:scale(0.8) rotateY(90deg); }
-  }
-  #cardDrawRevealed.animating {
-    animation: cardRevealFadeIn 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
-  }
-  #cardDrawHidden.flipping {
-    animation: cardHiddenFlipOut 0.4s ease-in forwards;
-    pointer-events:none;
-  }
-  #ocaDrawHidden.anim-flip {
-    animation: cardHiddenFlipOut 0.4s ease-in forwards !important;
-    pointer-events:none;
+
+  /* ══════════════════════════════════════════════════════════════════
+     LOW VFX MODE / REDUCED MOTION — reveal fallback
+     body.flash-off / body.low-vfx (Flash Effect = OFF) and the OS
+     prefers-reduced-motion query collapse the reveal to a calm path:
+     • no flip spin, no charge press → simple fade
+     • no particles / rays / burst / sweep / energy ring / embers
+     • static ritual pulse only; rarity glow kept (readable & lightweight)
+     ══════════════════════════════════════════════════════════════════ */
+  body.low-vfx   #cardDrawScreen .reveal-particles,
+  body.flash-off #cardDrawScreen .reveal-particles,
+  body.low-vfx   #cardDrawScreen .reveal-rays,
+  body.flash-off #cardDrawScreen .reveal-rays,
+  body.low-vfx   #cardDrawScreen .reveal-burst,
+  body.flash-off #cardDrawScreen .reveal-burst,
+  body.low-vfx   #cardDrawScreen .reveal-sweep,
+  body.flash-off #cardDrawScreen .reveal-sweep,
+  body.low-vfx   #cardDrawScreen .reveal-energy-ring,
+  body.flash-off #cardDrawScreen .reveal-energy-ring,
+  body.low-vfx   #cardDrawScreen .reveal-embers,
+  body.flash-off #cardDrawScreen .reveal-embers,
+  body.low-vfx   #cardDrawScreen .reveal-flash,
+  body.flash-off #cardDrawScreen .reveal-flash { display:none !important; }
+  body.low-vfx   #cardDrawScreen .reveal-ritual-ring,
+  body.flash-off #cardDrawScreen .reveal-ritual-ring { animation:none !important; opacity:0.22 !important; }
+  /* no flip spin / charge press — calm fade swap */
+  body.low-vfx   #cardDrawHidden, body.flash-off #cardDrawHidden,
+  body.low-vfx   #cardDrawHidden.charging, body.flash-off #cardDrawHidden.charging,
+  body.low-vfx   #cardDrawHidden.flip-out, body.flash-off #cardDrawHidden.flip-out { animation:none !important; transform:none !important; }
+  body.low-vfx   #cardDrawRevealedImg.flip-in,
+  body.flash-off #cardDrawRevealedImg.flip-in { animation:cardRevealInfoIn 0.3s ease forwards !important; }
+  body.low-vfx   .reveal-rarity-label.pop,
+  body.flash-off .reveal-rarity-label.pop { animation:none !important; opacity:1 !important; transform:translate(-50%,-50%) scale(1) !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    #cardDrawScreen .reveal-particles,
+    #cardDrawScreen .reveal-rays,
+    #cardDrawScreen .reveal-burst,
+    #cardDrawScreen .reveal-sweep,
+    #cardDrawScreen .reveal-energy-ring,
+    #cardDrawScreen .reveal-embers,
+    #cardDrawScreen .reveal-flash { display:none !important; }
+    #cardDrawScreen .reveal-ritual-ring,
+    #cardDrawScreen .reveal-floor-glow { animation:none !important; }
+    #cardDrawScreen.is-idle #cardDrawHidden,
+    #cardDrawHidden.charging,
+    #cardDrawHidden.flip-out { animation:none !important; transform:none !important; }
+    #cardDrawRevealedImg.flip-in { animation:cardRevealInfoIn 0.3s ease forwards !important; }
+    #cardDrawRevealedImg.aura-elite,
+    #cardDrawRevealedImg.aura-mythic { animation:none !important; }
+    .reveal-rarity-label.pop { animation:none !important; opacity:1 !important; transform:translate(-50%,-50%) scale(1) !important; }
   }
 
   .res-btn {

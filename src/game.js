@@ -1345,13 +1345,7 @@ function _openOcaDraw(result, onDone) {
 
   $('cardDrawPityBanner').textContent = '';
   $('cardDrawPityBanner').style.display = 'none';
-  $('cardDrawHidden').style.display = 'block';
-  $('cardDrawHiddenImg').src = CARD_HIDDEN_IMG;
-  $('cardDrawHidden').classList.remove('flipping');
-  $('cardDrawRevealed').style.display = 'none';
-  $('cardDrawDupeBanner').style.display = 'none';
-  $('cardDrawHint').classList.remove('hidden');
-  $('cardDrawCollectBtn').classList.remove('visible');
+  _resetCardDrawScreen();
 
   _hideAllScreens();
   $('cardDrawScreen').style.display = 'flex';
@@ -5405,14 +5399,8 @@ function openCardDraw(onDone) {
     banner.style.display = 'none';
   }
 
-  // reset state
-  $('cardDrawHidden').style.display = 'block';
-  $('cardDrawHiddenImg').src = CARD_HIDDEN_IMG;
-  $('cardDrawHidden').classList.remove('flipping');
-  $('cardDrawRevealed').style.display = 'none';
-  $('cardDrawDupeBanner').style.display = 'none';
-  $('cardDrawHint').classList.remove('hidden');
-  $('cardDrawCollectBtn').classList.remove('visible');
+  // reset to the idle reveal state
+  _resetCardDrawScreen();
 
   // stop all other BGM then play collect
   stopFightBGM(); stopBGM();
@@ -5459,99 +5447,248 @@ function _stopCollectBGM() {
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// CARD REVEAL CONTROLLER — premium gacha reveal sequence
+// State machine on #cardDrawScreen: is-idle → is-charging → is-flipping →
+// is-revealed → is-settled. All transient FX are CSS (transform/opacity);
+// JS only toggles state classes, swaps the image at the flip midpoint,
+// spawns the (capped, event-based) particle field, and fires haptics.
+// Honors Low VFX (flashEffect='off') and prefers-reduced-motion.
+// ══════════════════════════════════════════════════════════════════════
+// Per-rarity timing + particle budget (single source of truth; timings are
+// also pushed to CSS vars so animation length matches JS sequencing).
+const REVEAL_CFG = {
+  standard: { charge:260, flipHalf:240, burst:380, particles:2,  haptic:[10],             label:'STANDARD' },
+  premium:  { charge:320, flipHalf:270, burst:460, particles:5,  haptic:[16],             label:'PREMIUM'  },
+  elite:    { charge:400, flipHalf:300, burst:600, particles:8,  haptic:[14,30,18],       label:'ELITE'    },
+  mythic:   { charge:500, flipHalf:380, burst:820, particles:13, haptic:[20,40,25,50,30], label:'MYTHIC'   },
+};
+let _revealTimers = [];
+
+// Low VFX path: OS reduced-motion OR Flash Effect = OFF
+function _revealLowFx() {
+  try {
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
+  } catch(e) {}
+  return !!(typeof gameSettings !== 'undefined' && gameSettings && gameSettings.flashEffect === 'off');
+}
+
+function _revealHaptic(pattern) {
+  if(_revealLowFx()) return;
+  try { if(navigator.vibrate && pattern) navigator.vibrate(pattern); } catch(e) {}
+}
+
+function _clearRevealParticles() {
+  const c = $('cardDrawParticles');
+  if(c) c.textContent = '';
+}
+
+// Event-based, capped particle burst (auto-removes each node on animationend)
+function _spawnRevealParticles(tier) {
+  if(_revealLowFx()) return;
+  const cfg = REVEAL_CFG[tier]; if(!cfg) return;
+  const c = $('cardDrawParticles'); if(!c) return;
+  const n = cfg.particles;
+  const frag = document.createDocumentFragment();
+  for(let i=0; i<n; i++) {
+    const p = document.createElement('span');
+    p.className = 'rp';
+    const ang  = (Math.PI*2)*(i/n) + Math.random()*0.5;
+    const dist = 60 + Math.random()*70;
+    p.style.setProperty('--tx', (Math.cos(ang)*dist).toFixed(1)+'px');
+    p.style.setProperty('--ty', (Math.sin(ang)*dist - 12).toFixed(1)+'px'); // slight upward bias
+    p.style.setProperty('--pdur', (560 + (Math.random()*360|0))+'ms');
+    p.style.setProperty('--pdelay', ((Math.random()*120|0))+'ms');
+    const sz = (tier === 'mythic' ? 4 : 3) + Math.random()*3;
+    p.style.width = sz.toFixed(1)+'px';
+    p.style.height = sz.toFixed(1)+'px';
+    p.addEventListener('animationend', () => { p.remove(); }, { once:true });
+    frag.appendChild(p);
+  }
+  c.appendChild(frag);
+}
+
+// Full reset back to the idle state (called on every screen open)
+function _resetCardDrawScreen() {
+  const screen = $('cardDrawScreen');
+  if(_revealTimers.length) { _revealTimers.forEach(clearTimeout); _revealTimers = []; }
+  screen.classList.remove('is-charging','is-flipping','is-revealed','is-settled',
+    'reveal--standard','reveal--premium','reveal--elite','reveal--mythic');
+  screen.classList.add('is-idle');
+  screen.style.removeProperty('--charge-dur');
+  screen.style.removeProperty('--flip-half');
+  screen.style.removeProperty('--burst-dur');
+
+  const hidden = $('cardDrawHidden');
+  hidden.style.display = 'block';
+  hidden.classList.remove('charging','flip-out');
+  $('cardDrawHiddenImg').src = CARD_HIDDEN_IMG;
+
+  const img = $('cardDrawRevealedImg');
+  img.style.display = 'none';
+  img.className = '';
+  img.src = '';
+
+  const revealed = $('cardDrawRevealed');
+  revealed.style.display = 'none';
+  revealed.classList.remove('show');
+  $('cardDrawDupeBanner').style.display = 'none';
+
+  $('cardDrawFlash').classList.remove('fire');
+  const label = $('cardDrawRarityLabel');
+  label.classList.remove('pop');
+  label.textContent = '';
+  label.style.opacity = '';
+  _clearRevealParticles();
+
+  $('cardDrawHint').classList.remove('hidden');
+  $('cardDrawCollectBtn').classList.remove('visible');
+}
+
+// Populate the revealed face + info column (or COLLECTION COMPLETE state)
+function _populateRevealedCard(result, tier) {
+  const img = $('cardDrawRevealedImg');
+  if(!result) {
+    img.src = ''; img.className = '';
+    $('cardDrawRevealedName').textContent = 'COLLECTION COMPLETE!';
+    const tierEl = $('cardDrawRevealedTier');
+    tierEl.textContent = ''; tierEl.className = '';
+    $('cardDrawRevealedEffect').textContent = 'คุณมีการ์ดครบทุกใบแล้ว';
+    $('cardDrawRevealedTradeoff').textContent = '';
+    return;
+  }
+  const card = result.card;
+  img.src = card.img || '';
+  img.className = 'aura-'+tier; // flip-in class is added separately after this
+  $('cardDrawRevealedName').textContent = card.name;
+  const tierEl = $('cardDrawRevealedTier');
+  tierEl.textContent = tier.toUpperCase();
+  tierEl.className = 'tier-'+tier;
+  $('cardDrawRevealedEffect').innerHTML = card.effect||'';
+  if(result.isDupe) {
+    $('cardDrawRevealedTradeoff').textContent = '';
+  } else {
+    $('cardDrawRevealedTradeoff').innerHTML = card.tradeoff ? 'TRADE-OFF: '+card.tradeoff : '';
+  }
+}
+
+function _showDupeBanner(result) {
+  const dupeBanner = $('cardDrawDupeBanner');
+  if(result && result.isDupe) {
+    dupeBanner.innerHTML =
+      '<div class="dupe-label">DUPLICATE</div>' +
+      '<div class="dupe-amount">+' + result.dupeCoins.toLocaleString() + ' ZENY</div>';
+    dupeBanner.style.display = 'block';
+    dupeBanner.style.animation = 'none';
+    requestAnimationFrame(() => { dupeBanner.style.animation = ''; });
+  } else {
+    dupeBanner.style.display = 'none';
+  }
+}
+
 function revealCard() {
-  // ป้องกันกดซ้ำ
-  const hiddenEl = $('cardDrawHidden');
-  if(hiddenEl.classList.contains('flipping')) return;
+  const screen = $('cardDrawScreen');
+  // guard re-entry once the sequence has begun
+  if(screen.classList.contains('is-charging') || screen.classList.contains('is-flipping') ||
+     screen.classList.contains('is-revealed') || screen.classList.contains('is-settled')) return;
 
   const result = _cardDrawResult;
+  const tier   = (result && result.tier) ? result.tier : null;
+  const cfg    = (tier && REVEAL_CFG[tier]) ? REVEAL_CFG[tier] : REVEAL_CFG.standard;
+  const lowFx  = _revealLowFx();
+  const hiddenEl = $('cardDrawHidden');
+
+  // push per-rarity timing to CSS so animation length tracks JS sequencing
+  screen.style.setProperty('--charge-dur', cfg.charge+'ms');
+  screen.style.setProperty('--flip-half',  cfg.flipHalf+'ms');
+  screen.style.setProperty('--burst-dur',  cfg.burst+'ms');
+  if(tier) screen.classList.add('reveal--'+tier);
+
   $('cardDrawHint').classList.add('hidden');
 
-  // step 1: flip out card_hidden
-  hiddenEl.classList.add('flipping');
-
-  // Preload card image ระหว่าง flip animation เล่น (~750ms ก่อนแสดง)
-  let _imgReady = !result || !result.card || !result.card.img;
-  let _timerReady = false;
-  let _revealFn = null;
-  const _checkReveal = () => { if(_imgReady && _timerReady && _revealFn) _revealFn(); };
-
+  // preload the revealed image during charge/flip
+  let _imgReady = !(result && result.card && result.card.img);
   if(!_imgReady) {
     const pre = new Image();
-    pre.onload = pre.onerror = () => { _imgReady = true; _checkReveal(); };
+    pre.onload = pre.onerror = () => { _imgReady = true; };
     pre.src = result.card.img;
   }
 
-  setTimeout(()=>{
-    hiddenEl.style.display = 'none';
+  const after = (ms, fn) => { _revealTimers.push(setTimeout(fn, ms)); };
+  const whenReady = (fn) => {
+    if(_imgReady) return fn();
+    let waited = 0;
+    const tick = () => {
+      if(_imgReady || waited > 1200) return fn();
+      waited += 60; _revealTimers.push(setTimeout(tick, 60));
+    };
+    tick();
+  };
 
-    const revealed = $('cardDrawRevealed');
-    revealed.style.display = 'flex';
-    revealed.style.opacity = '0';
-    // ล้างรูปเก่าออกทันที ป้องกัน flash การ์ดใบก่อนหน้า
-    $('cardDrawRevealedImg').src = '';
+  const chargeMs = lowFx ? 120 : cfg.charge;
+  const flipHalf = lowFx ? 160 : cfg.flipHalf;
+  const burstMs  = lowFx ? 200 : cfg.burst;
 
-    if(!result) {
-      $('cardDrawRevealedImg').className = '';
-      $('cardDrawRevealedName').textContent = 'COLLECTION COMPLETE!';
-      $('cardDrawRevealedTier').textContent = '';
-      $('cardDrawRevealedEffect').textContent = 'คุณมีการ์ดครบทุกใบแล้ว';
-      $('cardDrawRevealedTradeoff').textContent = '';
-      revealed.classList.add('animating');
-      setTimeout(()=>{
-        revealed.style.opacity='';
-        revealed.classList.remove('animating');
-        $('cardDrawCollectBtn').classList.add('visible');
-      }, 700);
-      return;
-    }
+  // ── STATE: CHARGING ──
+  screen.classList.remove('is-idle');
+  screen.classList.add('is-charging');
+  if(!lowFx) {
+    hiddenEl.classList.add('charging');
+    _revealHaptic(cfg.haptic);
+  }
 
-    const {card, tier} = result;
+  // ── STATE: FLIPPING ──
+  after(chargeMs, () => {
+    screen.classList.remove('is-charging');
+    screen.classList.add('is-flipping');
+    hiddenEl.classList.remove('charging');
+    if(!lowFx) hiddenEl.classList.add('flip-out');
 
-    // step 2: หน่วง 0.3 วิ + รอภาพโหลด แล้วค่อย reveal
-    _revealFn = () => {
+    // ── SWAP at the flip midpoint (wait for the image if needed) ──
+    after(flipHalf, () => whenReady(() => {
+      hiddenEl.style.display = 'none';
       const img = $('cardDrawRevealedImg');
-      img.src = card.img || '';
-      img.className = 'aura-'+tier;
-      $('cardDrawRevealedName').textContent = card.name;
-      const tierEl = $('cardDrawRevealedTier');
-      tierEl.textContent = tier.toUpperCase();
-      tierEl.className = 'tier-'+tier;
-      $('cardDrawRevealedEffect').innerHTML = card.effect||'';
-      // reset dupe banner
-      const dupeBanner = $('cardDrawDupeBanner');
-      dupeBanner.style.display = 'none';
-      if(result.isDupe) {
-        $('cardDrawRevealedTradeoff').textContent = '';
-      } else {
-        $('cardDrawRevealedTradeoff').innerHTML = card.tradeoff ? 'TRADE-OFF: '+card.tradeoff : '';
+
+      if(!lowFx) {
+        const flash = $('cardDrawFlash');
+        flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
       }
 
-      // step 3: animate card in
-      revealed.classList.add('animating');
-      setTimeout(()=>{
-        revealed.style.opacity='';
-        revealed.classList.remove('animating');
-        // แสดงปุ่ม COLLECT หลัง animation จบ
-        $('cardDrawCollectBtn').classList.add('visible');
-        // แสดง dupe banner หลัง card reveal
-        if(result.isDupe) {
-          const dupeBanner = $('cardDrawDupeBanner');
-          dupeBanner.innerHTML =
-            '<div class="dupe-label">DUPLICATE</div>' +
-            '<div class="dupe-amount">+' + result.dupeCoins.toLocaleString() + ' ZENY</div>';
-          dupeBanner.style.display = 'block';
-          // reset animation
-          dupeBanner.style.animation = 'none';
-          requestAnimationFrame(()=>{
-            dupeBanner.style.animation = '';
-          });
-        }
-      }, 700);
-    };
+      _populateRevealedCard(result, tier);
+      img.style.display = 'block';
+      img.classList.remove('flip-in'); void img.offsetWidth; img.classList.add('flip-in');
 
-    setTimeout(() => { _timerReady = true; _checkReveal(); }, 300);
-  }, 450); // รอให้ flip out animation จบ (0.4s + 50ms buffer)
+      // ── STATE: REVEALED (burst) ──
+      after(flipHalf, () => {
+        screen.classList.remove('is-flipping');
+        screen.classList.add('is-revealed');
+
+        if(tier) {
+          const label = $('cardDrawRarityLabel');
+          label.style.opacity = '';
+          label.textContent = cfg.label;
+          label.classList.remove('pop'); void label.offsetWidth; label.classList.add('pop');
+          _spawnRevealParticles(tier);
+          _revealHaptic([tier === 'mythic' ? 40 : tier === 'elite' ? 28 : 14]);
+        }
+
+        const revealed = $('cardDrawRevealed');
+        revealed.style.display = 'flex';
+        revealed.classList.remove('show'); void revealed.offsetWidth; revealed.classList.add('show');
+
+        // ── STATE: SETTLED ──
+        after(burstMs, () => {
+          screen.classList.remove('is-revealed');
+          screen.classList.add('is-settled');
+          const label = $('cardDrawRarityLabel');
+          label.classList.remove('pop');
+          label.style.opacity = '0'; // fade the stamp so it never covers art at rest
+          _showDupeBanner(result);
+          $('cardDrawCollectBtn').classList.add('visible');
+        });
+      });
+    }));
+  });
 }
 
 function collectCard() {
