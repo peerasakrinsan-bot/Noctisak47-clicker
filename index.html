@@ -16,7 +16,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
   // Single app build/cache version. Bump this on deploys that change HTML/CSS/JS or SW behavior.
-  window.NOCTISAK47_APP_VERSION = '2026.06.25.7';
+  window.NOCTISAK47_APP_VERSION = '2026.06.25.8';
   window.NOCTISAK47_APP_CACHE_NAME = 'noctisak47-' + window.NOCTISAK47_APP_VERSION;
 
   (function guardAppVersion() {
@@ -80,7 +80,7 @@
     })();
   })();
 </script>
-<link rel="manifest" href="/manifest.json?v=2026.06.25.7">
+<link rel="manifest" href="/manifest.json?v=2026.06.25.8">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
 <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
@@ -560,7 +560,11 @@
       <div id="cardDrawRevealedTier"></div>
       <div id="cardDrawRevealedEffect"></div>
       <div id="cardDrawRevealedTradeoff"></div>
-      <div id="cardDrawDupeBanner" style="display:none;"></div>
+      <!-- reserved reward slot: fixed height so the DUPLICATE banner toggling
+           in/out never pushes the card, info, or COLLECT button (no layout shift) -->
+      <div id="cardDrawRewardSlot" class="reveal-reward-slot">
+        <div id="cardDrawDupeBanner" style="display:none;"></div>
+      </div>
     </div>
   </div>
   <div id="cardDrawHint">TAP CARD TO REVEAL</div>

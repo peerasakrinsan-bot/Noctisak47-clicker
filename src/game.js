@@ -5449,19 +5449,24 @@ function _stopCollectBGM() {
 
 // ══════════════════════════════════════════════════════════════════════
 // CARD REVEAL CONTROLLER — premium gacha reveal sequence
-// State machine on #cardDrawScreen: is-idle → is-charging → is-flipping →
-// is-revealed → is-settled. All transient FX are CSS (transform/opacity);
+// State machine on #cardDrawScreen:
+//   is-idle → is-charging → is-hinting → is-flipping → is-burst → is-settled
+//   (idle → tap impact/suspense charge → rarity colour hint → flip →
+//    rarity burst → settle). All transient FX are CSS (transform/opacity);
 // JS only toggles state classes, swaps the image at the flip midpoint,
 // spawns the (capped, event-based) particle field, and fires haptics.
 // Honors Low VFX (flashEffect='off') and prefers-reduced-motion.
 // ══════════════════════════════════════════════════════════════════════
 // Per-rarity timing + particle budget (single source of truth; timings are
 // also pushed to CSS vars so animation length matches JS sequencing).
+// Rarer cards charge + hint longer → more anticipation. Approx. total reveal
+// (charge + hint + 2×flipHalf + burst): standard ~1.5s, premium ~1.84s,
+// elite ~2.3s, mythic ~2.98s.
 const REVEAL_CFG = {
-  standard: { charge:260, flipHalf:240, burst:380, particles:2,  haptic:[10],             label:'STANDARD' },
-  premium:  { charge:320, flipHalf:270, burst:460, particles:5,  haptic:[16],             label:'PREMIUM'  },
-  elite:    { charge:400, flipHalf:300, burst:600, particles:8,  haptic:[14,30,18],       label:'ELITE'    },
-  mythic:   { charge:500, flipHalf:380, burst:820, particles:13, haptic:[20,40,25,50,30], label:'MYTHIC'   },
+  standard: { charge:360,  hint:200, flipHalf:260, burst:420, particles:2,  haptic:[10],             label:'STANDARD' },
+  premium:  { charge:500,  hint:280, flipHalf:260, burst:540, particles:5,  haptic:[16],             label:'PREMIUM'  },
+  elite:    { charge:720,  hint:360, flipHalf:300, burst:620, particles:8,  haptic:[14,30,18],       label:'ELITE'    },
+  mythic:   { charge:1000, hint:480, flipHalf:360, burst:780, particles:13, haptic:[20,40,25,50,30], label:'MYTHIC'   },
 };
 let _revealTimers = [];
 
@@ -5512,10 +5517,11 @@ function _spawnRevealParticles(tier) {
 function _resetCardDrawScreen() {
   const screen = $('cardDrawScreen');
   if(_revealTimers.length) { _revealTimers.forEach(clearTimeout); _revealTimers = []; }
-  screen.classList.remove('is-charging','is-flipping','is-revealed','is-settled',
+  screen.classList.remove('is-charging','is-hinting','is-flipping','is-burst','is-settled',
     'reveal--standard','reveal--premium','reveal--elite','reveal--mythic');
   screen.classList.add('is-idle');
   screen.style.removeProperty('--charge-dur');
+  screen.style.removeProperty('--hint-dur');
   screen.style.removeProperty('--flip-half');
   screen.style.removeProperty('--burst-dur');
 
@@ -5589,8 +5595,9 @@ function _showDupeBanner(result) {
 function revealCard() {
   const screen = $('cardDrawScreen');
   // guard re-entry once the sequence has begun
-  if(screen.classList.contains('is-charging') || screen.classList.contains('is-flipping') ||
-     screen.classList.contains('is-revealed') || screen.classList.contains('is-settled')) return;
+  if(screen.classList.contains('is-charging') || screen.classList.contains('is-hinting') ||
+     screen.classList.contains('is-flipping') || screen.classList.contains('is-burst') ||
+     screen.classList.contains('is-settled')) return;
 
   const result = _cardDrawResult;
   const tier   = (result && result.tier) ? result.tier : null;
@@ -5600,6 +5607,7 @@ function revealCard() {
 
   // push per-rarity timing to CSS so animation length tracks JS sequencing
   screen.style.setProperty('--charge-dur', cfg.charge+'ms');
+  screen.style.setProperty('--hint-dur',   (cfg.hint||220)+'ms');
   screen.style.setProperty('--flip-half',  cfg.flipHalf+'ms');
   screen.style.setProperty('--burst-dur',  cfg.burst+'ms');
   if(tier) screen.classList.add('reveal--'+tier);
@@ -5625,21 +5633,32 @@ function revealCard() {
     tick();
   };
 
-  const chargeMs = lowFx ? 120 : cfg.charge;
+  // Low VFX collapses the suspense to a short calm path; full path otherwise.
+  const chargeMs = lowFx ? 130 : cfg.charge;
+  const hintMs   = lowFx ? 90  : (cfg.hint || 220);
   const flipHalf = lowFx ? 160 : cfg.flipHalf;
-  const burstMs  = lowFx ? 200 : cfg.burst;
+  const burstMs  = lowFx ? 220 : cfg.burst;
 
-  // ── STATE: CHARGING ──
+  // ── STATE: CHARGING (tap impact + suspense charge) ──
   screen.classList.remove('is-idle');
   screen.classList.add('is-charging');
   if(!lowFx) {
-    hiddenEl.classList.add('charging');
+    hiddenEl.classList.add('charging'); // press → rise → hold lifted (kept through hint)
     _revealHaptic(cfg.haptic);
   }
 
-  // ── STATE: FLIPPING ──
+  // ── STATE: HINTING (rarity colour tease — no card face yet) ──
   after(chargeMs, () => {
     screen.classList.remove('is-charging');
+    screen.classList.add('is-hinting');
+    // a short tension tick for the rarer tiers as the colour bleeds through
+    if(!lowFx && (tier === 'elite' || tier === 'mythic')) {
+      _revealHaptic(tier === 'mythic' ? [12,24,12] : [10]);
+    }
+
+    // ── STATE: FLIPPING ──
+    after(hintMs, () => {
+    screen.classList.remove('is-hinting');
     screen.classList.add('is-flipping');
     hiddenEl.classList.remove('charging');
     if(!lowFx) hiddenEl.classList.add('flip-out');
@@ -5658,10 +5677,10 @@ function revealCard() {
       img.style.display = 'block';
       img.classList.remove('flip-in'); void img.offsetWidth; img.classList.add('flip-in');
 
-      // ── STATE: REVEALED (burst) ──
+      // ── STATE: BURST (card face is up; fire the rarity impact) ──
       after(flipHalf, () => {
         screen.classList.remove('is-flipping');
-        screen.classList.add('is-revealed');
+        screen.classList.add('is-burst');
 
         if(tier) {
           const label = $('cardDrawRarityLabel');
@@ -5678,7 +5697,7 @@ function revealCard() {
 
         // ── STATE: SETTLED ──
         after(burstMs, () => {
-          screen.classList.remove('is-revealed');
+          screen.classList.remove('is-burst');
           screen.classList.add('is-settled');
           const label = $('cardDrawRarityLabel');
           label.classList.remove('pop');
@@ -5688,7 +5707,8 @@ function revealCard() {
         });
       });
     }));
-  });
+    }); // close HINTING → FLIPPING (after hintMs)
+  });   // close CHARGING → HINTING (after chargeMs)
 }
 
 function collectCard() {
