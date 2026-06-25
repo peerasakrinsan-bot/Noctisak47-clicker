@@ -1332,6 +1332,10 @@
     --rc:  #cfd6dd; --rc2: #ffffff;
     /* timing defaults — JS overrides per rarity */
     --charge-dur: 360ms; --hint-dur: 240ms; --flip-half: 280ms; --burst-dur: 520ms;
+    /* LOCKED CARD ANCHOR — vertical centre of the card stage as a % of the
+       screen height. The card is pinned here in every state so it never moves
+       when the info / duplicate / COLLECT content appears below it. */
+    --card-anchor-top: 39%;
   }
   /* ── rarity palettes ── */
   #cardDrawScreen.reveal--standard { --rc:#cfd6dd; --rc2:#ffffff; }
@@ -1418,24 +1422,35 @@
     100% { transform:translateY(-160px) scale(1); opacity:0; }
   }
 
+  /* pity banner — anchored to the card's TOP edge (out of flow) so it never
+     contributes to the card's own layout box. */
   #cardDrawPityBanner {
-    position:relative; z-index:2; font-family:'Oswald',sans-serif;
+    position:absolute; left:50%; bottom:100%; transform:translateX(-50%);
+    margin-bottom:14px; width:max-content; max-width:90vw;
+    z-index:2; font-family:'Oswald',sans-serif;
     font-size:clamp(14px,4vw,20px); letter-spacing:4px;
     color:#ffd700; text-shadow:0 0 20px #ffd700;
-    margin-bottom:12px; text-align:center;
+    text-align:center;
     animation:pulse-btn 1s ease-in-out infinite;
-    min-height:1.5em;
     pointer-events:none;
   }
+  /* ══ LOCKED CARD ANCHOR ══
+     Absolutely positioned and sized to the card. Its centre is pinned at
+     --card-anchor-top, so the card's screen position is fixed and independent
+     of the info / reward / button content (which lives in #cardDrawBelow). */
   #cardDrawArea {
-    position:relative; z-index:2; display:flex; flex-direction:column;
-    align-items:center; gap:14px;
+    position:absolute; left:50%; top:var(--card-anchor-top);
+    transform:translate(-50%,-50%);
+    z-index:2;
+    width:clamp(160px,45vw,220px);
+    /* height comes from the in-flow card stage; the pity banner and
+       #cardDrawBelow are out of flow and do not affect it */
   }
 
   /* ══ CARD STAGE — holds card back, revealed face + transient FX ══ */
   #cardDrawStage {
     position:relative; z-index:3;
-    width:clamp(160px,45vw,220px); aspect-ratio:3/4;
+    width:100%; aspect-ratio:3/4;
     perspective:1000px;
   }
   /* card back + revealed face share the stage box (absolute fill) so the
@@ -1602,9 +1617,23 @@
     100% { opacity:1; transform:translate(-50%,-50%) scale(1); }
   }
 
+  /* ══ BELOW-CARD LAYER — info + duplicate reward + COLLECT ══
+     Out-of-flow layer anchored to the card's BOTTOM edge (top:100% of the
+     locked anchor). Its content can grow or shrink (info appearing, duplicate
+     banner toggling, COLLECT appearing) without ever moving the card. */
+  #cardDrawBelow {
+    position:absolute; left:50%; top:100%; transform:translateX(-50%);
+    margin-top:16px;
+    display:flex; flex-direction:column; align-items:center;
+    width:min(86vw,420px);
+    pointer-events:none; /* re-enabled on the interactive button below */
+  }
+  #cardDrawBelow #cardDrawCollectBtn { pointer-events:auto; }
+
   /* ══ REVEALED CARD INFO (text column below the stage) ══ */
   #cardDrawRevealed {
     display:flex; flex-direction:column; align-items:center; gap:8px;
+    width:100%;
   }
   /* settle aura on the revealed card — STATIC drop-shadow (no animated filter).
      Standard = none; Premium = pearl edge; Elite/Mythic stronger rarity glow. */
@@ -1664,6 +1693,24 @@
     animation:confirmPulse 1s ease-in-out infinite;
   }
   #cardDrawCollectBtn:active { filter:brightness(0.85); animation:none; transform:var(--ui-press-down); }
+  /* ── short-screen safety ──
+     The card is locked at --card-anchor-top, so on short viewports the
+     info + reward + COLLECT column below it has less room. Raise the anchor
+     and tighten the gaps so the column never clips off the bottom. The card
+     still never moves between states — only the locked anchor differs by
+     viewport height (resolved once at layout, not per state). */
+  @media (max-height: 720px) {
+    #cardDrawScreen { --card-anchor-top: 34%; }
+    #cardDrawBelow { margin-top:12px; }
+    #cardDrawRevealed { gap:6px; }
+    .reveal-reward-slot { height:52px; margin-top:4px; }
+    #cardDrawHint { margin-top:12px; }
+    #cardDrawCollectBtn { margin-top:12px; padding:10px 40px; }
+  }
+  @media (max-height: 600px) {
+    #cardDrawScreen { --card-anchor-top: 31%; }
+    #cardDrawArea { width:clamp(132px,30vw,170px); }
+  }
   #resultScreen {
     position:absolute; top:0; left:0; right:0; bottom:0; z-index:997;
     display:none; flex-direction:column;

@@ -16,7 +16,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
   // Single app build/cache version. Bump this on deploys that change HTML/CSS/JS or SW behavior.
-  window.NOCTISAK47_APP_VERSION = '2026.06.25.8';
+  window.NOCTISAK47_APP_VERSION = '2026.06.25.9';
   window.NOCTISAK47_APP_CACHE_NAME = 'noctisak47-' + window.NOCTISAK47_APP_VERSION;
 
   (function guardAppVersion() {
@@ -80,7 +80,7 @@
     })();
   })();
 </script>
-<link rel="manifest" href="/manifest.json?v=2026.06.25.8">
+<link rel="manifest" href="/manifest.json?v=2026.06.25.9">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
 <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
@@ -538,8 +538,17 @@
   <div id="cardDrawEmbers" class="reveal-embers" aria-hidden="true">
     <span></span><span></span><span></span><span></span>
   </div>
-  <div id="cardDrawPityBanner"></div>
+  <!-- ══ LOCKED CARD ANCHOR ══
+       #cardDrawArea is absolutely positioned and sized to the card itself.
+       Its vertical position NEVER depends on the info / reward / button
+       content, so the revealed card stays at the exact same Y across every
+       state (idle → charging → revealed → duplicate → collected).
+       Everything that lives *below* the card (info, duplicate reward, COLLECT)
+       sits in #cardDrawBelow, an out-of-flow layer anchored to the card's
+       bottom edge — it can grow or shrink without moving the card. The pity
+       banner is anchored to the card's top edge for the same reason. -->
   <div id="cardDrawArea">
+    <div id="cardDrawPityBanner"></div>
     <div id="cardDrawStage">
       <div id="cardDrawRays" class="reveal-rays" aria-hidden="true"></div>
       <div id="cardDrawRing" class="reveal-energy-ring" aria-hidden="true"></div>
@@ -555,22 +564,25 @@
       <div id="cardDrawParticles" class="reveal-particles" aria-hidden="true"></div>
       <div id="cardDrawRarityLabel" class="reveal-rarity-label" aria-hidden="true"></div>
     </div>
-    <div id="cardDrawRevealed" style="display:none;">
-      <div id="cardDrawRevealedName"></div>
-      <div id="cardDrawRevealedTier"></div>
-      <div id="cardDrawRevealedEffect"></div>
-      <div id="cardDrawRevealedTradeoff"></div>
-      <!-- reserved reward slot: fixed height so the DUPLICATE banner toggling
-           in/out never pushes the card, info, or COLLECT button (no layout shift) -->
-      <div id="cardDrawRewardSlot" class="reveal-reward-slot">
-        <div id="cardDrawDupeBanner" style="display:none;"></div>
+    <!-- out-of-flow layer anchored to the card's bottom — info, reward, button -->
+    <div id="cardDrawBelow">
+      <div id="cardDrawRevealed" style="display:none;">
+        <div id="cardDrawRevealedName"></div>
+        <div id="cardDrawRevealedTier"></div>
+        <div id="cardDrawRevealedEffect"></div>
+        <div id="cardDrawRevealedTradeoff"></div>
+        <!-- reserved reward slot: fixed height so the DUPLICATE banner toggling
+             in/out never pushes the info or COLLECT button (no layout shift) -->
+        <div id="cardDrawRewardSlot" class="reveal-reward-slot" aria-live="polite">
+          <div id="cardDrawDupeBanner" style="display:none;"></div>
+        </div>
       </div>
+      <div id="cardDrawHint">TAP CARD TO REVEAL</div>
+      <button id="cardDrawCollectBtn"
+        onclick="collectCard()"
+        ontouchstart="event.preventDefault();collectCard();">COLLECT</button>
     </div>
   </div>
-  <div id="cardDrawHint">TAP CARD TO REVEAL</div>
-  <button id="cardDrawCollectBtn"
-    onclick="collectCard()"
-    ontouchstart="event.preventDefault();collectCard();">COLLECT</button>
 </div>
 
 <!-- ══════════════ RESULT SCREEN ══════════════ -->
