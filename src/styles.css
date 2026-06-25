@@ -5821,18 +5821,11 @@
   .install-prompt-card { transition:none; }
 }
 
-/* ══ SCREEN ENTER TRANSITION ══
-   screens ใช้ display:none→flex ผ่าน JS; ทุกครั้งที่ display เปลี่ยน browser re-runs animation
-   ทำให้ fade+slide เล่นอัตโนมัติโดยไม่ต้องเพิ่ม class / แก้ JS ──────────────────────────── */
-@keyframes screenFadeSlide {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
-@keyframes screenFadeOnly {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
+/* ══ INSTANT SCREEN SWITCH ══
+   เปลี่ยนหน้าเมนู/เพจให้ทันที — ไม่มี fade / slide / scale / blur / route transition
+   screens ใช้ display:none→flex ผ่าน JS; เมื่อไม่มี animation หน้าจะแสดงทันทีที่ display เปลี่ยน
+   (opacity ปริยาย = 1, ไม่มี transform หน่วง) ทำให้การนำทางรู้สึกเร็วและตอบสนองทันใจบนมือถือ
+   หมายเหตุ: card reveal / battle entrance ยังคงเล่นได้ตามเดิม — กฎนี้คุมเฉพาะ container ของหน้า ── */
 #mainMenu,
 #shopScreen,
 #bossScreen,
@@ -5840,19 +5833,9 @@
 #cardSlotScreen,
 #cardCollectionScreen,
 #resultScreen {
-  animation: screenFadeSlide 0.18s ease forwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #mainMenu,
-  #shopScreen,
-  #bossScreen,
-  #arenaScreen,
-  #cardSlotScreen,
-  #cardCollectionScreen,
-  #resultScreen {
-    animation: screenFadeOnly 0.1s ease forwards;
-  }
+  animation: none;
+  opacity: 1;
+  transform: none;
 }
 
 /* ══ BUTTON TRANSITION BASE ══
