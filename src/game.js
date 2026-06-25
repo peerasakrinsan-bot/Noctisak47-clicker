@@ -3348,10 +3348,14 @@ function _csRenderRerollCards() {
 }
 
 function _csSelectRerollCard(el, card) {
-  // Deselect all
-  document.querySelectorAll('.cs-card').forEach(c => c.classList.remove('selected'));
+  // Deselect all (also clear any per-card themed pick accent from a prior select)
+  document.querySelectorAll('.cs-card').forEach(c => {
+    c.classList.remove('selected', 'cs-pick-themed');
+    c.style.removeProperty('--cv-pick');
+  });
   el.classList.add('selected');
   pulseCardRarityVfx(el); // premium sparkle/sweep on Elite/Mythic select (no-op otherwise)
+  _csApplyPickAccent(el, card); // tint the pick burst with the card's signature colour
   // POLISH: dim unselected cards when one is active
   const wrap = $('csCardsWrap');
   if (wrap) wrap.classList.add('has-selection');
@@ -5666,6 +5670,27 @@ function applyCardRarityVfx(el, rarity) {
     '<div class="card-vfx-border"></div>' +
     '<div class="card-vfx-sweep"></div>' +
     (n ? `<div class="card-vfx-particles">${motes}</div>` : ''));
+}
+
+// Per-card themed selection accent. Bridges the in-run signature colour
+// (CardVFX.VFX_MAP aura) into the pick moment so each Elite/Mythic card's
+// selection burst matches its gameplay identity (fire → ember, frost → cold
+// spark, gold → treasure gleam, …) instead of one generic gold/violet for the
+// whole rarity. Cosmetic only, element-local (renders above the slot screen),
+// and self-cleaning. No-op for Standard/Premium or if the layer isn't loaded.
+function _csApplyPickAccent(el, card) {
+  try {
+    const color = (window.CardVFX && window.CardVFX.pickColor) ? window.CardVFX.pickColor(card.id) : null;
+    if (!color) { el.style.removeProperty('--cv-pick'); el.classList.remove('cs-pick-themed'); return; }
+    el.style.setProperty('--cv-pick', color);
+    el.classList.add('cs-pick-themed');          // recolours the burst motes (CSS)
+    // one-shot signature flare ring — a fresh self-removing node per select
+    const flare = document.createElement('span');
+    flare.className = 'cs-pick-flare';
+    flare.setAttribute('aria-hidden', 'true');
+    el.appendChild(flare);
+    setTimeout(() => { if (flare.parentNode) flare.parentNode.removeChild(flare); }, 900);
+  } catch (e) { /* cosmetic — must never break selection */ }
 }
 
 // One-shot sparkle + light-sweep burst on obtain / select / upgrade.
