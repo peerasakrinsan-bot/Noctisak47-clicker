@@ -5838,12 +5838,14 @@ function renderCardCollection() {
 // prefers-reduced-motion + body.low-vfx / body.flash-off (Low VFX Mode).
 const _CD_MOTES = { elite: 4, mythic: 8 };   // Elite = burst-only, Mythic = ambient orbs
 
-// Premium detail-modal accent palettes. Premium cards have NO VFX_MAP entry
-// (that signature-colour layer is Elite/Mythic only), so without this every
-// premium card fell back to one identical generic cyan glow. A small curated
-// set of refined two-tone "premium" accents — keyed deterministically off the
-// card id — gives each premium card its own stylish look while staying clearly
-// BELOW Elite (cool jewel tones, no gold shimmer ring, no aura, no particles).
+// Premium detail-modal THEME accents (secondary only). The Premium *frame*
+// colour is a fixed rarity identity (electric cyan / premium blue) defined in
+// CSS via --rarity-* on .card-detail-vfx--premium — every Premium card shares
+// it. These per-card two-tone accents are keyed deterministically off the card
+// id and feed ONLY --cd-theme / --cd-theme2, which the CSS consumes for small
+// flavour touches (ability-section header tint, optional sheen/sweep) — they
+// must never recolour the frame, glow, or rarity label. Kept subtle so Premium
+// reads as one consistent rarity, clearly BELOW Elite (gold) / Mythic (red).
 // Cosmetic only; never touches card logic / save / cs_* / balance.
 const _CD_PREMIUM_THEMES = [
   { style: 'rizz',    accent: '#ff5fa8', accent2: '#36e6ff' }, // influencer / love / rizz — pink + cyan
@@ -5926,8 +5928,12 @@ function openCardModal(card) {
     ? window.CardVFX.VFX_MAP[card.id].aura[0] : '';
   content.className = 'card-detail-vfx card-detail-vfx--' + card.rarity;
   content.classList.remove('opened', 'active', 'triggered');
-  // Per-rarity accent: Premium pulls a curated two-tone palette (no VFX_MAP),
-  // Elite/Mythic use their gameplay signature colour, Standard stays neutral.
+  // Per-rarity colour:
+  //  • Premium → fixed cyan rarity frame (CSS --rarity-*); the curated two-tone
+  //    palette below only feeds --cd-theme/--cd-theme2 as a SECONDARY accent
+  //    (ability headers / sheen), never the frame.
+  //  • Elite/Mythic → gameplay signature colour drives --cd-theme.
+  //  • Standard → neutral baseline (no --cd-theme).
   content.style.removeProperty('--cd-theme2');
   if (card.rarity === 'premium') {
     const pt = _cdPremiumTheme(card.id);

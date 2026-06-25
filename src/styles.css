@@ -949,15 +949,18 @@
     border-color:#4a4a52;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 3px 12px rgba(0,0,0,0.55);
   }
-  /* Premium — refined themed glow hugging the frame (replaces generic cyan).
-     --cd-theme / --cd-theme2 are set per-card in openCardModal so each premium
-     card carries its own accent instead of one shared blue. */
+  /* Premium — ONE fixed rarity frame for every Premium card (electric cyan /
+     premium blue). Rarity identity must win over card theme, so the border and
+     glow read ONLY from the --rarity-* vars (defined on .card-detail-vfx--premium),
+     never from the per-card --cd-theme. --rarity-inner is the pearl-white inner
+     highlight. Per-card theme accents live only on ability headers / sheen /
+     sweep — they must never recolour this frame. */
   #cardModalImg.aura-premium  {
-    border-color:var(--cd-theme,#4aa8ff);
+    border-color: var(--rarity-primary, #2fb8ff);
     box-shadow:
-      inset 0 0 0 1px rgba(255,255,255,0.07),
-      0 0 12px -2px var(--cd-theme,#4aa8ff),
-      0 0 2px var(--cd-theme2,var(--cd-theme,#4aa8ff));
+      inset 0 0 0 1px var(--rarity-inner, rgba(240,248,255,0.22)),
+      0 0 14px -2px var(--rarity-glow, rgba(47,184,255,0.55)),
+      0 0 3px var(--rarity-primary, #2fb8ff);
   }
   #cardModalImg.aura-elite    { border-color:#c8a400; box-shadow:0 0 20px rgba(255,204,0,0.9); animation:eliteGlow 2s ease-in-out infinite; }
   #cardModalImg.aura-mythic   {
@@ -971,7 +974,7 @@
   #cardModalName { font-family:'Oswald',sans-serif; font-size:16px; letter-spacing:2px; color:#fff; text-align:center; }
   #cardModalTier { font-size:10px; letter-spacing:3px; }
   #cardModalTier.tier-standard { color:#888; }
-  #cardModalTier.tier-premium  { color:#0088ff; }
+  #cardModalTier.tier-premium  { color:var(--rarity-primary,#2fb8ff); }
   #cardModalTier.tier-elite    { color:#ffcc00; }
   #cardModalTier.tier-mythic   { color:#ff2233; }
   #cardModalEffect { font-family:'Sarabun',sans-serif; font-size:12px; color:#d8d8d8; text-align:center; line-height:1.75; }
@@ -1011,6 +1014,20 @@
      / body.flash-off collapse to a readable static aura (Low VFX Mode).
      ════════════════════════════════════════════════════════════════ */
   :root { --cd-theme: #ffd86a; }
+
+  /* ── Premium rarity identity (FIXED — identical for every Premium card) ──
+     Rarity wins over card theme. The Premium frame / glow / label resolve ONLY
+     these --rarity-* values (electric cyan / premium blue + a pearl inner
+     highlight), so no Premium card can drift to pink / silver / etc. The
+     per-card --cd-theme / --cd-theme2 (set in openCardModal) are *theme accents*
+     — consumed only by the ability-section headers (and any optional sheen /
+     sweep tint), never by the frame. Premium stays clearly BELOW Elite (gold)
+     and Mythic (red): no full modal aura, no shimmer ring, no particles. */
+  .card-detail-vfx--premium {
+    --rarity-primary: #2fb8ff;                /* electric cyan / premium blue  */
+    --rarity-glow:    rgba(47,184,255,0.55);  /* soft cyan-blue outer glow     */
+    --rarity-inner:   rgba(240,248,255,0.22); /* pearl-white inner highlight   */
+  }
 
   /* Modal container: fade + rise on open (skipped when reduced/low-vfx) */
   #cardModalContent.card-detail-vfx {
