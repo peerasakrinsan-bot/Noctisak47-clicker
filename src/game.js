@@ -5462,13 +5462,20 @@ function _stopCollectBGM() {
 // Rarer cards charge + hint longer → more anticipation. Approx. total reveal
 // (charge + hint + 2×flipHalf + burst): standard ~1.5s, premium ~1.84s,
 // elite ~2.3s, mythic ~2.98s.
+// `charge` = inward-pull duration (rarer = longer suspense). `chargeParticles`
+// = inward "magnetized energy" motes pulled toward the card during charge
+// (event-based, capped, auto-removed). `particles` = outward burst motes at
+// reveal. Charge counts stay mobile-safe (one-shot DOM nodes, not loops).
 const REVEAL_CFG = {
-  standard: { charge:360,  hint:200, flipHalf:260, burst:420, particles:2,  haptic:[10],             label:'STANDARD' },
-  premium:  { charge:500,  hint:280, flipHalf:260, burst:540, particles:5,  haptic:[16],             label:'PREMIUM'  },
-  elite:    { charge:720,  hint:360, flipHalf:300, burst:620, particles:8,  haptic:[14,30,18],       label:'ELITE'    },
-  mythic:   { charge:1000, hint:480, flipHalf:360, burst:780, particles:13, haptic:[20,40,25,50,30], label:'MYTHIC'   },
+  standard: { charge:360,  hint:200, flipHalf:260, burst:420, chargeParticles:8,  particles:2,  haptic:[10],             label:'STANDARD' },
+  premium:  { charge:520,  hint:280, flipHalf:260, burst:540, chargeParticles:13, particles:5,  haptic:[16],             label:'PREMIUM'  },
+  elite:    { charge:760,  hint:360, flipHalf:300, burst:620, chargeParticles:19, particles:8,  haptic:[14,30,18],       label:'ELITE'    },
+  mythic:   { charge:1080, hint:480, flipHalf:360, burst:780, chargeParticles:27, particles:13, haptic:[20,40,25,50,30], label:'MYTHIC'   },
 };
 let _revealTimers = [];
+// explicit reveal state machine: idle → charging → hinting → flipping → burst
+// → settled (or skipped → settled). Drives the second-tap skip dispatcher.
+let _revealState = 'idle';
 
 // Low VFX path: OS reduced-motion OR Flash Effect = OFF
 function _revealLowFx() {
@@ -5513,10 +5520,127 @@ function _spawnRevealParticles(tier) {
   c.appendChild(frag);
 }
 
+// ── INWARD CHARGE PARTICLES ──────────────────────────────────────────────
+// Rarity-coloured motes that spawn around the card zone and fly INWARD to the
+// card centre ("magnetized energy"), staggered across the charge window so
+// they keep streaming in. Mythic gets per-mote prismatic hues. Event-based:
+// each node removes itself on animationend; transform/opacity only.
+function _spawnChargeParticles(tier) {
+  if(_revealLowFx()) return;
+  const cfg = REVEAL_CFG[tier]; if(!cfg) return;
+  const c = $('cardDrawParticles'); if(!c) return;
+  const n = cfg.chargeParticles || 0;
+  if(!n) return;
+  const chargeDur = cfg.charge;
+  const frag = document.createDocumentFragment();
+  for(let i=0; i<n; i++) {
+    const p = document.createElement('span');
+    p.className = 'rcp';
+    const ang  = (Math.PI*2)*(i/n) + (Math.random()-0.5)*0.9;
+    const dist = 120 + Math.random()*120; // start far out, converge to centre
+    p.style.setProperty('--sx', (Math.cos(ang)*dist).toFixed(1)+'px');
+    p.style.setProperty('--sy', (Math.sin(ang)*dist).toFixed(1)+'px');
+    const dur = 340 + (Math.random()*240|0);
+    const maxDelay = Math.max(0, chargeDur - dur);
+    p.style.setProperty('--pdur', dur+'ms');
+    p.style.setProperty('--pdelay', ((Math.random()*maxDelay)|0)+'ms');
+    const sz = (tier === 'mythic' ? 3.5 : tier === 'elite' ? 3 : 2.5) + Math.random()*2.5;
+    p.style.width = sz.toFixed(1)+'px';
+    p.style.height = sz.toFixed(1)+'px';
+    // mythic = prismatic / cosmic: randomise hue per mote
+    if(tier === 'mythic') p.style.setProperty('--rc', 'hsl('+(Math.random()*360|0)+',92%,66%)');
+    p.addEventListener('animationend', () => { p.remove(); }, { once:true });
+    frag.appendChild(p);
+  }
+  c.appendChild(frag);
+}
+
+// ── SECOND-TAP / DOUBLE-TAP SKIP ──────────────────────────────────────────
+// A tap anywhere on the reveal screen while the sequence is running jumps
+// straight to the settled end-state. The skip listeners are attached one task
+// AFTER the starting tap (via setTimeout 0): the tap that STARTS the reveal is
+// still bubbling toward the screen, so attaching synchronously would let that
+// same tap also skip. Deferring guarantees only a subsequent tap can skip,
+// while keeping the card itself a valid skip target (no stopPropagation).
+let _skipAttachTimer = null;
+function _onSkipTap(e) {
+  if(e && e.cancelable) { try { e.preventDefault(); } catch(_) {} }
+  _skipReveal();
+}
+function _clearSkipAttach() {
+  if(_skipAttachTimer) { clearTimeout(_skipAttachTimer); _skipAttachTimer = null; }
+}
+function _attachSkip() {
+  _clearSkipAttach();
+  _skipAttachTimer = setTimeout(() => {
+    _skipAttachTimer = null;
+    const screen = $('cardDrawScreen');
+    if(!screen) return;
+    screen.addEventListener('click', _onSkipTap);
+    screen.addEventListener('touchstart', _onSkipTap, { passive:false });
+  }, 0);
+}
+function _detachSkip() {
+  _clearSkipAttach();
+  const screen = $('cardDrawScreen');
+  if(!screen) return;
+  screen.removeEventListener('click', _onSkipTap);
+  screen.removeEventListener('touchstart', _onSkipTap);
+}
+
+// Force the fully-settled final state from ANY running state. Used by both the
+// natural sequence end and the skip path. Clears all timers, transient
+// particles, charge/flip classes, flash, then shows the final face + info +
+// reward + COLLECT. Idempotent and safe to call once.
+function _finalizeReveal() {
+  const screen = $('cardDrawScreen');
+  const result = _cardDrawResult;
+  const tier   = (result && result.tier) ? result.tier : null;
+  // stop every pending step + remove transient particle nodes
+  if(_revealTimers.length) { _revealTimers.forEach(clearTimeout); _revealTimers = []; }
+  _clearRevealParticles();
+  // drop transient state + card animation classes
+  screen.classList.remove('is-idle','is-charging','is-hinting','is-flipping','is-burst');
+  const hiddenEl = $('cardDrawHidden');
+  hiddenEl.classList.remove('charging','flip-out');
+  hiddenEl.style.display = 'none';
+  $('cardDrawFlash').classList.remove('fire');
+  if(tier && !screen.classList.contains('reveal--'+tier)) screen.classList.add('reveal--'+tier);
+  // final card face (no flip animation when skipping straight to the result)
+  const img = $('cardDrawRevealedImg');
+  _populateRevealedCard(result, tier);
+  img.classList.remove('flip-in');
+  img.style.display = 'block';
+  // rarity stamp settled (faded so it never covers the art at rest)
+  const label = $('cardDrawRarityLabel');
+  label.classList.remove('pop');
+  label.textContent = (tier && REVEAL_CFG[tier]) ? REVEAL_CFG[tier].label : '';
+  label.style.opacity = '0';
+  // info column + reward + button
+  const revealed = $('cardDrawRevealed');
+  revealed.style.display = 'flex';
+  revealed.classList.remove('show'); void revealed.offsetWidth; revealed.classList.add('show');
+  _showDupeBanner(result);
+  $('cardDrawHint').classList.add('hidden');
+  $('cardDrawCollectBtn').classList.add('visible');
+  screen.classList.add('is-settled');
+  _revealState = 'settled';
+  _detachSkip();
+}
+
+// Second-tap handler: skip the running animation to the final result.
+function _skipReveal() {
+  if(_revealState === 'idle' || _revealState === 'settled') { _detachSkip(); return; }
+  _revealState = 'skipped';
+  _finalizeReveal();
+}
+
 // Full reset back to the idle state (called on every screen open)
 function _resetCardDrawScreen() {
   const screen = $('cardDrawScreen');
   if(_revealTimers.length) { _revealTimers.forEach(clearTimeout); _revealTimers = []; }
+  _detachSkip();
+  _revealState = 'idle';
   screen.classList.remove('is-charging','is-hinting','is-flipping','is-burst','is-settled',
     'reveal--standard','reveal--premium','reveal--elite','reveal--mythic');
   screen.classList.add('is-idle');
@@ -5594,10 +5718,9 @@ function _showDupeBanner(result) {
 
 function revealCard() {
   const screen = $('cardDrawScreen');
-  // guard re-entry once the sequence has begun
-  if(screen.classList.contains('is-charging') || screen.classList.contains('is-hinting') ||
-     screen.classList.contains('is-flipping') || screen.classList.contains('is-burst') ||
-     screen.classList.contains('is-settled')) return;
+  // only the idle → charging transition starts here; any later tap is routed
+  // to the skip handler (_onSkipTap), so this guard just blocks restarts.
+  if(_revealState !== 'idle') return;
 
   const result = _cardDrawResult;
   const tier   = (result && result.tier) ? result.tier : null;
@@ -5639,11 +5762,16 @@ function revealCard() {
   const flipHalf = lowFx ? 160 : cfg.flipHalf;
   const burstMs  = lowFx ? 220 : cfg.burst;
 
-  // ── STATE: CHARGING (tap impact + suspense charge) ──
+  // ── STATE: CHARGING (tap impact + inward energy pull) ──
   screen.classList.remove('is-idle');
   screen.classList.add('is-charging');
+  _revealState = 'charging';
+  // route every subsequent tap to the skip handler (safe: listeners added now
+  // do not fire for the tap currently being dispatched)
+  _attachSkip();
   if(!lowFx) {
     hiddenEl.classList.add('charging'); // press → rise → hold lifted (kept through hint)
+    _spawnChargeParticles(tier);        // magnetized energy flying into the card
     _revealHaptic(cfg.haptic);
   }
 
@@ -5651,6 +5779,7 @@ function revealCard() {
   after(chargeMs, () => {
     screen.classList.remove('is-charging');
     screen.classList.add('is-hinting');
+    _revealState = 'hinting';
     // a short tension tick for the rarer tiers as the colour bleeds through
     if(!lowFx && (tier === 'elite' || tier === 'mythic')) {
       _revealHaptic(tier === 'mythic' ? [12,24,12] : [10]);
@@ -5660,6 +5789,7 @@ function revealCard() {
     after(hintMs, () => {
     screen.classList.remove('is-hinting');
     screen.classList.add('is-flipping');
+    _revealState = 'flipping';
     hiddenEl.classList.remove('charging');
     if(!lowFx) hiddenEl.classList.add('flip-out');
 
@@ -5681,6 +5811,7 @@ function revealCard() {
       after(flipHalf, () => {
         screen.classList.remove('is-flipping');
         screen.classList.add('is-burst');
+        _revealState = 'burst';
 
         if(tier) {
           const label = $('cardDrawRarityLabel');
@@ -5699,6 +5830,8 @@ function revealCard() {
         after(burstMs, () => {
           screen.classList.remove('is-burst');
           screen.classList.add('is-settled');
+          _revealState = 'settled';
+          _detachSkip();
           const label = $('cardDrawRarityLabel');
           label.classList.remove('pop');
           label.style.opacity = '0'; // fade the stamp so it never covers art at rest

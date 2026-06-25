@@ -1486,12 +1486,23 @@
   /* ── tap impact + suspense charge: press down, then rise & hold lifted ──
      The .charging class is kept through the HINT phase so the lifted hold
      persists until the flip starts (transform only). */
-  #cardDrawHidden.charging { animation:revealChargePress var(--charge-dur) cubic-bezier(.34,1.56,.64,1) forwards; }
+  #cardDrawHidden.charging {
+    animation:
+      revealChargePress var(--charge-dur) cubic-bezier(.34,1.56,.64,1) forwards,
+      revealChargeGlow  var(--charge-dur) ease-in forwards;
+  }
   @keyframes revealChargePress {
     0%   { transform:translateY(0) scale(1); }
     24%  { transform:translateY(3px) scale(0.9); }    /* tap impact — press down */
     64%  { transform:translateY(-11px) scale(1.05); } /* suspense — rise */
     100% { transform:translateY(-8px) scale(1.02); }  /* hold lifted into hint */
+  }
+  /* glow ramps up in the rarity colour as the inward motes converge — the card
+     visibly "charges" stronger the closer the energy gets. paint-only (filter). */
+  @keyframes revealChargeGlow {
+    0%   { filter:drop-shadow(0 0 3px color-mix(in srgb, var(--rc) 25%, transparent)); }
+    60%  { filter:drop-shadow(0 0 12px color-mix(in srgb, var(--rc) 60%, transparent)); }
+    100% { filter:drop-shadow(0 0 24px color-mix(in srgb, var(--rc) 92%, transparent)); }
   }
 
   /* ══ RARITY HINT — a colour-only tease BEFORE the flip (no card face) ══
@@ -1536,6 +1547,22 @@
     0%   { transform:translate(-50%,-50%) scale(0.35); opacity:0; }
     25%  { opacity:0.9; }
     100% { transform:translate(-50%,-50%) scale(1.55); opacity:0; }
+  }
+  /* contracting "pull-in" ring — collapses toward the card during charge to
+     reinforce the magnetized-energy read (counterpoint to the tap shockwave
+     above). transform/opacity only. */
+  .reveal-charge-ring {
+    position:absolute; left:50%; top:50%; width:108%; aspect-ratio:1;
+    transform:translate(-50%,-50%) scale(1.7); opacity:0;
+    border-radius:50%; border:2px dashed color-mix(in srgb, var(--rc) 65%, transparent);
+    box-shadow:inset 0 0 16px color-mix(in srgb, var(--rc) 35%, transparent);
+    z-index:2; pointer-events:none; will-change:transform,opacity;
+  }
+  #cardDrawScreen.is-charging .reveal-charge-ring { animation:revealChargeRing var(--charge-dur) ease-in forwards; }
+  @keyframes revealChargeRing {
+    0%   { transform:translate(-50%,-50%) scale(1.7) rotate(0deg); opacity:0; }
+    30%  { opacity:0.7; }
+    100% { transform:translate(-50%,-50%) scale(0.62) rotate(54deg); opacity:0; }
   }
   /* sharp light rays behind card — Elite + Mythic only */
   .reveal-rays {
@@ -1598,6 +1625,22 @@
     0%   { transform:translate(-50%,-50%) scale(0.4); opacity:0; }
     15%  { opacity:1; }
     100% { transform:translate(calc(-50% + var(--tx,0px)), calc(-50% + var(--ty,0px))) scale(0.2); opacity:0; }
+  }
+  /* ── INWARD CHARGE MOTES (.rcp) — spawned far out (--sx/--sy), magnetized
+       into the card centre during the charge phase. White-hot core fading to
+       the rarity colour (mythic randomises --rc per mote for a prismatic mix).
+       Ease-in motion sells the "pulled in" acceleration. transform/opacity. */
+  .reveal-particles .rcp {
+    position:absolute; left:0; top:0; width:5px; height:5px; border-radius:50%;
+    background:radial-gradient(circle, #fff 0%, var(--rc) 55%, transparent 78%);
+    transform:translate(-50%,-50%); opacity:0; will-change:transform,opacity;
+    animation:revealChargeIn var(--pdur,520ms) cubic-bezier(.55,0,.85,.35) var(--pdelay,0ms) forwards;
+  }
+  @keyframes revealChargeIn {
+    0%   { transform:translate(calc(-50% + var(--sx,0px)), calc(-50% + var(--sy,0px))) scale(0.35); opacity:0; }
+    20%  { opacity:1; }
+    82%  { opacity:1; }
+    100% { transform:translate(-50%,-50%) scale(1.15); opacity:0; }
   }
   /* rarity stamp — impact pop-in, fades out at settle so it never covers art at rest */
   .reveal-rarity-label {
@@ -1855,6 +1898,8 @@
   body.flash-off #cardDrawScreen .reveal-sweep,
   body.low-vfx   #cardDrawScreen .reveal-energy-ring,
   body.flash-off #cardDrawScreen .reveal-energy-ring,
+  body.low-vfx   #cardDrawScreen .reveal-charge-ring,
+  body.flash-off #cardDrawScreen .reveal-charge-ring,
   body.low-vfx   #cardDrawScreen .reveal-embers,
   body.flash-off #cardDrawScreen .reveal-embers,
   body.low-vfx   #cardDrawScreen .reveal-flash,
@@ -1876,6 +1921,7 @@
     #cardDrawScreen .reveal-burst,
     #cardDrawScreen .reveal-sweep,
     #cardDrawScreen .reveal-energy-ring,
+    #cardDrawScreen .reveal-charge-ring,
     #cardDrawScreen .reveal-embers,
     #cardDrawScreen .reveal-flash { display:none !important; }
     #cardDrawScreen .reveal-ritual-ring,
