@@ -16,7 +16,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
   // Single app build/cache version. Bump this on deploys that change HTML/CSS/JS or SW behavior.
-  window.NOCTISAK47_APP_VERSION = '2026.06.25.6';
+  window.NOCTISAK47_APP_VERSION = '2026.06.25.7';
   window.NOCTISAK47_APP_CACHE_NAME = 'noctisak47-' + window.NOCTISAK47_APP_VERSION;
 
   (function guardAppVersion() {
@@ -80,7 +80,7 @@
     })();
   })();
 </script>
-<link rel="manifest" href="/manifest.json?v=2026.06.25.6">
+<link rel="manifest" href="/manifest.json?v=2026.06.25.7">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
 <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
@@ -529,17 +529,33 @@
 </div>
 
 <!-- ══════════════ CARD DRAW SCREEN ══════════════ -->
-<div id="cardDrawScreen" style="display:none;">
+<!-- reveal VFX layers are purely cosmetic; aria-hidden + pointer-events:none -->
+<div id="cardDrawScreen" class="is-idle" style="display:none;">
   <div id="cardDrawBg"></div>
+  <div id="cardDrawRitual" class="reveal-ritual-ring" aria-hidden="true"></div>
+  <div id="cardDrawFloor" class="reveal-floor-glow" aria-hidden="true"></div>
+  <div id="cardDrawVignette" class="reveal-vignette" aria-hidden="true"></div>
+  <div id="cardDrawEmbers" class="reveal-embers" aria-hidden="true">
+    <span></span><span></span><span></span><span></span>
+  </div>
   <div id="cardDrawPityBanner"></div>
   <div id="cardDrawArea">
-    <div id="cardDrawHidden"
-      onclick="revealCard()"
-      ontouchstart="event.preventDefault();revealCard();">
-      <img id="cardDrawHiddenImg" src="/card_hidden.png" alt="" draggable="false">
+    <div id="cardDrawStage">
+      <div id="cardDrawRays" class="reveal-rays" aria-hidden="true"></div>
+      <div id="cardDrawRing" class="reveal-energy-ring" aria-hidden="true"></div>
+      <div id="cardDrawHidden"
+        onclick="revealCard()"
+        ontouchstart="event.preventDefault();revealCard();">
+        <img id="cardDrawHiddenImg" src="/card_hidden.png" alt="" draggable="false">
+      </div>
+      <img id="cardDrawRevealedImg" src="" alt="" draggable="false" style="display:none;">
+      <div id="cardDrawFlash" class="reveal-flash" aria-hidden="true"></div>
+      <div id="cardDrawSweep" class="reveal-sweep" aria-hidden="true"></div>
+      <div id="cardDrawBurst" class="reveal-burst" aria-hidden="true"></div>
+      <div id="cardDrawParticles" class="reveal-particles" aria-hidden="true"></div>
+      <div id="cardDrawRarityLabel" class="reveal-rarity-label" aria-hidden="true"></div>
     </div>
     <div id="cardDrawRevealed" style="display:none;">
-      <img id="cardDrawRevealedImg" src="" alt="">
       <div id="cardDrawRevealedName"></div>
       <div id="cardDrawRevealedTier"></div>
       <div id="cardDrawRevealedEffect"></div>
