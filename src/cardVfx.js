@@ -558,6 +558,15 @@ function triggerCardVfx(id, context, ctx) {
   else _runPrim(spec, ctx);
 }
 
+// ── signature colour (สำหรับ selection-moment accent บนหน้าจอเลือกการ์ด) ──────
+// คืนสี aura ของการ์ด Elite/Mythic เพื่อให้ "ตอนเลือก" ใช้สีประจำใบเดียวกับตอนเล่น
+// จริง (fire→ส้ม, frost→ฟ้า, …) — VFX_MAP เป็นแหล่งความจริงเดียว. คืน null ถ้า
+// ไม่ใช่ Elite/Mythic. คอสเมติกล้วน ไม่อ่าน/เขียน logic การ์ด.
+function pickColor(id) {
+  const e = VFX_MAP[id];
+  return (e && e.aura && typeof e.aura[1] === 'string') ? e.aura[1] : null;
+}
+
 // ── PUBLIC API ───────────────────────────────────────────────────────────────
 const CardVFX = {
   trigger: triggerCardVfx,
@@ -566,6 +575,7 @@ const CardVFX = {
   clearCardAura,
   setActiveCard,
   clearActive,
+  pickColor,
   VFX_MAP,
   reducedMotion: () => _reduced,
 };

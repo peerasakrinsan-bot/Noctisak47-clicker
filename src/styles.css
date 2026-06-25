@@ -3581,6 +3581,34 @@
     100% { transform: translateY(-58px) scale(1);  opacity: 0; }
   }
 
+  /* ── THEMED SELECT ACCENT: per-card signature colour on pick ──
+     Bridges the in-run VFX signature colour (CardVFX.VFX_MAP aura) into the
+     selection moment so each Elite/Mythic card's pick burst matches its
+     gameplay identity (fire → ember, frost → cold spark, gold → treasure
+     gleam, …) instead of one generic gold/violet per rarity. Cosmetic only;
+     element-local so it renders above the slot screen (no canvas occlusion).
+     Driven by _csApplyPickAccent(): .cs-pick-themed + the --cv-pick variable. */
+  .cs-card.cs-pick-themed .card-vfx-particle {
+    background: var(--cv-pick, var(--mote, #fff));
+    box-shadow: 0 0 5px var(--cv-pick, var(--mote, #fff));
+  }
+  /* one-shot signature flare ring — a self-removing node spawned on select.
+     GPU-only (transform/opacity); Mythic runs a touch longer/stronger. */
+  .cs-pick-flare {
+    position: absolute; left: 50%; top: 46%;
+    width: 26px; height: 26px; margin: -13px 0 0 -13px;
+    border-radius: 50%; pointer-events: none; z-index: 9; opacity: 0;
+    border: 2px solid var(--cv-pick, #fff);
+    box-shadow: 0 0 12px var(--cv-pick, #fff), inset 0 0 8px var(--cv-pick, #fff);
+    animation: csPickFlare .7s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  .cs-card.rarity-mythic .cs-pick-flare { animation-duration: .82s; border-width: 2.5px; }
+  @keyframes csPickFlare {
+    0%   { opacity: 0;   transform: scale(.3); }
+    22%  { opacity: .95; }
+    100% { opacity: 0;   transform: scale(3.4); }
+  }
+
   /* ── Newly-unlocked / upgraded one-shot reveal (collection grid) ── */
   .cc-card.card-vfx-new { animation: cardRevealPop .9s cubic-bezier(.2,.8,.2,1); }
   @keyframes cardRevealPop {
@@ -3602,8 +3630,10 @@
     .card-vfx-aura::before,
     .card-vfx-sweep::before,
     .card-vfx-particle,
+    .cs-pick-flare,
     .cc-card.card-vfx-new { animation: none !important; }
     .card-vfx-particles { display: none !important; }
+    .cs-pick-flare { display: none !important; }
     .card--mythic .card-vfx-aura { opacity: .4 !important; }
     .card--elite  .card-vfx-aura { opacity: .55 !important; }
   }
@@ -3617,10 +3647,14 @@
   body.flash-off .card-vfx-sweep::before,
   body.low-vfx   .card-vfx-particle,
   body.flash-off .card-vfx-particle,
+  body.low-vfx   .cs-pick-flare,
+  body.flash-off .cs-pick-flare,
   body.low-vfx   .cc-card.card-vfx-new,
   body.flash-off .cc-card.card-vfx-new { animation: none !important; }
   body.low-vfx   .card-vfx-particles,
   body.flash-off .card-vfx-particles { display: none !important; }
+  body.low-vfx   .cs-pick-flare,
+  body.flash-off .cs-pick-flare { display: none !important; }
   body.low-vfx   .card--mythic .card-vfx-aura,
   body.flash-off .card--mythic .card-vfx-aura { opacity: .35 !important; }
   body.low-vfx   .card--elite  .card-vfx-aura,
