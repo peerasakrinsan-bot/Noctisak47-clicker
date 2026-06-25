@@ -5827,10 +5827,57 @@ function renderCardCollection() {
   }
 }
 
+// ── CARD DETAIL MODAL VFX ─────────────────────────────────────────────
+// The collection grid already layers rarity VFX on each .cc-card via
+// applyCardRarityVfx(). The detail modal previously only set a single
+// box-shadow class on the <img>, so opened cards looked plain. These helpers
+// extend the SAME rarity identity (rarity tier + per-card signature colour
+// from CardVFX.VFX_MAP) into the modal: a framed hero card with aura, border
+// shimmer, spotlight sweep, themed ability accents and (Mythic) soul orbs.
+// Cosmetic only — never touches card logic / save / cs_* / balance. Honors
+// prefers-reduced-motion + body.low-vfx / body.flash-off (Low VFX Mode).
+const _CD_MOTES = { elite: 4, mythic: 8 };   // Elite = burst-only, Mythic = ambient orbs
+
+let _cdActiveCardId = null;
+
+// Build the per-card themed orb pool inside the frame's particle layer.
+// Mythic floats ambiently; Elite stays idle until a burst (.triggered).
+function _cdBuildParticles(rarity, themeColor) {
+  const host = document.getElementById('cardDetailParticles');
+  if (!host) return;
+  host.innerHTML = '';
+  const n = _CD_MOTES[rarity] || 0;
+  if (!n) return;
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    const left  = (6 + (i + 0.5) * (88 / n)).toFixed(1);
+    const dur   = (5.5 + (i % 4) * 1.3).toFixed(1);
+    const delay = (i * 0.7).toFixed(1);
+    const color = rarity === 'mythic'
+      ? (themeColor || _MYTHIC_MOTE_COLORS[i % _MYTHIC_MOTE_COLORS.length])
+      : (themeColor || '#ffe680');
+    html += `<i class="card-detail-mote" style="left:${left}%;--mdur:${dur}s;--mdelay:${delay}s;--mote:${color}"></i>`;
+  }
+  host.innerHTML = html;
+}
+
+// Fire a short selection/activation burst (Elite sparkle / Mythic activation).
+function _cdTriggerBurst() {
+  const content = document.getElementById('cardModalContent');
+  if (!content) return;
+  content.classList.remove('triggered');
+  void content.offsetWidth;            // restart one-shot animations
+  content.classList.add('triggered');
+  clearTimeout(_cdTriggerBurst._t);
+  _cdTriggerBurst._t = setTimeout(() => content && content.classList.remove('triggered'), 950);
+}
+
 function openCardModal(card) {
   // Defense-in-depth: never reveal a card the player has not unlocked, no matter
   // which path calls this. Locked cards stay secret.
   if (!card || !isCardUnlocked(card.id)) return;
+  _cdActiveCardId = card.id;
+
   const img = $('cardModalImg');
   img.src = card.img||'';
   img.className = 'aura-'+card.rarity;
@@ -5843,14 +5890,51 @@ function openCardModal(card) {
   const rawDesc = card.fullDescription || card.effect || '';
   const formattedDesc = rawDesc
     .replace(/\n/g, '<br>')
-    .replace(/\[([^\]]+)\]/g, '<span class="card-modal-section-header">[$1]</span>');
+    // Ability section headers get a themed accent pulse (.ability-vfx) so each
+    // [SECTION] reads as a high-tier skill block, not plain text.
+    .replace(/\[([^\]]+)\]/g, '<span class="card-modal-section-header ability-vfx">[$1]</span>');
   $('cardModalEffect').innerHTML = formattedDesc;
   $('cardModalTradeoff').innerHTML = card.tradeoff ? 'TRADE-OFF: '+card.tradeoff : '';
+
+  // ── Detail-modal rarity VFX: inherit the grid card's rarity identity ──
+  const content = $('cardModalContent');
+  // Per-card signature colour + theme style from the in-run VFX map (single
+  // source of truth so the modal matches gameplay identity, not a generic glow).
+  const themeColor = (window.CardVFX && window.CardVFX.pickColor) ? window.CardVFX.pickColor(card.id) : null;
+  const themeStyle = (window.CardVFX && window.CardVFX.VFX_MAP && window.CardVFX.VFX_MAP[card.id] && window.CardVFX.VFX_MAP[card.id].aura)
+    ? window.CardVFX.VFX_MAP[card.id].aura[0] : '';
+  content.className = 'card-detail-vfx card-detail-vfx--' + card.rarity;
+  content.classList.remove('opened', 'active', 'triggered');
+  content.dataset.cdTheme = themeStyle || '';
+  if (themeColor) content.style.setProperty('--cd-theme', themeColor);
+  else            content.style.removeProperty('--cd-theme');
+  _cdBuildParticles(card.rarity, themeColor);
+
   $('cardModal').style.display = 'flex';
+
+  // Open choreography: modal fades in → hero card rises → aura/shimmer activate
+  // → ability sections reveal → one selection burst. All GPU-only (transform/
+  // opacity), short, and skipped under reduced-motion / Low VFX (CSS-gated).
+  requestAnimationFrame(() => {
+    content.classList.add('opened');
+    requestAnimationFrame(() => {
+      content.classList.add('active');
+      _cdTriggerBurst();
+    });
+  });
 }
 
 function closeCardModal() {
   $('cardModal').style.display = 'none';
+  // Pause + tear down modal VFX so nothing animates behind a hidden modal.
+  const content = document.getElementById('cardModalContent');
+  if (content) {
+    content.classList.remove('opened', 'active', 'triggered');
+    clearTimeout(_cdTriggerBurst._t);
+  }
+  const host = document.getElementById('cardDetailParticles');
+  if (host) host.innerHTML = '';   // drop orb nodes — no idle DOM/animation
+  _cdActiveCardId = null;
 }
 
 function startGame() {

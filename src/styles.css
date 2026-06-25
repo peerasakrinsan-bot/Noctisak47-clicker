@@ -935,8 +935,9 @@
     background:#0d0d0d; border:1px solid #333;
   }
   #cardModalImg {
-    width:100%; max-width:200px; aspect-ratio:3/4; object-fit:cover; border-radius:4px;
+    width:100%; height:100%; object-fit:cover; border-radius:4px;
     border:2px solid #333; transition:box-shadow 0.3s, border-color 0.3s;
+    position:relative; z-index:2; display:block;
   }
   #bossSkinModalImg {
     width:min(70vw,52vh,220px); height:min(70vw,52vh,220px);
@@ -978,6 +979,270 @@
         0 0 122px rgba(139, 0, 0, 0.42);
     }
   }
+
+  /* ══════════════════════════════════════════════════════════════════
+     CARD DETAIL MODAL VFX — inherits the grid card's rarity identity
+     ────────────────────────────────────────────────────────────────
+     The collection grid layers rarity VFX per .cc-card (applyCardRarityVfx).
+     This block extends the SAME identity into the opened detail modal so an
+     Elite/Mythic card feels like a premium inspection screen, not a popup.
+     Driven by openCardModal(): #cardModalContent gets
+       .card-detail-vfx + .card-detail-vfx--<rarity>
+       state classes: .opened (mounted) → .active (loops on) → .triggered (burst)
+       --cd-theme = per-card signature colour (CardVFX.VFX_MAP), data-cd-theme = style
+     Layers (in markup): #cardDetailAura (modal stage-light) and inside
+     #cardDetailFrame: #cardModalImg, .card-detail-frame-glow (border shimmer),
+     .card-detail-sweep (spotlight), #cardDetailParticles>.card-detail-mote.
+     GPU-only (transform/opacity/gradients). No heavy blur, no box-shadow loops
+     on big nodes, no canvas, ≤8 tiny Mythic orbs. Reduced-motion / body.low-vfx
+     / body.flash-off collapse to a readable static aura (Low VFX Mode).
+     ════════════════════════════════════════════════════════════════ */
+  :root { --cd-theme: #ffd86a; }
+
+  /* Modal container: fade + rise on open (skipped when reduced/low-vfx) */
+  #cardModalContent.card-detail-vfx {
+    overflow: visible;
+    opacity: 0;
+    transform: translateY(10px) scale(.985);
+    transition: opacity .2s ease, transform .24s cubic-bezier(.2,.8,.2,1);
+  }
+  #cardModalContent.card-detail-vfx.opened { opacity: 1; transform: none; }
+
+  /* ── Frame: positioning context for the hero card's VFX layers ── */
+  .card-detail-frame {
+    position: relative;
+    width: 100%; max-width: 200px;
+    aspect-ratio: 3/4;
+    border-radius: 6px;
+    transform: translateY(8px) scale(.97);
+    opacity: .6;
+    transition: transform .5s cubic-bezier(.2,.85,.25,1), opacity .4s ease;
+  }
+  .card-detail-vfx.opened .card-detail-frame { transform: none; opacity: 1; }
+  .card-detail-vfx--mythic.opened .card-detail-frame { transition-duration: .68s, .5s; }
+
+  .card-detail-frame-glow,
+  .card-detail-sweep,
+  .card-detail-particles {
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .card-detail-frame-glow { z-index: 3; }
+  .card-detail-particles  { z-index: 5; overflow: hidden; }
+  .card-detail-sweep      { z-index: 6; overflow: hidden; }
+
+  /* ── Modal background aura (stage light behind the whole modal) ── */
+  .card-detail-aura {
+    position: absolute; inset: -38px;
+    z-index: -1;                 /* behind content, above modal bg */
+    border-radius: 18px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .5s ease;
+  }
+  .card-detail-vfx.active .card-detail-aura { opacity: 1; }
+
+  .card-detail-vfx--premium .card-detail-aura {
+    background: radial-gradient(60% 55% at 50% 42%, rgba(0,136,255,.18), transparent 72%);
+  }
+  /* Elite — warm gold stage light, refined and steady */
+  .card-detail-vfx--elite .card-detail-aura {
+    background:
+      radial-gradient(62% 52% at 50% 36%, rgba(255,204,51,.26), transparent 70%),
+      radial-gradient(80% 70% at 50% 60%, rgba(200,164,0,.14), transparent 78%);
+    animation: cdAuraElite 7s ease-in-out infinite;
+  }
+  @keyframes cdAuraElite { 0%,100% { opacity:.85; } 50% { opacity:1; } }
+
+  /* Mythic — cosmic red/purple/gold, stronger + slow rotating energy */
+  .card-detail-vfx--mythic .card-detail-aura {
+    background:
+      radial-gradient(58% 50% at 50% 34%, rgba(220,20,60,.30), transparent 68%),
+      radial-gradient(70% 64% at 50% 58%, rgba(176,102,255,.22), transparent 76%),
+      radial-gradient(90% 80% at 50% 80%, rgba(255,216,106,.12), transparent 82%);
+    animation: cdAuraMythic 8s ease-in-out infinite;
+  }
+  .card-detail-vfx--mythic .card-detail-aura::before {
+    content: ''; position: absolute; left: 50%; top: 42%;
+    width: 150%; height: 150%; transform: translate(-50%,-50%);
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+      rgba(176,102,255,0), rgba(220,20,60,.22), rgba(176,102,255,.20),
+      rgba(255,216,106,.16), rgba(176,102,255,0));
+    animation: cdAuraSpin 16s linear infinite;
+    opacity: .8;
+  }
+  @keyframes cdAuraMythic { 0%,72%,100% { opacity:.85; } 86% { opacity:1; } }
+  @keyframes cdAuraSpin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+  /* ── Frame border shimmer (gradient-mask ring, no blur) ── */
+  .card-detail-vfx--elite .card-detail-frame-glow,
+  .card-detail-vfx--mythic .card-detail-frame-glow {
+    padding: 2px;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0; transition: opacity .4s ease;
+  }
+  .card-detail-vfx.active .card-detail-frame-glow { opacity: 1; }
+  .card-detail-vfx--elite .card-detail-frame-glow {
+    background: linear-gradient(135deg, #c8a400, #fff4cf 38%, #ffcc33 60%, #8a6b00);
+    background-size: 200% 200%;
+    animation: cdShimmer 3.4s ease-in-out infinite;
+  }
+  .card-detail-vfx--mythic .card-detail-frame-glow {
+    background: linear-gradient(135deg, #b066ff, #33e6ff 40%, #ffd86a 66%, #dc143c, #b066ff);
+    background-size: 240% 240%;
+    animation: cdShimmer 2.6s linear infinite;
+  }
+  @keyframes cdShimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  /* ── Spotlight sweep across the hero card (open + burst) ── */
+  .card-detail-sweep::before {
+    content: ''; position: absolute;
+    top: -25%; left: -60%; width: 42%; height: 150%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.5), transparent);
+    transform: translateX(0) skewX(-18deg);
+    opacity: 0;
+  }
+  .card-detail-vfx--mythic .card-detail-sweep::before {
+    background: linear-gradient(100deg, transparent, rgba(206,176,255,.55), rgba(186,232,255,.4), transparent);
+  }
+  .card-detail-vfx.active .card-detail-sweep::before,
+  .card-detail-vfx.triggered .card-detail-sweep::before {
+    animation: cdSweep .8s ease-out;
+  }
+  .card-detail-vfx--mythic.active .card-detail-sweep::before { animation-duration: .9s; }
+  @keyframes cdSweep {
+    0%   { opacity: 0;  transform: translateX(0)    skewX(-18deg); }
+    12%  { opacity: .95; }
+    100% { opacity: 0;  transform: translateX(460%) skewX(-18deg); }
+  }
+
+  /* ── Soul orbs (Mythic ambient) / sparkles (Elite burst) ── */
+  .card-detail-mote {
+    position: absolute; bottom: -8%;
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--mote, #fff);
+    box-shadow: 0 0 6px var(--mote, #fff);
+    opacity: 0;
+  }
+  /* Mythic — small soul/orb particles float continuously while active */
+  .card-detail-vfx--mythic.active .card-detail-mote {
+    animation: cdOrbFloat var(--mdur, 7s) ease-in-out infinite;
+    animation-delay: var(--mdelay, 0s);
+  }
+  @keyframes cdOrbFloat {
+    0%   { transform: translateY(0)      scale(.5); opacity: 0; }
+    16%  { opacity: .95; }
+    80%  { opacity: .45; }
+    100% { transform: translateY(-240px) scale(1);  opacity: 0; }
+  }
+  /* Elite — motes are silent until a selection/activation burst */
+  .card-detail-vfx--elite .card-detail-mote { animation: none; }
+  .card-detail-vfx--elite.triggered .card-detail-mote {
+    animation: cdSpark .85s ease-out;
+    animation-delay: var(--mdelay, 0s);
+  }
+  @keyframes cdSpark {
+    0%   { transform: translateY(0)     scale(.4); opacity: 0; }
+    22%  { opacity: 1; }
+    100% { transform: translateY(-90px) scale(1);  opacity: 0; }
+  }
+
+  /* ── Triggered: refined activation flare over the frame ── */
+  .card-detail-frame::after {
+    content: ''; position: absolute; inset: 0;
+    border-radius: inherit; pointer-events: none; z-index: 7;
+    background: radial-gradient(circle at 50% 50%, var(--cd-theme, #ffd86a), transparent 60%);
+    opacity: 0;
+  }
+  .card-detail-vfx--elite.triggered .card-detail-frame::after { animation: cdFlare .55s ease-out; }
+  .card-detail-vfx--mythic.triggered .card-detail-frame::after { animation: cdFlare .7s ease-out; }
+  @keyframes cdFlare {
+    0%   { opacity: 0;   transform: scale(.92); }
+    25%  { opacity: .5; }
+    100% { opacity: 0;   transform: scale(1.04); }
+  }
+
+  /* ── Ability section headers: themed accent (.ability-vfx) ── */
+  .card-detail-vfx--elite  #cardModalEffect .ability-vfx,
+  .card-detail-vfx--mythic #cardModalEffect .ability-vfx {
+    position: relative;
+    padding-left: 9px;
+  }
+  .card-detail-vfx--elite  #cardModalEffect .ability-vfx { color: #ffe08a; }
+  .card-detail-vfx--mythic #cardModalEffect .ability-vfx { color: #e7b8ff; }
+  .ability-vfx::before {
+    content: ''; position: absolute; left: 0; top: 12%; bottom: 12%;
+    width: 3px; border-radius: 2px;
+    background: var(--cd-theme, #ffd86a);
+    box-shadow: 0 0 5px var(--cd-theme, #ffd86a);
+    opacity: .85;
+  }
+  .card-detail-vfx--elite.active  #cardModalEffect .ability-vfx::before,
+  .card-detail-vfx--mythic.active #cardModalEffect .ability-vfx::before {
+    animation: cdAccentPulse 3.2s ease-in-out infinite;
+  }
+  @keyframes cdAccentPulse { 0%,100% { opacity:.5; } 50% { opacity:1; } }
+
+  /* Ability sections reveal cleanly as the modal activates */
+  #cardModalContent.card-detail-vfx #cardModalEffect,
+  #cardModalContent.card-detail-vfx #cardModalTradeoff {
+    opacity: 0; transform: translateY(4px);
+    transition: opacity .35s ease .08s, transform .35s ease .08s;
+  }
+  #cardModalContent.card-detail-vfx.active #cardModalEffect,
+  #cardModalContent.card-detail-vfx.active #cardModalTradeoff {
+    opacity: 1; transform: none;
+  }
+
+  /* ── Reduced motion / Low VFX Mode → static, readable, no loops ── */
+  @media (prefers-reduced-motion: reduce) {
+    #cardModalContent.card-detail-vfx,
+    .card-detail-frame,
+    #cardModalContent.card-detail-vfx #cardModalEffect,
+    #cardModalContent.card-detail-vfx #cardModalTradeoff {
+      opacity: 1 !important; transform: none !important; transition: none !important;
+    }
+    .card-detail-aura,
+    .card-detail-aura::before,
+    .card-detail-frame-glow,
+    .card-detail-sweep::before,
+    .card-detail-mote,
+    .card-detail-frame::after,
+    .ability-vfx::before { animation: none !important; }
+    .card-detail-aura { opacity: .7 !important; }
+    .card-detail-frame-glow { opacity: 1 !important; }
+    .card-detail-particles { display: none !important; }
+  }
+  body.low-vfx   #cardModalContent.card-detail-vfx,
+  body.flash-off #cardModalContent.card-detail-vfx,
+  body.low-vfx   .card-detail-frame,
+  body.flash-off .card-detail-frame,
+  body.low-vfx   #cardModalContent.card-detail-vfx #cardModalEffect,
+  body.flash-off #cardModalContent.card-detail-vfx #cardModalEffect,
+  body.low-vfx   #cardModalContent.card-detail-vfx #cardModalTradeoff,
+  body.flash-off #cardModalContent.card-detail-vfx #cardModalTradeoff {
+    opacity: 1 !important; transform: none !important; transition: none !important;
+  }
+  body.low-vfx   .card-detail-aura,        body.flash-off .card-detail-aura,
+  body.low-vfx   .card-detail-aura::before, body.flash-off .card-detail-aura::before,
+  body.low-vfx   .card-detail-frame-glow,  body.flash-off .card-detail-frame-glow,
+  body.low-vfx   .card-detail-sweep::before, body.flash-off .card-detail-sweep::before,
+  body.low-vfx   .card-detail-mote,        body.flash-off .card-detail-mote,
+  body.low-vfx   .card-detail-frame::after, body.flash-off .card-detail-frame::after,
+  body.low-vfx   .ability-vfx::before,     body.flash-off .ability-vfx::before {
+    animation: none !important;
+  }
+  body.low-vfx   .card-detail-particles,   body.flash-off .card-detail-particles { display: none !important; }
+  body.low-vfx   .card-detail-aura,        body.flash-off .card-detail-aura { opacity: .6 !important; }
+  body.low-vfx   .card-detail-frame-glow,  body.flash-off .card-detail-frame-glow { opacity: 1 !important; }
+  /* ══ END CARD DETAIL MODAL VFX ══ */
 
   /* ══ CARD DRAW SCREEN ══ */
   #cardDrawScreen {
