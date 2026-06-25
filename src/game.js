@@ -5633,12 +5633,25 @@ function _ccDisconnectShimmerObserver() {
 // Injects the GPU-only visual layers (.card-vfx-*) that give Elite/Mythic
 // cards their premium look. Purely cosmetic: never touches save / cs_* /
 // balance. No-op for Standard/Premium. Idempotent per node.
+const _RARITY_VFX_CLASS = { standard: 'card--normal', premium: 'card--premium', elite: 'card--elite', mythic: 'card--mythic' };
 const _RARITY_VFX_MOTES = { elite: 4, mythic: 6 };
 const _MYTHIC_MOTE_COLORS = ['#b066ff', '#33e6ff', '#ffd86a', '#cc99ff', '#66f0ff', '#e0b8ff'];
 function applyCardRarityVfx(el, rarity) {
-  if (!el || (rarity !== 'elite' && rarity !== 'mythic')) return;
-  if (el.querySelector(':scope > .card-vfx-border')) return; // already decorated
-  el.classList.add(rarity === 'elite' ? 'card--elite' : 'card--mythic');
+  const cls = el && _RARITY_VFX_CLASS[rarity];
+  if (!cls || el.classList.contains(cls)) return; // unknown rarity or already decorated
+  el.classList.add(cls);
+  // Normal = clean CSS-only baseline: no injected layers, no glow, no particles
+  if (rarity === 'standard') return;
+  // Premium = refined static look: surface depth + sheen + ring + interaction sweep
+  if (rarity === 'premium') {
+    el.insertAdjacentHTML('beforeend',
+      '<div class="card-vfx-surface"></div>' +
+      '<div class="card-vfx-highlight"></div>' +
+      '<div class="card-vfx-border"></div>' +
+      '<div class="card-vfx-sweep"></div>');
+    return;
+  }
+  // Elite / Mythic = animated premium layers (+ particles)
   const n = _RARITY_VFX_MOTES[rarity] || 0;
   let motes = '';
   for (let i = 0; i < n; i++) {
@@ -5657,7 +5670,7 @@ function applyCardRarityVfx(el, rarity) {
 
 // One-shot sparkle + light-sweep burst on obtain / select / upgrade.
 function pulseCardRarityVfx(el) {
-  if (!el || !(el.classList.contains('card--elite') || el.classList.contains('card--mythic'))) return;
+  if (!el || !(el.classList.contains('card--premium') || el.classList.contains('card--elite') || el.classList.contains('card--mythic'))) return;
   el.classList.remove('card-vfx-burst');
   void el.offsetWidth; // restart the one-shot animations
   el.classList.add('card-vfx-burst');

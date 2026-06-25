@@ -3393,8 +3393,10 @@
     --mythic-gold:   #ffd86a;
   }
 
-  .card--elite, .card--mythic { position: relative; }
+  .card--normal, .card--premium, .card--elite, .card--mythic { position: relative; }
 
+  .card-vfx-surface,
+  .card-vfx-highlight,
   .card-vfx-aura,
   .card-vfx-border,
   .card-vfx-sweep,
@@ -3403,12 +3405,19 @@
     border-radius: inherit;
     pointer-events: none;
   }
+  .card-vfx-surface   { z-index: 1; }   /* depth, behind the artwork */
+  .card-vfx-highlight { z-index: 2; }   /* static sheen, over the artwork */
   .card-vfx-aura      { z-index: 2; overflow: hidden; }
   .card-vfx-border    { z-index: 3; }
   .card-vfx-particles { z-index: 7; overflow: hidden; }
   .card-vfx-sweep     { z-index: 8; overflow: hidden; }
 
-  /* Keep card content above the persistent fill layers (Elite/Mythic slot cards) */
+  /* Keep card content above the persistent fill layers (Premium/Elite/Mythic slot cards) */
+  .cs-card.card--premium > .cs-rarity-tag,
+  .cs-card.card--premium > .cs-card-img,
+  .cs-card.card--premium > .cs-card-name,
+  .cs-card.card--premium > .cs-card-effect,
+  .cs-card.card--premium > .cs-card-tradeoff,
   .cs-card.card--elite  > .cs-rarity-tag,
   .cs-card.card--elite  > .cs-card-img,
   .cs-card.card--elite  > .cs-card-name,
@@ -3419,6 +3428,46 @@
   .cs-card.card--mythic > .cs-card-name,
   .cs-card.card--mythic > .cs-card-effect,
   .cs-card.card--mythic > .cs-card-tradeoff { position: relative; z-index: 4; }
+
+  /* ── NORMAL: clean polished baseline (CSS-only, no layers, no glow) ── */
+  .cs-card.card--normal {
+    background: linear-gradient(165deg, #16171c, #0a0a0b 58%, #0c0d11);
+    border-color: #2c2e36;
+    box-shadow: 0 2px 6px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.045);
+  }
+  .cc-card.card--normal.unlocked {
+    border-color: #3a3d47;
+    background: linear-gradient(165deg, #16171b, #0b0b0d);
+    box-shadow: 0 1px 4px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.045);
+  }
+
+  /* ── PREMIUM: refined, valuable — static shine + ring, no aura/particles ── */
+  .cs-card.card--premium {
+    border-color: #3b5a8c;
+    box-shadow: 0 2px 10px rgba(0,0,0,.5), 0 0 12px rgba(96,142,212,.22), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .cc-card.card--premium.unlocked {
+    border-color: #4a6aa0;
+    box-shadow: 0 0 8px rgba(96,142,212,.32), inset 0 0 10px rgba(130,168,224,.07);
+  }
+  /* Premium surface — subtle pearl/blue depth (no animation) */
+  .card--premium .card-vfx-surface {
+    background:
+      linear-gradient(160deg, rgba(96,142,212,.10), transparent 46%, rgba(18,28,52,.20));
+  }
+  /* Premium highlight — single static diagonal sheen over the artwork */
+  .card--premium .card-vfx-highlight {
+    background: linear-gradient(115deg,
+      transparent 36%, rgba(214,230,255,.16) 48%,
+      rgba(255,255,255,.07) 53%, transparent 66%);
+    mix-blend-mode: screen;
+    opacity: .85;
+  }
+  /* Premium border — refined pearl ring, NO breathing energy edge */
+  .card--premium .card-vfx-border {
+    --vfx-ring: linear-gradient(135deg, #8aa6d8, #e8eef7 45%, #b9c8e6 60%, #5f7bb0);
+  }
+  .card--premium .card-vfx-border::after { content: none; }
 
   /* ── BORDER: thin static rarity ring + breathing energy edge ── */
   .card-vfx-border::before,
@@ -3485,8 +3534,10 @@
   .card--mythic .card-vfx-sweep::before {
     background: linear-gradient(100deg, transparent, rgba(186,232,255,.55), transparent);
   }
+  .card--premium:active .card-vfx-sweep::before,
   .card--elite:active  .card-vfx-sweep::before,
   .card--mythic:active .card-vfx-sweep::before,
+  .card--premium.selected .card-vfx-sweep::before,
   .card--elite.selected  .card-vfx-sweep::before,
   .card--mythic.selected .card-vfx-sweep::before,
   .card-vfx-burst .card-vfx-sweep::before,
