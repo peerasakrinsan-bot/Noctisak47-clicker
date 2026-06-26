@@ -135,7 +135,7 @@ if (!badPrim) ok('every `on` context uses a known primitive');
 
 // ── 3b) gameplay metadata: theme + affects + stack (อัปเกรด in-game VFX) ──────
 const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time']);
-const TARGETS = new Set(['odBar', 'combo', 'timer', 'zeny', 'break', 'enemy', 'player']);
+const TARGETS = new Set(['odBar', 'combo', 'timer', 'zeny', 'break', 'enemy', 'player', 'debt']);
 let badTheme = 0, badAffects = 0, badStack = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
   if (!e.theme || !THEMES.has(e.theme)) { bad(`card "${id}" has invalid/missing theme: ${JSON.stringify(e.theme)}`); badTheme++; }
@@ -155,7 +155,7 @@ if (!badStack)   ok('every stack-card binds gain to a real on-context');
 {
   const css2 = readFileSync(join(root, 'src/styles.css'), 'utf8');
   const needClasses = ['.game-vfx-trigger', '.game-vfx-stack', '.game-vfx-expire',
-    '.game-vfx-active-card', '.game-vfx-theme-soul'];
+    '.game-vfx-active-card', '.game-vfx-theme-soul', '.game-vfx-charge', '.game-vfx-tier-1'];
   let missingCls = 0;
   for (const c of needClasses) if (!css2.includes(c)) { bad(`stylesheet missing reusable class ${c}`); missingCls++; }
   if (!missingCls) ok('stylesheet defines the .game-vfx-* reusable class layer');
@@ -191,7 +191,7 @@ if (!threw2) ok('trigger/setActiveCard tolerate unknown ids + run valid effects 
 
 // ── 5b) new gameplay-VFX API exists + stack/target paths don't throw ─────────
 const api = modRun.CardVFX;
-const needApi = ['targetPulse', 'setStack', 'clearStack', 'expireStack'];
+const needApi = ['targetPulse', 'setStack', 'clearStack', 'expireStack', 'setCharge', 'clearCharge', 'setAuraTier'];
 let missApi = 0;
 for (const m of needApi) if (typeof api[m] !== 'function') { bad(`CardVFX.${m} missing (gameplay-VFX API)`); missApi++; }
 if (!missApi) ok('gameplay-VFX API present (targetPulse/setStack/clearStack/expireStack)');
@@ -212,6 +212,20 @@ try {
   api.trigger('dtl', 'analysisreset', {});           // reset on BREAK end
   api.trigger('th', 'thanatos', {});                 // affects 'timer' target pulse
   api.targetPulse('odBar', '#ffcc33', 'crit');       // direct target pulse
+  // ── aura-only polish paths (GLOOM/IFRIED/LADY TRAINEE/LORD OF DEBT) ──
+  api.setActiveCard('gus', 'mythic');                // GLOOM obsession build-up
+  api.trigger('gus', 'gloom', { tier: 2 });          // aura intensity tier from real stacks
+  api.setActiveCard('if', 'mythic');                 // IFRIED
+  api.trigger('if', 'emberhit', {});                 // throttled ember (crit gain)
+  api.trigger('if', 'inferno', {});                  // Inferno Burst payoff
+  api.setActiveCard('ltn', 'elite');                 // LADY TRAINEE compact charge ring
+  api.trigger('ltn', 'odlevel', { charge: 7, chargeMax: 15 });
+  api.trigger('ltn', 'spotlight', {});               // Spotlight stage-light at 10
+  api.setActiveCard('ld', 'mythic');                 // LORD OF DEBT counter reaction
+  api.trigger('ld', 'debt', {});                     // affects 'debt' → #debtStackCounter pulses
+  api.setCharge('ltn', 12, 15);                      // direct compact charge
+  api.setAuraTier('gus', 3);                         // direct aura tier
+  api.clearCharge();
   api.expireStack();
   api.clearStack();
   api.clearActive();

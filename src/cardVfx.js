@@ -362,8 +362,10 @@ const COORD_ARG = {
   spark: [2, 3], coinBurst: [1, 2], streak: [1, 2], bolt: [1, 2], fireBurst: [1, 2],
 };
 
-// context ที่ยิงถี่ (ทุกคลิก) → throttle เพื่อไม่ให้ particle spam บนมือถือ
-const _THROTTLE = { hit: 110 };
+// context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
+//   hit      — DOPPELGANGER/LORD OF DEBT มิเรอร์ฟันต่อคลิก
+//   emberhit — IFRIED ember ตอนสะสม Inferno Stack (ติดเฉพาะตอนคริ แต่กันถี่อีกชั้น)
+const _THROTTLE = { hit: 110, emberhit: 420 };
 let _lastFire = {};
 
 // ── GAMEPLAY-ELEMENT TARGETING ───────────────────────────────────────────────
@@ -380,6 +382,8 @@ const TARGET_EL = {
   break:  ['rageMeter'],
   enemy:  ['boxer', 'fighter'],
   player: ['fighter'],
+  // debt: ทำให้ตัวนับ DEBT เดิม (#debtStackCounter) ตอบสนอง — ไม่สร้าง UI ซ้ำ
+  debt:   ['debtStackCounter'],
 };
 const _targetTimers = new WeakMap();
 function _resolveTarget(key) {
@@ -471,6 +475,58 @@ function clearStack() {
   _stack = { id: null, cur: 0, max: 0 };
 }
 
+// ── COMPACT CHARGE RING (วงแหวนชาร์จวงเดียว) ─────────────────────────────────
+// สำหรับการ์ดที่มี count จริงแต่ "กว้างเกินจะทำ pips" (เช่น LADY TRAINEE 0–15).
+// แสดงเป็นวงแหวน conic วงเดียวเหนือตัวละคร — compact, ใช้ค่าจริง (ไม่ใช่ fake),
+// ไม่กินพื้นที่จอ. ค่า % มาจาก ctx.charge/ctx.chargeMax ที่ส่งจาก game.js.
+let _charge = { id: null, cur: 0, max: 0 };
+function _chargeEl(create) {
+  const f = _fighter();
+  if (!f) return null;
+  let el = document.getElementById('cvChargeEl');
+  if (!el && create) {
+    el = document.createElement('div');
+    el.id = 'cvChargeEl';
+    el.setAttribute('aria-hidden', 'true');
+    f.appendChild(el);
+  }
+  return el;
+}
+function setCharge(id, cur, max) {
+  const e = VFX_MAP[id];
+  if (!e) return;
+  max = max || 0;
+  if (max <= 0) return;
+  const el = _chargeEl(true);
+  if (!el) return;
+  cur = Math.max(0, Math.min(max, cur | 0));
+  const pct = Math.round((cur / max) * 100);
+  const th = e.theme || '';
+  el.className = 'game-vfx-charge' + (th ? ' game-vfx-theme-' + th : '');
+  el.style.setProperty('--gv', (e.aura && e.aura[1]) || '#fff');
+  el.style.setProperty('--pct', pct + '%');
+  el.style.display = 'block';
+  _charge = { id: id, cur: cur, max: max };
+}
+function clearCharge() {
+  const el = _chargeEl(false);
+  if (el) { el.className = ''; el.style.display = 'none'; el.style.removeProperty('--pct'); el.style.removeProperty('--gv'); }
+  _charge = { id: null, cur: 0, max: 0 };
+}
+
+// ── AURA INTENSITY TIER (passive build-up) ───────────────────────────────────
+// ไม่ใช่ตัวนับ/ตัวเลข — แค่ทำให้ aura "หนักขึ้น" ตาม tier จริงที่ส่งมา (เช่น GLOOM
+// obsession 0–20 → tier 0–3). คอสเมติกล้วน: เพิ่ม class บน #cvAuraEl เท่านั้น.
+let _auraTier = 0;
+function setAuraTier(id, level) {
+  level = Math.max(0, Math.min(3, level | 0));
+  _auraTier = level;
+  const el = _auraEl(false);
+  if (!el || !el.classList) return;
+  el.classList.remove('game-vfx-tier-1', 'game-vfx-tier-2', 'game-vfx-tier-3');
+  if (level > 0) el.classList.add('game-vfx-tier-' + level);
+}
+
 // ── PER-CARD VFX MAPPING (Elite + Mythic) ────────────────────────────────────
 // อ้างอิงทิศทางจาก task brief — ให้แต่ละใบ "รู้สึกต่างกัน" ด้วยสี/ไพรมิทีฟ/จังหวะ
 // แม้จะใช้ primitive ร่วมกันได้. แต่ละ entry:
@@ -532,8 +588,9 @@ const VFX_MAP = {
   ghp: { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#aaddff'],  on: { break: [['pulse', '#aaddff'], ['breakCrack', '#cce8ff']] } },
   // DEVILINGO — ปีศาจ + โลภ + โฟกัสบอส: เหรียญแดง + เส้นความเร็วตอน AK47, boss flare + ไฟตอนล้มบอส
   dvl: { rarity: 'elite', theme: 'zeny', affects: 'zeny', aura: ['fire',  '#ff3322'],  on: { ak47: [['coinBurst', '#ff6644'], ['streak', '#ff5533']], boss: [['bossFlare', '#ff2233'], ['fireBurst', '#ff4422']] } },
-  // LADY TRAINEE — Spotlight ฝึกซ้อมสะอาด: แสง holy + วงคอมโบตอนเข้า OD
-  ltn: { rarity: 'elite', theme: 'idol', affects: 'odBar', aura: ['holy',  '#ff99dd'],  on: { od: [['holyBurst', '#ff99dd'], ['comboRing', '#ffaae0']] } },
+  // LADY TRAINEE — Spotlight ฝึกซ้อม (stack 0–15, ไม่มี pip): วงแหวนชาร์จ compact ตาม count
+  // จริง (charge ring) ตอน OD Level Up, แสง holy ตอนเข้า OD, stage-light ตอนครบ Spotlight (10)
+  ltn: { rarity: 'elite', theme: 'idol', affects: 'odBar', aura: ['holy',  '#ff99dd'],  on: { od: [['holyBurst', '#ff99dd'], ['comboRing', '#ffaae0']], odlevel: ['spark', '#ffaae0', 4], spotlight: [['holyBurst', '#ff99dd'], ['flash', '#2a1024']] } },
 
   // ── MYTHIC ──
   // THANABROS — Thanatos Phase (หยุดเวลา/มืด): วาบดำ + OD glow + คลื่นมืด + glitch บิดเวลา; AK47 ม่วงพัลส์
@@ -552,8 +609,9 @@ const VFX_MAP = {
   gb:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffcc00'],  on: { combo: [['flash', '#3a2e00'], ['coinBurst', '#ffcc00'], ['spark', '#ffe680', 8]] } },
   // COKE ZERO — ศูนย์ดำ-ขาวเย็น: วาบขาว + วงพัลส์ + คลื่นมืด (คอนทราสต์ดำ-ขาว)
   oh:  { rarity: 'mythic', theme: 'time', affects: 'break', aura: ['frost', '#e8f4ff'],  on: { break: [['flash', '#ffffff'], ['pulse', '#cfe8ff'], ['shadowBurst', '#0a0a0a', 0.5]] } },
-  // LORD OF DEBT — DEBT CONTRACT โซ่เงา + เหรียญ (clear ตอน BREAK), เงาฟันตอน berserk hit
-  ld:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['drain', '#9944cc'],  on: { break: [['drainPulse', '#9944cc'], ['coinBurst', '#b066dd']], hit: ['slash', '#7744aa', 1] } },
+  // LORD OF DEBT — DEBT CONTRACT โซ่เงา + เหรียญ (clear ตอน BREAK), เงาฟันตอน berserk hit;
+  // affects=debt → ตัวนับ DEBT เดิม (#debtStackCounter) เรืองตอบสนองตอนหนี้เปลี่ยน (ไม่สร้าง UI ซ้ำ)
+  ld:  { rarity: 'mythic', theme: 'zeny', affects: 'debt', aura: ['drain', '#9944cc'],  on: { break: [['drainPulse', '#9944cc'], ['coinBurst', '#b066dd']], hit: ['slash', '#7744aa', 1], debt: [['drainPulse', '#9944cc'], ['coinBurst', '#b066dd']] } },
   // CATULLANUX — ราชาแมว combo lock: รอยร้าวหนัก + วง lock
   kn:  { rarity: 'mythic', theme: 'analysis', affects: 'combo', aura: ['glow',  '#ffaa44'],  on: { break: [['breakCrack', '#ffbf6a', true], ['comboRing', '#ffcf8a']] } },
   // BEELZEBRUH — ฝูงแมลงพิษเขียว: คลื่นมืดเขียว + สะเก็ดฝูง
@@ -564,8 +622,9 @@ const VFX_MAP = {
   at:  { rarity: 'mythic', theme: 'crit', affects: 'break', aura: ['fire',  '#ee3333'],  on: { break: [['fireBurst', '#ee3333'], ['slash', '#ff4444', 3]] } },
   // KILL-D01 — เลเซอร์หุ่นยนต์: glitch scanline + เส้นเลเซอร์ + วาบ
   kl:  { rarity: 'mythic', theme: 'analysis', affects: 'break', aura: ['tech',  '#00ffee'],  on: { break: [['glitch', '#00ffee'], ['streak', '#aaffff'], ['flash', '#003333']] } },
-  // IFRIED — Inferno Burst: ไฟพุ่ง + สะเก็ดไฟ
-  if:  { rarity: 'mythic', theme: 'crit', affects: 'break', aura: ['fire',  '#ff4400'],  on: { break: [['fireBurst', '#ff4400'], ['spark', '#ff7722', 7]] } },
+  // IFRIED — Inferno Stack สะสมตอนคริ (aura-only, ไม่มี pip): ember ตอนสะสม (throttle),
+  // Inferno Burst ตอนครบ 10 = ไฟพุ่งใหญ่ + วาบ; affects=enemy (ไฟลงศัตรู)
+  if:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', aura: ['fire',  '#ff4400'],  on: { break: [['fireBurst', '#ff4400'], ['spark', '#ff7722', 7]], emberhit: ['spark', '#ff6622', 4], inferno: [['fireBurst', '#ff4400'], ['spark', '#ff8844', 8], ['flash', '#2a0a00']] } },
   // RSICK-0806 — ไซเบอร์ Execution: glitch + พัลส์แดง
   rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff2233'],  on: { break: [['glitch', '#ff2233'], ['pulse', '#ff4455']] } },
   // FALLEN WECHAT — Overloaded BREAK เทวดาตก: glitch + คลื่นมืด + วาบดำ
@@ -573,8 +632,9 @@ const VFX_MAP = {
   // DETAILED — ANALYZED BREAK กริด/สแกนแม่นยำ: glitch + สะเก็ดกริด + วาบ; Analysis Stack 0–8
   // (สะสมตอนเก็บ WP, −2 ตอนพลาด, รีเซ็ตเมื่อ BREAK จบ) → pip ต่อ stack จริง, เต็ม 8 = ANALYSIS COMPLETE
   dtl: { rarity: 'mythic', theme: 'analysis', affects: 'break', stack: { gain: 'analysis', reset: 'analysisreset', max: 8 }, aura: ['tech',  '#00ffee'],  on: { break: [['glitch', '#00ffee'], ['spark', '#00ffee', 8], ['flash', '#003a3a']], analysis: ['spark', '#00ffee', 3] } },
-  // GLOOM UNDER SIDE — OBSESSION (passive scaling): คลื่นเงาซ้อนสองชั้น
-  gus: { rarity: 'mythic', theme: 'soul', affects: 'break', aura: ['shadow', '#6633aa'], on: { break: [['shadowBurst', '#7d44c4', 0.6], ['shadowBurst', '#5522aa', 0.45]] } },
+  // GLOOM UNDER SIDE — OBSESSION (passive scaling 0–20, ไม่มี pip): aura "หนักขึ้น" ตาม tier
+  // จริง (0–3) + พัลส์เงาตอนขึ้น tier; affects=timer (obsession กินเวลา) → นาฬิกาตอบสนอง
+  gus: { rarity: 'mythic', theme: 'soul', affects: 'timer', aura: ['shadow', '#6633aa'], on: { break: [['shadowBurst', '#7d44c4', 0.6], ['shadowBurst', '#5522aa', 0.45]], gloom: ['shadowBurst', '#7d44c4', 0.5] } },
   // DARK STAKE LORD — Jackpot มืด: คลื่นมืด + เหรียญ + สะเก็ดหนาม (sinister jackpot)
   dsk: { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['shadow', '#aa33ff'], on: { break: [['shadowBurst', '#aa33ff'], ['coinBurst', '#c266ff'], ['spark', '#cc77ff', 6]] } },
 };
@@ -637,7 +697,7 @@ function setActiveCard(id, rarity) {
   setCardAura(id, true);
 }
 function clearActive() {
-  clearCardAura(); clearStack(); _lastFire = {};
+  clearCardAura(); clearStack(); clearCharge(); _auraTier = 0; _lastFire = {};
   // เคลียร์ particle ที่ค้างบน canvas layer ด้วย (จบรัน → ไม่ค้างข้ามรอบ)
   try { if (typeof window !== 'undefined' && window.CanvasVFX) window.CanvasVFX.clearCanvasVfx(); } catch (e) {}
 }
@@ -690,7 +750,11 @@ function triggerCardVfx(id, context, ctx) {
       if (_stack.id === id && _stack.cur > 0) expireStack();
     }
   }
-  // 3) อิลิเมนต์ของเกมที่ได้รับผลจริงต้องตอบสนอง (ข้าม per-hit เพื่อกัน spam)
+  // 3) compact charge ring (ค่าจริงจาก ctx.charge — เช่น LADY TRAINEE OD charge)
+  if (ctx && ctx.charge != null) setCharge(id, ctx.charge, ctx.chargeMax || ctx.max || 0);
+  // 4) aura intensity build-up (ค่าจริงจาก ctx.tier — เช่น GLOOM obsession)
+  if (ctx && ctx.tier != null) setAuraTier(id, ctx.tier);
+  // 5) อิลิเมนต์ของเกมที่ได้รับผลจริงต้องตอบสนอง (ข้าม per-hit เพื่อกัน spam)
   if (entry.affects && context !== 'hit') {
     targetPulse(entry.affects, (entry.aura && entry.aura[1]), entry.theme);
   }
@@ -719,6 +783,9 @@ const CardVFX = {
   setStack,             // วาดความคืบหน้าสแต็ก/ชาร์จ (ค่าจริงจาก game.js)
   clearStack,
   expireStack,          // เอฟเฟกต์จบ/รีเซ็ตสแต็ก
+  setCharge,            // วงแหวนชาร์จ compact (เช่น LADY TRAINEE 0–15)
+  clearCharge,
+  setAuraTier,          // ความเข้ม aura แบบ build-up (เช่น GLOOM obsession)
   VFX_MAP,
   reducedMotion: () => _reduced,
 };

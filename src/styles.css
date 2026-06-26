@@ -5904,6 +5904,26 @@
   100% { opacity: 0; filter: brightness(1); transform: translateX(-50%) scale(.7); }
 }
 
+/* 5) COMPACT CHARGE RING — วงแหวนชาร์จวงเดียว (เช่น LADY TRAINEE OD charge 0–15).
+   conic-gradient เติมตาม --pct, เจาะรูกลางด้วย mask = โดนัทบาง ๆ. compact 30px,
+   ไม่มี loop, อัปเดตเฉพาะตอน OD Level Up (เหตุการณ์จริง). */
+#cvChargeEl {
+  position: absolute; left: 50%; top: 6%; transform: translateX(-50%);
+  width: 30px; height: 30px; border-radius: 50%; display: none;
+  pointer-events: none; z-index: 14;
+  background: conic-gradient(var(--gv, #fff) var(--pct, 0%), rgba(255,255,255,.14) 0);
+  -webkit-mask: radial-gradient(circle, transparent 9px, #000 10px);
+          mask: radial-gradient(circle, transparent 9px, #000 10px);
+  box-shadow: 0 0 9px -2px var(--gv, #fff);
+}
+#cvChargeEl.game-vfx-charge { display: block; }
+
+/* 6) AURA INTENSITY TIER — passive build-up (เช่น GLOOM obsession 0–3).
+   ไม่ใช่ตัวเลข/ตัวนับ — แค่ glow ของ aura หนักขึ้นตาม tier จริง. static (ไม่มี loop). */
+#cvAuraEl.game-vfx-tier-1 { box-shadow: 0 0 18px -6px var(--gv, #fff); }
+#cvAuraEl.game-vfx-tier-2 { box-shadow: 0 0 26px -5px var(--gv, #fff); }
+#cvAuraEl.game-vfx-tier-3 { box-shadow: 0 0 34px -4px var(--gv, #fff); }
+
 /* ── reduced-motion: ตัด aura ที่วน + ย่นเอฟเฟกต์ (รวมลูกของ node ด้วย เช่น moonRing) ── */
 @media (prefers-reduced-motion: reduce) {
   #cvAuraEl.cv-aura { animation: none !important; opacity: .14; }

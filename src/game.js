@@ -3820,6 +3820,13 @@ function _csRefreshVolatileCardEffects(nextState) {
         const drain = stacks * 0.02; // 1% of 2s per stack per tick
         timeLeft = Math.max(0, timeLeft - drain);
       }
+      // GLOOM build-up VFX (คอสเมติกล้วน): aura หนักขึ้นตาม tier จริง + พัลส์เงาตอนขึ้น tier.
+      // _gloomVfxTier เป็นตัวกัน fire ซ้ำสำหรับภาพเท่านั้น (run-only, ไม่เซฟ, ไม่แตะ logic/บาลานซ์).
+      const _gloomTier = Math.min(3, Math.floor(stacks / 5));
+      if(_gloomTier !== (window._csState._gloomVfxTier || 0)) {
+        window._csState._gloomVfxTier = _gloomTier;
+        _cardFx('gloom', { tier: _gloomTier });
+      }
     }, 2000);
   }
   // FALLEN WECHAT: init break flags
@@ -4153,6 +4160,7 @@ function _lodActivateDebtState() {
   // Gain one DEBT STACK (max 5)
   _lodDebtStacks = Math.min(5, _lodDebtStacks + 1);
   _lodUpdateStackUI();
+  _cardFx('debt'); // LOD — debt-themed pulse + existing #debtStackCounter reacts (cosmetic; counter stays source of truth)
 
   // Activate the state
   try { state.activate(cs); } catch(e) { console.warn('[LOD] state.activate error', e); return; }
@@ -4997,6 +5005,7 @@ function csOnBreakSuccess() {
   if(cs.cs_ifriedBreak && (cs._ifriedStacks || 0) >= 10) {
     cs._ifriedBurstEndTime = performance.now() + 5000;
     cs._ifriedStacks = 0;
+    _cardFx('inferno'); // IFRIED — Inferno Burst payoff (cosmetic)
     showBigSplash('INFERNO BURST', 'DMG x2.5 + CRIT +25% — 5s', '#ff4400', false);
   }
   // RSICK-0806: Execute Stack + Execution Phase
@@ -5124,8 +5133,10 @@ function csOnOdStart() {
     cs._ladyTraineeDmg = Math.min(0.60, (cs._ladyTraineeDmg || 0) + 0.04);
     // Track discrete stacks (max 15 total, Spotlight at 10)
     cs._ladyTraineeStacks = (cs._ladyTraineeStacks || 0) + 1;
+    _cardFx('odlevel', { charge: cs._ladyTraineeStacks, chargeMax: 15 }); // compact charge ring (cosmetic)
     if(cs._ladyTraineeStacks >= 10 && !cs._ladyTraineeSpotlight) {
       cs._ladyTraineeSpotlight = true;
+      _cardFx('spotlight'); // SPOTLIGHT MODE stage-light (cosmetic)
       showBigSplash('SPOTLIGHT MODE', 'OD CHARGE +10%/CLICK', '#ff88ff', false);
     }
   }
@@ -8063,6 +8074,7 @@ function processHit(e, now) {
   // IFRIED: build Inferno Stack on crit (max 15)
   if(isCrit && window._csState && window._csState.cs_ifriedBreak) {
     window._csState._ifriedStacks = Math.min(15, (window._csState._ifriedStacks || 0) + 1);
+    _cardFx('emberhit'); // IFRIED throttled ember on Inferno-stack gain (cosmetic, ติดเฉพาะคริ + throttle)
   }
   // ATROSUS: crit during Resonance extends window (+0.4s base, +0.6s with Mastery, max +4s total)
   if(isCrit && window._csState && window._csState.cs_atrosusBreak && window._csState._atrosusBreakEndTime && performance.now() < window._csState._atrosusBreakEndTime) {
