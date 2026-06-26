@@ -1092,7 +1092,7 @@ const _el = {};
 function _cacheEls() {
   ['hpFill','godFill','koNum','scoreNum','coinNum',
    'bossBar',
-   'godLevelWrap','godLevelNum','godLevelName','godTimer2',
+   'godLevelWrap','godLevelNum','godLevelName','godTimer2','odLevelBadge','odSweep','odLevelUpFlash',
    'bigCombo','comboWrap','multiBadge','multiNum'].forEach(id => {
     _el[id] = document.getElementById(id);
   });
@@ -1218,6 +1218,7 @@ function showMainMenu() {
   $('tapZone').style.display = 'none';
   $('streakLabel').style.display = 'none';
   _el.godLevelWrap.style.display = 'none';
+  _resetOdBadge();
   updateOdScreenAura(0);
   _el.bossBar.style.display = 'none';
   $('wpCounter').style.display = 'none';
@@ -1863,6 +1864,7 @@ function initState() {
   _applyBossSkinAura(_sk.id);
   _el.bossBar.style.display = 'none';
   _el.godLevelWrap.style.display = 'none';
+  _resetOdBadge();
   updateOdScreenAura(0);
   _el.bossPhaseTag.textContent = '';
   updateUI();
@@ -3758,6 +3760,7 @@ function _csResetOdFromExpiredEddga() {
   if(typeof gun !== 'undefined' && gun) gun.style.display = 'none';
   if(_el && _el.godFill) _el.godFill.style.width = '0%';
   if(_el && _el.godLevelWrap) _el.godLevelWrap.style.display = 'none';
+  _resetOdBadge();
   if(typeof updateOdScreenAura === 'function') updateOdScreenAura(0);
   if(typeof updateComboUI === 'function') updateComboUI();
 }
@@ -3848,10 +3851,7 @@ function _csStartEddga() {
       updateOdScreenAura(godLevel);
       _el.godLevelWrap.style.display = 'block';
       updateGodLevelUI();
-      _el.godLevelNum.classList.remove('od-levelup');
-      void _el.godLevelNum.offsetWidth;
-      _el.godLevelNum.classList.add('od-levelup');
-      setTimeout(()=>_el.godLevelNum.classList.remove('od-levelup'),450);
+      pulseOdLevel();
     }
   }, 500);
   // Lv2 burst every 15s for 5s
@@ -7536,6 +7536,7 @@ function endGame(opts = {}) {
   $('tapZone').style.display='none';
   $('streakLabel').style.display='none';
   _el.godLevelWrap.style.display='none';
+  _resetOdBadge();
   updateOdScreenAura(0);
   _el.bossBar.style.display='none';
   $('wpCounter').style.display='none';
@@ -8459,10 +8460,7 @@ function activateGodLevel(lv) {
   godSecondsLeft=dur;
   _el.godLevelWrap.style.display='block';
   updateGodLevelUI();
-  _el.godLevelNum.classList.remove('od-levelup');
-  void _el.godLevelNum.offsetWidth;
-  _el.godLevelNum.classList.add('od-levelup');
-  setTimeout(()=>_el.godLevelNum.classList.remove('od-levelup'),450);
+  pulseOdLevel();
 
   if(lv===1){
     const sp=$('godSplash');
@@ -8506,6 +8504,7 @@ function exitGodMode() {
   _el.godFill.style.width='0%';
   _el.godLevelWrap.style.display='none';
   _el.godLevelWrap.classList.remove('od-lv1','od-lv2','od-lv3');
+  _resetOdBadge();
   updateOdScreenAura(0);
   updateComboUI();
   setTimeout(()=>{canEnterGod=true;},1500);
@@ -8531,10 +8530,59 @@ function finalAnnihilation() {
   setTimeout(()=>{document.getElementById("gameRoot").classList.remove('shake');exitGodMode();},500);
 }
 
+// ป้ายเลเวล OD ติดแถบ OD — แหล่งข้อมูลเลเวลที่ชัดเจน (ไม่กำกวม) เพียงจุดเดียว
+function _resetOdBadge() {
+  if(_el && _el.odLevelBadge) {
+    _el.odLevelBadge.classList.remove('is-active','od-level-badge--pulse','od-lv1','od-lv2','od-lv3');
+  }
+  // เคลียร์อนิเมชัน impact one-shot เผื่อ OD จบกลางทาง
+  if(_el && _el.odSweep) _el.odSweep.classList.remove('od-sweep-go');
+  if(_el && _el.odLevelUpFlash) _el.odLevelUpFlash.classList.remove('is-flashing');
+}
+
+// อิมแพกต์ตอนเข้า/อัปเลเวล OD — เด้งป้ายเลเวล + ป๊อปชื่อโหมด (transform/opacity เท่านั้น)
+function pulseOdLevel() {
+  if(_el.odLevelBadge){
+    _el.odLevelBadge.classList.remove('od-level-badge--pulse');
+    void _el.odLevelBadge.offsetWidth;
+    _el.odLevelBadge.classList.add('od-level-badge--pulse');
+    setTimeout(()=>{ if(_el.odLevelBadge) _el.odLevelBadge.classList.remove('od-level-badge--pulse'); },500);
+  }
+  if(_el.godLevelName){
+    _el.godLevelName.classList.remove('od-levelup');
+    void _el.godLevelName.offsetWidth;
+    _el.godLevelName.classList.add('od-levelup');
+    setTimeout(()=>{ if(_el.godLevelName) _el.godLevelName.classList.remove('od-levelup'); },450);
+  }
+  // แสงกวาดบนแถบ OD (one-shot)
+  if(_el.odSweep){
+    _el.odSweep.classList.remove('od-sweep-go');
+    void _el.odSweep.offsetWidth;
+    _el.odSweep.classList.add('od-sweep-go');
+    setTimeout(()=>{ if(_el.odSweep) _el.odSweep.classList.remove('od-sweep-go'); },520);
+  }
+  // ป้ายแฟลช "OD LEVEL UP" ชั่วคราว (~800ms แล้วถอดคลาส — ไม่ค้างถาวร)
+  if(_el.odLevelUpFlash){
+    _el.odLevelUpFlash.classList.remove('is-flashing');
+    void _el.odLevelUpFlash.offsetWidth;
+    _el.odLevelUpFlash.classList.add('is-flashing');
+    setTimeout(()=>{ if(_el.odLevelUpFlash) _el.odLevelUpFlash.classList.remove('is-flashing'); },800);
+  }
+}
+
 function updateGodLevelUI() {
   const gd=GOD_LEVELS[godLevel];
-  _el.godLevelNum.textContent = godLevel >= 3 ? 'LV.MAX' : 'LV.'+godLevel;
-  _el.godLevelNum.style.color = gd.color;
+  // เลเวลแสดงที่ป้ายติดแถบ OD (#odLevelBadge) — ชัดเจน ไม่ลอยกลางจอ
+  if(_el.odLevelBadge){
+    _el.odLevelBadge.textContent = godLevel >= 3 ? 'OD MAX' : 'OD Lv.'+godLevel;
+    _el.odLevelBadge.classList.remove('od-lv1','od-lv2','od-lv3');
+    if(godLevel>0){
+      _el.odLevelBadge.classList.add('is-active','od-lv'+Math.min(godLevel,3));
+    } else {
+      _el.odLevelBadge.classList.remove('is-active');
+    }
+  }
+  // ป้ายลอย = ชื่อโหมด + เวลา (ไม่ใช่เลขเลเวลกำกวมอีกต่อไป)
   _el.godLevelName.textContent = gd.name;
   _el.godLevelName.style.color = gd.color;
   _el.godTimer2.textContent = godSecondsLeft>0 ? godSecondsLeft+'s' : '';

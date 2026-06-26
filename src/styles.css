@@ -2194,6 +2194,70 @@
   }
   #godFill.od-charging { animation:odChargePulse 1.5s ease-in-out infinite; }
 
+  /* ── OD LEVEL BADGE — ติดอยู่กับแถบ OD เสมอ (ป้ายเลเวลที่ชัดเจน ไม่กำกวม) ──
+     วางทับปลายขวาของแถบ OD แบบ absolute (ไม่กินความกว้างแถบ → ไม่ดันเลย์เอาต์)
+     โชว์เฉพาะตอน OD ทำงาน. ความกว้างคงที่ ("OD Lv.1" / "OD MAX") กันการกระตุก. */
+  .od-bar-row { position:relative; }
+  .od-level-badge {
+    position:absolute; right:0; top:50%; transform:translateY(-50%);
+    display:none; z-index:3; pointer-events:none;
+    box-sizing:border-box; min-width:56px; text-align:center;
+    font-size:9px; font-weight:900; letter-spacing:1px; line-height:1;
+    padding:2px 5px; border-radius:4px; white-space:nowrap;
+    text-transform:uppercase;
+    color:#bfeff7; background:rgba(2,14,18,0.94);
+    border:1px solid rgba(0,220,255,0.45);
+  }
+  .od-level-badge.is-active { display:block; }
+  /* tier identity — สีเส้นขอบ/ตัวอักษร + เรืองแสงเบา ๆ (ไม่กลบตัวเลข) */
+  .od-level-badge.od-lv1 { color:#9ff4ee; border-color:rgba(0,255,238,0.6);  box-shadow:0 0 7px rgba(0,255,238,0.28); }
+  .od-level-badge.od-lv2 { color:#c2d4ff; border-color:rgba(68,136,255,0.65); box-shadow:0 0 7px rgba(68,136,255,0.32); text-shadow:0 0 5px rgba(68,136,255,0.5); }
+  .od-level-badge.od-lv3 { color:#ffc2c8; border-color:rgba(255,34,51,0.75);  box-shadow:0 0 8px rgba(255,34,51,0.38);  text-shadow:0 0 5px rgba(255,34,51,0.55); }
+  /* level-up pulse — transform/opacity เท่านั้น ไม่ขยับเลย์เอาต์ */
+  .od-level-badge--pulse { animation:odBadgePulse 0.5s ease-out; }
+  @keyframes odBadgePulse {
+    0%   { transform:translateY(-50%) scale(1);    filter:none; }
+    30%  { transform:translateY(-50%) scale(1.18); filter:brightness(1.85); }
+    100% { transform:translateY(-50%) scale(1);    filter:none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .od-level-badge--pulse { animation:none !important; }
+  }
+
+  /* ── OD LEVEL-UP IMPACT (one-shot, ตอนเลเวล OD เปลี่ยนเท่านั้น) ──
+     1) แถบ OD ยิงแสงกวาดแนวนอนสั้น ๆ  2) ป้าย "OD LEVEL UP" โผล่แวบเดียวแล้วหาย
+     ทั้งคู่เป็น overlay one-shot (transform/opacity) ไม่ดันเลย์เอาต์ ไม่ค้างถาวร. */
+  #odSweep {
+    position:absolute; top:0; bottom:0; left:0; width:40%; z-index:2;
+    pointer-events:none; opacity:0; border-radius:3px;
+    background:linear-gradient(90deg, transparent, rgba(190,245,255,0.92), transparent);
+    transform:translateX(-130%);
+  }
+  #odSweep.od-sweep-go { animation:odSweepMove 0.5s ease-out; }
+  @keyframes odSweepMove {
+    0%   { opacity:0;    transform:translateX(-130%); }
+    18%  { opacity:0.95; }
+    100% { opacity:0;    transform:translateX(330%); }
+  }
+  /* ป้ายแฟลชชั่วคราว — วางทับกลางแถบ OD, ลอยขึ้นเล็กน้อยแล้วจาง (ไม่ใช่เลเวลถาวร) */
+  .od-levelup-flash {
+    position:absolute; left:50%; top:50%; z-index:5;
+    transform:translate(-50%,-50%); pointer-events:none; display:none;
+    font-size:9px; font-weight:900; letter-spacing:2px; text-transform:uppercase;
+    white-space:nowrap; color:#dffbff; text-shadow:0 0 6px rgba(120,235,255,0.7);
+  }
+  .od-levelup-flash.is-flashing { display:block; animation:odFlashRise 0.78s ease-out; }
+  @keyframes odFlashRise {
+    0%   { opacity:0; transform:translate(-50%,-30%) scale(0.92); }
+    25%  { opacity:1; transform:translate(-50%,-55%) scale(1.05); }
+    75%  { opacity:1; transform:translate(-50%,-64%) scale(1); }
+    100% { opacity:0; transform:translate(-50%,-80%) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #odSweep.od-sweep-go,
+    .od-levelup-flash.is-flashing { animation:none !important; }
+  }
+
   /* coin inline ใน topUI */
   #inlineCoin { font-size:11px; color:var(--gold); letter-spacing:1px; white-space:nowrap; }
 
@@ -2368,20 +2432,21 @@
     display:none;
   }
   #godLevelLabel {
-    font-size:7px; letter-spacing:4px; color:rgba(255,255,255,0.5);
+    font-size:8px; letter-spacing:4px; color:rgba(255,255,255,0.55);
     text-transform:uppercase; margin-bottom:1px;
   }
-  #godLevelNum {
-    font-size:clamp(20px,6.5vw,32px); line-height:1; font-weight:900;
-    letter-spacing:3px;
-  }
+  /* เลเวล OD ย้ายไปอยู่ที่ป้ายติดแถบ OD (.od-level-badge) แล้ว — เลขลอยกลางจอ
+     ที่กำกวมถูกซ่อน เหลือไว้เพื่อความเข้ากันได้ของ JS เดิม */
+  #godLevelNum { display:none; }
+  /* ชื่อโหมด OD กลายเป็นข้อความหลักของป้ายลอย (ไม่ใช่เลขเลเวลกำกวมอีกต่อไป) */
   #godLevelName {
-    font-size:7px; letter-spacing:2px; margin-top:5px; opacity:0.75;
+    font-size:clamp(14px,4.4vw,21px); line-height:1; font-weight:900;
+    letter-spacing:2px; margin-top:2px; opacity:0.96; text-transform:uppercase;
   }
   #godTimer2 { font-size:9px; letter-spacing:2px; color:rgba(255,255,255,0.4); margin-top:3px; }
 
   /* ── OD LV1 — subtle cyan pulse ── */
-  #godLevelWrap.od-lv1 #godLevelNum,
+  #godLevelWrap.od-lv1 #godLevelName,
   #godLevelWrap.od-lv1 #godLevelLabel { color:#00ffee; animation:odPulse1 2s ease-in-out infinite; }
   @keyframes odPulse1 {
     0%,100% { text-shadow:0 0 8px #00ffee, 0 0 16px rgba(0,255,238,0.35); }
@@ -2389,33 +2454,27 @@
   }
 
   /* ── OD LV2 — stronger blue pulse ── */
-  #godLevelWrap.od-lv2 #godLevelNum,
+  #godLevelWrap.od-lv2 #godLevelName,
   #godLevelWrap.od-lv2 #godLevelLabel { color:#4488ff; animation:odPulse2 1.1s ease-in-out infinite; }
   @keyframes odPulse2 {
     0%,100% { text-shadow:0 0 12px #4488ff, 0 0 24px rgba(68,136,255,0.45); }
     50%     { text-shadow:0 0 22px #4488ff, 0 0 44px rgba(68,136,255,0.8), 0 0 64px rgba(68,136,255,0.3); }
   }
 
-  /* ── OD LV3 — aggressive red glitch flicker + vibration ── */
+  /* ── OD LV3 — red flicker glow (no positional jitter → ยังอ่านชื่อโหมดออก) ── */
   #godLevelWrap.od-lv3 #godLevelLabel { color:#ff2233; animation:odFlicker3lbl 0.6s ease-in-out infinite; }
-  #godLevelWrap.od-lv3 #godLevelNum   { color:#ff2233; animation:odGlitchMax 0.52s linear infinite; }
+  #godLevelWrap.od-lv3 #godLevelName  { color:#ff2233; animation:odName3 0.7s ease-in-out infinite; }
+  @keyframes odName3 {
+    0%,100% { text-shadow:0 0 10px #ff2233, 0 0 20px rgba(255,34,51,0.5); }
+    50%     { text-shadow:0 0 18px #ff2233, 0 0 34px rgba(255,34,51,0.72); }
+  }
   @keyframes odFlicker3lbl {
     0%,100% { text-shadow:0 0 10px #ff2233, 0 0 20px rgba(255,34,51,0.5); opacity:1; }
     40%     { text-shadow:0 0 18px #ff2233, 0 0 36px rgba(255,34,51,0.8); opacity:1; }
-    65%     { text-shadow:0 0 6px  #ff2233, 0 0 12px rgba(255,34,51,0.35); opacity:0.82; }
+    65%     { text-shadow:0 0 6px  #ff2233, 0 0 12px rgba(255,34,51,0.35); opacity:0.9; }
   }
-  @keyframes odGlitchMax {
-    0%   { text-shadow:0 0 14px #ff2233, 0 0 28px rgba(255,34,51,0.6);  opacity:1;    transform:translateX(0); }
-    18%  { text-shadow:0 0 24px #ff2233, 0 0 48px rgba(255,34,51,0.9),0 0 70px rgba(255,34,51,0.35); opacity:1; transform:translateX(1.5px); }
-    35%  { text-shadow:0 0 8px  #ff2233, 0 0 16px rgba(255,34,51,0.4);  opacity:0.8;  transform:translateX(0); }
-    52%  { text-shadow:0 0 28px #ff2233, 0 0 56px rgba(255,34,51,0.9);  opacity:1;    transform:translateX(-1.5px); }
-    70%  { text-shadow:0 0 6px  #ff2233, 0 0 12px rgba(255,34,51,0.35); opacity:0.85; transform:translateX(0); }
-    85%  { text-shadow:0 0 20px #ff2233, 0 0 40px rgba(255,34,51,0.75); opacity:1;    transform:translateX(1px); }
-    100% { text-shadow:0 0 14px #ff2233, 0 0 28px rgba(255,34,51,0.6);  opacity:1;    transform:translateX(0); }
-  }
-
-  /* ── Level-up impact flash ── */
-  #godLevelNum.od-levelup { animation:odLvUp 0.45s ease-out forwards !important; }
+  /* ── Level-up impact flash (ป๊อปชื่อโหมดตอนเข้า/อัปเลเวล OD) ── */
+  #godLevelName.od-levelup { animation:odLvUp 0.45s ease-out forwards !important; }
   @keyframes odLvUp {
     0%   { filter:brightness(5) saturate(2.5); transform:scale(1.25); }
     45%  { filter:brightness(2) saturate(1.5);  transform:scale(1.07); }
@@ -4532,13 +4591,16 @@
   /* Heavy shimmer: kill animation but preserve a faint static glow */
   body.flash-low .card-heavy-shimmer { animation:none !important; opacity:0.12 !important; filter:none !important; }
 
-  /* OD Lv3 glitch: freeze animation, keep a warm red glow so Lv3 is still readable */
-  body.flash-low #godLevelWrap.od-lv3 #godLevelNum,
+  /* OD Lv3: freeze animation, keep a warm red glow so Lv3 is still readable */
+  body.flash-low #godLevelWrap.od-lv3 #godLevelName,
   body.flash-low #godLevelWrap.od-lv3 #godLevelLabel {
     animation: none !important;
     opacity: 1 !important;
     text-shadow: 0 0 10px rgba(255,34,51,0.55) !important;
   }
+  body.flash-low .od-level-badge--pulse { animation:none !important; }
+  body.flash-low .od-levelup-flash { text-shadow:0 0 4px rgba(120,235,255,0.4) !important; }
+  body.flash-low #odSweep { background:linear-gradient(90deg,transparent,rgba(190,245,255,0.45),transparent) !important; }
 
 
   /* ══ FLASH EFFECT: OFF ══
@@ -4607,13 +4669,24 @@
   /* Heavy shimmer: fully off */
   body.flash-off .card-heavy-shimmer { animation:none !important; opacity:0 !important; filter:none !important; }
 
-  /* OD Lv3 glitch: freeze, plain red text, no glow, no flicker */
-  body.flash-off #godLevelWrap.od-lv3 #godLevelNum,
+  /* OD Lv3: freeze, plain red text, no glow, no flicker */
+  body.flash-off #godLevelWrap.od-lv3 #godLevelName,
   body.flash-off #godLevelWrap.od-lv3 #godLevelLabel {
     animation: none !important;
     opacity: 1 !important;
     color: #ff2233 !important;
     text-shadow: none !important;
+  }
+  body.flash-off .od-level-badge--pulse { animation:none !important; }
+  body.flash-off .od-level-badge { box-shadow:none !important; text-shadow:none !important; }
+  body.flash-off #odSweep.od-sweep-go { animation:none !important; }
+  body.flash-off .od-levelup-flash { text-shadow:none !important; }
+  body.flash-off .od-levelup-flash.is-flashing { animation-name:odFlashRiseFlat !important; }
+  @keyframes odFlashRiseFlat {
+    0%   { opacity:0; transform:translate(-50%,-50%); }
+    20%  { opacity:1; transform:translate(-50%,-50%); }
+    80%  { opacity:1; transform:translate(-50%,-50%); }
+    100% { opacity:0; transform:translate(-50%,-50%); }
   }
   /* ══ END FLASH EFFECT CSS ══ */
 
