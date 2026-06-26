@@ -16,7 +16,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
   // Single app build/cache version. Bump this on deploys that change HTML/CSS/JS or SW behavior.
-  window.NOCTISAK47_APP_VERSION = '2026.06.25.11';
+  window.NOCTISAK47_APP_VERSION = '2026.06.26.1';
   window.NOCTISAK47_APP_CACHE_NAME = 'noctisak47-' + window.NOCTISAK47_APP_VERSION;
 
   (function guardAppVersion() {
@@ -80,7 +80,7 @@
     })();
   })();
 </script>
-<link rel="manifest" href="/manifest.json?v=2026.06.25.11">
+<link rel="manifest" href="/manifest.json?v=2026.06.26.1">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
 <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
@@ -570,8 +570,16 @@
       <div id="cardDrawRevealed" style="display:none;">
         <div id="cardDrawRevealedName"></div>
         <div id="cardDrawRevealedTier"></div>
-        <div id="cardDrawRevealedEffect"></div>
-        <div id="cardDrawRevealedTradeoff"></div>
+        <!-- scrollable ability zone: long descriptions scroll INSIDE this
+             fixed-height area instead of growing the column and pushing the
+             duplicate reward / COLLECT button off-screen. The card stays
+             locked at its anchor; only this inner area scrolls. -->
+        <div id="cardDrawDescWrap" class="reveal-desc-wrap">
+          <div id="cardDrawDescScroll" class="reveal-description-scroll">
+            <div id="cardDrawRevealedEffect"></div>
+            <div id="cardDrawRevealedTradeoff"></div>
+          </div>
+        </div>
         <!-- reserved reward slot: fixed height so the DUPLICATE banner toggling
              in/out never pushes the info or COLLECT button (no layout shift) -->
         <div id="cardDrawRewardSlot" class="reveal-reward-slot" aria-live="polite">
