@@ -133,6 +133,36 @@ for (const [id, e] of Object.entries(VFX_MAP)) {
 if (!badAura) ok('every aura uses a known style + color');
 if (!badPrim) ok('every `on` context uses a known primitive');
 
+// ── 3b) gameplay metadata: theme + affects + stack (อัปเกรด in-game VFX) ──────
+const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time']);
+const TARGETS = new Set(['odBar', 'combo', 'timer', 'zeny', 'break', 'enemy', 'player']);
+let badTheme = 0, badAffects = 0, badStack = 0;
+for (const [id, e] of Object.entries(VFX_MAP)) {
+  if (!e.theme || !THEMES.has(e.theme)) { bad(`card "${id}" has invalid/missing theme: ${JSON.stringify(e.theme)}`); badTheme++; }
+  if (!e.affects || !TARGETS.has(e.affects)) { bad(`card "${id}" has invalid/missing affects target: ${JSON.stringify(e.affects)}`); badAffects++; }
+  if (e.stack) {
+    const s = e.stack;
+    const ctxs = e.on ? Object.keys(e.on) : [];
+    if (!s.gain || !(s.max > 0)) { bad(`card "${id}" stack missing gain/max: ${JSON.stringify(s)}`); badStack++; }
+    else if (!ctxs.includes(s.gain)) { bad(`card "${id}" stack.gain "${s.gain}" is not a real on-context`); badStack++; }
+  }
+}
+if (!badTheme)   ok('every card has a known theme');
+if (!badAffects) ok('every card targets a known gameplay element (affects)');
+if (!badStack)   ok('every stack-card binds gain to a real on-context');
+
+// ── 3c) the .game-vfx-* reusable class layer + reduced-motion exist in CSS ────
+{
+  const css2 = readFileSync(join(root, 'src/styles.css'), 'utf8');
+  const needClasses = ['.game-vfx-trigger', '.game-vfx-stack', '.game-vfx-expire',
+    '.game-vfx-active-card', '.game-vfx-theme-soul'];
+  let missingCls = 0;
+  for (const c of needClasses) if (!css2.includes(c)) { bad(`stylesheet missing reusable class ${c}`); missingCls++; }
+  if (!missingCls) ok('stylesheet defines the .game-vfx-* reusable class layer');
+  if (/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.game-vfx-trigger/.test(css2)) ok('reduced-motion shortens .game-vfx-* effects');
+  else bad('stylesheet missing reduced-motion rule for .game-vfx-* effects');
+}
+
 // ── 4) safe no-op when DOM target missing (no gameRoot) ──────────────────────
 installDom({ hasRoot: false });
 const modNoRoot = await freshImport();
@@ -158,6 +188,27 @@ try {
   modRun.CardVFX.clearCardAura('th');
 } catch (e) { threw2 = true; bad('valid/unknown trigger path threw: ' + e.message); }
 if (!threw2) ok('trigger/setActiveCard tolerate unknown ids + run valid effects without throwing');
+
+// ── 5b) new gameplay-VFX API exists + stack/target paths don't throw ─────────
+const api = modRun.CardVFX;
+const needApi = ['targetPulse', 'setStack', 'clearStack', 'expireStack'];
+let missApi = 0;
+for (const m of needApi) if (typeof api[m] !== 'function') { bad(`CardVFX.${m} missing (gameplay-VFX API)`); missApi++; }
+if (!missApi) ok('gameplay-VFX API present (targetPulse/setStack/clearStack/expireStack)');
+let threw3 = false;
+try {
+  api.setActiveCard('mi', 'elite');                 // stack-card aura
+  api.trigger('mi', 'oregain', { stack: 1, max: 3 });// stack gain with real value
+  api.trigger('mi', 'oregain', { stack: 2, max: 3 });
+  api.trigger('mi', 'break', {});                    // stack reset / expire
+  api.trigger('th', 'thanatos', {});                 // affects 'timer' target pulse
+  api.targetPulse('odBar', '#ffcc33', 'crit');       // direct target pulse
+  api.setStack('mi', 3, 3);
+  api.expireStack();
+  api.clearStack();
+  api.clearActive();
+} catch (e) { threw3 = true; bad('gameplay-VFX stack/target path threw: ' + e.message); }
+if (!threw3) ok('stack + gameplay-element targeting run without throwing');
 
 // ── 6) reduced-motion honored ────────────────────────────────────────────────
 _reducedStub = false;

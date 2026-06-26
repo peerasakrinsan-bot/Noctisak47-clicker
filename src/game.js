@@ -4580,7 +4580,7 @@ function csOnClick(isGod) {
     if(cs.cs_minorageOreClicks >= _miInterval) {
       cs.cs_minorageOreClicks = 0;
       cs.cs_minorageOreStacks = (cs.cs_minorageOreStacks || 0) + 1;
-      _cardFx('oregain'); // mining spark (cosmetic)
+      _cardFx('oregain', { stack: cs.cs_minorageOreStacks, max: 3 }); // mining spark + stack pip (cosmetic)
     }
   }
   // MARVELC: low-time dmg bonus (<15s)

@@ -5832,6 +5832,78 @@
   100% { opacity: 0;   transform: translateX(0); }
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   GAMEPLAY-ELEMENT VFX LAYER (.game-vfx-*)
+   ──────────────────────────────────────────────────────────────────────────
+   ชั้นภาพแบบ data-driven ที่ทำให้ "อิลิเมนต์ของเกมที่ได้รับผลจริง" ตอบสนองตอน
+   การ์ด Elite/Mythic ทำงาน — ไม่ใช่แค่ไอคอนการ์ด. ทั้งหมดคอสเมติก, ใช้
+   transform/opacity/box-shadow สั้น ๆ (ไม่มี loop ถาวร, ไม่มี backdrop-filter),
+   มือถือ-safe. สีต่อใบส่งผ่านตัวแปร --gv; ธีมส่งผ่านคลาส .game-vfx-theme-*.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ธีมสี (fallback accent ต่อกลุ่ม — การ์ดส่วนใหญ่ override --gv ด้วยสีประจำใบ) */
+.game-vfx-theme-soul     { --gv-theme: #aa66ff; }
+.game-vfx-theme-idol     { --gv-theme: #ff99dd; }
+.game-vfx-theme-analysis { --gv-theme: #00ffee; }
+.game-vfx-theme-crit     { --gv-theme: #ff4422; }
+.game-vfx-theme-zeny     { --gv-theme: #ffcc00; }
+.game-vfx-theme-break    { --gv-theme: #ff5522; }
+.game-vfx-theme-time     { --gv-theme: #9bd0ff; }
+
+/* 1) PASSIVE-ACTIVE indicator — แปะบน aura ตัวละคร (#cvAuraEl) เพิ่มจาก cv-aura.
+   ไม่เพิ่มภาระ: เป็นเพียง hook คลาส (texture/จังหวะหลักยังมาจาก cv-aura--*).
+   rarity เพิ่มความเข้มของ ring เล็กน้อยให้ Mythic รู้สึก "หายาก/ดราม่า" กว่า Elite. */
+/* base hook (passive-active indicator) — texture/จังหวะหลักยังมาจาก cv-aura--* */
+.game-vfx-active-card { --gv: var(--gv, #fff); }
+#cvAuraEl.game-vfx-mythic  { box-shadow: 0 0 22px -6px var(--gv, #fff); }
+#cvAuraEl.game-vfx-elite   { box-shadow: 0 0 14px -8px var(--gv, #fff); }
+
+/* 2) TRIGGER reaction — แปะชั่วครู่บน HUD element ที่ได้รับผล (OD bar/combo/timer/
+   zeny/break/enemy). กระพริบ glow + เด้ง scale เล็กน้อยครั้งเดียวแล้วถอดออก. */
+.game-vfx-trigger {
+  animation: gameVfxTrigger .62s cubic-bezier(.22,.7,.3,1) 1;
+  will-change: transform, filter;
+}
+@keyframes gameVfxTrigger {
+  0%   { box-shadow: 0 0 0 0 transparent; filter: brightness(1); transform: scale(1); }
+  22%  { box-shadow: 0 0 16px 3px var(--gv, #fff); filter: brightness(1.4) saturate(1.2); transform: scale(1.035); }
+  60%  { box-shadow: 0 0 8px 1px var(--gv, #fff); }
+  100% { box-shadow: 0 0 0 0 transparent; filter: brightness(1); transform: scale(1); }
+}
+/* Mythic trigger เด่นกว่า Elite เล็กน้อย — ผ่านคลาสที่ปนกันได้บน element เดียว */
+.game-vfx-trigger.game-vfx-mythic { animation-duration: .72s; }
+
+/* 3) STACK / CHARGE pips — แถบจุดเล็กเหนือตัวละคร (#cvStackEl ลูกของ #fighter) */
+#cvStackEl {
+  position: absolute; left: 50%; top: 6%; transform: translateX(-50%);
+  display: none; gap: 5px; pointer-events: none; z-index: 14;
+}
+#cvStackEl.game-vfx-stack { display: flex; }
+.game-vfx-stack-pip {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(255,255,255,.16);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+  transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.game-vfx-stack-pip.on {
+  background: var(--gv, #fff);
+  box-shadow: 0 0 8px var(--gv, #fff), inset 0 0 0 1px rgba(255,255,255,.6);
+}
+.game-vfx-stack-pip.pop { animation: gameVfxPip .26s ease-out 1; }
+@keyframes gameVfxPip {
+  0%   { transform: scale(.6); }
+  55%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* 4) EXPIRE / RESET — เอฟเฟกต์จบสะอาด (ใช้ตอนสแต็กถูกใช้/รีเซ็ต) */
+.game-vfx-expire { animation: gameVfxExpire .44s ease-out 1; }
+@keyframes gameVfxExpire {
+  0%   { opacity: 1; filter: brightness(1); }
+  35%  { opacity: 1; filter: brightness(1.7); transform: translateX(-50%) scale(1.08); }
+  100% { opacity: 0; filter: brightness(1); transform: translateX(-50%) scale(.7); }
+}
+
 /* ── reduced-motion: ตัด aura ที่วน + ย่นเอฟเฟกต์ (รวมลูกของ node ด้วย เช่น moonRing) ── */
 @media (prefers-reduced-motion: reduce) {
   #cvAuraEl.cv-aura { animation: none !important; opacity: .14; }
@@ -5840,6 +5912,10 @@
     animation-duration: .14s !important;
     animation-iteration-count: 1 !important;
   }
+  /* gameplay-element VFX: คงฟีดแบ็กแต่ตัดการเคลื่อนไหว/เด้ง */
+  .game-vfx-trigger { animation-duration: .2s !important; }
+  .game-vfx-stack-pip.pop { animation: none !important; }
+  .game-vfx-expire { animation-duration: .16s !important; }
 }
 
 /* ══ SOFT PWA INSTALL PROMPT ══ */
