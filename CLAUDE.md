@@ -93,7 +93,7 @@ The smoke script does **not** exercise gameplay timers or balance — it only co
 
 The **card audit** (`npm run card-audit`) is a static guard over `CARD_POOL` in `src/game.js` (no browser). It asserts: every card has a unique id + valid rarity; every artwork file exists under `public/`; every card's `apply(s)` sets ≥1 `cs_*` effect flag; every `cs_*` flag a card sets is actually read by game logic (no dead effects); every rarity tier is reachable from the gacha drop weights; and Elite/Mythic counts match the documented collection size. It exits non-zero on the first failed assertion.
 
-The **card VFX audit** (`npm run card-vfx-audit`, not yet wired into CI) guards `src/cardVfx.js`: every Elite/Mythic card has a `VFX_MAP` entry (and no orphan mappings), auras/contexts use known primitives, the helper no-ops when DOM targets are missing, unknown ids don't throw, reduced-motion is honored, and the layer never touches card logic (`save` / `cs_*` writes).
+The **card VFX audit** (`npm run card-vfx-audit`, not yet wired into CI) guards `src/cardVfx.js`: every Elite/Mythic card has a `VFX_MAP` entry (and no orphan mappings), auras/contexts use known primitives, every card has a known `theme` + `affects` target, every stack-card binds its `gain` to a real `on`-context, the `.game-vfx-*` reusable class layer + its reduced-motion fallback exist in CSS, the gameplay-VFX API (`targetPulse`/`setStack`/`clearStack`/`expireStack`) is present and its stack/target paths don't throw, the helper no-ops when DOM targets are missing, unknown ids don't throw, reduced-motion is honored, and the layer never touches card logic (`save` / `cs_*` writes).
 
 ### Service Worker (`public/sw.js`)
 
@@ -181,14 +181,27 @@ A small, **self-contained** module that shows a dismissible install-to-home-scre
 
 ### Elite/Mythic Card VFX (`src/cardVfx.js`)
 
-A small, **self-contained, purely cosmetic** visual-feedback layer for normal/clicker mode only. It gives every Elite and Mythic card a recognizable look when its real mechanic fires. It **never reads or writes card logic, `save`, `cs_*` flags, or balance**, and is safe to call from anywhere (no-ops if a DOM target is missing or `prefers-reduced-motion` is set).
+A small, **self-contained, purely cosmetic** visual-feedback layer for normal/clicker mode only. It gives every Elite and Mythic card a recognizable look when its real mechanic fires, **and makes the affected gameplay element react** (not just the card icon). It **never reads or writes card logic, `save`, `cs_*` flags, or balance**, and is safe to call from anywhere (no-ops if a DOM target is missing or `prefers-reduced-motion` is set).
 
+- **Metadata-driven (`VFX_MAP`):** each Elite/Mythic id maps to `{ rarity, theme, affects, aura, on, stack? }`:
+  - `theme` — one of `soul | idol | analysis | crit | zeny | break | time`; drives the `.game-vfx-theme-*` accent + effect personality.
+  - `affects` — the real gameplay element the card changes (`odBar | combo | timer | zeny | break | enemy | player`). On every (non-`hit`) trigger that element gets a short themed reaction via `targetPulse` (maps to `#godLevelWrap` / `#comboWrap` / `#timerDisplay` / `#scoreDisplay` / `#rageMeter` / `#boxer` / `#fighter`).
+  - `aura` — `[style, color]` persistent passive-active indicator on `#cvAuraEl`.
+  - `on` — `{ context: primitive(s) }` transient effect when the mechanic fires.
+  - `stack` (optional) — `{ gain, reset, max }` for cards with **real event-backed counters**. Progress pips (`#cvStackEl`) are driven by the **real count passed from `game.js`** via `ctx.stack`; consuming/resetting plays a clean expire flourish. Wired only where a genuine bounded counter exists: **MINORAGE** ORE RAGE 0–3 (gain `oregain` / reset `break`), **NOSIRIS** Soul Stack 0–5 (`soulstack` / `judgment`), **BAPHOBET** Sin Stack 0–5 (`sinstack`, run-long buildup, no mid-run reset), **DETAILED** Analysis Stack 0–8 (`analysis` / `analysisreset`, with a direct `setStack` on WP-miss decrement). Passive-scaling cards with no clean discrete *pip* counter stay **pip-free** on purpose but still get compact, real-event-driven feedback (below).
+  - **Compact / passive feedback for non-pip cards** (no fake counters, all driven by real gameplay events):
+    - **GLOOM** — `setAuraTier(id, 0–3)` intensifies the aura by tier (mapped from the real `_gloomStacks` 0–20, deduped via a run-only cosmetic `_gloomVfxTier`); a shadow pulse fires only on tier-up, and `affects: timer` makes the clock react (obsession drains time). No numeric UI.
+    - **IFRIED** — a fire ember on Inferno-stack gain, **throttled** (`_THROTTLE.emberhit = 420 ms`, cosmetic-only) and already gated to crits, plus a big `inferno` burst on the real 10-stack Inferno Burst; `affects: enemy`.
+    - **LADY TRAINEE** — a compact single **charge ring** (`#cvChargeEl`, conic-gradient masked donut, ~30 px) via `setCharge(id, cur, max)` from the real `_ladyTraineeStacks` 0–15 on each OD level-up, plus a `spotlight` stage-light at 10. No wide pip row.
+    - **LORD OF DEBT** — keeps its bespoke `#debtStackCounter` as the source of truth; `affects: debt` makes that **existing** counter pulse (no duplicate UI), with a debt-themed drain+coin burst when a debt state activates.
 - **Public API (the only entry points `game.js` uses):**
-  - `CardVFX.setActiveCard(id, rarity)` — on run start; sets a persistent card aura
-  - `CardVFX.clearActive()` — on run end; clears the aura
-  - `CardVFX.trigger(id, context, ctx)` — when a card's mechanic activates
-- **Wiring** lives at existing mechanic hooks (BREAK success, AK47 complete, Overdrive start, Drake Take, Thanatos Phase, boss interactions, Doppelganger shadow strike, Abyssmell execute). Passive-damage cards get the aura only — **no per-hit particle spam** (mobile-safe brief).
-- **Rendering**: transient effects (sparks, slashes, coin bursts, glow pulses, break cracks, etc.) are routed to the Canvas VFX layer (`src/canvasVfx.js`) when available; the original DOM `#cardVfxLayer` node pool remains as a fallback (canvas-unsupported browsers / audit env). The **persistent aura** (`#cvAuraEl`) stays DOM — it is one CSS-state-driven node, not performance-heavy.
+  - `CardVFX.setActiveCard(id, rarity)` — on run start; sets the passive aura
+  - `CardVFX.clearActive()` — on run end; clears aura + stack pips
+  - `CardVFX.trigger(id, context, ctx)` — when a card's mechanic activates (runs primitives + stack update + affected-element reaction); pass `ctx.stack`/`ctx.max` for stack cards
+  - `CardVFX.targetPulse / setStack / clearStack / expireStack / setCharge / clearCharge / setAuraTier` — lower-level hooks for explicit wiring
+- **Reusable CSS classes (`src/styles.css`):** `.game-vfx-active-card`, `.game-vfx-trigger`, `.game-vfx-stack` (+ `.game-vfx-stack-pip`), `.game-vfx-expire`, `.game-vfx-charge` (compact charge ring `#cvChargeEl`), `.game-vfx-tier-{1,2,3}` (aura build-up on `#cvAuraEl`), `.game-vfx-elite` / `.game-vfx-mythic`, and `.game-vfx-theme-{soul,idol,analysis,crit,zeny,break,time}`. All use `transform`/`opacity`/short non-looping `box-shadow` (and one masked conic-gradient ring) only — no `backdrop-filter`, no permanent particle loops — with a `prefers-reduced-motion` fallback.
+- **Wiring** lives at existing mechanic hooks (BREAK success, AK47 complete, Overdrive start, Drake Take, Thanatos Phase, boss interactions, Doppelganger shadow strike, Abyssmell execute, MINORAGE ore gain). Passive-damage cards get the aura only — **no per-hit particle spam** (mobile-safe brief).
+- **Rendering**: transient effects (sparks, slashes, coin bursts, glow pulses, break cracks, etc.) are routed to the Canvas VFX layer (`src/canvasVfx.js`) when available; the original DOM `#cardVfxLayer` node pool remains as a fallback (canvas-unsupported browsers / audit env). The **persistent aura** (`#cvAuraEl`), the **stack pips** (`#cvStackEl`), and the **affected-element reaction** stay DOM — they are CSS-state-driven, not performance-heavy.
 - Guarded by `scripts/card-vfx-audit.mjs` (`npm run card-vfx-audit`).
 
 ### Canvas VFX (`src/canvasVfx.js`)

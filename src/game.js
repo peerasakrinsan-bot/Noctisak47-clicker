@@ -3820,6 +3820,13 @@ function _csRefreshVolatileCardEffects(nextState) {
         const drain = stacks * 0.02; // 1% of 2s per stack per tick
         timeLeft = Math.max(0, timeLeft - drain);
       }
+      // GLOOM build-up VFX (คอสเมติกล้วน): aura หนักขึ้นตาม tier จริง + พัลส์เงาตอนขึ้น tier.
+      // _gloomVfxTier เป็นตัวกัน fire ซ้ำสำหรับภาพเท่านั้น (run-only, ไม่เซฟ, ไม่แตะ logic/บาลานซ์).
+      const _gloomTier = Math.min(3, Math.floor(stacks / 5));
+      if(_gloomTier !== (window._csState._gloomVfxTier || 0)) {
+        window._csState._gloomVfxTier = _gloomTier;
+        _cardFx('gloom', { tier: _gloomTier });
+      }
     }, 2000);
   }
   // FALLEN WECHAT: init break flags
@@ -4153,6 +4160,7 @@ function _lodActivateDebtState() {
   // Gain one DEBT STACK (max 5)
   _lodDebtStacks = Math.min(5, _lodDebtStacks + 1);
   _lodUpdateStackUI();
+  _cardFx('debt'); // LOD — debt-themed pulse + existing #debtStackCounter reacts (cosmetic; counter stays source of truth)
 
   // Activate the state
   try { state.activate(cs); } catch(e) { console.warn('[LOD] state.activate error', e); return; }
@@ -4580,7 +4588,7 @@ function csOnClick(isGod) {
     if(cs.cs_minorageOreClicks >= _miInterval) {
       cs.cs_minorageOreClicks = 0;
       cs.cs_minorageOreStacks = (cs.cs_minorageOreStacks || 0) + 1;
-      _cardFx('oregain'); // mining spark (cosmetic)
+      _cardFx('oregain', { stack: cs.cs_minorageOreStacks, max: 3 }); // mining spark + stack pip (cosmetic)
     }
   }
   // MARVELC: low-time dmg bonus (<15s)
@@ -4834,6 +4842,7 @@ function csOnBreakEnd() {
     cs._analysisStacks = 0;
     cs._analysisComplete = false;
     cs._analysisBreakActive = false;
+    _cardFx('analysisreset'); // analysis-stack expire flourish on BREAK end (cosmetic)
   }
   // FALLEN WECHAT: reset break-active flag, clear OD bar
   if(cs.cs_fallenWechat && cs._fallenWechatBreakActive) {
@@ -4963,6 +4972,7 @@ function csOnBreakSuccess() {
     if(Math.random() < 0.70) {
       cs._baphometSinStacks = Math.min(5, (cs._baphometSinStacks || 0) + 1);
       cs._baphometSinStack = (cs._baphometSinStacks || 0) * 0.08;
+      _cardFx('sinstack', { stack: cs._baphometSinStacks, max: 5 }); // BAPHOBET sin-stack pip (cosmetic)
       showBigSplash('DEVIL BET', 'SIN +' + (cs._baphometSinStacks||0) + '/5', '#cc0000', false);
     } else {
       timeLeft = Math.max(1, timeLeft - 1);
@@ -4983,9 +4993,11 @@ function csOnBreakSuccess() {
     cs._osirisStacks = Math.min(5, (cs._osirisStacks || 0) + 1);
     const stackBonus = cs._osirisStacks * 25;
     if(stackBonus > 0) { roundCoins += stackBonus; spawnCoinPopup(stackBonus); }
+    _cardFx('soulstack', { stack: cs._osirisStacks, max: 5 }); // NOSIRIS soul-stack pip (cosmetic)
     if(cs._osirisStacks >= 5) {
       cs._osirisJudgmentEndTime = performance.now() + 8000;
       cs._osirisStacks = 0;
+      _cardFx('judgment'); // soul-stack expire flourish (cosmetic)
       showBigSplash('JUDGMENT', 'DMG x2 + ZENY x2 — 8s', '#cc88ff', true);
     }
   }
@@ -4993,6 +5005,7 @@ function csOnBreakSuccess() {
   if(cs.cs_ifriedBreak && (cs._ifriedStacks || 0) >= 10) {
     cs._ifriedBurstEndTime = performance.now() + 5000;
     cs._ifriedStacks = 0;
+    _cardFx('inferno'); // IFRIED — Inferno Burst payoff (cosmetic)
     showBigSplash('INFERNO BURST', 'DMG x2.5 + CRIT +25% — 5s', '#ff4400', false);
   }
   // RSICK-0806: Execute Stack + Execution Phase
@@ -5066,6 +5079,8 @@ function csOnWpMiss() {
   if(cs.cs_detailed && cs._analysisStacks) {
     cs._analysisStacks = Math.max(0, cs._analysisStacks - 2);
     if(cs._analysisStacks < 8) cs._analysisComplete = false;
+    // อัปเดต pip ให้ตรงค่าจริงตอนพลาด (ลดลง ไม่มี spark — คอสเมติกล้วน)
+    try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') window.CardVFX.setStack('dtl', cs._analysisStacks, 8); } catch(e){}
     combo = Math.max(1, combo - 3);
     if(typeof updateComboUI === 'function') updateComboUI();
   }
@@ -5118,8 +5133,10 @@ function csOnOdStart() {
     cs._ladyTraineeDmg = Math.min(0.60, (cs._ladyTraineeDmg || 0) + 0.04);
     // Track discrete stacks (max 15 total, Spotlight at 10)
     cs._ladyTraineeStacks = (cs._ladyTraineeStacks || 0) + 1;
+    _cardFx('odlevel', { charge: cs._ladyTraineeStacks, chargeMax: 15 }); // compact charge ring (cosmetic)
     if(cs._ladyTraineeStacks >= 10 && !cs._ladyTraineeSpotlight) {
       cs._ladyTraineeSpotlight = true;
+      _cardFx('spotlight'); // SPOTLIGHT MODE stage-light (cosmetic)
       showBigSplash('SPOTLIGHT MODE', 'OD CHARGE +10%/CLICK', '#ff88ff', false);
     }
   }
@@ -5180,6 +5197,7 @@ function csOnWpHit(x, y) {
   // DETAILED: increment Analysis stacks on WP collect (max 8); at 8 mark Analysis Complete
   if(cs.cs_detailed) {
     cs._analysisStacks = Math.min(8, (cs._analysisStacks || 0) + 1);
+    _cardFx('analysis', { stack: cs._analysisStacks, max: 8 }); // DETAILED analysis-stack pip (cosmetic)
     if(cs._analysisStacks >= 8 && !cs._analysisComplete) {
       cs._analysisComplete = true;
       showBigSplash('ANALYSIS COMPLETE', 'Next BREAK: WINDOW x2', '#00ffee', false);
@@ -5228,6 +5246,7 @@ function csOnTimeUp() {
     timeLeft = 15;
     showBigSplash('ปฏิเสธความตาย','NOSIRIS — +15 วิ (Soul Stack ถูกล้าง)','#cc88ff',true);
     cs._osirisStacks = 0;
+    _cardFx('judgment'); // soul-stack expire flourish on death-defy clear (cosmetic)
     return true; // prevent game end
   }
   return false;
@@ -8055,6 +8074,7 @@ function processHit(e, now) {
   // IFRIED: build Inferno Stack on crit (max 15)
   if(isCrit && window._csState && window._csState.cs_ifriedBreak) {
     window._csState._ifriedStacks = Math.min(15, (window._csState._ifriedStacks || 0) + 1);
+    _cardFx('emberhit'); // IFRIED throttled ember on Inferno-stack gain (cosmetic, ติดเฉพาะคริ + throttle)
   }
   // ATROSUS: crit during Resonance extends window (+0.4s base, +0.6s with Mastery, max +4s total)
   if(isCrit && window._csState && window._csState.cs_atrosusBreak && window._csState._atrosusBreakEndTime && performance.now() < window._csState._atrosusBreakEndTime) {
