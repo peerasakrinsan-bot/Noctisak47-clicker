@@ -329,6 +329,132 @@ const BUILD = {
       _push(p);
     }
   },
+
+  // ── BOSS SKILL PRIMITIVES ──────────────────────────────────────────────────
+  // "ท่าไม้ตาย" ของบอสแต่ละตัว — ยิงเฉพาะตอน skill activate (Overdrive) เท่านั้น
+  // ไม่มี loop ถาวร, particle ต่อครั้งจำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
+
+  // หมัดอิมแพกต์: แกนสว่างพอง + สะเก็ดกระจายรอบทิศ + (ออปชั่น) ดาวกระเด็น
+  bossImpactBurst(o) {
+    const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.5;
+    const col = o.color || '#ffd24a', col2 = o.color2 || '#fff3c0';
+    const core = _mk('bcore', x, y, _rmLife(dur * 0.72), col2); core.size = o.size || 60; _push(core);
+    let n = _nParts(o.count || 9);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+      const sp = 140 + Math.random() * 170;
+      const p = _mk('spark', x, y, _rmLife(dur), col);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp;
+      p.size = 2.5 + Math.random() * 2.5; p.data = 1; // ไม่มีโน้มถ่วง (หมัดกระจายรัศมี)
+      _push(p);
+    }
+    if (o.stars && !_reduced) {
+      let s = _nParts(o.stars);
+      for (let i = 0; i < s; i++) {
+        const ang = Math.random() * Math.PI * 2, sp = 80 + Math.random() * 120;
+        const st = _mk('star', x, y, _rmLife(dur), col2);
+        st.vx = Math.cos(ang) * sp; st.vy = Math.sin(ang) * sp - 40;
+        st.size = 7 + Math.random() * 5; st.rot = Math.random() * 6; st.data = 5 + Math.random() * 5;
+        _push(st);
+      }
+    }
+  },
+  // คลื่นกระแทก: วงหนาแผ่ออก + (ออปชั่น) รอยร้าวพื้น (สายบรูตโบราณ)
+  bossShockwave(o) {
+    const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.6, col = o.color || '#ff7a1e';
+    const w = _mk('bwave', x, y, _rmLife(dur), col); w.size = o.size || 36; w.data = o.thick || 7; _push(w);
+    if (!_reduced && _intensity > 0.4) {
+      const w2 = _mk('bwave', x, y, _rmLife(dur * 0.82), col); w2.size = (o.size || 36) * 0.6; w2.data = (o.thick || 7) * 0.6; _push(w2);
+    }
+    if (o.cracks) {
+      let n = _nParts(o.cracks), gy = y + (o.groundOffset || 0);
+      for (let i = 0; i < n; i++) {
+        const ang = Math.PI * (0.12 + Math.random() * 0.76); // พัดลงล่าง
+        const p = _mk('crack', x, gy, _rmLife(dur), col);
+        p.rot = ang; p.size = 48 + Math.random() * 42; p.data = 3;
+        _push(p);
+      }
+    }
+  },
+  // เส้นพลังเหวี่ยง: อาร์คโค้งกวาดหลายเส้น (ดนตรี/พระจันทร์)
+  bossEnergyTrail(o) {
+    const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.55;
+    const col = o.color || '#8fb4ff', col2 = o.color2 || '#ffd24a';
+    let n = _nParts(o.count || 4);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('btrail', x, y, _rmLife(dur), (i % 2) ? col2 : col);
+      p.rot = (o.angle !== undefined ? o.angle : -0.5) + (i - (n - 1) / 2) * 0.5;
+      p.size = 118 + Math.random() * 44; p.data = i * 0.05; p.seed = Math.random();
+      _push(p);
+    }
+  },
+  // สายฟ้า/พลาสมา: แกนเรือง + สายฟ้าแตกแขนงหลายเส้น (สปิริต)
+  bossLightningArc(o) {
+    const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.4, col = o.color || '#3fa9ff';
+    const g = _mk('glow', x, y, _rmLife(dur), o.color2 || '#aef0ff'); g.size = o.size || 56; _push(g);
+    let n = _reduced ? 1 : _nParts(o.count || 3);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / Math.max(1, n)) * Math.PI * 2 + Math.random();
+      const len = 70 + Math.random() * 60;
+      const p = _mk('bolt', x, y, _rmLife(dur), col);
+      const pts = []; const segs = 5;
+      const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+      for (let s = 0; s <= segs; s++) {
+        const tt = s / segs;
+        pts.push(x + (ex - x) * tt + (Math.random() - 0.5) * 18,
+                 y + (ey - y) * tt + (Math.random() - 0.5) * 18);
+      }
+      p.pts = pts; p.size = 2.5; _push(p);
+    }
+  },
+  // ฟันดาบ: รอยเฉือนไขว้ + สะเก็ดจุดตัด (สายมีดเร็ว)
+  bossSlash(o) {
+    const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.36, col = o.color || '#ff2a3a';
+    let n = _reduced ? 1 : (o.count || 2);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('slash', x, y + (i - (n - 1) / 2) * 14, _rmLife(dur), col);
+      p.rot = (o.rot !== undefined ? o.rot : (-40 + i * 80)) * Math.PI / 180;
+      p.size = o.len || 150; p.data = i * 0.06;
+      _push(p);
+    }
+    if (!_reduced && o.spark) {
+      let s = _nParts(o.spark);
+      for (let i = 0; i < s; i++) {
+        const ang = Math.random() * Math.PI * 2, sp = 100 + Math.random() * 120;
+        const sk = _mk('spark', x, y, _rmLife(dur * 1.1), col);
+        sk.vx = Math.cos(ang) * sp; sk.vy = Math.sin(ang) * sp; sk.size = 2 + Math.random() * 2; sk.data = 1;
+        _push(sk);
+      }
+    }
+  },
+  // ออร่าพอง: แสงเรือง + วงแหวนซ้อน (สายพลังสะอาด)
+  bossAuraPulse(o) {
+    const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.6;
+    const col = o.color || '#3ad0ff', col2 = o.color2 || '#2a6cff';
+    const g = _mk('glow', x, y, _rmLife(dur), col); g.size = o.size || 80; _push(g);
+    const r = _mk('ring', x, y, _rmLife(dur), col2); r.size = 30; _push(r);
+    if (!_reduced && _intensity > 0.4) { const r2 = _mk('ring', x, y, _rmLife(dur * 0.85), col); r2.size = 20; r2.data = 1; _push(r2); }
+  },
+  // วงเวทย์: วงสองชั้นหมุน + ก้านรูน + แกนเรือง (สายศักดิ์สิทธิ์)
+  bossRuneCircle(o) {
+    const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.8, col = o.color || '#ffe28a';
+    const ru = _mk('rune', x, y, _rmLife(dur), col); ru.size = o.size || 64; ru.data = o.runes || 8; _push(ru);
+    const g = _mk('glow', x, y, _rmLife(dur * 0.7), o.color2 || '#fff3c0'); g.size = (o.size || 64) * 0.7; _push(g);
+  },
+  // พัลส์มืด/บิดเบือน: void ยุบเข้า + วงแหวน + แถบ glitch (สายปริศนา)
+  bossGlitchPulse(o) {
+    const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.5;
+    const col = o.color || '#b46cff', col2 = o.color2 || '#6a18d0';
+    const v = _mk('void', x, y, _rmLife(dur), col2); v.size = o.size || 70; _push(v);
+    const r = _mk('ring', x, y, _rmLife(dur), col); r.size = 30; _push(r);
+    let n = _nParts(o.glitch || 3);
+    for (let i = 0; i < n; i++) {
+      const top = (0.2 + Math.random() * 0.6) * _ch;
+      const p = _mk('scan', 0, top, _rmLife(dur * 0.7), col);
+      p.size = 4 + Math.random() * 12; p.vx = (Math.random() < 0.5 ? -1 : 1) * (12 + Math.random() * 24); p.data = i * 0.04;
+      _push(p);
+    }
+  },
 };
 
 // ── PUBLIC: set intensity from in-game Flash Effect setting ──────────────────
@@ -626,9 +752,195 @@ function _draw(p, dt) {
       ctx.fillRect(jx, p.y, _cw, p.size);
       break;
     }
+    // ── boss-skill kinds ──────────────────────────────────────────────────
+    case 'bcore': {
+      // แกนอิมแพกต์สว่าง — พองเร็วแล้วยุบ
+      ctx.globalCompositeOperation = 'lighter';
+      const r = p.size * (0.3 + t * 1.1);
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      g.addColorStop(0, _rgba('#ffffff', a));
+      g.addColorStop(0.4, _rgba(p.color, a * 0.8));
+      g.addColorStop(1, _rgba(p.color, 0));
+      ctx.globalAlpha = 1; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
+      break;
+    }
+    case 'bwave': {
+      // คลื่นกระแทกวงหนา — รัศมีโต ความหนาเรียวลง
+      const r = p.size * (0.3 + t * 4);
+      const lw = Math.max(0.5, p.data * (1 - t));
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = (1 - t) * 0.9;
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = lw;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
+      ctx.shadowBlur = 0;
+      break;
+    }
+    case 'btrail': {
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.sin(Math.min(1, lt) * Math.PI) * 0.9;
+      const w = p.size, bend = (p.seed - 0.5) * 70;
+      const grad = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+      grad.addColorStop(0, _rgba(p.color, 0));
+      grad.addColorStop(0.5, _rgba('#ffffff', 1));
+      grad.addColorStop(1, _rgba(p.color, 0));
+      ctx.strokeStyle = grad; ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-w / 2, 0);
+      ctx.quadraticCurveTo(0, bend, w / 2, 0);
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'star': {
+      p.vy += 500 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      const a = 1 - t * t;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 1);
+      const s = p.size * (1 - t * 0.4);
+      ctx.beginPath();
+      for (let k = 0; k < 4; k++) {
+        const a1 = k * Math.PI / 2;
+        ctx.lineTo(Math.cos(a1) * s, Math.sin(a1) * s);
+        ctx.lineTo(Math.cos(a1 + Math.PI / 4) * s * 0.34, Math.sin(a1 + Math.PI / 4) * s * 0.34);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'rune': {
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const r = p.size * (0.7 + t * 0.4);
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(t * 1.2);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.7, 0, 6.283); ctx.stroke();
+      const ticks = p.data | 0;
+      for (let k = 0; k < ticks; k++) {
+        const ang = (k / ticks) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * r * 0.7, Math.sin(ang) * r * 0.7);
+        ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+        ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    }
+    case 'void': {
+      // void ยุบเข้าเล็กน้อย + ขอบสว่าง (สายปริศนา/เงา)
+      const r = p.size * (1.1 - t * 0.5);
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      ctx.globalCompositeOperation = 'source-over';
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      g.addColorStop(0, _rgba(p.color, a * 0.85));
+      g.addColorStop(0.65, _rgba(p.color, a * 0.4));
+      g.addColorStop(1, _rgba(p.color, 0));
+      ctx.globalAlpha = 1; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = _rgba('#e9c8ff', 1); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 0.92, 0, 6.283); ctx.stroke();
+      break;
+    }
   }
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
+}
+
+// ── BOSS SKILL VFX (metadata-driven, cosmetic only) ──────────────────────────
+// แมปบอสแต่ละสกิน → ธีม/สี/ชุดเอฟเฟกต์ canvas เฉพาะตัว (ยิงตอน skill activate).
+// อยู่ในเลเยอร์ VFX ล้วน ๆ — ไม่อ่าน/เขียน save, balance, cs_* ใด ๆ. game.js แค่ส่ง
+// id สกินบอส + พิกัด + ระดับ OD มาให้ ส่วนหน้าตา/สี ตัดสินใจที่นี่.
+const BOSS_VFX = {
+  default:        { id:'default',        theme:'goldBoxing',   skillEffect:'Golden Overdrive Punch', canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ffd24a', colorSecondary:'#ff9d2e', affectedTarget:'boss'  },
+  toei_boxer:     { id:'toei_boxer',     theme:'redPressure',  skillEffect:'Pressure Flare',         canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ff3a3a', colorSecondary:'#1a0008', affectedTarget:'boss'  },
+  apologize:      { id:'apologize',      theme:'holyMask',     skillEffect:'Holy Apology Ring',      canvasEffect:'bossRuneCircle+bossAuraPulse',  colorPrimary:'#ffe28a', colorSecondary:'#fff3c0', affectedTarget:'boss'  },
+  xuang:          { id:'xuang',          theme:'ancientBrute', skillEffect:'Ancient Ground Smash',   canvasEffect:'bossShockwave+bossImpactBurst', colorPrimary:'#ff7a1e', colorSecondary:'#5a2a0a', affectedTarget:'arena' },
+  jakkadun:       { id:'jakkadun',       theme:'moonRocker',   skillEffect:'Moonlight Slash',        canvasEffect:'bossSlash+bossEnergyTrail',     colorPrimary:'#8fb4ff', colorSecondary:'#ffd24a', affectedTarget:'boss'  },
+  sornsit_spirit: { id:'sornsit_spirit', theme:'blueSpirit',   skillEffect:'Spirit Surge',           canvasEffect:'bossLightningArc+bossAuraPulse',colorPrimary:'#3fa9ff', colorSecondary:'#aef0ff', affectedTarget:'boss'  },
+  rukawa:         { id:'rukawa',         theme:'redSlash',     skillEffect:'Assassin Slash',         canvasEffect:'bossSlash+bossImpactBurst',     colorPrimary:'#ff2a3a', colorSecondary:'#7a0010', affectedTarget:'boss'  },
+  suang:          { id:'suang',          theme:'animalBoxer',  skillEffect:'Paw Combo Burst',        canvasEffect:'bossImpactBurst',               colorPrimary:'#ffcf4a', colorSecondary:'#fff0b0', affectedTarget:'boss'  },
+  morgan:         { id:'morgan',         theme:'blueStreet',   skillEffect:'Street Power Wave',      canvasEffect:'bossAuraPulse+bossShockwave',   colorPrimary:'#3ad0ff', colorSecondary:'#2a6cff', affectedTarget:'boss'  },
+  toei:           { id:'toei',           theme:'purpleEnigma', skillEffect:'Void Distortion',        canvasEffect:'bossGlitchPulse',               colorPrimary:'#b46cff', colorSecondary:'#6a18d0', affectedTarget:'boss'  },
+};
+
+// thin public wrappers — แต่ละ primitive ตามสเปก (เรียกตรงได้ถ้าต้องการ)
+function spawnBossImpactBurst(o)  { spawnCanvasVfx('bossImpactBurst', o);  }
+function spawnBossShockwave(o)     { spawnCanvasVfx('bossShockwave', o);    }
+function spawnBossEnergyTrail(o)   { spawnCanvasVfx('bossEnergyTrail', o);  }
+function spawnBossLightningArc(o)  { spawnCanvasVfx('bossLightningArc', o); }
+function spawnBossSlash(o)         { spawnCanvasVfx('bossSlash', o);        }
+function spawnBossAuraPulse(o)     { spawnCanvasVfx('bossAuraPulse', o);    }
+function spawnBossRuneCircle(o)    { spawnCanvasVfx('bossRuneCircle', o);   }
+function spawnBossGlitchPulse(o)   { spawnCanvasVfx('bossGlitchPulse', o);  }
+
+// ── PUBLIC: compose a boss's signature skill VFX at a coord ───────────────────
+// skinId = boss skin id (จาก getActiveSkinId() ใน game.js); opts.{x,y,level}.
+// level 1–3 (ระดับ OD) → ปรับขนาด/ความเข้มขึ้นเล็กน้อย (บอสภัยสูง = แรงขึ้น แต่ยังเซฟมือถือ).
+function spawnBossSkillVfx(skinId, opts) {
+  if (!_ensure()) return;            // unsupported / no host → no-op
+  if (_intensity <= 0.0) return;     // 'off' mode → ข้ามทั้งหมด
+  const meta = BOSS_VFX[skinId] || BOSS_VFX.default;
+  opts = opts || {};
+  const lv = Math.max(1, Math.min(3, opts.level || 1));
+  const scale = 1 + (lv - 1) * 0.18; // OD สูง → ใหญ่ขึ้น (มากสุด ~1.36x)
+  const C = meta.colorPrimary, C2 = meta.colorSecondary;
+  const base = { x: opts.x, y: opts.y, color: C, color2: C2 };
+  switch (meta.theme) {
+    case 'goldBoxing':
+      spawnBossImpactBurst({ ...base, count: 10, stars: lv >= 2 ? 4 : 2, size: 64 * scale });
+      spawnBossShockwave({ ...base, size: 38 * scale, thick: 8 });
+      break;
+    case 'redPressure':
+      spawnBossImpactBurst({ ...base, count: 9, size: 60 * scale });
+      spawnBossShockwave({ ...base, color: C2, size: 34 * scale, thick: 9 });
+      break;
+    case 'holyMask':
+      spawnBossRuneCircle({ ...base, runes: 8, size: 66 * scale });
+      spawnBossAuraPulse({ ...base, size: 78 * scale });
+      break;
+    case 'ancientBrute':
+      spawnBossShockwave({ ...base, size: 40 * scale, thick: 10, cracks: lv >= 2 ? 5 : 3, groundOffset: 30 });
+      spawnBossImpactBurst({ ...base, count: 7, size: 50 * scale });
+      break;
+    case 'moonRocker':
+      spawnBossSlash({ ...base, count: 2, len: 160 * scale, rot: -38 });
+      spawnBossEnergyTrail({ ...base, count: lv >= 2 ? 5 : 4, angle: -0.4 });
+      break;
+    case 'blueSpirit':
+      spawnBossLightningArc({ ...base, count: lv >= 2 ? 4 : 3, size: 56 * scale });
+      spawnBossAuraPulse({ ...base, size: 74 * scale });
+      break;
+    case 'redSlash':
+      spawnBossSlash({ ...base, count: 2, len: 150 * scale, spark: 6 });
+      spawnBossImpactBurst({ ...base, count: 6, size: 44 * scale });
+      break;
+    case 'animalBoxer':
+      spawnBossImpactBurst({ ...base, count: 8, stars: lv >= 2 ? 5 : 3, size: 56 * scale });
+      break;
+    case 'blueStreet':
+      spawnBossAuraPulse({ ...base, size: 82 * scale });
+      spawnBossShockwave({ ...base, color: C, size: 34 * scale, thick: 7 });
+      break;
+    case 'purpleEnigma':
+      spawnBossGlitchPulse({ ...base, glitch: lv >= 2 ? 4 : 3, size: 70 * scale });
+      break;
+    default:
+      spawnBossImpactBurst({ ...base, count: 9, size: 58 * scale });
+  }
 }
 
 // ── PUBLIC API ───────────────────────────────────────────────────────────────
@@ -641,6 +953,17 @@ const CanvasVFX = {
   setVFXLevel,                        // ← รับ 'on'|'low'|'off' จาก applyFlashEffectSetting
   reducedMotion: () => _reduced,
   vfxIntensity:  () => _intensity,    // debug / audit
+  // boss skill VFX (cosmetic) — dispatcher + primitives ตามสเปก
+  spawnBossSkillVfx,
+  spawnBossImpactBurst,
+  spawnBossShockwave,
+  spawnBossEnergyTrail,
+  spawnBossLightningArc,
+  spawnBossSlash,
+  spawnBossAuraPulse,
+  spawnBossRuneCircle,
+  spawnBossGlitchPulse,
+  BOSS_VFX,                           // metadata map (debug / audit)
   // debug-only introspection (ไม่ใช่ส่วนหนึ่งของ logic เกม)
   _count: () => _parts.length,
   _running: () => !!_raf,
@@ -648,4 +971,8 @@ const CanvasVFX = {
 
 if (typeof window !== 'undefined') window.CanvasVFX = CanvasVFX;
 
-export { CanvasVFX, spawnCanvasVfx, spawnCardCanvasVfx, clearCanvasVfx, resizeCanvasVfx, supported };
+export {
+  CanvasVFX, spawnCanvasVfx, spawnCardCanvasVfx, clearCanvasVfx, resizeCanvasVfx, supported,
+  spawnBossSkillVfx, spawnBossImpactBurst, spawnBossShockwave, spawnBossEnergyTrail,
+  spawnBossLightningArc, spawnBossSlash, spawnBossAuraPulse, spawnBossRuneCircle, spawnBossGlitchPulse,
+};

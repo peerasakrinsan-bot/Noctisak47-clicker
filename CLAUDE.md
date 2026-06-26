@@ -214,6 +214,16 @@ A small, **self-contained, purely cosmetic** Canvas 2D engine that renders the *
 - **Safeguards:** global particle cap (`MAX_PARTICLES = 340`, drops oldest on overflow), per-effect counts reduced under `prefers-reduced-motion`, DPR capped at 2.5, `requestAnimationFrame` loop **starts only when particles exist and stops when idle**, particles cleared + loop paused while the tab is hidden, and layout reads happen only in `resizeCanvasVfx()` (never inside the draw loop). `clearCanvasVfx()` is also called from `CardVFX.clearActive()` on run end.
 - **DOM:** `#vfxCanvas` lives in `#gameRoot` at `z-index: 16` (same plane as `#cardVfxLayer`), `pointer-events: none`.
 
+#### Boss Skill VFX (inside `canvasVfx.js`)
+
+A **metadata-driven, cosmetic-only** layer that gives each boss skin its own signature **Overdrive-activation** look (the boss's "skill"), instead of a shared generic glow. Lives entirely in `canvasVfx.js` (never reads/writes `save`, balance, `cs_*`, currency, unlocks).
+
+- **Metadata (`BOSS_VFX`):** keyed by boss skin id → `{ id, theme, skillEffect, canvasEffect, colorPrimary, colorSecondary, affectedTarget }`. Themes: `goldBoxing` (default/NOCTISAK47), `redPressure` (toei_boxer), `holyMask` (apologize), `ancientBrute` (xuang), `moonRocker` (jakkadun), `blueSpirit` (sornsit_spirit), `redSlash` (rukawa), `animalBoxer` (suang), `blueStreet` (morgan), `purpleEnigma` (toei/ENIGMA).
+- **Primitives (new canvas builders + draw kinds):** `spawnBossImpactBurst`, `spawnBossShockwave`, `spawnBossEnergyTrail`, `spawnBossLightningArc`, `spawnBossSlash`, `spawnBossAuraPulse`, `spawnBossRuneCircle`, `spawnBossGlitchPulse` (kinds `bcore/bwave/btrail/star/rune/void` + reuse of `spark/bolt/slash/glow/ring/scan/crack`). Each honors the same caps, particle pool, `_nParts` reduced-motion/intensity scaling, and idle-stop rAF loop as the rest of `canvasVfx.js`.
+- **Dispatcher:** `spawnBossSkillVfx(skinId, { x, y, level })` composes 1–2 primitives per theme, scaled by OD level (1–3 → up to ~1.36×). No-ops when canvas unsupported, VFX `off`, or tab hidden.
+- **Trigger:** `_triggerBossSkillVfx(lv)` in `game.js` is called from `activateGodLevel(lv)` (the single Overdrive/skill-activation moment). It passes the active skin id + the live `#boxer` center coords + OD level, and adds a brief `#boxer.boss-skill-pulse` portrait pulse (CSS, transform/opacity only; disabled under reduced-motion / `reduce-flash`).
+- **Readability/perf:** event-driven (fires only on OD entry/level-up, not per-hit), short-lived (300–900 ms), centered on the boss so it never covers HP/timer/score/combo/buttons/damage numbers.
+
 ### Game screen IDs
 
 All screens are children of `#gameRoot` (position: fixed, 100vw/100vh):
