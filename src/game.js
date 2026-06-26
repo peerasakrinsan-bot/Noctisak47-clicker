@@ -17,6 +17,15 @@ document.addEventListener('touchmove', e => {
 
 // FIX 1E — prevent full-page pan except inside scrollable screens
 document.addEventListener('touchmove', e => {
+  // Allow native touch-scroll inside the card ability-description boxes:
+  //  • .card-detail-description-scroll — the Card Collection detail modal
+  //    (#cardModal is a top-level overlay, not a child of cardCollectionScreen)
+  //  • .reveal-description-scroll      — the draw/reveal result card detail
+  //    (#cardDrawScreen is not in the whitelist below either)
+  // Without this guard the blanket preventDefault() cancels the scroll before the
+  // browser can pan the long Elite/Mythic descriptions. Cosmetic-only.
+  if (e.target && e.target.closest &&
+      e.target.closest('.card-detail-description-scroll, .reveal-description-scroll')) return;
   const scrollable = ['mainMenu','shopScreen','bossScreen','arenaScreen','cardCollectionScreen','blhRoot'];
   for (const id of scrollable) {
     const el = $(id);
