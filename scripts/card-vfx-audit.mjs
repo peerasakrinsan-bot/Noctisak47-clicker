@@ -201,9 +201,17 @@ try {
   api.trigger('mi', 'oregain', { stack: 1, max: 3 });// stack gain with real value
   api.trigger('mi', 'oregain', { stack: 2, max: 3 });
   api.trigger('mi', 'break', {});                    // stack reset / expire
+  api.setActiveCard('os', 'mythic');                 // NOSIRIS soul stack 0–5
+  api.trigger('os', 'soulstack', { stack: 5, max: 5 });
+  api.trigger('os', 'judgment', {});                 // expire at 5
+  api.setActiveCard('bh', 'mythic');                 // BAPHOBET sin stack (no reset)
+  api.trigger('bh', 'sinstack', { stack: 3, max: 5 });
+  api.setActiveCard('dtl', 'mythic');                // DETAILED analysis stack 0–8
+  api.trigger('dtl', 'analysis', { stack: 8, max: 8 });
+  api.setStack('dtl', 6, 8);                          // WP-miss decrement path
+  api.trigger('dtl', 'analysisreset', {});           // reset on BREAK end
   api.trigger('th', 'thanatos', {});                 // affects 'timer' target pulse
   api.targetPulse('odBar', '#ffcc33', 'crit');       // direct target pulse
-  api.setStack('mi', 3, 3);
   api.expireStack();
   api.clearStack();
   api.clearActive();

@@ -538,12 +538,14 @@ const VFX_MAP = {
   // ── MYTHIC ──
   // THANABROS — Thanatos Phase (หยุดเวลา/มืด): วาบดำ + OD glow + คลื่นมืด + glitch บิดเวลา; AK47 ม่วงพัลส์
   th:  { rarity: 'mythic', theme: 'time', affects: 'timer', aura: ['shadow', '#cc00cc'], on: { thanatos: [['flash', '#1a0022'], ['odGlow', '#dd33dd'], ['shadowBurst', '#660066', 0.6], ['glitch', '#cc44cc']], ak47: [['spark', '#dd55dd', 6], ['pulse', '#cc33cc']] } },
-  // BAPHOBET — DEVIL BET ปีศาจแดง: ไฟพุ่ง + ฟันสาม + คลื่นมืด
-  bh:  { rarity: 'mythic', theme: 'crit', affects: 'break', aura: ['fire',  '#cc0000'],  on: { break: [['fireBurst', '#cc0000'], ['slash', '#ff2233', 3], ['shadowBurst', '#660000', 0.5]] } },
+  // BAPHOBET — DEVIL BET ปีศาจแดง: ไฟพุ่ง + ฟันสาม + คลื่นมืด; SIN Stack 0–5 (สะสมตอน AK47,
+  // ไม่รีเซ็ตกลางรัน = buildup ดาเมจ) → pip ต่อ sin จริง; affects=enemy (สาปลงศัตรู)
+  bh:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', stack: { gain: 'sinstack', max: 5 }, aura: ['fire',  '#cc0000'],  on: { break: [['fireBurst', '#cc0000'], ['slash', '#ff2233', 3], ['shadowBurst', '#660000', 0.5]], sinstack: ['spark', '#ff3322', 4] } },
   // EDGEGA — Lv2 Burst เสือ: ไฟพุ่ง + เล็บสามรอย
   eg:  { rarity: 'mythic', theme: 'crit', affects: 'odBar', aura: ['fire',  '#ff6622'],  on: { od: [['fireBurst', '#ff6622'], ['slash', '#ff8844', 3]] } },
-  // NOSIRIS — JUDGMENT ทราย/ทองศักดิ์สิทธิ์: แสง holy ทอง + พัลส์
-  os:  { rarity: 'mythic', theme: 'soul', affects: 'break', aura: ['gold',  '#ffdd66'],  on: { break: [['holyBurst', '#ffe07a'], ['pulse', '#ffd84a']] } },
+  // NOSIRIS — Soul Stack 0–5 (สะสมตอน BREAK) → JUDGMENT ตอนเต็ม 5: แสง holy ทอง + พัลส์,
+  // pip ต่อ soul stack จริง (ctx.stack), เต็ม 5 = expire flourish (JUDGMENT/ปฏิเสธความตาย)
+  os:  { rarity: 'mythic', theme: 'soul', affects: 'break', stack: { gain: 'soulstack', reset: 'judgment', max: 5 }, aura: ['gold',  '#ffdd66'],  on: { break: [['holyBurst', '#ffe07a'], ['pulse', '#ffd84a']], soulstack: ['spark', '#ffe07a', 4] } },
   // MISSSTRESS — ราชินีผึ้งสายฟ้าเหลือง: สายฟ้า + สะเก็ด + เหรียญ (zeny ตอน OD)
   mt:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffdd00'],  on: { od: [['bolt', '#ffe21a'], ['spark', '#ffe85a', 6], ['coinBurst', '#ffe21a']] } },
   // GOLDEN BRUH — GOLD RUSH ระเบิดทองใหญ่ (ยิงที่ context 'combo' จริง ตอน combo เต็ม)
@@ -568,8 +570,9 @@ const VFX_MAP = {
   rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff2233'],  on: { break: [['glitch', '#ff2233'], ['pulse', '#ff4455']] } },
   // FALLEN WECHAT — Overloaded BREAK เทวดาตก: glitch + คลื่นมืด + วาบดำ
   fwc: { rarity: 'mythic', theme: 'break', affects: 'break', aura: ['shadow', '#ff2233'], on: { break: [['glitch', '#ff2233'], ['shadowBurst', '#330008', 0.5], ['flash', '#1a0008']] } },
-  // DETAILED — ANALYZED BREAK กริด/สแกนแม่นยำ: glitch + สะเก็ดกริด + วาบ
-  dtl: { rarity: 'mythic', theme: 'analysis', affects: 'break', aura: ['tech',  '#00ffee'],  on: { break: [['glitch', '#00ffee'], ['spark', '#00ffee', 8], ['flash', '#003a3a']] } },
+  // DETAILED — ANALYZED BREAK กริด/สแกนแม่นยำ: glitch + สะเก็ดกริด + วาบ; Analysis Stack 0–8
+  // (สะสมตอนเก็บ WP, −2 ตอนพลาด, รีเซ็ตเมื่อ BREAK จบ) → pip ต่อ stack จริง, เต็ม 8 = ANALYSIS COMPLETE
+  dtl: { rarity: 'mythic', theme: 'analysis', affects: 'break', stack: { gain: 'analysis', reset: 'analysisreset', max: 8 }, aura: ['tech',  '#00ffee'],  on: { break: [['glitch', '#00ffee'], ['spark', '#00ffee', 8], ['flash', '#003a3a']], analysis: ['spark', '#00ffee', 3] } },
   // GLOOM UNDER SIDE — OBSESSION (passive scaling): คลื่นเงาซ้อนสองชั้น
   gus: { rarity: 'mythic', theme: 'soul', affects: 'break', aura: ['shadow', '#6633aa'], on: { break: [['shadowBurst', '#7d44c4', 0.6], ['shadowBurst', '#5522aa', 0.45]] } },
   // DARK STAKE LORD — Jackpot มืด: คลื่นมืด + เหรียญ + สะเก็ดหนาม (sinister jackpot)

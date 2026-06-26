@@ -4834,6 +4834,7 @@ function csOnBreakEnd() {
     cs._analysisStacks = 0;
     cs._analysisComplete = false;
     cs._analysisBreakActive = false;
+    _cardFx('analysisreset'); // analysis-stack expire flourish on BREAK end (cosmetic)
   }
   // FALLEN WECHAT: reset break-active flag, clear OD bar
   if(cs.cs_fallenWechat && cs._fallenWechatBreakActive) {
@@ -4963,6 +4964,7 @@ function csOnBreakSuccess() {
     if(Math.random() < 0.70) {
       cs._baphometSinStacks = Math.min(5, (cs._baphometSinStacks || 0) + 1);
       cs._baphometSinStack = (cs._baphometSinStacks || 0) * 0.08;
+      _cardFx('sinstack', { stack: cs._baphometSinStacks, max: 5 }); // BAPHOBET sin-stack pip (cosmetic)
       showBigSplash('DEVIL BET', 'SIN +' + (cs._baphometSinStacks||0) + '/5', '#cc0000', false);
     } else {
       timeLeft = Math.max(1, timeLeft - 1);
@@ -4983,9 +4985,11 @@ function csOnBreakSuccess() {
     cs._osirisStacks = Math.min(5, (cs._osirisStacks || 0) + 1);
     const stackBonus = cs._osirisStacks * 25;
     if(stackBonus > 0) { roundCoins += stackBonus; spawnCoinPopup(stackBonus); }
+    _cardFx('soulstack', { stack: cs._osirisStacks, max: 5 }); // NOSIRIS soul-stack pip (cosmetic)
     if(cs._osirisStacks >= 5) {
       cs._osirisJudgmentEndTime = performance.now() + 8000;
       cs._osirisStacks = 0;
+      _cardFx('judgment'); // soul-stack expire flourish (cosmetic)
       showBigSplash('JUDGMENT', 'DMG x2 + ZENY x2 — 8s', '#cc88ff', true);
     }
   }
@@ -5066,6 +5070,8 @@ function csOnWpMiss() {
   if(cs.cs_detailed && cs._analysisStacks) {
     cs._analysisStacks = Math.max(0, cs._analysisStacks - 2);
     if(cs._analysisStacks < 8) cs._analysisComplete = false;
+    // อัปเดต pip ให้ตรงค่าจริงตอนพลาด (ลดลง ไม่มี spark — คอสเมติกล้วน)
+    try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') window.CardVFX.setStack('dtl', cs._analysisStacks, 8); } catch(e){}
     combo = Math.max(1, combo - 3);
     if(typeof updateComboUI === 'function') updateComboUI();
   }
@@ -5180,6 +5186,7 @@ function csOnWpHit(x, y) {
   // DETAILED: increment Analysis stacks on WP collect (max 8); at 8 mark Analysis Complete
   if(cs.cs_detailed) {
     cs._analysisStacks = Math.min(8, (cs._analysisStacks || 0) + 1);
+    _cardFx('analysis', { stack: cs._analysisStacks, max: 8 }); // DETAILED analysis-stack pip (cosmetic)
     if(cs._analysisStacks >= 8 && !cs._analysisComplete) {
       cs._analysisComplete = true;
       showBigSplash('ANALYSIS COMPLETE', 'Next BREAK: WINDOW x2', '#00ffee', false);
@@ -5228,6 +5235,7 @@ function csOnTimeUp() {
     timeLeft = 15;
     showBigSplash('ปฏิเสธความตาย','NOSIRIS — +15 วิ (Soul Stack ถูกล้าง)','#cc88ff',true);
     cs._osirisStacks = 0;
+    _cardFx('judgment'); // soul-stack expire flourish on death-defy clear (cosmetic)
     return true; // prevent game end
   }
   return false;
