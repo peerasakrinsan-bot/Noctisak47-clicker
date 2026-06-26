@@ -16,7 +16,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
   // Single app build/cache version. Bump this on deploys that change HTML/CSS/JS or SW behavior.
-  window.NOCTISAK47_APP_VERSION = '2026.06.26.1';
+  window.NOCTISAK47_APP_VERSION = '2026.06.26.2';
   window.NOCTISAK47_APP_CACHE_NAME = 'noctisak47-' + window.NOCTISAK47_APP_VERSION;
 
   (function guardAppVersion() {
@@ -80,7 +80,7 @@
     })();
   })();
 </script>
-<link rel="manifest" href="/manifest.json?v=2026.06.26.1">
+<link rel="manifest" href="/manifest.json?v=2026.06.26.2">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
 <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
@@ -522,9 +522,17 @@
     </div>
     <div id="cardModalName"></div>
     <div id="cardModalTier"></div>
-    <div id="cardModalEffect"></div>
-    <div id="cardModalTradeoff"></div>
-    <button class="back-btn" onclick="closeCardModal()" style="margin-top:16px;"><span class="back-arrow"></span>CLOSE</button>
+    <!-- scrollable ability zone: long Elite/Mythic descriptions scroll INSIDE
+         this fixed-height area instead of growing the modal and pushing the
+         CLOSE button off-screen. Image / title / rarity / CLOSE stay fixed;
+         only this inner area scrolls. -->
+    <div id="cardModalDescWrap" class="card-detail-description-wrap">
+      <div id="cardModalDescScroll" class="card-detail-description-scroll">
+        <div id="cardModalEffect"></div>
+        <div id="cardModalTradeoff"></div>
+      </div>
+    </div>
+    <button class="back-btn" onclick="closeCardModal()" style="margin-top:16px;flex-shrink:0;"><span class="back-arrow"></span>CLOSE</button>
   </div>
 </div>
 
