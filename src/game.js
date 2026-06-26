@@ -6226,6 +6226,18 @@ function openCardModal(card) {
     .replace(/\[([^\]]+)\]/g, '<span class="card-modal-section-header ability-vfx">[$1]</span>');
   $('cardModalEffect').innerHTML = formattedDesc;
   $('cardModalTradeoff').innerHTML = card.tradeoff ? 'TRADE-OFF: '+card.tradeoff : '';
+  // Reset the ability-description scroll to the top for the newly opened card
+  // (never resets mid-read because this only runs on open) and (re)measure
+  // whether the text overflows its fixed-height slot to toggle the fade hint.
+  const descScroll = $('cardModalDescScroll');
+  const descWrap   = $('cardModalDescWrap');
+  if (descScroll && descWrap) {
+    descScroll.scrollTop = 0;
+    descWrap.classList.remove('has-overflow');
+    requestAnimationFrame(() => {
+      if (descScroll.scrollHeight - descScroll.clientHeight > 2) descWrap.classList.add('has-overflow');
+    });
+  }
 
   // ── Detail-modal rarity VFX: inherit the grid card's rarity identity ──
   const content = $('cardModalContent');

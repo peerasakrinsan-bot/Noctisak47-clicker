@@ -979,6 +979,36 @@
   #cardModalTier.tier-mythic   { color:#ff2233; }
   #cardModalEffect { font-family:'Sarabun',sans-serif; font-size:12px; color:#d8d8d8; text-align:center; line-height:1.75; }
   #cardModalTradeoff { font-family:'Sarabun',sans-serif; font-size:11px; color:#ff6b6b; text-align:center; margin-top:6px; }
+  /* ══ SCROLLABLE ABILITY DESCRIPTION (Card Collection detail) ══
+     A viewport-capped slot for the card's ability text. Long Elite/Mythic
+     descriptions scroll *inside* this fixed-height area instead of growing
+     #cardModalContent — so the card image, title, rarity and the CLOSE button
+     can never be pushed off-screen, and the modal stays inside the viewport.
+     The max-height clamps to the viewport (dvh) so it shrinks on short phones
+     and grows on tall ones. Rarity VFX is untouched (it lives on the frame /
+     aura / sweep layers, not here). */
+  .card-detail-description-wrap {
+    position:relative; width:100%; min-height:0; flex:0 1 auto;
+  }
+  .card-detail-description-scroll {
+    width:100%;
+    max-height:clamp(140px, 28dvh, 320px);
+    overflow-y:auto; overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch; touch-action:pan-y;
+    scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.25) transparent;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    padding:8px 12px;
+  }
+  .card-detail-description-scroll::-webkit-scrollbar { width:4px; }
+  .card-detail-description-scroll::-webkit-scrollbar-track { background:transparent; }
+  .card-detail-description-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.25); border-radius:2px; }
+  /* subtle bottom fade — only shown when the text actually overflows
+     (.has-overflow toggled by JS after measuring on open). */
+  .card-detail-description-wrap.has-overflow::after {
+    content:''; position:absolute; left:0; right:0; bottom:0; height:24px;
+    pointer-events:none; border-radius:0 0 4px 4px;
+    background:linear-gradient(to bottom, transparent, rgba(0,0,0,0.85));
+  }
   .card-modal-section-header { color:#8FA8C7; font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:2px; display:inline-block; margin-top:4px; text-shadow:none; }
 
   @keyframes mythicModalAura {
@@ -1032,9 +1062,27 @@
   /* Modal container: fade + rise on open (skipped when reduced/low-vfx) */
   #cardModalContent.card-detail-vfx {
     overflow: visible;
+    /* Cap the whole modal to the viewport so it never grows past the screen;
+       the ability text absorbs the overflow inside its own scroll zone. */
+    max-height: min(92dvh, 760px);
     opacity: 0;
     transform: translateY(10px) scale(.985);
     transition: opacity .2s ease, transform .24s cubic-bezier(.2,.8,.2,1);
+  }
+  /* Image / title / rarity / CLOSE are fixed zones — never shrink them; only
+     the description scroll zone flexes. */
+  #cardModalContent.card-detail-vfx .card-detail-frame,
+  #cardModalContent.card-detail-vfx #cardModalName,
+  #cardModalContent.card-detail-vfx #cardModalTier { flex-shrink: 0; }
+  /* Short phones: shrink the card image + tighten the scroll cap FIRST, so the
+     CLOSE button always stays on-screen (never sacrifice button visibility). */
+  @media (max-height: 700px) {
+    #cardModalContent.card-detail-vfx .card-detail-frame { max-width: 168px; }
+    .card-detail-description-scroll { max-height: clamp(110px, 22dvh, 240px); }
+  }
+  @media (max-height: 600px) {
+    #cardModalContent.card-detail-vfx .card-detail-frame { max-width: 140px; }
+    .card-detail-description-scroll { max-height: clamp(86px, 18dvh, 180px); }
   }
   #cardModalContent.card-detail-vfx.opened { opacity: 1; transform: none; }
 
