@@ -5675,6 +5675,22 @@ function _resetCardDrawScreen() {
   $('cardDrawCollectBtn').classList.remove('visible');
 }
 
+// Reset the ability-description scroll back to the top and (re)measure whether
+// the text overflows its fixed-height slot, toggling the bottom fade hint.
+// Called only when a NEW card is populated — so reading a long card never
+// resets the player's scroll position mid-read.
+function _refreshDescScroll() {
+  const scroll = $('cardDrawDescScroll');
+  const wrap   = $('cardDrawDescWrap');
+  if(!scroll || !wrap) return;
+  scroll.scrollTop = 0;
+  wrap.classList.remove('has-overflow');
+  // measure after layout settles (content + flip-in width are applied first)
+  requestAnimationFrame(() => {
+    if(scroll.scrollHeight - scroll.clientHeight > 2) wrap.classList.add('has-overflow');
+  });
+}
+
 // Populate the revealed face + info column (or COLLECTION COMPLETE state)
 function _populateRevealedCard(result, tier) {
   const img = $('cardDrawRevealedImg');
@@ -5685,6 +5701,7 @@ function _populateRevealedCard(result, tier) {
     tierEl.textContent = ''; tierEl.className = '';
     $('cardDrawRevealedEffect').textContent = 'คุณมีการ์ดครบทุกใบแล้ว';
     $('cardDrawRevealedTradeoff').textContent = '';
+    _refreshDescScroll();
     return;
   }
   const card = result.card;
@@ -5700,6 +5717,7 @@ function _populateRevealedCard(result, tier) {
   } else {
     $('cardDrawRevealedTradeoff').innerHTML = card.tradeoff ? 'TRADE-OFF: '+card.tradeoff : '';
   }
+  _refreshDescScroll();
 }
 
 function _showDupeBanner(result) {
