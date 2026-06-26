@@ -1092,7 +1092,7 @@ const _el = {};
 function _cacheEls() {
   ['hpFill','godFill','koNum','scoreNum','coinNum',
    'bossBar',
-   'godLevelWrap','godLevelNum','godLevelName','godTimer2','odLevelBadge',
+   'godLevelWrap','godLevelNum','godLevelName','godTimer2','odLevelBadge','odSweep','odLevelUpFlash',
    'bigCombo','comboWrap','multiBadge','multiNum'].forEach(id => {
     _el[id] = document.getElementById(id);
   });
@@ -8535,6 +8535,9 @@ function _resetOdBadge() {
   if(_el && _el.odLevelBadge) {
     _el.odLevelBadge.classList.remove('is-active','od-level-badge--pulse','od-lv1','od-lv2','od-lv3');
   }
+  // เคลียร์อนิเมชัน impact one-shot เผื่อ OD จบกลางทาง
+  if(_el && _el.odSweep) _el.odSweep.classList.remove('od-sweep-go');
+  if(_el && _el.odLevelUpFlash) _el.odLevelUpFlash.classList.remove('is-flashing');
 }
 
 // อิมแพกต์ตอนเข้า/อัปเลเวล OD — เด้งป้ายเลเวล + ป๊อปชื่อโหมด (transform/opacity เท่านั้น)
@@ -8550,6 +8553,20 @@ function pulseOdLevel() {
     void _el.godLevelName.offsetWidth;
     _el.godLevelName.classList.add('od-levelup');
     setTimeout(()=>{ if(_el.godLevelName) _el.godLevelName.classList.remove('od-levelup'); },450);
+  }
+  // แสงกวาดบนแถบ OD (one-shot)
+  if(_el.odSweep){
+    _el.odSweep.classList.remove('od-sweep-go');
+    void _el.odSweep.offsetWidth;
+    _el.odSweep.classList.add('od-sweep-go');
+    setTimeout(()=>{ if(_el.odSweep) _el.odSweep.classList.remove('od-sweep-go'); },520);
+  }
+  // ป้ายแฟลช "OD LEVEL UP" ชั่วคราว (~800ms แล้วถอดคลาส — ไม่ค้างถาวร)
+  if(_el.odLevelUpFlash){
+    _el.odLevelUpFlash.classList.remove('is-flashing');
+    void _el.odLevelUpFlash.offsetWidth;
+    _el.odLevelUpFlash.classList.add('is-flashing');
+    setTimeout(()=>{ if(_el.odLevelUpFlash) _el.odLevelUpFlash.classList.remove('is-flashing'); },800);
   }
 }
 

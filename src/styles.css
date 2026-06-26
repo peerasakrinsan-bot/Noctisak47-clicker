@@ -2224,6 +2224,40 @@
     .od-level-badge--pulse { animation:none !important; }
   }
 
+  /* ── OD LEVEL-UP IMPACT (one-shot, ตอนเลเวล OD เปลี่ยนเท่านั้น) ──
+     1) แถบ OD ยิงแสงกวาดแนวนอนสั้น ๆ  2) ป้าย "OD LEVEL UP" โผล่แวบเดียวแล้วหาย
+     ทั้งคู่เป็น overlay one-shot (transform/opacity) ไม่ดันเลย์เอาต์ ไม่ค้างถาวร. */
+  #odSweep {
+    position:absolute; top:0; bottom:0; left:0; width:40%; z-index:2;
+    pointer-events:none; opacity:0; border-radius:3px;
+    background:linear-gradient(90deg, transparent, rgba(190,245,255,0.92), transparent);
+    transform:translateX(-130%);
+  }
+  #odSweep.od-sweep-go { animation:odSweepMove 0.5s ease-out; }
+  @keyframes odSweepMove {
+    0%   { opacity:0;    transform:translateX(-130%); }
+    18%  { opacity:0.95; }
+    100% { opacity:0;    transform:translateX(330%); }
+  }
+  /* ป้ายแฟลชชั่วคราว — วางทับกลางแถบ OD, ลอยขึ้นเล็กน้อยแล้วจาง (ไม่ใช่เลเวลถาวร) */
+  .od-levelup-flash {
+    position:absolute; left:50%; top:50%; z-index:5;
+    transform:translate(-50%,-50%); pointer-events:none; display:none;
+    font-size:9px; font-weight:900; letter-spacing:2px; text-transform:uppercase;
+    white-space:nowrap; color:#dffbff; text-shadow:0 0 6px rgba(120,235,255,0.7);
+  }
+  .od-levelup-flash.is-flashing { display:block; animation:odFlashRise 0.78s ease-out; }
+  @keyframes odFlashRise {
+    0%   { opacity:0; transform:translate(-50%,-30%) scale(0.92); }
+    25%  { opacity:1; transform:translate(-50%,-55%) scale(1.05); }
+    75%  { opacity:1; transform:translate(-50%,-64%) scale(1); }
+    100% { opacity:0; transform:translate(-50%,-80%) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #odSweep.od-sweep-go,
+    .od-levelup-flash.is-flashing { animation:none !important; }
+  }
+
   /* coin inline ใน topUI */
   #inlineCoin { font-size:11px; color:var(--gold); letter-spacing:1px; white-space:nowrap; }
 
@@ -4565,6 +4599,8 @@
     text-shadow: 0 0 10px rgba(255,34,51,0.55) !important;
   }
   body.flash-low .od-level-badge--pulse { animation:none !important; }
+  body.flash-low .od-levelup-flash { text-shadow:0 0 4px rgba(120,235,255,0.4) !important; }
+  body.flash-low #odSweep { background:linear-gradient(90deg,transparent,rgba(190,245,255,0.45),transparent) !important; }
 
 
   /* ══ FLASH EFFECT: OFF ══
@@ -4643,6 +4679,15 @@
   }
   body.flash-off .od-level-badge--pulse { animation:none !important; }
   body.flash-off .od-level-badge { box-shadow:none !important; text-shadow:none !important; }
+  body.flash-off #odSweep.od-sweep-go { animation:none !important; }
+  body.flash-off .od-levelup-flash { text-shadow:none !important; }
+  body.flash-off .od-levelup-flash.is-flashing { animation-name:odFlashRiseFlat !important; }
+  @keyframes odFlashRiseFlat {
+    0%   { opacity:0; transform:translate(-50%,-50%); }
+    20%  { opacity:1; transform:translate(-50%,-50%); }
+    80%  { opacity:1; transform:translate(-50%,-50%); }
+    100% { opacity:0; transform:translate(-50%,-50%); }
+  }
   /* ══ END FLASH EFFECT CSS ══ */
 
   /* ══ OCA DROP SYSTEM ══ */
