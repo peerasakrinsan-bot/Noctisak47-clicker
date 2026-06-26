@@ -8436,6 +8436,27 @@ function updateOdScreenAura(level) {
   aura.classList.remove('od-aura-active','od-aura-lv1','od-aura-lv2','od-aura-lv3');
   if(lv > 0) aura.classList.add('od-aura-active', 'od-aura-lv' + lv);
 }
+// บอสสกิล VFX — ยิงตอน Overdrive (ท่าไม้ตายของบอสที่สวมอยู่). คอสเมติกล้วน:
+// ไม่แตะ balance/save/coin — แค่ส่ง id สกินบอส + พิกัด + ระดับ OD ให้เลเยอร์ canvas
+// ตัดสินใจหน้าตา/สีเอง. no-op อัตโนมัติเมื่อ canvas ไม่รองรับ/ปิด VFX/reduced-motion.
+function _triggerBossSkillVfx(lv) {
+  try {
+    const CV = window.CanvasVFX;
+    if (!CV || typeof CV.spawnBossSkillVfx !== 'function') return;
+    let x, y;
+    const r = (boxer && boxer.getBoundingClientRect) ? boxer.getBoundingClientRect() : null;
+    if (r && r.width) { x = r.left + r.width / 2; y = r.top + r.height * 0.42; }
+    CV.spawnBossSkillVfx(getActiveSkinId(), { x, y, level: lv });
+    // เด้งภาพบอสสั้น ๆ ให้ผู้เล่นรู้สึกว่า "สกิลของบอสตัวนี้กำลังทำงาน"
+    if (boxer && boxer.classList) {
+      boxer.classList.remove('boss-skill-pulse');
+      void boxer.offsetWidth;
+      boxer.classList.add('boss-skill-pulse');
+      setTimeout(() => { if (boxer && boxer.classList) boxer.classList.remove('boss-skill-pulse'); }, 520);
+    }
+  } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
+}
+
 function activateGodLevel(lv) {
   // FALLEN WECHAT: intercept Lv1 OD → trigger Overloaded BREAK instead
   if(lv === 1 && window._csState && window._csState.cs_fallenWechat) {
@@ -8470,6 +8491,7 @@ function activateGodLevel(lv) {
   _el.godLevelWrap.style.display='block';
   updateGodLevelUI();
   pulseOdLevel();
+  _triggerBossSkillVfx(lv); // บอสสกิล VFX เฉพาะตัว (คอสเมติก)
 
   if(lv===1){
     const sp=$('godSplash');

@@ -2630,6 +2630,20 @@
   }
   #gun { position:absolute; z-index:3; width:65%; left:55%; top:62%; transform:translate(-50%,-50%) rotate(-10deg); display:none; will-change:transform; }
 
+  /* ── BOSS SKILL PULSE ── เด้งภาพบอสสั้น ๆ ตอนปล่อย Overdrive (ท่าไม้ตายของบอส)
+     transform/opacity เท่านั้น + คง translateZ(0) ของ #boxer ไว้ ไม่ชน transform ของ #fighter */
+  @keyframes bossSkillPulse {
+    0%   { transform:translateZ(0) scale(1); }
+    22%  { transform:translateZ(0) scale(1.06); }
+    55%  { transform:translateZ(0) scale(0.99); }
+    100% { transform:translateZ(0) scale(1); }
+  }
+  #boxer.boss-skill-pulse { animation:bossSkillPulse 0.5s cubic-bezier(.2,.9,.3,1); }
+  @media (prefers-reduced-motion: reduce) {
+    #boxer.boss-skill-pulse { animation:none; }
+  }
+  body.reduce-flash #boxer.boss-skill-pulse { animation:none; }
+
   /* ── TOEI ENIGMA AURA ── */
   #fighter.toei-enigma-aura::before {
     content:'';
