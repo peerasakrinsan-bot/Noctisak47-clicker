@@ -458,6 +458,73 @@ const BUILD = {
     }
   },
 
+  // ── BAPHOBET primitives (demon contract / devil bet) ───────────────────────
+  // "สัญญาปีศาจ / เดิมพันต้องสาป": ยันต์ปีศาจ / วงสัญญานรก / สะเก็ดบาปดูดเข้า /
+  // แจ็คพอตนรกจ่าย / คลื่นไฟต้องสาป / วงช็อกเลือด-ดำ. ดำ-แดงเลือด-ส้มนรก-ทองต้องสาป-
+  // ม่วงเงา. event-driven, particle จำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
+
+  // ยันต์/ตราสัญญาปีศาจวาบ — วงยันต์หมุน (reuse 'rune') + แกนสว่างสั้น (รับพิกัด ctx.x/y)
+  demonSigil(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.6), col = o.color || '#cc0011';
+    const p = _mk('rune', x, y, life, col);
+    p.size = o.size || 30; p.data = 5;       // 5 ticks = sin contract 0–5
+    _push(p);
+    const core = _mk('glow', x, y, life * 0.7, col); core.size = 20; _push(core);
+  },
+  // วงสัญญานรก — แกนมืดยุบ (reuse 'void') + วงแหวนแดงแผ่ออก (reuse 'ring')
+  contractRing(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.55), col = o.color || '#aa0000';
+    const v = _mk('void', x, y, life, '#1a0000'); v.size = 40; _push(v);
+    const r = _mk('ring', x, y, life, col); r.size = 32; _push(r);
+    if (!_reduced && _intensity > 0.4) { const r2 = _mk('ring', x, y, life * 0.9, '#ff4400'); r2.size = 20; r2.data = 1; _push(r2); }
+  },
+  // สะเก็ดบาป "ถูกดูดเข้า" หาเป้า (sin embers pulled inward) — reuse 'spark' ไหลเข้า
+  sinEmber(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ff5522';
+    let n = _nParts(o.count || 6);
+    const life = _rmLife(o.dur || 0.5);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.6;
+      const rad = 48 + Math.random() * 40;
+      const p = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
+      const sp = rad / life;                 // ถึงศูนย์กลางราว ๆ ตอนจบ
+      p.vx = -Math.cos(ang) * sp; p.vy = -Math.sin(ang) * sp;
+      p.size = 2 + Math.random() * 2; p.data = 1; // ember = ไม่โดนโน้มถ่วง
+      _push(p);
+    }
+  },
+  // DEVIL BET จ่าย — แกนระเบิดทองต้องสาป (reuse 'bcore') + สะเก็ดทองกระจาย
+  devilBetBurst(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.6), col = o.color || '#ffcc33';
+    const core = _mk('bcore', x, y, life, col); core.size = o.size || 56; _push(core);
+    let n = _nParts(8);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2;
+      const sp = 120 + Math.random() * 120;
+      const p = _mk('spark', x, y, life, col);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp; p.size = 2.5 + Math.random() * 2;
+      _push(p);
+    }
+  },
+  // คลื่นไฟต้องสาป — แกนไฟ (reuse 'fire') + embers ลอยขึ้น (รับพิกัด ctx.x/y)
+  cursedFlame(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.6), col = o.color || '#ff4400';
+    const core = _mk('fire', x, y, life, col); core.size = 28; _push(core);
+    let n = _nParts(5);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('spark', x, y, life, col);
+      p.vx = (Math.random() - 0.5) * 100; p.vy = -(130 + Math.random() * 130);
+      p.size = 2.5 + Math.random() * 2; p.data = 1; // ember = ลอยขึ้น ไม่ตก
+      _push(p);
+    }
+  },
+  // วงช็อกเลือด-ดำ — คลื่นกระแทกวงหนา (reuse 'bwave') แดงเลือด + แกนดำ
+  bloodShock(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.5), col = o.color || '#cc0011';
+    const w = _mk('bwave', x, y, life, col); w.size = 22; w.data = 3; _push(w);
+    if (!_reduced && _intensity > 0.4) { const w2 = _mk('bwave', x, y, life * 0.85, '#1a0000'); w2.size = 16; w2.data = 2; _push(w2); }
+  },
+
   // ── BOSS SKILL PRIMITIVES ──────────────────────────────────────────────────
   // "ท่าไม้ตาย" ของบอสแต่ละตัว — ยิงเฉพาะตอน skill activate (Overdrive) เท่านั้น
   // ไม่มี loop ถาวร, particle ต่อครั้งจำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.

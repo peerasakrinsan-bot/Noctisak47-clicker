@@ -4981,9 +4981,14 @@ function csOnBreakSuccess() {
       _spawnOne(); setTimeout(_spawnOne, 90); setTimeout(_spawnOne, 180);
     }
     if(Math.random() < 0.70) {
-      cs._baphometSinStacks = Math.min(5, (cs._baphometSinStacks || 0) + 1);
+      const _prevSin = cs._baphometSinStacks || 0;
+      cs._baphometSinStacks = Math.min(5, _prevSin + 1);
       cs._baphometSinStack = (cs._baphometSinStacks || 0) * 0.08;
-      _cardFx('sinstack', { stack: cs._baphometSinStacks, max: 5 }); // BAPHOBET sin-stack pip (cosmetic)
+      // BAPHOBET sin-stack pip + tier-scaled infernal aura (cosmetic; real counter only).
+      // tier 1 (sin 1–2 low ember) → 2 (3–4 stronger) → 3 (5 dangerous gold/red).
+      _cardFx('sinstack', { stack: cs._baphometSinStacks, max: 5, tier: Math.min(3, Math.ceil(cs._baphometSinStacks / 2)) });
+      // CONTRACT SEALED — DEVIL BET pays off once on reaching 5 (cosmetic burst only).
+      if(_prevSin < 5 && cs._baphometSinStacks === 5) _cardFx('sinmax');
       showBigSplash('DEVIL BET', 'SIN +' + (cs._baphometSinStacks||0) + '/5', '#cc0000', false);
     } else {
       timeLeft = Math.max(1, timeLeft - 1);

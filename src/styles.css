@@ -5636,6 +5636,22 @@
   54%      { opacity: .26; transform: translate(-50%, -50%) scale(1.05); } /* casino flicker */
   60%      { opacity: .15; transform: translate(-50%, -50%) scale(1.02); }
 }
+/* infernal — ออร่าสัญญาปีศาจ (BAPHOBET): แกนแดงเลือด-ดำ "หายใจ" ช้า + วูบไฟนรก/ม่วงเงา
+   จาง ๆ แบบ passive (ไม่ spam) — มืดและ "อันตราย" กว่า fire (ส้ม-แดงสว่าง) ชัดเจน.
+   ความเข้มไต่ขึ้นด้วย .game-vfx-tier-* ตาม _baphometSinStacks จริง (sin contract สะสม). */
+#cvAuraEl.cv-aura--infernal {
+  opacity: .2; filter: blur(2px);
+  background:
+    radial-gradient(circle at 50% 48%, var(--cv-aura, #cc0000) 0%, rgba(80,0,0,.5) 44%, transparent 70%),
+    radial-gradient(circle at 50% 58%, rgba(60,0,80,.45) 38%, transparent 74%);
+  animation: cvAuraInfernal 2.4s ease-in-out infinite;
+}
+@keyframes cvAuraInfernal {
+  0%, 100% { opacity: .13; transform: translate(-50%, -52%) scale(.96); }
+  44%      { opacity: .16; transform: translate(-50%, -54%) scale(1.02); }
+  52%      { opacity: .3;  transform: translate(-50%, -56%) scale(1.06); } /* hellfire flare */
+  60%      { opacity: .18; transform: translate(-50%, -54%) scale(1.03); }
+}
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
@@ -6122,6 +6138,90 @@
   100% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); }
 }
 
+/* ── BAPHOBET primitives (demon contract / devil bet) — DOM fallback ──
+   ใช้เมื่อ canvas ไม่รองรับ (audit/Node, เบราว์เซอร์เก่า). transform/opacity เท่านั้น,
+   อายุสั้น, ไม่มี loop/backdrop-filter. reduced-motion ครอบคลุมโดยบล็อกท้ายไฟล์. */
+/* demonSigil — ยันต์/ตราสัญญาปีศาจหมุนวาบ (วงนอกทึบ + วงในประ) */
+.cv-demonsigil {
+  width: 58px; height: 58px; transform: translate(-50%, -50%) rotate(0deg) scale(.5);
+  opacity: 0; animation: cvDemonSigil .6s ease-out forwards;
+}
+.cv-demonsigil i {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid var(--cv, #cc0011); box-shadow: 0 0 12px var(--cv, #cc0011);
+}
+.cv-demonsigil i:last-child { inset: 13px; border-style: dashed; }
+@keyframes cvDemonSigil {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) rotate(0deg) scale(.5); }
+  35%  { opacity: .95; transform: translate(-50%, -50%) rotate(80deg) scale(1.05); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) rotate(150deg) scale(1.2); }
+}
+/* contractRing — วงสัญญานรก (แกนมืดยุบ + ขอบแดงแผ่ออก) */
+.cv-contractring {
+  width: 36px; height: 36px; transform: translate(-50%, -50%) scale(.4);
+  border-radius: 50%; border: 3px solid var(--cv, #aa0000);
+  box-shadow: 0 0 16px var(--cv, #aa0000); opacity: 0;
+  animation: cvContractRing .55s ease-out forwards;
+}
+.cv-contractring i {
+  position: absolute; left: 50%; top: 50%; width: 62%; height: 62%;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, #1a0000 0%, transparent 72%);
+}
+@keyframes cvContractRing {
+  0%   { opacity: .95; transform: translate(-50%, -50%) scale(.4); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(3.2); }
+}
+/* sinEmber — สะเก็ดบาปถูกดูดเข้าหาเป้า (วางขอบนอก → ไหลเข้าศูนย์กลาง) */
+.cv-sinember {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--cv, #ff5522); box-shadow: 0 0 7px var(--cv, #ff5522);
+  transform: translate(-50%, -50%); opacity: 1;
+  animation: cvSinEmber .5s ease-in forwards;
+}
+@keyframes cvSinEmber {
+  to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))); opacity: 0; }
+}
+/* devilBetBurst — แกนระเบิดทองต้องสาป (DEVIL BET จ่าย; สะเก็ดใช้ .cv-spark ที่มีอยู่) */
+.cv-devilbet {
+  width: 56px; height: 56px; transform: translate(-50%, -50%) scale(.3);
+  border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle, #fff6c0 0%, var(--cv, #ffcc33) 40%, rgba(204,0,17,.4) 72%, transparent 80%);
+  animation: cvDevilBet .62s ease-out forwards;
+}
+@keyframes cvDevilBet {
+  0%   { opacity: .95; transform: translate(-50%, -50%) scale(.3); }
+  45%  { opacity: .9;  transform: translate(-50%, -50%) scale(1.1); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.5); }
+}
+/* cursedFlame — แกนไฟต้องสาป (embers ใช้ .cv-ember ที่มีอยู่แล้ว) */
+.cv-cursedflame {
+  width: 40px; height: 52px; transform: translate(-50%, -40%) scale(.6);
+  border-radius: 50% 50% 46% 46%; opacity: 0;
+  background: radial-gradient(ellipse at 50% 70%, #fff0c0 0%, var(--cv, #ff4400) 45%, rgba(80,0,0,.4) 78%, transparent);
+  animation: cvCursedFlame .6s ease-out forwards;
+}
+@keyframes cvCursedFlame {
+  0%   { opacity: .9;  transform: translate(-50%, -40%) scale(.6) skewX(4deg); }
+  50%  { opacity: .85; transform: translate(-50%, -46%) scale(1.05) skewX(-4deg); }
+  100% { opacity: 0;   transform: translate(-50%, -52%) scale(1.15) skewX(2deg); }
+}
+/* bloodShock — วงช็อกเลือด-ดำ (red-black shock ring) */
+.cv-bloodshock {
+  width: 24px; height: 24px; transform: translate(-50%, -50%) scale(.4);
+  border-radius: 50%; border: 4px solid var(--cv, #cc0011);
+  box-shadow: 0 0 18px var(--cv, #cc0011); opacity: 0;
+  animation: cvBloodShock .5s ease-out forwards;
+}
+.cv-bloodshock i {
+  position: absolute; left: 50%; top: 50%; width: 70%; height: 70%;
+  transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid #1a0000;
+}
+@keyframes cvBloodShock {
+  0%   { opacity: .95; transform: translate(-50%, -50%) scale(.4); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(4); }
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    GAMEPLAY-ELEMENT VFX LAYER (.game-vfx-*)
    ──────────────────────────────────────────────────────────────────────────
@@ -6141,6 +6241,7 @@
 .game-vfx-theme-time     { --gv-theme: #9bd0ff; }
 .game-vfx-theme-moonFever { --gv-theme: #bcd0ff; }   /* MOONLIGHT FEVER — เงิน-ฟ้า-ม่วง */
 .game-vfx-theme-darkJackpot { --gv-theme: #d4af37; } /* DARK STAKE LORD — ทองมืด-แดง-เขียวนีออน */
+.game-vfx-theme-demonContract { --gv-theme: #cc0011; } /* BAPHOBET — แดงเลือด-ดำ-ส้มนรก-ทองต้องสาป */
 
 /* 1) PASSIVE-ACTIVE indicator — แปะบน aura ตัวละคร (#cvAuraEl) เพิ่มจาก cv-aura.
    ไม่เพิ่มภาระ: เป็นเพียง hook คลาส (texture/จังหวะหลักยังมาจาก cv-aura--*).
