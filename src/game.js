@@ -4887,10 +4887,12 @@ function csOnBreakSuccess() {
       spawnCoinPopup(bonus);
       cs._darkStakeOcaBoostNextBreak = true;
       showBigSplash('JACKPOT!', '×2.5 ZENY — OCA ×10 (' + Math.round(cs._jackpotChance * 100) + '%)', '#ffcc00', false);
+      _cardFx('jackpot'); // DARK STAKE LORD — 777 flash + cursed coins → zeny reacts (cosmetic)
       cs._jackpotChance = 0.15; // reset odds
     } else {
       // No jackpot: increase odds for next time (max 75%)
       cs._jackpotChance = Math.min(0.75, cs._jackpotChance + 0.10);
+      _cardFx('stakeup'); // DARK STAKE LORD — risk-reward red warning flicker (odds rising, cosmetic)
     }
   }
   // XENORC: reset OD stack count after BREAK (prevents infinite cross-run accumulation)

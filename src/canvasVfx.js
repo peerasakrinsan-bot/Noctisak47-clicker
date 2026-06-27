@@ -390,6 +390,74 @@ const BUILD = {
     }
   },
 
+  // ── DARK STAKE LORD primitives (cursed casino jackpot) ─────────────────────
+  // เจ้าแห่งเดิมพันมืด — สล็อต/777/เหรียญต้องสาป/ดอกไพ่/วงสัญญา/เตือนเสี่ยง.
+  // event-driven, particle จำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
+
+  // แจ็คพอตแตก: วาบทอง-แดง + ก้านแสงสล็อต + ตัวเลข 777 (overlay สั้น, centered บนบอส)
+  jackpotFlash(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.7);
+    const p = _mk('jflash', x, y, life, o.color || '#ffcc00');
+    p.size = 70; p.c2 = o.color2 || '#cc1133'; _push(p);
+  },
+  // วงล้อสล็อตหมุน: 3 คอลัมน์ทอง/เขียว (เดิมพันกำลังหมุน)
+  slotReel(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.5), col = o.color || '#d4af37';
+    let n = _nParts(3);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('sreel', x + (i - (n - 1) / 2) * 22, y, life, col);
+      p.size = 16; p.data = i * 0.05; p.c2 = o.color2 || '#39ff14';
+      _push(p);
+    }
+  },
+  // เหรียญต้องสาปพุ่งขึ้นหา HUD (zeny) — ทองมืด + ขอบเขียวนีออน
+  cursedCoin(o) {
+    let n = _nParts(7);
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.72), col = o.color || '#d4af37';
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.3;
+      const sp = 140 + Math.random() * 120;
+      const p = _mk('ccoin', x, y, life, col);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp - 80;
+      p.size = 5 + Math.random() * 2.5; p.rot = Math.random() * 6;
+      p.data = 6 + Math.random() * 6; p.c2 = o.color2 || '#39ff14';
+      _push(p);
+    }
+  },
+  // วงสัญญามืด / วงช็อกแดง-ดำ + ขอบทอง (reuse ring kind)
+  stakeRing(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.55);
+    const col = o.color || '#cc1133', col2 = o.color2 || '#d4af37';
+    const a = _mk('ring', x, y, life, col); a.size = 34; _push(a);
+    if (!_reduced && _intensity > 0.4) { const b = _mk('ring', x, y, life * 0.9, col2); b.size = 20; b.data = 1; _push(b); }
+  },
+  // สะเก็ดดอกไพ่ ♠♥♦♣ กระจายออก
+  suitSpark(o) {
+    let n = _nParts(o.count || 6);
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.55), col = o.color || '#39ff14';
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+      const sp = 70 + Math.random() * 90;
+      const p = _mk('suit', x, y, life, col);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp;
+      p.size = 12 + Math.random() * 4; p.data = i % 4; p.rot = (Math.random() - 0.5) * 0.6;
+      _push(p);
+    }
+  },
+  // พัลส์เตือนเสี่ยงแดง (warning flicker) — วงแดง + สะเก็ดแดงสั้น
+  riskPulse(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.42), col = o.color || '#cc1133';
+    const r = _mk('ring', x, y, life, col); r.size = 26; _push(r);
+    let n = _nParts(4);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / Math.max(1, n)) * Math.PI * 2;
+      const sp = 70 + Math.random() * 60;
+      const p = _mk('spark', x, y, life, col);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp; p.size = 2.4 + Math.random() * 1.6;
+      _push(p);
+    }
+  },
+
   // ── BOSS SKILL PRIMITIVES ──────────────────────────────────────────────────
   // "ท่าไม้ตาย" ของบอสแต่ละตัว — ยิงเฉพาะตอน skill activate (Overdrive) เท่านั้น
   // ไม่มี loop ถาวร, particle ต่อครั้งจำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
@@ -902,6 +970,97 @@ function _draw(p, dt) {
       ctx.globalAlpha = Math.max(0, a) * 0.5;
       ctx.fillStyle = _rgba(p.color, 1);
       ctx.fillRect(jx, p.y, _cw, p.size);
+      break;
+    }
+    // ── DARK STAKE LORD kinds (cursed casino jackpot) ─────────────────────
+    case 'jflash': {
+      // แจ็คพอตแตก: แกนทอง-แดงพอง + ก้านแสงสล็อต 8 ทิศ + ตัวเลข 777 (overlay สั้น)
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      const r = p.size * (0.5 + t * 0.9);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+      g.addColorStop(0, _rgba('#fff6c0', a));
+      g.addColorStop(0.45, _rgba(p.color, a * 0.7));
+      g.addColorStop(0.8, _rgba(p.c2 || '#cc1133', a * 0.32));
+      g.addColorStop(1, _rgba(p.color, 0));
+      ctx.globalAlpha = 1; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = a * 0.7; ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2;
+      const rl = p.size * (1 + t * 1.6);
+      for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2 + t * 0.4;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * r * 0.5, Math.sin(ang) * r * 0.5);
+        ctx.lineTo(Math.cos(ang) * rl, Math.sin(ang) * rl);
+        ctx.stroke();
+      }
+      // 777 — overlay-only, centered บนบอส, ไม่บัง HUD/เลข/ปุ่ม
+      ctx.globalAlpha = a;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.font = 'bold ' + Math.round(26 + t * 8) + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.shadowColor = _rgba(p.c2 || '#cc1133', 1); ctx.shadowBlur = 12;
+      ctx.fillText('777', 0, -p.size * 0.1);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      break;
+    }
+    case 'sreel': {
+      // วงล้อสล็อตหมุน: แท่งสว่างกระพริบ (spin) แล้ว "หยุด" วาบ
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      const spin = lt < 0.7;
+      const a = spin ? (0.55 + 0.45 * Math.sin(p.age * 50)) : Math.max(0, 1 - (lt - 0.7) / 0.3);
+      const h = spin ? 52 : 22;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const grad = ctx.createLinearGradient(0, -h, 0, h);
+      grad.addColorStop(0, _rgba(p.color, 0));
+      grad.addColorStop(0.5, _rgba(p.color, 1));
+      grad.addColorStop(0.5, _rgba(p.c2 || '#39ff14', 1));
+      grad.addColorStop(1, _rgba(p.color, 0));
+      ctx.fillStyle = grad;
+      ctx.fillRect(-p.size / 2, -h, p.size, h * 2);
+      ctx.restore();
+      break;
+    }
+    case 'ccoin': {
+      // เหรียญต้องสาป: หมุนพุ่งขึ้นหา HUD + ขอบเขียวนีออน
+      p.vy += 760 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 1 - t * t;
+      const rx = p.size * Math.abs(Math.cos(p.rot)) + 1, ry = p.size;
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = (1 - t) * 0.8;
+      ctx.strokeStyle = _rgba(p.c2 || '#39ff14', 1); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 6.283); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'suit': {
+      // สะเก็ดดอกไพ่ ♠♥♦♣ กระจายออกแล้วตก
+      p.vy += 220 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      const a = 1 - t;
+      const SUITS = ['♠', '♥', '♦', '♣'];
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.font = 'bold ' + Math.round(p.size * (1 - t * 0.3)) + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      ctx.fillText(SUITS[(p.data | 0) % 4], 0, 0);
+      ctx.shadowBlur = 0;
+      ctx.restore();
       break;
     }
     // ── boss-skill kinds ──────────────────────────────────────────────────
