@@ -158,7 +158,7 @@ function _mk(kind, x, y, life, color) {
   const p = _alloc();
   p.kind = kind; p.x = x; p.y = y; p.age = 0; p.life = life; p.color = color;
   p.vx = 0; p.vy = 0; p.size = 6; p.rot = 0; p.seed = Math.random();
-  p.pts = null; p.data = 0;
+  p.pts = null; p.data = 0; p.c2 = 0;
   return p;
 }
 
@@ -310,6 +310,66 @@ const BUILD = {
     const disc = _mk('moon', x, y, life, col); disc.size = peak ? 46 : 36; _push(disc);
     const r1 = _mk('ring', x, y, life, col); r1.size = peak ? 40 : 32; _push(r1);
     if (!_reduced && _intensity > 0.4) { const r2 = _mk('ring', x, y, life * 0.85, col); r2.size = peak ? 26 : 20; r2.data = 1; _push(r2); }
+  },
+  // ── MOONLIGHT FEVER primitives (lunar surge / fever rhythm) ─────────────────
+  // ใช้สองโทน (--color หลัก + c2 = ม่วง/ฟ้า) เพื่อบุคลิก "ราตรี-เรฟ-สุริยุปราคา".
+  // ทั้งหมด event-driven, particle จำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
+
+  // พัลส์แสงจันทร์เป็น "จังหวะฟีเวอร์" — วงซ้อนเหลื่อมจังหวะ (beat) ขอบสองโทน
+  moonPulse(o) {
+    const x = _ox0(o), y = _oy0(o), peak = (o.variant === 'peak');
+    const life = _rmLife(o.dur || (peak ? 0.62 : 0.5)), col = o.color || '#bcd0ff';
+    const beats = (_reduced || _intensity <= 0.4) ? 1 : (peak ? 3 : 2);
+    for (let i = 0; i < beats; i++) {
+      const p = _mk('mpulse', x, y, life, col);
+      p.size = (peak ? 30 : 22) + i * 8;
+      p.c2 = o.color2 || '#9a6cff';
+      p.data = i * 0.12;                 // beat stagger (จังหวะ)
+      _push(p);
+    }
+  },
+  // จันทร์เสี้ยวกวาด (moonbeam sweep) — อาร์คสว่างที่หมุนกวาดรอบเป้า
+  crescentArc(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#bcd0ff';
+    let n = _nParts(o.count || 2);
+    const life = _rmLife(o.dur || 0.46);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('crescent', x, y, life, col);
+      p.size = 44 + i * 14;
+      p.rot = (Math.random() - 0.5) * Math.PI + i * Math.PI;   // มุมเริ่ม กระจาย
+      p.c2 = o.color2 || '#8fe9ff';
+      p.data = i * 0.06;                 // stagger
+      _push(p);
+    }
+  },
+  // วงสุริยุปราคา — แกนมืดจาง + โคโรนาสว่างขยายออก (ใช้ตอน activate/burst)
+  eclipseRing(o) {
+    const p = _mk('eclipse', _ox0(o), _oy0(o), _rmLife(o.dur || 0.6), o.color || '#cdd8ff');
+    p.size = 38; p.c2 = o.color2 || '#9a6cff'; _push(p);
+  },
+  // ประกายเงินถูก "ดูดเข้า" หาเป้า (silver sparks pulled inward)
+  lunarSpark(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#eef3ff';
+    let n = _nParts(o.count || 8);
+    const life = _rmLife(o.dur || 0.5);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.6;
+      const rad = 58 + Math.random() * 46;
+      const p = _mk('lspark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
+      const sp = rad / life;             // ถึงศูนย์กลางราว ๆ ตอนจบ
+      p.vx = -Math.cos(ang) * sp; p.vy = -Math.sin(ang) * sp;
+      p.size = 1.6 + Math.random() * 1.8;
+      _push(p);
+    }
+  },
+  // คลื่นแสงจันทร์นุ่ม ๆ แผ่ออก ขอบม่วง→ฟ้า (lunar fever wave)
+  feverWave(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#9a6cff', c2 = o.color2 || '#8fe9ff';
+    const life = _rmLife(o.dur || 0.7);
+    const p = _mk('fwave', x, y, life, col); p.size = 30; p.c2 = c2; _push(p);
+    if (!_reduced && _intensity > 0.4) {
+      const q = _mk('fwave', x, y, life * 0.85, col); q.size = 20; q.c2 = c2; q.data = 0.1; _push(q);
+    }
   },
   // แสงศักดิ์สิทธิ์ก้านแสง (core + rays)
   holyBurst(o) {
@@ -717,6 +777,98 @@ function _draw(p, dt) {
       ctx.globalAlpha = 1;
       ctx.beginPath(); ctx.arc(p.x + r * 0.5, p.y - r * 0.2, r * 0.95, 0, 6.283); ctx.fill();
       ctx.restore();
+      break;
+    }
+    // ── MOONLIGHT FEVER kinds ─────────────────────────────────────────────
+    case 'mpulse': {
+      // จังหวะฟีเวอร์: วงพัลส์ขยาย แกนเรืองนุ่ม + ขอบสองโทนคม
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      const r = p.size * (0.4 + lt * 3);
+      const a = (1 - lt);
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(p.x, p.y, r * 0.35, p.x, p.y, r);
+      g.addColorStop(0, _rgba(p.color, 0));
+      g.addColorStop(0.78, _rgba(p.color, a * 0.5));
+      g.addColorStop(1, _rgba(p.c2 || p.color, 0));
+      ctx.globalAlpha = 1; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.lineWidth = 2.4; ctx.strokeStyle = _rgba(p.color, 1);
+      ctx.shadowColor = _rgba(p.c2 || p.color, 1); ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
+      ctx.shadowBlur = 0;
+      break;
+    }
+    case 'crescent': {
+      // จันทร์เสี้ยวกวาด: อาร์คสว่างที่หมุนกวาด + แกนขาว
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      const r = p.size * (0.7 + lt * 0.7);
+      const a = Math.sin(Math.min(1, lt) * Math.PI);
+      const sweep = Math.PI * 0.9;
+      const start = p.rot + lt * Math.PI * 0.8;       // กวาดไปตามอายุ
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = _rgba(p.c2 || p.color, 1); ctx.lineWidth = 5;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, start, start + sweep); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = _rgba('#ffffff', a); ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, start + sweep * 0.15, start + sweep * 0.85); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'eclipse': {
+      // สุริยุปราคา: แกนมืดจาง (subtle, fade เร็ว ไม่บังเกม) + โคโรนาสว่างขยาย
+      const lt = Math.min(1, t);
+      const r = p.size * (0.5 + t * 2.4);
+      const a = Math.sin(lt * Math.PI);
+      const da = a * 0.22 * (1 - t);
+      ctx.globalCompositeOperation = 'source-over';
+      const dg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 0.8);
+      dg.addColorStop(0, _rgba('#0a0e1f', da));
+      dg.addColorStop(0.7, _rgba('#0a0e1f', da * 0.5));
+      dg.addColorStop(1, _rgba('#0a0e1f', 0));
+      ctx.globalAlpha = 1; ctx.fillStyle = dg;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 0.8, 0, 6.283); ctx.fill();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.lineWidth = 3 * (1 - t * 0.5); ctx.strokeStyle = _rgba(p.color, 1);
+      ctx.shadowColor = _rgba(p.c2 || p.color, 1); ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
+      ctx.shadowBlur = 0;
+      break;
+    }
+    case 'lspark': {
+      // ประกายเงินถูกดูดเข้าศูนย์กลาง — เกิด→ลู่เข้า→จางหายใกล้เป้า
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      const s = p.size * (0.6 + (1 - t) * 0.8);
+      ctx.beginPath(); ctx.arc(p.x, p.y, s, 0, 6.283); ctx.fill();
+      ctx.shadowBlur = 0;
+      break;
+    }
+    case 'fwave': {
+      // คลื่นฟีเวอร์นุ่ม ๆ แผ่ออก ขอบม่วง→ฟ้า (alpha ต่ำ ไม่บังเกม)
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      const r = p.size * (0.4 + lt * 4.2);
+      const a = (1 - lt) * 0.7;
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(p.x, p.y, r * 0.55, p.x, p.y, r);
+      g.addColorStop(0, _rgba(p.color, 0));
+      g.addColorStop(0.7, _rgba(p.color, a * 0.5));
+      g.addColorStop(0.9, _rgba(p.c2 || p.color, a * 0.7));
+      g.addColorStop(1, _rgba(p.c2 || p.color, 0));
+      ctx.globalAlpha = 1; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
       break;
     }
     case 'holy': {

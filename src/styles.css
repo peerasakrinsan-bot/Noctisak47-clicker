@@ -5608,15 +5608,18 @@
 #cvAuraEl.cv-aura--frost  { opacity: .15; animation-duration: 3.6s; }
 #cvAuraEl.cv-aura--fire   { animation: cvAuraFire 1.3s ease-in-out infinite; }
 #cvAuraEl.cv-aura--tech   { border-radius: 12%; filter: blur(1px); animation-duration: 1.8s; }
-/* moon — เงินวาวเย็น แกนขาวนุ่ม (MOONLIGHT FEVER): ต่างจาก holy (ม่วง-ขาว) ชัดเจน */
+/* moon — ออร่าจันทรา "หายใจ" (MOONLIGHT FEVER): แกนขาวนุ่ม + ขอบฟ้า-ม่วงจาง ๆ
+   จังหวะหายใจช้าแบบ passive (ไม่ spam) ต่างจาก holy (ม่วง-ขาว) ชัดเจน. */
 #cvAuraEl.cv-aura--moon {
   opacity: .17; filter: blur(2px);
-  background: radial-gradient(circle at 50% 44%, #ffffff 0%, var(--cv-aura, #cfd8ff) 42%, transparent 72%);
-  animation: cvAuraMoon 3s ease-in-out infinite;
+  background:
+    radial-gradient(circle at 50% 44%, #ffffff 0%, var(--cv-aura, #cdd8ff) 40%, transparent 70%),
+    radial-gradient(circle at 50% 52%, rgba(154,108,255,.55) 52%, rgba(143,233,255,0) 78%);
+  animation: cvAuraMoon 3.4s ease-in-out infinite;
 }
 @keyframes cvAuraMoon {
-  0%, 100% { opacity: .12; transform: translate(-50%, -50%) scale(.97); }
-  50%      { opacity: .2;  transform: translate(-50%, -50%) scale(1.05); }
+  0%, 100% { opacity: .12; transform: translate(-50%, -50%) scale(.96); }
+  50%      { opacity: .22; transform: translate(-50%, -50%) scale(1.06); }
 }
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
@@ -5824,6 +5827,91 @@
   100% { opacity: 0;   transform: translate(-50%, -50%) scale(2.9); }
 }
 
+/* ── MOONLIGHT FEVER upgrade primitives (DOM fallback — canvas เป็น path หลัก) ──
+   ใช้เฉพาะเบราว์เซอร์ที่ไม่มี Canvas 2D / สภาพแวดล้อม audit. transform/opacity ล้วน,
+   ไม่มี loop ถาวร, ไม่มี backdrop-filter — มือถือ-safe เหมือน primitive อื่น. */
+
+/* moonPulse — จังหวะฟีเวอร์: วงพัลส์สองโทนซ้อนเหลื่อมจังหวะ */
+.cv-moonpulse { width: 4px; height: 4px; transform: translate(-50%, -50%); }
+.cv-moonpulse > i {
+  position: absolute; left: 0; top: 0;
+  width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+  border: 2px solid var(--cv, #bcd0ff);
+  box-shadow: 0 0 12px var(--cv, #bcd0ff), 0 0 18px rgba(154,108,255,.5);
+  mix-blend-mode: screen; opacity: 0;
+  animation: cvMoonPulse var(--md, .5s) ease-out forwards;
+}
+.cv-moonpulse > i:last-child { animation-delay: .12s; }
+.cv-moonpulse.peak > i { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+@keyframes cvMoonPulse {
+  0%   { opacity: 0;   transform: scale(.4); }
+  28%  { opacity: .85; transform: scale(1.05); }
+  100% { opacity: 0;   transform: scale(2.7); }
+}
+
+/* crescentArc — จันทร์เสี้ยวกวาด: อาร์คโค้งสว่างหมุนกวาด */
+.cv-crescent {
+  width: 96px; height: 96px; margin: -48px 0 0 -48px;
+  border-radius: 50%; border: 4px solid transparent;
+  border-top-color: var(--cv, #bcd0ff); border-right-color: var(--cv, #bcd0ff);
+  box-shadow: 0 0 14px var(--cv, #bcd0ff); mix-blend-mode: screen; opacity: 0;
+  animation: cvCrescent .46s cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes cvCrescent {
+  0%   { opacity: 0;   transform: rotate(-60deg) scale(.7); }
+  40%  { opacity: .9;  transform: rotate(20deg)  scale(1.05); }
+  100% { opacity: 0;   transform: rotate(120deg) scale(1.3); }
+}
+
+/* eclipseRing — สุริยุปราคา: แกนมืดจาง + โคโรนาสว่าง */
+.cv-eclipse {
+  width: 70px; height: 70px; margin: -35px 0 0 -35px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(10,14,31,.5) 0%, rgba(10,14,31,.18) 52%, transparent 64%);
+  opacity: 0; animation: cvEclipseCore .6s ease-out forwards;
+}
+.cv-eclipse > i {
+  position: absolute; inset: -6px; border-radius: 50%;
+  border: 3px solid var(--cv, #cdd8ff);
+  box-shadow: 0 0 18px var(--cv, #cdd8ff), 0 0 24px rgba(154,108,255,.6);
+  mix-blend-mode: screen; opacity: 0;
+  animation: cvEclipseRing .6s ease-out forwards;
+}
+@keyframes cvEclipseCore {
+  0% { opacity: 0; transform: scale(.5); } 30% { opacity: .9; } 100% { opacity: 0; transform: scale(1.1); }
+}
+@keyframes cvEclipseRing {
+  0%   { opacity: 0;   transform: scale(.5); }
+  30%  { opacity: .95; transform: scale(1.1); }
+  100% { opacity: 0;   transform: scale(2.6); }
+}
+
+/* lunarSpark — ประกายเงินถูกดูดเข้าเป้า (เริ่มที่ --dx/--dy → ลู่เข้าศูนย์) */
+.cv-lunarspark {
+  width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%;
+  background: var(--cv, #eef3ff);
+  box-shadow: 0 0 8px var(--cv, #eef3ff); mix-blend-mode: screen; opacity: 0;
+  animation: cvLunarSpark .5s ease-in forwards;
+}
+@keyframes cvLunarSpark {
+  0%   { opacity: 0;   transform: translate(var(--dx, 0), var(--dy, 0)) scale(.5); }
+  35%  { opacity: 1;   transform: translate(calc(var(--dx, 0) * .5), calc(var(--dy, 0) * .5)) scale(1); }
+  100% { opacity: 0;   transform: translate(0, 0) scale(.3); }
+}
+
+/* feverWave — คลื่นฟีเวอร์นุ่ม ๆ แผ่ออก ขอบม่วง→ฟ้า (alpha ต่ำ ไม่บังเกม) */
+.cv-feverwave {
+  width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%;
+  background: radial-gradient(circle, transparent 54%, var(--cv, #9a6cff) 82%, rgba(143,233,255,0) 100%);
+  box-shadow: 0 0 16px rgba(143,233,255,.4); mix-blend-mode: screen; opacity: 0;
+  animation: cvFeverWave .7s ease-out forwards;
+}
+@keyframes cvFeverWave {
+  0%   { opacity: 0;   transform: scale(.4); }
+  30%  { opacity: .55; transform: scale(1.2); }
+  100% { opacity: 0;   transform: scale(3.4); }
+}
+
 /* ── PRIMITIVE: bolt (สายฟ้าซิกแซก — STORMYNITE / MISSSTRESS) ──
    2 ก้านเหลื่อมมุมเล็กน้อย + glow → รูปทรง "ฟ้าผ่า" ต่างจาก slash (ตรงเรียบ). */
 .cv-bolt {
@@ -5936,6 +6024,7 @@
 .game-vfx-theme-zeny     { --gv-theme: #ffcc00; }
 .game-vfx-theme-break    { --gv-theme: #ff5522; }
 .game-vfx-theme-time     { --gv-theme: #9bd0ff; }
+.game-vfx-theme-moonFever { --gv-theme: #bcd0ff; }   /* MOONLIGHT FEVER — เงิน-ฟ้า-ม่วง */
 
 /* 1) PASSIVE-ACTIVE indicator — แปะบน aura ตัวละคร (#cvAuraEl) เพิ่มจาก cv-aura.
    ไม่เพิ่มภาระ: เป็นเพียง hook คลาส (texture/จังหวะหลักยังมาจาก cv-aura--*).
