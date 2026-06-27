@@ -111,11 +111,12 @@ for (const id of mapped) {
 if (!orphan) ok('no orphan VFX_MAP entries');
 
 // ── 3) every aura style known + every primitive name known ───────────────────
-const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon']);
+const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake']);
 const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinBurst',
   'breakCrack', 'odGlow', 'streak', 'drainPulse', 'comboRing', 'bossFlare', 'moonRing',
   'bolt', 'fireBurst', 'holyBurst', 'glitch',
-  'moonPulse', 'crescentArc', 'eclipseRing', 'lunarSpark', 'feverWave']);
+  'moonPulse', 'crescentArc', 'eclipseRing', 'lunarSpark', 'feverWave',
+  'jackpotFlash', 'slotReel', 'cursedCoin', 'stakeRing', 'suitSpark', 'riskPulse']);
 let badAura = 0, badPrim = 0, noEffect = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
   if (!e.aura || !AURA_STYLES.has(e.aura[0]) || typeof e.aura[1] !== 'string') {
@@ -135,7 +136,7 @@ if (!badAura) ok('every aura uses a known style + color');
 if (!badPrim) ok('every `on` context uses a known primitive');
 
 // ── 3b) gameplay metadata: theme + affects + stack (อัปเกรด in-game VFX) ──────
-const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time', 'moonFever']);
+const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time', 'moonFever', 'darkJackpot']);
 const TARGETS = new Set(['odBar', 'combo', 'timer', 'zeny', 'break', 'enemy', 'player', 'debt']);
 let badTheme = 0, badAffects = 0, badStack = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
@@ -217,6 +218,10 @@ try {
   api.trigger('mf', 'break', {});                    // moonFever pulse + crescent sweep
   api.trigger('mf', 'ak47', { x: 40, y: 60 });       // crescent sweep + lunar sparks at coord
   api.targetPulse('odBar', '#ffcc33', 'crit');       // direct target pulse
+  api.setActiveCard('dsk', 'mythic');                // DARK STAKE LORD — cursed jackpot (darkJackpot)
+  api.trigger('dsk', 'break', {});                   // slot-reel spin + dark contract ring (the gamble)
+  api.trigger('dsk', 'jackpot', {});                 // 777 flash + cursed coins + suit sparks (payoff → zeny reacts)
+  api.trigger('dsk', 'stakeup', {});                 // risk-reward red warning flicker (odds rising)
   // ── aura-only polish paths (GLOOM/IFRIED/LADY TRAINEE/LORD OF DEBT) ──
   api.setActiveCard('gus', 'mythic');                // GLOOM obsession build-up
   api.trigger('gus', 'gloom', { tier: 2 });          // aura intensity tier from real stacks

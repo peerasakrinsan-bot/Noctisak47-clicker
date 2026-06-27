@@ -5621,6 +5621,21 @@
   0%, 100% { opacity: .12; transform: translate(-50%, -50%) scale(.96); }
   50%      { opacity: .22; transform: translate(-50%, -50%) scale(1.06); }
 }
+/* stake — ออร่าทองมืดต้องสาป (DARK STAKE LORD): แกนทองมืด + ขอบแดง-ม่วงเงา
+   "ไฟคาสิโนวูบช้า ๆ" แบบ passive (ไม่ spam) — ต่างจาก gold (ทองสว่าง) ชัดเจน. */
+#cvAuraEl.cv-aura--stake {
+  opacity: .2; filter: blur(2px);
+  background:
+    radial-gradient(circle at 50% 46%, var(--cv-aura, #d4af37) 0%, rgba(106,27,154,.4) 46%, transparent 70%),
+    radial-gradient(circle at 50% 56%, rgba(204,17,51,.5) 40%, transparent 72%);
+  animation: cvAuraStake 2.9s ease-in-out infinite;
+}
+@keyframes cvAuraStake {
+  0%, 100% { opacity: .12; transform: translate(-50%, -50%) scale(.97); }
+  46%      { opacity: .14; transform: translate(-50%, -50%) scale(1.0); }
+  54%      { opacity: .26; transform: translate(-50%, -50%) scale(1.05); } /* casino flicker */
+  60%      { opacity: .15; transform: translate(-50%, -50%) scale(1.02); }
+}
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
@@ -6008,6 +6023,106 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   DARK STAKE LORD primitives — DOM fallback (canvas-less browsers / audit env)
+   ──────────────────────────────────────────────────────────────────────────
+   ใช้เฉพาะเมื่อ Canvas VFX ไม่พร้อม (เบราว์เซอร์เก่า). ทั้งหมด transform/opacity +
+   box-shadow สั้น ๆ (ไม่มี loop ถาวร) — มือถือ-safe. คอสเมติกล้วน.
+   ════════════════════════════════════════════════════════════════════════════ */
+/* jackpotFlash — แจ็คพอตแตก 777 (วาบทอง-แดง + ตัวเลข) */
+.cv-jackpot {
+  width: 4px; height: 4px; transform: translate(-50%, -50%);
+  animation: cvJackpot .7s ease-out forwards;
+}
+.cv-jackpot i {
+  position: absolute; left: 50%; top: 50%; width: 150px; height: 150px;
+  margin: -75px 0 0 -75px; border-radius: 50%;
+  background: radial-gradient(circle, var(--cv, #ffcc00) 0%, rgba(204,17,51,.4) 45%, transparent 72%);
+}
+.cv-jackpot b {
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  font: 900 30px/1 system-ui, sans-serif; color: var(--cv, #ffcc00);
+  text-shadow: 0 0 12px #cc1133, 0 0 4px #000; letter-spacing: 2px; white-space: nowrap;
+}
+@keyframes cvJackpot {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+}
+/* slotReel — วงล้อสล็อตหมุน (3 คอลัมน์) */
+.cv-slotreel {
+  width: 70px; height: 56px; margin: -28px 0 0 -35px;
+  transform: translate(-50%, -50%); display: flex; gap: 5px;
+  justify-content: center; align-items: center; opacity: 0;
+  animation: cvSlotReel .5s ease-out forwards;
+}
+.cv-slotreel i {
+  width: 16px; height: 50px; border-radius: 3px;
+  background: linear-gradient(var(--cv, #d4af37), #39ff14);
+  box-shadow: 0 0 8px var(--cv, #d4af37);
+}
+.cv-slotreel i:nth-child(2) { animation-delay: .04s; }
+.cv-slotreel i:nth-child(3) { animation-delay: .08s; }
+@keyframes cvSlotReel {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); }
+}
+/* cursedCoin — เหรียญต้องสาปพุ่งหา HUD */
+.cv-ccoin {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c0, var(--cv, #d4af37) 60%, #4a2d00);
+  box-shadow: 0 0 7px var(--cv, #d4af37), inset 0 0 0 1px #39ff14;
+  transform: translate(-50%, -50%); opacity: 1;
+  animation: cvCcoin .72s cubic-bezier(.2,.6,.3,1) forwards;
+}
+@keyframes cvCcoin {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(.6); }
+  60%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1); }
+}
+/* stakeRing — วงสัญญามืด/ช็อกแดง-ดำ + ขอบทอง */
+.cv-stakering {
+  width: 34px; height: 34px; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 3px solid var(--cv, #cc1133);
+  box-shadow: 0 0 14px var(--cv, #cc1133); opacity: 0;
+  animation: cvStakeRing .55s ease-out forwards;
+}
+.cv-stakering i {
+  position: absolute; left: 50%; top: 50%; width: 20px; height: 20px;
+  margin: -10px 0 0 -10px; border-radius: 50%; border: 2px solid #d4af37;
+  box-shadow: 0 0 8px #d4af37;
+}
+@keyframes cvStakeRing {
+  0%   { opacity: .95; transform: translate(-50%, -50%) scale(.4); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(3.2); }
+}
+/* suitSpark — สะเก็ดดอกไพ่ ♠♥♦♣ */
+.cv-suit {
+  font: 900 15px/1 system-ui, sans-serif; color: var(--cv, #39ff14);
+  text-shadow: 0 0 6px var(--cv, #39ff14);
+  transform: translate(-50%, -50%); opacity: 1;
+  animation: cvSuit .55s ease-out forwards;
+}
+@keyframes cvSuit {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(.7); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 14px)) scale(1); }
+}
+/* riskPulse — พัลส์เตือนเสี่ยงแดง (warning flicker) */
+.cv-riskpulse {
+  width: 26px; height: 26px; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 3px solid var(--cv, #cc1133);
+  box-shadow: 0 0 12px var(--cv, #cc1133); opacity: 0;
+  animation: cvRiskPulse .42s ease-out forwards;
+}
+@keyframes cvRiskPulse {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.5); }
+  25%  { opacity: .95; }
+  55%  { opacity: .35; }
+  75%  { opacity: .8; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    GAMEPLAY-ELEMENT VFX LAYER (.game-vfx-*)
    ──────────────────────────────────────────────────────────────────────────
    ชั้นภาพแบบ data-driven ที่ทำให้ "อิลิเมนต์ของเกมที่ได้รับผลจริง" ตอบสนองตอน
@@ -6025,6 +6140,7 @@
 .game-vfx-theme-break    { --gv-theme: #ff5522; }
 .game-vfx-theme-time     { --gv-theme: #9bd0ff; }
 .game-vfx-theme-moonFever { --gv-theme: #bcd0ff; }   /* MOONLIGHT FEVER — เงิน-ฟ้า-ม่วง */
+.game-vfx-theme-darkJackpot { --gv-theme: #d4af37; } /* DARK STAKE LORD — ทองมืด-แดง-เขียวนีออน */
 
 /* 1) PASSIVE-ACTIVE indicator — แปะบน aura ตัวละคร (#cvAuraEl) เพิ่มจาก cv-aura.
    ไม่เพิ่มภาระ: เป็นเพียง hook คลาส (texture/จังหวะหลักยังมาจาก cv-aura--*).

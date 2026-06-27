@@ -423,6 +423,104 @@ function pGlitch(color, dur = 0.36) {
   _emit(el, _dur(dur) * 1000 + 120);
 }
 
+// ── DARK STAKE LORD primitives (cursed casino jackpot) ───────────────────────
+// บุคลิก "เจ้าแห่งเดิมพันมืด": สล็อตคาสิโนต้องสาป / แจ็คพอต 777 / เหรียญทองต้องสาป /
+// สะเก็ดดอกไพ่ / วงสัญญามืด / พัลส์เตือนเสี่ยง. สีดำ-แดงเข้ม-ทองต้องสาป-ม่วงเงา +
+// เขียวนีออนนิด ๆ. canvas-first (เหมือน primitive อื่น) + DOM fallback ครบ.
+
+// jackpotFlash — โมเมนต์ "แจ็คพอตแตก" 777 (วาบทอง-แดง + ก้านแสงสล็อต + ตัวเลข 777)
+function pJackpotFlash(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('jackpotFlash', { color: color || '#ffcc00', x: c.x, y: c.y })) return;
+  const dur = _dur(0.7);
+  const el = _take('cv-jackpot');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#ffcc00');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i><b>777</b>';
+  _emit(el, dur * 1000 + 160);
+}
+
+// slotReel — วงล้อสล็อตหมุน (3 คอลัมน์ทอง/เขียว) — "เดิมพันกำลังหมุน"
+function pSlotReel(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('slotReel', { color: color || '#d4af37', x: p.x, y: p.y })) return;
+  const dur = _dur(0.5);
+  const el = _take('cv-slotreel');
+  el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+  el.style.setProperty('--cv', color || '#d4af37');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i><i></i><i></i>';
+  _emit(el, dur * 1000 + 140);
+}
+
+// cursedCoin — เหรียญทองต้องสาปพุ่งขึ้นหา HUD (zeny) ขอบเขียวนีออน
+function pCursedCoin(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('cursedCoin', { color: color || '#d4af37', x: p.x, y: p.y })) return;
+  const dur = _dur(0.72);
+  const n = _reduced ? 3 : 7;
+  for (let i = 0; i < n; i++) {
+    const el = _take('cv-ccoin');
+    const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.3;
+    const dist = 50 + Math.random() * 50;
+    el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+    el.style.setProperty('--cv', color || '#d4af37');
+    el.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    el.style.setProperty('--dy', (Math.sin(ang) * dist - 40) + 'px');
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (i * 0.03) + 's';
+    _emit(el, dur * 1000 + i * 40 + 120);
+  }
+}
+
+// stakeRing — วงสัญญามืด/วงช็อกแดง-ดำ + ขอบทอง (red-black shock ring)
+function pStakeRing(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('stakeRing', { color: color || '#cc1133', x: c.x, y: c.y })) return;
+  const dur = _dur(0.55);
+  const el = _take('cv-stakering');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#cc1133');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i>';
+  _emit(el, dur * 1000 + 120);
+}
+
+// suitSpark — สะเก็ดดอกไพ่ ♠♥♦♣ (poker chips / card-suit sparks)
+function pSuitSpark(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('suitSpark', { color: color || '#39ff14', count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.55);
+  const n = _reduced ? 3 : (count || 6);
+  const SUITS = ['♠', '♥', '♦', '♣'];
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = 36 + Math.random() * 40;
+    const el = _take('cv-suit');
+    el.textContent = SUITS[i % 4];
+    el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+    el.style.setProperty('--cv', color || '#39ff14');
+    el.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    el.style.setProperty('--dy', Math.sin(ang) * dist + 'px');
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (i * 0.02) + 's';
+    _emit(el, dur * 1000 + i * 30 + 120);
+  }
+}
+
+// riskPulse — พัลส์เตือนเสี่ยง (red warning flicker) ตอนเดิมพันยังไม่จ่าย (odds ขึ้น)
+function pRiskPulse(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('riskPulse', { color: color || '#cc1133', x: c.x, y: c.y })) return;
+  const dur = _dur(0.42);
+  const el = _take('cv-riskpulse');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#cc1133');
+  el.style.animationDuration = dur + 's';
+  _emit(el, dur * 1000 + 100);
+}
+
 // dispatcher: ชื่อ primitive → ฟังก์ชัน (ใช้ใน VFX_MAP แบบ data-driven)
 const PRIM = {
   flash: pFlash, pulse: pPulse, slash: pSlash, spark: pSpark,
@@ -432,12 +530,15 @@ const PRIM = {
   bolt: pBolt, fireBurst: pFireBurst, holyBurst: pHolyBurst, glitch: pGlitch,
   moonPulse: pMoonPulse, crescentArc: pCrescentArc, eclipseRing: pEclipseRing,
   lunarSpark: pLunarSpark, feverWave: pFeverWave,
+  jackpotFlash: pJackpotFlash, slotReel: pSlotReel, cursedCoin: pCursedCoin,
+  stakeRing: pStakeRing, suitSpark: pSuitSpark, riskPulse: pRiskPulse,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
 const COORD_ARG = {
   spark: [2, 3], coinBurst: [1, 2], streak: [1, 2], bolt: [1, 2], fireBurst: [1, 2],
   crescentArc: [2, 3], lunarSpark: [2, 3],
+  slotReel: [1, 2], cursedCoin: [1, 2], suitSpark: [2, 3],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -719,15 +820,23 @@ const VFX_MAP = {
   // GLOOM UNDER SIDE — OBSESSION (passive scaling 0–20, ไม่มี pip): aura "หนักขึ้น" ตาม tier
   // จริง (0–3) + พัลส์เงาตอนขึ้น tier; affects=timer (obsession กินเวลา) → นาฬิกาตอบสนอง
   gus: { rarity: 'mythic', theme: 'soul', affects: 'timer', aura: ['shadow', '#6633aa'], on: { break: [['shadowBurst', '#7d44c4', 0.6], ['shadowBurst', '#5522aa', 0.45]], gloom: ['shadowBurst', '#7d44c4', 0.5] } },
-  // DARK STAKE LORD — Jackpot มืด: คลื่นมืด + เหรียญ + สะเก็ดหนาม (sinister jackpot)
-  dsk: { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['shadow', '#aa33ff'], on: { break: [['shadowBurst', '#aa33ff'], ['coinBurst', '#c266ff'], ['spark', '#cc77ff', 6]] } },
+  // DARK STAKE LORD — Cursed casino jackpot (darkJackpot): ออร่าทองมืดต้องสาป (passive),
+  // BREAK = วงล้อสล็อตหมุน + วงสัญญามืด ("เดิมพัน"); JACKPOT แตก = แฟลช 777 + เหรียญ
+  // ต้องสาปพุ่งหา zeny + วงช็อกแดง-ดำ + สะเก็ดดอกไพ่ ("เดิมพันจ่าย"); พลาด = พัลส์เตือน
+  // เสี่ยงแดง (odds ขึ้น). affects=zeny → เลข Zeny/score ตอบสนองจริง (ไม่ใช่แค่ไอคอนการ์ด).
+  dsk: { rarity: 'mythic', theme: 'darkJackpot', affects: 'zeny', aura: ['stake', '#d4af37'],
+    on: {
+      break:   [['slotReel', '#d4af37'], ['stakeRing', '#cc1133']],
+      jackpot: [['jackpotFlash', '#ffcc00'], ['cursedCoin', '#d4af37'], ['stakeRing', '#cc1133'], ['suitSpark', '#39ff14', 6]],
+      stakeup: [['riskPulse', '#cc1133']],
+    } },
 };
 
 // ── AURA STATE (persistent indicator for the active card) ────────────────────
 // ใช้ child element เฉพาะ (#cvAuraEl) แทน ::before เพื่อไม่ชนกับ aura ของบอสสกิน
 // (toei-enigma-aura ใช้ทั้ง ::before และ ::after บน #fighter อยู่แล้ว).
 let _activeAuraId = null;
-const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon'];
+const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake'];
 
 function _auraEl(create) {
   const f = _fighter();
