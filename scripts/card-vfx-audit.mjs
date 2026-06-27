@@ -114,7 +114,8 @@ if (!orphan) ok('no orphan VFX_MAP entries');
 const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon']);
 const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinBurst',
   'breakCrack', 'odGlow', 'streak', 'drainPulse', 'comboRing', 'bossFlare', 'moonRing',
-  'bolt', 'fireBurst', 'holyBurst', 'glitch']);
+  'bolt', 'fireBurst', 'holyBurst', 'glitch',
+  'moonPulse', 'crescentArc', 'eclipseRing', 'lunarSpark', 'feverWave']);
 let badAura = 0, badPrim = 0, noEffect = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
   if (!e.aura || !AURA_STYLES.has(e.aura[0]) || typeof e.aura[1] !== 'string') {
@@ -134,7 +135,7 @@ if (!badAura) ok('every aura uses a known style + color');
 if (!badPrim) ok('every `on` context uses a known primitive');
 
 // ── 3b) gameplay metadata: theme + affects + stack (อัปเกรด in-game VFX) ──────
-const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time']);
+const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time', 'moonFever']);
 const TARGETS = new Set(['odBar', 'combo', 'timer', 'zeny', 'break', 'enemy', 'player', 'debt']);
 let badTheme = 0, badAffects = 0, badStack = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
@@ -211,6 +212,10 @@ try {
   api.setStack('dtl', 6, 8);                          // WP-miss decrement path
   api.trigger('dtl', 'analysisreset', {});           // reset on BREAK end
   api.trigger('th', 'thanatos', {});                 // affects 'timer' target pulse
+  api.setActiveCard('mf', 'elite');                  // MOONLIGHT FEVER — lunar-fever VFX
+  api.trigger('mf', 'od', {});                       // eclipse burst (peak): eclipseRing+feverWave+moonPulse+lunarSpark
+  api.trigger('mf', 'break', {});                    // moonFever pulse + crescent sweep
+  api.trigger('mf', 'ak47', { x: 40, y: 60 });       // crescent sweep + lunar sparks at coord
   api.targetPulse('odBar', '#ffcc33', 'crit');       // direct target pulse
   // ── aura-only polish paths (GLOOM/IFRIED/LADY TRAINEE/LORD OF DEBT) ──
   api.setActiveCard('gus', 'mythic');                // GLOOM obsession build-up

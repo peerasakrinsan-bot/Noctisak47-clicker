@@ -258,6 +258,81 @@ function pMoonRing(color, variant) {
   _emit(el, dur * 1000 + 160);
 }
 
+// ── MOONLIGHT FEVER upgrade primitives ───────────────────────────────────────
+// บุคลิก "ฟีเวอร์แสงจันทร์": surge / จังหวะฟีเวอร์ / คลื่นพลังจันทรา / สุริยุปราคา.
+// canvas-first (เหมือน primitive อื่น) + DOM fallback ครบ. สีเงิน-ฟ้า-ม่วง-ไซแอน.
+
+// moonPulse — พัลส์แสงจันทร์เป็นจังหวะฟีเวอร์ (variant 'peak' = ตอน OD ใหญ่กว่า)
+function pMoonPulse(color, variant) {
+  const c = _fighterCenter();
+  if (_toCanvas('moonPulse', { color, variant, x: c.x, y: c.y })) return;
+  const peak = (variant === 'peak');
+  const dur = _dur(peak ? 0.62 : 0.5);
+  const el = _take('cv-moonpulse' + (peak ? ' peak' : ''));
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#bcd0ff');
+  el.style.setProperty('--md', dur + 's');
+  el.innerHTML = '<i></i><i></i>';
+  _emit(el, dur * 1000 + 180);
+}
+
+// crescentArc — จันทร์เสี้ยวกวาด/ลำแสงจันทร์ (รับพิกัด ctx.x/y เช่นจุด AK47)
+function pCrescentArc(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('crescentArc', { color, count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.46);
+  const el = _take('cv-crescent');
+  el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+  el.style.setProperty('--cv', color || '#bcd0ff');
+  el.style.animationDuration = dur + 's';
+  _emit(el, dur * 1000 + 140);
+}
+
+// eclipseRing — วงสุริยุปราคา (แกนมืดจาง + โคโรนาสว่าง) สำหรับจังหวะ activate/burst
+function pEclipseRing(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('eclipseRing', { color, x: c.x, y: c.y })) return;
+  const dur = _dur(0.6);
+  const el = _take('cv-eclipse');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#cdd8ff');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i>';
+  _emit(el, dur * 1000 + 160);
+}
+
+// lunarSpark — ประกายเงินถูกดูดเข้าเป้า (รับพิกัด ctx.x/y)
+function pLunarSpark(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('lunarSpark', { color, count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.5);
+  const n = _reduced ? 3 : (count || 8);
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + Math.random() * 0.6;
+    const rad = 50 + Math.random() * 40;
+    const e = _take('cv-lunarspark');
+    e.style.left = p.x + 'px'; e.style.top = p.y + 'px';
+    e.style.setProperty('--cv', color || '#eef3ff');
+    e.style.setProperty('--dx', (Math.cos(ang) * rad) + 'px');
+    e.style.setProperty('--dy', (Math.sin(ang) * rad) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 140);
+  }
+}
+
+// feverWave — คลื่นแสงจันทร์นุ่ม ๆ แผ่ออก ขอบม่วง→ฟ้า
+function pFeverWave(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('feverWave', { color, x: c.x, y: c.y })) return;
+  const dur = _dur(0.7);
+  const el = _take('cv-feverwave');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#9a6cff');
+  el.style.animationDuration = dur + 's';
+  _emit(el, dur * 1000 + 180);
+}
+
 function pBossFlare(color, dur = 0.5) {
   // หา target ของบอส (bossBar/boxer) ถ้าไม่มีก็ fallback กลางตัวละคร
   const boss = document.getElementById('boxer') || document.getElementById('bossBar') || _fighter();
@@ -355,11 +430,14 @@ const PRIM = {
   odGlow: pOdGlow, streak: pStreak, drainPulse: pDrainPulse,
   comboRing: pComboRing, bossFlare: pBossFlare, moonRing: pMoonRing,
   bolt: pBolt, fireBurst: pFireBurst, holyBurst: pHolyBurst, glitch: pGlitch,
+  moonPulse: pMoonPulse, crescentArc: pCrescentArc, eclipseRing: pEclipseRing,
+  lunarSpark: pLunarSpark, feverWave: pFeverWave,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
 const COORD_ARG = {
   spark: [2, 3], coinBurst: [1, 2], streak: [1, 2], bolt: [1, 2], fireBurst: [1, 2],
+  crescentArc: [2, 3], lunarSpark: [2, 3],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -563,8 +641,14 @@ const VFX_MAP = {
   sk:  { rarity: 'elite', theme: 'crit', affects: 'odBar', aura: ['tech',  '#66ddff'],  on: { od: [['flash', '#bff0ff'], ['bolt', '#9be7ff'], ['spark', '#cdf4ff', 6]] } },
   // DORK LORD — NIGHT STACK (passive scaling): รอยร้าวมืดตอน BREAK
   dl:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['shadow', '#7744aa'], on: { break: ['breakCrack', '#9a66cc'] } },
-  // MOONLIGHT FEVER — พระจันทร์เสี้ยวเงิน + วงแหวนพัลส์; ยิงตามบูสต์จริง (OD ×2 = peak, BREAK, AK47)
-  mf:  { rarity: 'elite', theme: 'time', affects: 'odBar', aura: ['moon',  '#cfd8ff'],  on: { od: ['moonRing', '#dbe4ff', 'peak'], break: ['moonRing', '#cfd8ff'], ak47: ['moonRing', '#bcd0ff'] } },
+  // MOONLIGHT FEVER — โหมดฟีเวอร์แสงจันทร์: ออร่าจันทราหายใจ (passive) → จังหวะพัลส์ +
+  // จันทร์เสี้ยวกวาด (trigger) → สุริยุปราคา + คลื่นฟีเวอร์ + ประกายเงินดูดเข้า (burst).
+  // ยิงตามบูสต์จริงของการ์ด: OD ×2 = eclipse burst (peak), BREAK = pulse+sweep, AK47 = sweep+sparks.
+  mf:  { rarity: 'elite', theme: 'moonFever', affects: 'odBar', aura: ['moon', '#cdd8ff'], on: {
+           od:    [['eclipseRing', '#cdd8ff'], ['feverWave', '#9a6cff'], ['moonPulse', '#bcd0ff', 'peak'], ['lunarSpark', '#eef3ff', 10]],
+           break: [['moonPulse', '#bcd0ff'], ['crescentArc', '#8fe9ff', 2]],
+           ak47:  [['crescentArc', '#bcd0ff', 2], ['lunarSpark', '#eef3ff', 8]],
+         } },
   // MINORAGE — ORE RAGE (ขุดแร่/เกรี้ยว): aura เรืองส้มจาง ๆ; เก็บแร่ = สะเก็ดเหมือง + pip,
   // ใช้แร่ตอน BREAK = หินแตก (reset stack), ครบ 3 (RAGE RUSH) = พัลส์แดง-ส้ม + ไฟ + สะเก็ดแรงขึ้น
   mi:  { rarity: 'elite', theme: 'break', affects: 'break', stack: { gain: 'oregain', reset: 'break', max: 3 }, aura: ['glow', '#cc7733'], on: {
