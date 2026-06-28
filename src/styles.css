@@ -2127,24 +2127,17 @@
   body.low-vfx   .reveal-rarity-label.pop,
   body.flash-off .reveal-rarity-label.pop { animation:none !important; opacity:1 !important; transform:translate(-50%,-50%) scale(1) !important; }
 
+  /* OS prefers-reduced-motion: the reveal now plays its FULL sequence — idle
+     float + aura, inward charge particles, hinting, fakeout, and the rarity
+     burst all remain. This is DECOUPLED from the explicit in-game Low-VFX /
+     Flash Effect = OFF collapse above (body.low-vfx / body.flash-off), which
+     alone still simplifies the reveal for players who deliberately choose it.
+     We gentle ONLY the one genuinely rotational motion — the 3D card flip spin
+     becomes a calm fade swap — so the sequence stays readable without the
+     vestibular spin. Everything else keeps its normal (transform/opacity) FX. */
   @media (prefers-reduced-motion: reduce) {
-    #cardDrawScreen .reveal-particles,
-    #cardDrawScreen .reveal-rays,
-    #cardDrawScreen .reveal-burst,
-    #cardDrawScreen .reveal-sweep,
-    #cardDrawScreen .reveal-energy-ring,
-    #cardDrawScreen .reveal-charge-ring,
-    #cardDrawScreen .reveal-embers,
-    #cardDrawScreen .reveal-flash { display:none !important; }
-    #cardDrawScreen .reveal-ritual-ring,
-    #cardDrawScreen .reveal-floor-glow { animation:none !important; }
-    #cardDrawScreen.is-idle #cardDrawHidden,
-    #cardDrawHidden.charging,
-    #cardDrawHidden.flip-out { animation:none !important; transform:none !important; }
+    #cardDrawHidden.flip-out { animation:none !important; }
     #cardDrawRevealedImg.flip-in { animation:cardRevealInfoIn 0.3s ease forwards !important; }
-    #cardDrawRevealedImg.aura-elite,
-    #cardDrawRevealedImg.aura-mythic { animation:none !important; }
-    .reveal-rarity-label.pop { animation:none !important; opacity:1 !important; transform:translate(-50%,-50%) scale(1) !important; }
   }
 
   .res-btn {
