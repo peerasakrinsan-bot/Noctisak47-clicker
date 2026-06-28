@@ -166,7 +166,7 @@ Legend — **Cat** = primary power category (see §3). **VFX** = has `VFX_MAP` e
 | hy | HYDRA | AK47/break | AK47 sets → Hydra Heads (≤3) → Hydra Burst on BREAK | cs_hydra | break, ak47 |
 | ph | FREEONI | OD/combo | AK47→OD; BREAK→FREE MODE 5s (CD 3s) | cs_freeoni | break, ak47 |
 | tg | TURTLE SHOGUN | combo/risk | Combo≥25 → SHOGUN STANCE 6s (DMG+45%) / decay +35% | cs_turtleShogun | break |
-| dk | DRAKE | phase/window | HP 75/50/25 phase bursts → DRAKE TAKE 6s (DMG×2, BREAK×2) | cs_drakeIgnoreThreshold | drake |
+| dk | DRAKE | plunder/window | ทุก 3 AK47 → จุดสมบัติทอง (หน้าต่าง ~2.2s); แตะทัน = DRAKE PLUNDER (เบิร์สต์ + Zeny ตาม Combo + OD+12%); พลาด=หลุดมือ | cs_drakeTreasure | drake |
 | ak | ABYSMELL KNIGHT | execute | Combo≥30 → EXECUTION READY; boss HP≤5% → instant KO | cs_aknightExecute | execute |
 | tk | TAO FUNKA | break→buff | BREAK → FUNK FEVER 5s (DMG+45%/Crit+20%/+1 combo) / decay +25% | cs_taoFunka | break |
 | dc | DRUNKULA | drain/crit | CritDMG +35%; Crit 25% → BLOOD DRINK (OD+3%, +8 zeny, ICD 0.8s) | cs_drunkula, cs_critDmgBonus | break |

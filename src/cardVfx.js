@@ -1183,8 +1183,9 @@ const VFX_MAP = {
            break:  ['breakCrack', '#bfe07a', true],
            stance: [['flash', '#16240a'], ['comboRing', '#bfe07a'], ['breakCrack', '#9bbb55', true], ['pulse', '#bfe07a']],
          } },
-  // DRAKE — DRAKE TAKE คือหน้าต่างพลังใหญ่: วาบ + OD glow ทอง + ฟันคู่ + สะเก็ดทองเยอะ
-  dk:  { rarity: 'elite', theme: 'crit', affects: 'odBar', aura: ['gold',  '#ffcc33'],  on: { drake: [['flash', '#3a2a00'], ['odGlow', '#ffcc33'], ['slash', '#ffd84a', 2], ['spark', '#ffe680', 8]] } },
+  // DRAKE — DRAKE PLUNDER ("X MARKS THE SPOT"): ปล้นครั้งใหญ่ตอนแตะจุดสมบัติทอง
+  // วาบ + เบิร์สต์ทอง + ฟันคู่ + สะเก็ดทองเยอะ. affects:'zeny' เพราะปล้น Zeny → HUD โซนคะแนนเด้ง
+  dk:  { rarity: 'elite', theme: 'crit', affects: 'zeny', aura: ['gold',  '#ffcc33'],  on: { drake: [['flash', '#3a2a00'], ['odGlow', '#ffcc33'], ['slash', '#ffd84a', 2], ['spark', '#ffe680', 8]] } },
   // ABYSMELL KNIGHT — execute มืด: วาบดำ + ฟันแดงคู่ + คลื่นมืดดูดเข้า + ดูดวิญญาณ (drainPulse) ตอนประหาร
   ak:  { rarity: 'elite', theme: 'soul', affects: 'enemy', aura: ['shadow', '#cc3344'], on: { execute: [['flash', '#2a0008'], ['slash', '#ff2244', 2], ['shadowBurst', '#440011', 0.55], ['drainPulse', '#cc3344']] } },
   // TAO FUNKA — FUNK FEVER จังหวะฟังก์: วาบ + วงจังหวะฟังก์ (comboRing) + พัลส์ + สะเก็ดสีสด ตอน BREAK
