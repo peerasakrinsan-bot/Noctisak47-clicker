@@ -987,13 +987,44 @@ function _tick(ts) {
   for (let i = 0; i < _parts.length; i++) {
     const p = _parts[i];
     p.age += dt;
-    if (p.age >= p.life) { _recycle(p); continue; }
+    // R3: retire once the fade has dropped below ~0.12 alpha (visually dead
+    // frames that still cost a draw + hold a pool slot). Per-kind because the
+    // safe cutoff depends on the fade curve — only monotonic (1−t)/(1−t²) kinds
+    // are trimmed; sin-fade, delayed-stagger, and gradient-fill kinds keep full
+    // life (trimming those early WOULD be visible), so this never regresses.
+    const trim = _LIFE_TRIM[p.kind];
+    if (p.age >= (trim ? p.life * trim : p.life)) { _recycle(p); continue; }
     _draw(p, dt);
     _parts[n++] = p;
   }
   _parts.length = n;
   if (n > 0) _raf = requestAnimationFrame(_tick);   // ยังมีของ → วาดต่อ
   else _last = 0;                                     // ว่าง → หยุด (ประหยัดแบต)
+}
+
+// ── R3: per-kind lifetime trim (retire when alpha < ~0.12) ───────────────────
+// Only kinds whose alpha is a monotonic (1−t) or (1−t²) fade computed from the
+// GLOBAL t (no delay/stagger phase, no mid-life sin) are listed — the fraction
+// is exactly where that curve crosses ~0.12. Everything else keeps full life.
+const _LIFE_TRIM = {
+  spark: 0.88, crack: 0.88, ring: 0.88, suit: 0.88, streak: 0.88,
+  shadow: 0.86, drain: 0.87, dcoin: 0.88,
+  coin: 0.93, ccoin: 0.93,
+};
+
+// ── R1 + R5: alpha-aware shadowBlur ──────────────────────────────────────────
+// shadowBlur is the most expensive canvas op on mobile (one offscreen blur pass
+// per draw). It is set right after ctx.globalAlpha in every blurred kind, so we
+// read that alpha here: skip the pass entirely once the glow is imperceptible
+// (R1, alpha < _SB_GATE) and otherwise scale the radius with alpha so the halo
+// fades out with the stroke instead of paying full cost on a near-gone particle
+// (R5). Result clamped to [0, base]; identical look at full alpha.
+const _SB_GATE = 0.25;
+function _sb(base) {
+  const a = _ctx ? _ctx.globalAlpha : 1;
+  if (a < _SB_GATE) return 0;        // R1: no offscreen blur pass at all
+  const b = base * a;                // R5: blur ∝ alpha
+  return b > base ? base : b;        // clamp ≤ base
 }
 
 // ── per-kind update + draw ───────────────────────────────────────────────────
@@ -1078,7 +1109,7 @@ function _draw(p, dt) {
       ctx.globalAlpha = Math.max(0, a);
       ctx.strokeStyle = _rgba(p.color, 1);
       ctx.lineWidth = p.size; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 8;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
       ctx.beginPath();
       const pts = p.pts;
       ctx.moveTo(pts[0], pts[1]);
@@ -1136,7 +1167,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = (1 - t);
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 3;
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 10;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
       break;
@@ -1171,7 +1202,7 @@ function _draw(p, dt) {
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
       ctx.globalAlpha = Math.max(0, a);
       ctx.lineWidth = 2.4; ctx.strokeStyle = _rgba(p.color, 1);
-      ctx.shadowColor = _rgba(p.c2 || p.color, 1); ctx.shadowBlur = 8;
+      ctx.shadowColor = _rgba(p.c2 || p.color, 1); ctx.shadowBlur = _sb(8);
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
       break;
@@ -1189,7 +1220,7 @@ function _draw(p, dt) {
       ctx.globalAlpha = Math.max(0, a);
       ctx.lineCap = 'round';
       ctx.strokeStyle = _rgba(p.c2 || p.color, 1); ctx.lineWidth = 5;
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 10;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
       ctx.beginPath(); ctx.arc(p.x, p.y, r, start, start + sweep); ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.strokeStyle = _rgba('#ffffff', a); ctx.lineWidth = 1.6;
@@ -1213,7 +1244,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.lineWidth = 3 * (1 - t * 0.5); ctx.strokeStyle = _rgba(p.color, 1);
-      ctx.shadowColor = _rgba(p.c2 || p.color, 1); ctx.shadowBlur = 14;
+      ctx.shadowColor = _rgba(p.c2 || p.color, 1); ctx.shadowBlur = _sb(10); // R4: 14→10
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
       break;
@@ -1225,7 +1256,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.fillStyle = _rgba(p.color, 1);
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
       const s = p.size * (0.6 + (1 - t) * 0.8);
       ctx.beginPath(); ctx.arc(p.x, p.y, s, 0, 6.283); ctx.fill();
       ctx.shadowBlur = 0;
@@ -1310,7 +1341,7 @@ function _draw(p, dt) {
       ctx.font = 'bold ' + Math.round(26 + t * 8) + 'px system-ui, sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = _rgba(p.color, 1);
-      ctx.shadowColor = _rgba(p.c2 || '#cc1133', 1); ctx.shadowBlur = 12;
+      ctx.shadowColor = _rgba(p.c2 || '#cc1133', 1); ctx.shadowBlur = _sb(12);
       ctx.fillText('777', 0, -p.size * 0.1);
       ctx.shadowBlur = 0;
       ctx.restore();
@@ -1365,9 +1396,10 @@ function _draw(p, dt) {
       ctx.font = 'bold ' + Math.round(p.size * (1 - t * 0.3)) + 'px system-ui, sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = _rgba(p.color, 1);
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      // R2: no shadowBlur on suit glyphs — the additive `lighter` fill already
+      // pops at glyph scale, so the blur was redundant (6 blurred glyphs/frame
+      // in the jackpot burst). Crisper and cheaper, visually unchanged.
       ctx.fillText(SUITS[(p.data | 0) % 4], 0, 0);
-      ctx.shadowBlur = 0;
       ctx.restore();
       break;
     }
@@ -1382,7 +1414,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.4;
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 10;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
       ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.stroke();
       ctx.beginPath(); ctx.arc(0, 0, r * 0.66, 0, 6.283); ctx.stroke();
       // ขีดบัญชี (ทอง) 6 ขีด — เหมือนตราสัญญา
@@ -1419,7 +1451,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.2;
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
       const links = 4;
       for (let k = 0; k < links; k++) {
         const f = ((k + 0.5) / links) * reach;
@@ -1441,7 +1473,7 @@ function _draw(p, dt) {
       ctx.font = 'bold ' + Math.round(p.size) + 'px system-ui, sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = _rgba(p.color, 1);
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
       ctx.fillText(p.txt || '%', p.x, p.y);
       ctx.shadowBlur = 0;
       break;
@@ -1483,7 +1515,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = (1 - t) * 0.9;
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = lw;
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
       break;
@@ -1577,7 +1609,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.2;
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 10;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
       ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.stroke();         // หน้าปัด
       ctx.shadowBlur = 0; ctx.lineWidth = 2;
       for (let k = 0; k < 12; k++) {                                     // ขีดชั่วโมง
@@ -1610,7 +1642,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineCap = 'round';
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 12;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(12);
       ctx.lineWidth = 4;
       ctx.beginPath(); ctx.arc(0, 0, R, -0.9, 0.9); ctx.stroke();        // คมนอก
       ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.globalAlpha = a * 0.7;
@@ -1655,7 +1687,7 @@ function _draw(p, dt) {
       grad.addColorStop(0.5, _rgba('#ffffff', 1));
       grad.addColorStop(1, _rgba(p.color, 0));
       ctx.strokeStyle = grad; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 8;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
       ctx.beginPath();
       ctx.moveTo(-w / 2, 0); ctx.quadraticCurveTo(0, bend, w / 2, 0); ctx.stroke();
       ctx.restore();
@@ -1670,7 +1702,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.strokeStyle = _rgba(p.color, 1);
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 10;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
       ctx.lineWidth = 2 + Math.abs(Math.sin(lt * Math.PI * 4)) * 2.5; // สั่นฮาร์มอนิก
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0; ctx.globalAlpha = a * 0.5; ctx.lineWidth = 1.4;
@@ -1703,7 +1735,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.6; ctx.lineCap = 'round';
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 8;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
       for (let cx = -1; cx <= 1; cx += 2) for (let cy = -1; cy <= 1; cy += 2) {
         const ox = cx * sp, oy = cy * sp;
         ctx.beginPath();
@@ -1728,7 +1760,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = a;
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.6;
-      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 12;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(12);
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.04, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
       break;
