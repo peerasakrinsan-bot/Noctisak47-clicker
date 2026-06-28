@@ -2265,6 +2265,7 @@ function triggerBombExplosion() {
   // HYDRA: gain head on every AK47 complete (max 3)
   if(window._csState && window._csState.cs_hydra) {
     window._csState._hydraHeads = Math.min(3, (window._csState._hydraHeads || 0) + 1);
+    _cardFx('head', { stack: window._csState._hydraHeads, max: 3 }); // HYDRA head pip + fang strike (cosmetic)
   }
   // THANATOS: เก็บ AK47 ครบ → OD bar เต็มทันที + เปิด OD ถ้ายังไม่ active
   if(window._csState && window._csState.cs_thanatos) {
@@ -4623,6 +4624,7 @@ function csOnClick(isGod) {
     if(combo >= 35 && now >= (cs._incantationCdUntil||0) && !cs._incantationContractEndTime) {
       cs._incantationContractEndTime = now + 6000;
       cs._incantationCdUntil = now + 18000;
+      _cardFx('contract'); // INCANTATION SCAMURAI — CONTRACT เปิด: ยันต์สัญญา (cosmetic)
     }
     if(cs._incantationContractEndTime && now >= cs._incantationContractEndTime) {
       cs._incantationContractEndTime = 0;
@@ -4918,6 +4920,7 @@ function csOnBreakSuccess() {
     cs._hydraBurstEndTime = performance.now() + 4000;
     const hydraBonus = 500;
     score += hydraBonus;
+    _cardFx('burst'); // HYDRA BURST payoff + head-pip reset (cosmetic)
     showBigSplash('HYDRA BURST', 'BREAK EXPLOSION + AK47 FAST 4s', '#44ff88', false);
   }
   // MAYA PROBLEM: 5s boss dmg window, once per boss

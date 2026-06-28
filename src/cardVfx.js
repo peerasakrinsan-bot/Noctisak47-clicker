@@ -1158,10 +1158,16 @@ const VFX_MAP = {
   // ── ELITE ──
   // DOPPELGANGER — มิเรอร์ฟันคู่ + เงาตามหลัง (ยิงต่อ hit แต่ throttle ที่ context 'hit')
   dg:  { rarity: 'elite', theme: 'soul', affects: 'enemy', aura: ['shadow', '#aa66ff'], on: { hit: [['slash', '#c9a3ff', 2], ['shadowBurst', '#aa66ff', 0.4]] } },
-  // HYDRA — หลายหัวงูเขียว: รอยร้าวหนัก + ฟันคู่ตอน BREAK, สะเก็ดพิษตอน AK47
-  hy:  { rarity: 'elite', theme: 'break', affects: 'break', aura: ['drain', '#44ff88'],  on: { break: [['breakCrack', '#44ff88', true], ['slash', '#7dffb0', 2]], ak47: ['spark', '#44ff88', 6] } },
-  // FREEONI — แปลง combo เป็นน้ำแข็ง: พัลส์ฟ้า + สะเก็ดเย็นตอน BREAK, OD glow เย็นตอน AK47→OD
-  ph:  { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#66ccff'],  on: { break: [['pulse', '#66ccff'], ['spark', '#aaf0ff', 6]], ak47: ['odGlow', '#9bdcff'] } },
+  // HYDRA — หลายหัวงูพิษเขียว (Hydra Head 0–3 จาก AK47): ทุกหัวที่งอก = ฟันงูฟาด + สะเก็ดพิษ
+  // + pip ต่อหัวจริง (ctx.stack), ครบ 3 + BREAK = HYDRA BURST (คลื่นพิษ + ฟันสามรอย + พิษพุ่ง),
+  // reset pip ตอน burst. BREAK ปกติ = กระดองแตก.
+  hy:  { rarity: 'elite', theme: 'break', affects: 'break', stack: { gain: 'head', reset: 'burst', max: 3 }, aura: ['drain', '#44ff88'],  on: {
+           head:  [['slash', '#7dffb0', 2], ['spark', '#44ff88', 5]],
+           break: [['breakCrack', '#44ff88', true]],
+           burst: [['shadowBurst', '#2a6a00', 0.6], ['slash', '#7dffb0', 3], ['spark', '#7dffb0', 9], ['drainPulse', '#44ff88']],
+         } },
+  // FREEONI — FREE MODE น้ำแข็ง: วาบเย็น + พัลส์ฟ้า + สะเก็ดน้ำแข็งตอน BREAK, OD glow + สะเก็ดเย็นตอน AK47→OD
+  ph:  { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#66ccff'],  on: { break: [['flash', '#0a2230'], ['pulse', '#66ccff'], ['spark', '#aaf0ff', 7]], ak47: [['odGlow', '#9bdcff'], ['spark', '#cdeaff', 4]] } },
   // TURTLE SHOGUN — SHOGUN STANCE = กระดองตั้งการ์ด: วงเกราะกระดองหุบเข้า + กระดองทุบพื้น
   // (heavy shell slam) + ออร่าสแตนซ์ ตอนเปิด STANCE (จังหวะจริงของการ์ด ไม่ใช่แค่ BREAK).
   // BREAK ยังคงกระดองแตกหนักไว้ตามเดิม.
@@ -1171,14 +1177,19 @@ const VFX_MAP = {
          } },
   // DRAKE — DRAKE TAKE คือหน้าต่างพลังใหญ่: วาบ + OD glow ทอง + ฟันคู่ + สะเก็ดทองเยอะ
   dk:  { rarity: 'elite', theme: 'crit', affects: 'odBar', aura: ['gold',  '#ffcc33'],  on: { drake: [['flash', '#3a2a00'], ['odGlow', '#ffcc33'], ['slash', '#ffd84a', 2], ['spark', '#ffe680', 8]] } },
-  // ABYSMELL KNIGHT — execute มืด: วาบดำ + ฟันแดง + คลื่นมืดดูดเข้า
-  ak:  { rarity: 'elite', theme: 'soul', affects: 'enemy', aura: ['shadow', '#cc3344'], on: { execute: [['flash', '#2a0008'], ['slash', '#ff2244', 1], ['shadowBurst', '#440011', 0.5]] } },
-  // TAO FUNKA — FUNK FEVER เกรี้ยวแดง: ไฟพุ่ง + พัลส์แดง
-  tk:  { rarity: 'elite', theme: 'crit', affects: 'break', aura: ['fire',  '#ff3322'],  on: { break: [['fireBurst', '#ff4422'], ['pulse', '#ff6633']] } },
+  // ABYSMELL KNIGHT — execute มืด: วาบดำ + ฟันแดงคู่ + คลื่นมืดดูดเข้า + ดูดวิญญาณ (drainPulse) ตอนประหาร
+  ak:  { rarity: 'elite', theme: 'soul', affects: 'enemy', aura: ['shadow', '#cc3344'], on: { execute: [['flash', '#2a0008'], ['slash', '#ff2244', 2], ['shadowBurst', '#440011', 0.55], ['drainPulse', '#cc3344']] } },
+  // TAO FUNKA — FUNK FEVER จังหวะฟังก์: วาบ + วงจังหวะฟังก์ (comboRing) + พัลส์ + สะเก็ดสีสด ตอน BREAK
+  // (ย้ายออกจาก fireBurst แล้ว — ไฟเป็นของ IFRIED; ฟังก์ = จังหวะ/บีต ไม่ใช่ไฟกลาง).
+  tk:  { rarity: 'elite', theme: 'crit', affects: 'break', aura: ['fire',  '#ff3322'],  on: { break: [['flash', '#2a0010'], ['comboRing', '#ff4466'], ['pulse', '#ff6633'], ['spark', '#ff88aa', 6]] } },
   // DRUNKULA — BLOOD DRINK: พัลส์ดูดเลือด + สะเก็ดแดง
   dc:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['drain', '#cc2244'],  on: { break: [['drainPulse', '#cc2255'], ['spark', '#ff3366', 5]] } },
-  // INCANTATION SCAMURAI — ยันต์/CONTRACT: วงยันต์ + รอยร้าวม่วง + วาบ
-  ic:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['glow',  '#cc66ff'],  on: { break: [['comboRing', '#cc66ff'], ['breakCrack', '#d49bff'], ['flash', '#1a0a2a']] } },
+  // INCANTATION SCAMURAI — SCAMURAI CONTRACT (combo ≥35): ยันต์สัญญาวาบ + วงสัญญา + ดาบซามูไรฟัน
+  // + วาบ ตอนเปิดสัญญา (reuse ยันต์/วงสัญญาจาก BAPHOBET โทนม่วง). BREAK = รอยร้าวม่วง + ฟันดาบ.
+  ic:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['glow',  '#cc66ff'],  on: {
+           contract: [['demonSigil', '#cc66ff'], ['contractRing', '#aa55ee'], ['slash', '#e0b8ff', 2], ['flash', '#1a0a2a']],
+           break:    [['breakCrack', '#d49bff'], ['slash', '#e0b8ff', 1]],
+         } },
   // STORMYNITE — STORM CHARGE: สายฟ้าฟาด + วาบ + สะเก็ดไฟฟ้า
   sk:  { rarity: 'elite', theme: 'crit', affects: 'odBar', aura: ['tech',  '#66ddff'],  on: { od: [['flash', '#bff0ff'], ['bolt', '#9be7ff'], ['spark', '#cdf4ff', 6]] } },
   // DORK LORD — NIGHT STACK (passive scaling 0–5): aura เงา "หนักขึ้น" ตาม tier จริง (0–3)
@@ -1202,20 +1213,21 @@ const VFX_MAP = {
            break:   [['breakCrack', '#d8a14e', true], ['spark', '#ffaa44', 6]],
            rage:    [['pulse', '#ff3322'], ['fireBurst', '#ff5522'], ['spark', '#ff8844', 7]],
          } },
-  // EXECUSIONER — ฟันขวาน: รอยฟัน + รอยร้าวหนัก (chop impact)
-  ex:  { rarity: 'elite', theme: 'crit', affects: 'break', aura: ['shadow', '#cc3333'], on: { break: [['slash', '#ff5544', 1], ['breakCrack', '#ff7755', true]] } },
+  // EXECUSIONER — EXECUTION MODE ฟันขวานประหาร: วาบดำ + รอยฟันหนัก + รอยร้าวหนัก + คลื่นมืด (chop impact)
+  ex:  { rarity: 'elite', theme: 'crit', affects: 'break', aura: ['shadow', '#cc3333'], on: { break: [['flash', '#1a0000'], ['slash', '#ff5544', 1], ['breakCrack', '#ff7755', true], ['shadowBurst', '#330000', 0.5]] } },
   // WHIZPER — GHOST PROTOCOL: เส้นความเร็วที่จุด AK47 + เงาจาง (ghost fade)
   wh:  { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#aaffee'],  on: { ak47: [['streak', '#aaffee'], ['shadowBurst', '#cceeff', 0.45]] } },
-  // GOBLIN WEEBER — WEEB FOCUS ตอน combo เต็ม: วงโฟกัส (ยิงที่ context 'combo' จริง)
-  gl:  { rarity: 'elite', theme: 'analysis', affects: 'combo', aura: ['glow',  '#88cc44'],  on: { combo: [['comboRing', '#9bdc55'], ['flash', '#16240a']] } },
-  // AMOG RA — น่าสงสัยส้ม-แดง: คลื่นมืดส้ม + สะเก็ด
-  ar:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['fire',  '#ff7722'],  on: { break: [['shadowBurst', '#ff8833'], ['spark', '#ffaa44', 6]] } },
+  // GOBLIN WEEBER — WEEB FOCUS ตอน combo เต็ม (47): เส้นโฟกัสมังงะ (streak) ลู่เข้า + วงโฟกัส + วาบ
+  gl:  { rarity: 'elite', theme: 'analysis', affects: 'combo', aura: ['glow',  '#88cc44'],  on: { combo: [['streak', '#9bdc55'], ['comboRing', '#9bdc55'], ['flash', '#16240a']] } },
+  // AMOG RA — SUS EVENT สุ่มผล (น่าสงสัยส้ม-แดง): คลื่นมืดส้ม + พัลส์เตือนเสี่ยงแดง (riskPulse) +
+  // สะเก็ด — โทน "เดิมพัน/น่าสงสัย" ตามกลไกสุ่ม 70/30 ของการ์ด.
+  ar:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['fire',  '#ff7722'],  on: { break: [['shadowBurst', '#ff8833', 0.5], ['riskPulse', '#ff5522'], ['spark', '#ffaa44', 6]] } },
   // MAYA PROBLEM — bug/glitch + บอส: scanline glitch + พัลส์ตอน BREAK, boss flare ตอนล้มบอส
   mp:  { rarity: 'elite', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff44aa'],  on: { break: [['glitch', '#ff44aa'], ['pulse', '#ff55bb']], boss: ['bossFlare', '#ff44aa'] } },
-  // WEEBVIL DUDE — OTAKU AWAKENING (สาปแมลง): คลื่นมืด + พัลส์ม่วง
-  ed:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['shadow', '#aa66cc'], on: { break: [['shadowBurst', '#bb77dd'], ['pulse', '#cc88ee']] } },
-  // GHOSTPING — เกจ BREAK ผี: พัลส์จาง + รอยร้าวฟ้าซีด
-  ghp: { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#aaddff'],  on: { break: [['pulse', '#aaddff'], ['breakCrack', '#cce8ff']] } },
+  // WEEBVIL DUDE — OTAKU AWAKENING (ปลุกร่างมืด): วาบม่วงมืด + คลื่นมืดปลุกร่าง + พัลส์ + สะเก็ดม่วง
+  ed:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['shadow', '#aa66cc'], on: { break: [['flash', '#160a22'], ['shadowBurst', '#bb77dd', 0.55], ['pulse', '#cc88ee'], ['spark', '#cc88ee', 6]] } },
+  // GHOSTPING — ผี/ปิง/แล็ก: glitch แล็ก (ping/lag) + พัลส์ผีจาง + คลื่นจาง ตอน BREAK — ฟีล "ผีดีเลย์"
+  ghp: { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#aaddff'],  on: { break: [['glitch', '#aaddff'], ['pulse', '#aaddff'], ['shadowBurst', '#cce8ff', 0.4]] } },
   // DEVILINGO — ปีศาจ + โลภ + โฟกัสบอส: เหรียญแดง + เส้นความเร็วตอน AK47, boss flare + ไฟตอนล้มบอส
   dvl: { rarity: 'elite', theme: 'zeny', affects: 'zeny', aura: ['fire',  '#ff3322'],  on: { ak47: [['coinBurst', '#ff6644'], ['streak', '#ff5533']], boss: [['bossFlare', '#ff2233'], ['fireBurst', '#ff4422']] } },
   // LADY TRAINEE — Spotlight ฝึกซ้อม (stack 0–15, ไม่มี pip): วงแหวนชาร์จ compact ตาม count
