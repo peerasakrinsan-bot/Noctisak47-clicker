@@ -195,7 +195,7 @@ Legend — **Cat** = primary power category (see §3). **VFX** = has `VFX_MAP` e
 | mt | MISSSTRESS | OD/coin | OD click → +12 zeny (ICD 0.3s) & OD +0.35s (cap +4s) & Crit +10% | OD-only, capped | cs_mistress | od |
 | gb | GOLDEN BRUH | coin/special | click → Combo+1, Zeny×3; full(47) → GOLD RUSH 12s ×9 | **no OD charge**, CD 14s | cs_goldenbug | combo |
 | oh | COKE ZERO | OD scaling | OD charge ×4; OD-end DMG +15% stack (cap +90%) | start −5s | cs_orchero | break |
-| ld | LORD OF DEBT | risk/reward | 10s → DEBT CONTRACT (random forbidden power 8s); BREAK clears debt | stacking decay pressure | cs_lordofdeath | break, hit |
+| ld | LORD OF DEBT | risk/reward | 10s → DEBT CONTRACT (random forbidden power 8s); BREAK clears debt | stacking decay pressure | cs_lordofdeath | debt, debtmax, break, debtclear, hit (debtContract theme) |
 | kn | CATULLANUX | AK47 | AK47 DMG×4; AK47/BREAK → combo lock 5s, BREAK +20% | **enemy HP +50%** | cs_ktullanux, cs_breakPower, cs_enemyHpReduce | break |
 | bz | BEELZEBRUH | risk/reward | click → Corruption (≤50%); MAX+BREAK → Zeny×1.5 & OCA+50% 8s | **enemy HP ×2** | cs_beelzebub | break |
 | vr | VALKYRIZZ | special | AK47/BREAK → random ELITE effect (until next swap) | excl. mf/vr | cs_valkyrieRandgris | break |

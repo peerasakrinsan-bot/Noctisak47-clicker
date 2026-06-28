@@ -5652,6 +5652,22 @@
   52%      { opacity: .3;  transform: translate(-50%, -56%) scale(1.06); } /* hellfire flare */
   60%      { opacity: .18; transform: translate(-50%, -54%) scale(1.03); }
 }
+/* debt — ออร่าสัญญาหนี้ (LORD OF DEBT): แกนม่วงต้องสาป + ขอบทองบัญชี-ดำเหว "หายใจ" ช้า
+   แบบ passive (ภาระสะสม) — มืด/หนักหน่วงต่างจาก drain (ม่วงดูดเลือด) ชัดเจน. ความเข้มไต่ขึ้น
+   ด้วย .game-vfx-tier-* ตาม DEBT STACK จริง 0–5 (ยิ่งหนี้สูง ออร่ายิ่งหนัก). */
+#cvAuraEl.cv-aura--debt {
+  opacity: .19; filter: blur(2px);
+  background:
+    radial-gradient(circle at 50% 48%, var(--cv-aura, #9944cc) 0%, rgba(40,0,60,.5) 46%, transparent 70%),
+    radial-gradient(circle at 50% 58%, rgba(212,160,23,.42) 38%, transparent 72%);
+  animation: cvAuraDebt 3.0s ease-in-out infinite;
+}
+@keyframes cvAuraDebt {
+  0%, 100% { opacity: .12; transform: translate(-50%, -50%) scale(.96); }
+  48%      { opacity: .15; transform: translate(-50%, -50%) scale(1.01); }
+  56%      { opacity: .26; transform: translate(-50%, -50%) scale(1.05); } /* obligation pulse */
+  64%      { opacity: .16; transform: translate(-50%, -50%) scale(1.02); }
+}
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
@@ -6222,6 +6238,107 @@
   100% { opacity: 0;   transform: translate(-50%, -50%) scale(4); }
 }
 
+/* ── LORD OF DEBT primitives (debt contract) — DOM fallback (canvas-less) ──
+   ม่วงหนี้ต้องสาป-ทองบัญชี-ดำเหว. ทุกตัว transform/opacity สั้น ๆ, มือถือ-safe. */
+/* debtSeal — ตราสัญญาหนี้ประทับลง (วงสองชั้น + กรอบบัญชีทอง + ตอกลงมา) */
+.cv-debtseal {
+  width: 76px; height: 76px; transform: translate(-50%, -50%) scale(1.5); opacity: 0;
+  animation: cvDebtSeal .62s ease-out forwards;
+}
+.cv-debtseal i {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2.4px solid var(--cv, #b066dd); box-shadow: 0 0 16px var(--cv, #b066dd);
+}
+.cv-debtseal i:last-of-type { inset: 13px; border-color: rgba(212,160,23,.9); box-shadow: none; }
+.cv-debtseal b {
+  position: absolute; inset: 22px; border-radius: 4px;
+  border: 1.4px solid rgba(255,255,255,.8); transform: rotate(45deg);
+}
+@keyframes cvDebtSeal {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(1.6) rotate(-12deg); }
+  20%  { opacity: .95; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.04) rotate(8deg); }
+}
+/* debtChain — ลิงก์โซ่ผูกมัด "รัดเข้า" หาศูนย์กลาง (--dx/--dy ชี้เข้าใน) */
+.cv-debtchain {
+  width: 12px; height: 7px; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); opacity: 0;
+  border: 2px solid var(--cv, #9944cc); border-radius: 50%;
+  box-shadow: 0 0 8px var(--cv, #9944cc);
+  animation: cvDebtChain .5s ease-in forwards;
+}
+@keyframes cvDebtChain {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); }
+  30%  { opacity: .95; }
+  100% { opacity: 0;   transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) rotate(var(--rot, 0deg)); }
+}
+/* ledgerGlyph — ตัวเลขดอกเบี้ยลอยขึ้น (mounting interest) */
+.cv-ledgerglyph {
+  transform: translate(-50%, -50%); opacity: 0;
+  font: 700 15px/1 'Oswald', system-ui, sans-serif;
+  color: var(--cv, #d4a017); text-shadow: 0 0 8px var(--cv, #d4a017);
+  animation: cvLedgerGlyph .7s ease-out forwards;
+}
+@keyframes cvLedgerGlyph {
+  0%   { opacity: 0; transform: translate(-50%, -50%); }
+  25%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, calc(-50% + var(--dy, -40px))); }
+}
+/* collectorPull — หลุมทวงหนี้ดูดเข้า (void core + ring หดเข้า) */
+.cv-collectorpull {
+  width: 96px; height: 96px; transform: translate(-50%, -50%); opacity: 0;
+  animation: cvCollectorPull .62s ease-in forwards;
+}
+.cv-collectorpull i {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle, rgba(26,0,34,.9) 0%, var(--cv, #aa33ff) 60%, transparent 75%);
+}
+.cv-collectorpull i:last-child {
+  background: none; border: 3px solid var(--cv, #aa33ff); box-shadow: 0 0 18px var(--cv, #aa33ff);
+}
+@keyframes cvCollectorPull {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(1.3); }
+  30%  { opacity: .95; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(.4); } /* ดูดเข้า */
+}
+/* debtCoinDrain — เหรียญต้องสาปถูกสูบจ่ายลงล่าง (ขอบม่วงหนี้) */
+.cv-debtcoin {
+  width: 11px; height: 11px; transform: translate(-50%, -50%); opacity: 0; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c0, var(--cv, #d4a017) 70%);
+  border: 1.5px solid #6a1b9a; box-shadow: 0 0 8px var(--cv, #d4a017);
+  animation: cvDebtCoin .7s ease-in forwards;
+}
+@keyframes cvDebtCoin {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 44px))) scale(.6); }
+}
+/* sealBreak — ตราสัญญาแตก: คลื่นปลดหนี้ + เศษตรากระจาย */
+.cv-sealbreak { width: 30px; height: 30px; transform: translate(-50%, -50%); opacity: 1; }
+.cv-sealbreak i {
+  position: absolute; left: 50%; top: 50%; width: 30px; height: 30px;
+  transform: translate(-50%, -50%) scale(.4); opacity: 0; border-radius: 50%;
+  border: 3px solid var(--cv, #b066dd); box-shadow: 0 0 16px var(--cv, #b066dd);
+  animation: cvSealBreakWave .5s ease-out forwards;
+}
+.cv-sealbreak span {
+  position: absolute; left: 50%; top: 50%; width: 6px; height: 2.4px;
+  background: var(--cv, #b066dd); box-shadow: 0 0 8px var(--cv, #b066dd);
+  transform-origin: left center; opacity: 0;
+  animation: cvSealBreakShard .5s ease-out forwards;
+}
+.cv-sealbreak span:nth-child(2) { transform: translate(0, -50%) rotate(25deg); }
+.cv-sealbreak span:nth-child(3) { transform: translate(0, -50%) rotate(115deg); }
+.cv-sealbreak span:nth-child(4) { transform: translate(0, -50%) rotate(205deg); }
+.cv-sealbreak span:nth-child(5) { transform: translate(0, -50%) rotate(295deg); }
+@keyframes cvSealBreakWave {
+  0%   { opacity: .95; transform: translate(-50%, -50%) scale(.4); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(3.6); }
+}
+@keyframes cvSealBreakShard {
+  0%   { opacity: .9; width: 6px; }
+  100% { opacity: 0; width: 30px; }
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    GAMEPLAY-ELEMENT VFX LAYER (.game-vfx-*)
    ──────────────────────────────────────────────────────────────────────────
@@ -6242,6 +6359,7 @@
 .game-vfx-theme-moonFever { --gv-theme: #bcd0ff; }   /* MOONLIGHT FEVER — เงิน-ฟ้า-ม่วง */
 .game-vfx-theme-darkJackpot { --gv-theme: #d4af37; } /* DARK STAKE LORD — ทองมืด-แดง-เขียวนีออน */
 .game-vfx-theme-demonContract { --gv-theme: #cc0011; } /* BAPHOBET — แดงเลือด-ดำ-ส้มนรก-ทองต้องสาป */
+.game-vfx-theme-debtContract { --gv-theme: #9944cc; }  /* LORD OF DEBT — ม่วงหนี้ต้องสาป-ทองบัญชี-ดำเหว */
 
 /* 1) PASSIVE-ACTIVE indicator — แปะบน aura ตัวละคร (#cvAuraEl) เพิ่มจาก cv-aura.
    ไม่เพิ่มภาระ: เป็นเพียง hook คลาส (texture/จังหวะหลักยังมาจาก cv-aura--*).

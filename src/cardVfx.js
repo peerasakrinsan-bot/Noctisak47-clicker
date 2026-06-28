@@ -635,6 +635,128 @@ function pBloodShock(color) {
   _emit(el, dur * 1000 + 100);
 }
 
+// ── LORD OF DEBT primitives (debt contract / accumulating obligation) ────────
+// บุคลิก "สัญญาหนี้ต้องสาป / ภาระสะสม / การทวงคืนที่หลีกเลี่ยงไม่ได้": ตราสัญญาหนี้
+// ประทับลง / โซ่ผูกมัดรัดเข้า / ตัวเลขดอกเบี้ยลอยขึ้น / หลุมทวงหนี้ดูดเข้า / เหรียญ
+// ต้องสาปถูกสูบจ่าย / ตราสัญญาแตก (ปลดหนี้). ม่วงต้องสาป-ทองบัญชี-ดำเหว.
+// canvas-first (เหมือน primitive อื่น) + DOM fallback ครบ.
+
+// debtSeal — ตราสัญญาหนี้ประทับลง (สีตามพลังต้องห้ามที่เพิ่งเซ็น ส่งผ่าน ctx.color → '$state')
+function pDebtSeal(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('debtSeal', { color: color || '#b066dd', x: p.x, y: p.y })) return;
+  const dur = _dur(0.62);
+  const el = _take('cv-debtseal');
+  el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+  el.style.setProperty('--cv', color || '#b066dd');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i><i></i><b></b>';
+  _emit(el, dur * 1000 + 140);
+}
+
+// debtChain — โซ่เงาผูกมัด "รัดเข้า" หาเป้า (binding chains tighten inward; รับพิกัด ctx.x/y)
+function pDebtChain(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('debtChain', { color: color || '#9944cc', count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.5);
+  const n = _reduced ? 2 : (count || 3);
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+    const rad = 52 + Math.random() * 30;
+    const el = _take('cv-debtchain');
+    el.style.left = (p.x + Math.cos(ang) * rad) + 'px';
+    el.style.top = (p.y + Math.sin(ang) * rad) + 'px';
+    el.style.setProperty('--cv', color || '#9944cc');
+    el.style.setProperty('--dx', (-Math.cos(ang) * rad) + 'px');
+    el.style.setProperty('--dy', (-Math.sin(ang) * rad) + 'px');
+    el.style.setProperty('--rot', (ang * 180 / Math.PI) + 'deg');
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (i * 0.03) + 's';
+    _emit(el, dur * 1000 + i * 40 + 120);
+  }
+}
+
+// ledgerGlyph — ตัวเลข/สัญลักษณ์ดอกเบี้ยลอยขึ้น (rising debt/interest glyphs; รับพิกัด ctx.x/y)
+function pLedgerGlyph(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('ledgerGlyph', { color: color || '#d4a017', count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.7);
+  const n = _reduced ? 2 : (count || 4);
+  const GLYPHS = ['฿', '¥', '%', '$', '↑'];
+  for (let i = 0; i < n; i++) {
+    const el = _take('cv-ledgerglyph');
+    el.textContent = GLYPHS[i % GLYPHS.length];
+    el.style.left = (p.x + (Math.random() - 0.5) * 60) + 'px';
+    el.style.top = p.y + 'px';
+    el.style.setProperty('--cv', color || '#d4a017');
+    el.style.setProperty('--dy', -(40 + Math.random() * 44) + 'px');
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (i * 0.05) + 's';
+    _emit(el, dur * 1000 + i * 60 + 140);
+  }
+}
+
+// collectorPull — หลุมทวงหนี้ดูดเข้า (inevitable-collection gravity well; แกนเหว + สะเก็ดลู่เข้า)
+function pCollectorPull(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('collectorPull', { color: color || '#aa33ff', x: p.x, y: p.y })) return;
+  const dur = _dur(0.62);
+  const el = _take('cv-collectorpull');
+  el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+  el.style.setProperty('--cv', color || '#aa33ff');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i><i></i>';
+  _emit(el, dur * 1000 + 140);
+  const n = _reduced ? 3 : 7;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+    const rad = 56 + Math.random() * 40;
+    const e = _take('cv-spark');
+    e.style.left = (p.x + Math.cos(ang) * rad) + 'px';
+    e.style.top = (p.y + Math.sin(ang) * rad) + 'px';
+    e.style.setProperty('--cv', color || '#cc66ff');
+    e.style.setProperty('--dx', (-Math.cos(ang) * rad) + 'px');
+    e.style.setProperty('--dy', (-Math.sin(ang) * rad) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 120);
+  }
+}
+
+// debtCoinDrain — เหรียญต้องสาปถูก "สูบจ่าย" ลงล่าง (cursed coins siphoned away; รับพิกัด ctx.x/y)
+function pDebtCoinDrain(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('debtCoinDrain', { color: color || '#d4a017', x: p.x, y: p.y })) return;
+  const dur = _dur(0.7);
+  const n = _reduced ? 3 : 7;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2;
+    const rad = 30 + Math.random() * 40;
+    const el = _take('cv-debtcoin');
+    el.style.left = (p.x + Math.cos(ang) * rad) + 'px';
+    el.style.top = (p.y + Math.sin(ang) * rad - 10) + 'px';
+    el.style.setProperty('--cv', color || '#d4a017');
+    el.style.setProperty('--dx', (-Math.cos(ang) * rad * 0.7) + 'px');
+    el.style.setProperty('--dy', (44 + Math.random() * 40) + 'px'); // siphon downward (paying debt)
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (i * 0.03) + 's';
+    _emit(el, dur * 1000 + i * 40 + 120);
+  }
+}
+
+// sealBreak — ตราสัญญาแตก + คลื่นปลดหนี้ (shattered contract seal + relief shockwave)
+function pSealBreak(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('sealBreak', { color: color || '#b066dd', x: c.x, y: c.y })) return;
+  const dur = _dur(0.5);
+  const el = _take('cv-sealbreak');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#b066dd');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i><span></span><span></span><span></span><span></span>';
+  _emit(el, dur * 1000 + 120);
+}
+
 // dispatcher: ชื่อ primitive → ฟังก์ชัน (ใช้ใน VFX_MAP แบบ data-driven)
 const PRIM = {
   flash: pFlash, pulse: pPulse, slash: pSlash, spark: pSpark,
@@ -648,6 +770,8 @@ const PRIM = {
   stakeRing: pStakeRing, suitSpark: pSuitSpark, riskPulse: pRiskPulse,
   demonSigil: pDemonSigil, contractRing: pContractRing, sinEmber: pSinEmber,
   devilBetBurst: pDevilBetBurst, cursedFlame: pCursedFlame, bloodShock: pBloodShock,
+  debtSeal: pDebtSeal, debtChain: pDebtChain, ledgerGlyph: pLedgerGlyph,
+  collectorPull: pCollectorPull, debtCoinDrain: pDebtCoinDrain, sealBreak: pSealBreak,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -656,6 +780,8 @@ const COORD_ARG = {
   crescentArc: [2, 3], lunarSpark: [2, 3],
   slotReel: [1, 2], cursedCoin: [1, 2], suitSpark: [2, 3],
   demonSigil: [1, 2], sinEmber: [2, 3], devilBetBurst: [1, 2], cursedFlame: [1, 2],
+  debtSeal: [1, 2], debtChain: [2, 3], ledgerGlyph: [2, 3],
+  collectorPull: [1, 2], debtCoinDrain: [1, 2],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -919,9 +1045,21 @@ const VFX_MAP = {
   gb:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffcc00'],  on: { combo: [['flash', '#3a2e00'], ['coinBurst', '#ffcc00'], ['spark', '#ffe680', 8]] } },
   // COKE ZERO — ศูนย์ดำ-ขาวเย็น: วาบขาว + วงพัลส์ + คลื่นมืด (คอนทราสต์ดำ-ขาว)
   oh:  { rarity: 'mythic', theme: 'time', affects: 'break', aura: ['frost', '#e8f4ff'],  on: { break: [['flash', '#ffffff'], ['pulse', '#cfe8ff'], ['shadowBurst', '#0a0a0a', 0.5]] } },
-  // LORD OF DEBT — DEBT CONTRACT โซ่เงา + เหรียญ (clear ตอน BREAK), เงาฟันตอน berserk hit;
-  // affects=debt → ตัวนับ DEBT เดิม (#debtStackCounter) เรืองตอบสนองตอนหนี้เปลี่ยน (ไม่สร้าง UI ซ้ำ)
-  ld:  { rarity: 'mythic', theme: 'zeny', affects: 'debt', aura: ['drain', '#9944cc'],  on: { break: [['drainPulse', '#9944cc'], ['coinBurst', '#b066dd']], hit: ['slash', '#7744aa', 1], debt: [['drainPulse', '#9944cc'], ['coinBurst', '#b066dd']] } },
+  // LORD OF DEBT — DEBT CONTRACT (debtContract): ออร่าหนี้ม่วง-ทองบัญชี "หายใจ" (passive) ที่
+  // ความเข้มไต่ตาม DEBT STACK จริง 0–5 → 0–3 (ภาระสะสมเห็นได้ตลอด, ตัวนับ #debtStackCounter ยัง
+  // เป็นแหล่งความจริง ไม่สร้าง UI ซ้ำ). ทุกสัญญา (debt) = ตราสัญญาหนี้ประทับ (สีตามพลังต้องห้ามที่
+  // เพิ่งเซ็น ผ่าน '$state') + โซ่เงารัดเข้า + ตัวเลขดอกเบี้ยลอยขึ้น. ครบ 5 (debtmax / MAX DEBT) =
+  // หลุมทวงหนี้ดูดเข้า + โซ่รัดแน่น + วาบมืด (การทวงคืนที่หลีกเลี่ยงไม่ได้). BREAK = ตราสัญญาแตก
+  // (sealBreak) ปลดหนี้; ถ้ามีหนี้ค้างจริง (debtclear) = เหรียญต้องสาปถูกสูบจ่าย + รีเซ็ตความเข้มออร่า.
+  // BERSERK hit = ฟันเงาผูกโซ่ (throttle ที่ context 'hit'). affects=debt → ตัวนับ DEBT ตอบสนอง
+  // ด้วยสีของพลังต้องห้ามที่เพิ่งเซ็น (ctx.color).
+  ld:  { rarity: 'mythic', theme: 'debtContract', affects: 'debt', aura: ['debt', '#9944cc'],  on: {
+           debt:      [['debtSeal', '$state'], ['debtChain', '#b066dd', 3], ['ledgerGlyph', '#d4a017', 4]],
+           debtmax:   [['collectorPull', '#aa33ff'], ['debtChain', '#cc44ff', 5], ['ledgerGlyph', '#ff3366', 5], ['flash', '#1a0022']],
+           break:     [['sealBreak', '#b066dd']],
+           debtclear: [['debtCoinDrain', '#d4a017'], ['ledgerGlyph', '#ff6688', 4]],
+           hit:       [['slash', '#7744aa', 1], ['debtChain', '#9944cc', 2]],
+         } },
   // CATULLANUX — ราชาแมว combo lock: รอยร้าวหนัก + วง lock
   kn:  { rarity: 'mythic', theme: 'analysis', affects: 'combo', aura: ['glow',  '#ffaa44'],  on: { break: [['breakCrack', '#ffbf6a', true], ['comboRing', '#ffcf8a']] } },
   // BEELZEBRUH — ฝูงแมลงพิษเขียว: คลื่นมืดเขียว + สะเก็ดฝูง
@@ -961,7 +1099,7 @@ const VFX_MAP = {
 // ใช้ child element เฉพาะ (#cvAuraEl) แทน ::before เพื่อไม่ชนกับ aura ของบอสสกิน
 // (toei-enigma-aura ใช้ทั้ง ::before และ ::after บน #fighter อยู่แล้ว).
 let _activeAuraId = null;
-const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal'];
+const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt'];
 
 function _auraEl(create) {
   const f = _fighter();
@@ -1029,6 +1167,11 @@ function _runPrim(spec, ctx) {
   const fn = PRIM[name];
   if (typeof fn !== 'function') return;
   const args = spec.slice(1);
+  // '$state' sentinel → สีของสถานะ/พลังที่เพิ่งเกิดจริง (เช่น LORD OF DEBT สีพลังต้องห้าม
+  // ที่เพิ่งเซ็นสัญญา) ส่งผ่าน ctx.color — ทำให้ตราสัญญาเปลี่ยนสีตามหนี้ที่เซ็นจริง.
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '$state') args[i] = (ctx && ctx.color) || '#b066dd';
+  }
   // ฉีดพิกัดจาก ctx เข้า args ตามตำแหน่งของแต่ละ primitive (COORD_ARG)
   if (ctx && (ctx.x !== undefined) && (ctx.y !== undefined)) {
     const idx = COORD_ARG[name];
@@ -1072,9 +1215,10 @@ function triggerCardVfx(id, context, ctx) {
   if (ctx && ctx.charge != null) setCharge(id, ctx.charge, ctx.chargeMax || ctx.max || 0);
   // 4) aura intensity build-up (ค่าจริงจาก ctx.tier — เช่น GLOOM obsession)
   if (ctx && ctx.tier != null) setAuraTier(id, ctx.tier);
-  // 5) อิลิเมนต์ของเกมที่ได้รับผลจริงต้องตอบสนอง (ข้าม per-hit เพื่อกัน spam)
+  // 5) อิลิเมนต์ของเกมที่ได้รับผลจริงต้องตอบสนอง (ข้าม per-hit เพื่อกัน spam).
+  //    ctx.color (ถ้ามี) ชนะ aura color — เช่น ตัวนับ DEBT เรืองด้วยสีพลังต้องห้ามที่เพิ่งเซ็น.
   if (entry.affects && context !== 'hit') {
-    targetPulse(entry.affects, (entry.aura && entry.aura[1]), entry.theme);
+    targetPulse(entry.affects, (ctx && ctx.color) || (entry.aura && entry.aura[1]), entry.theme);
   }
 }
 

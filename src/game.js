@@ -4167,9 +4167,16 @@ function _lodActivateDebtState() {
   const state = pool[Math.floor(Math.random() * pool.length)];
 
   // Gain one DEBT STACK (max 5)
+  const _prevDebt = _lodDebtStacks;
   _lodDebtStacks = Math.min(5, _lodDebtStacks + 1);
   _lodUpdateStackUI();
-  _cardFx('debt'); // LOD — debt-themed pulse + existing #debtStackCounter reacts (cosmetic; counter stays source of truth)
+  // LOD VFX — DEBT CONTRACT signed: seal stamps (tinted by the forbidden power), binding chains,
+  // rising interest; aura intensity climbs with the real DEBT STACK (accumulating obligation).
+  // Cosmetic only — #debtStackCounter stays the source of truth.
+  const _lodTier = _lodDebtStacks >= 5 ? 3 : _lodDebtStacks >= 3 ? 2 : 1;
+  _cardFx('debt', { color: state.color, tier: _lodTier, stack: _lodDebtStacks });
+  // MAX DEBT — inevitable collection (fires only when newly reaching 5)
+  if(_prevDebt < 5 && _lodDebtStacks >= 5) _cardFx('debtmax');
 
   // Activate the state
   try { state.activate(cs); } catch(e) { console.warn('[LOD] state.activate error', e); return; }
@@ -5072,8 +5079,12 @@ function csOnBreakSuccess() {
   }
   // LORD OF DEBT: BREAK success clears all DEBT STACKS
   if(cs.cs_lordofdeath && _lodDebtStacks > 0) {
+    const _cleared = _lodDebtStacks;
     _lodDebtStacks = 0;
     _lodUpdateStackUI();
+    // LOD VFX — debt collected/voided: cursed coins siphoned away + aura intensity reset (tier 0).
+    // (the seal-shatter itself fires from the generic _cardFx('break') above — cosmetic only)
+    _cardFx('debtclear', { tier: 0, stacks: _cleared });
     showBigSplash('DEBT CLEARED', 'STACKS RESET', '#cc88ff', false);
   }
   // VALKYRIZZ: BREAK success triggers Elite card swap (same as AK47 complete)

@@ -525,6 +525,86 @@ const BUILD = {
     if (!_reduced && _intensity > 0.4) { const w2 = _mk('bwave', x, y, life * 0.85, '#1a0000'); w2.size = 16; w2.data = 2; _push(w2); }
   },
 
+  // ── LORD OF DEBT primitives (debt contract / accumulating obligation) ──────
+  // "สัญญาหนี้ต้องสาป": ตราสัญญาประทับ / โซ่ผูกมัดรัดเข้า / ตัวเลขดอกเบี้ยลอยขึ้น /
+  // หลุมทวงหนี้ดูดเข้า / เหรียญต้องสาปถูกสูบจ่าย / ตราสัญญาแตก. ม่วงต้องสาป-ทองบัญชี-ดำเหว.
+  // event-driven, particle จำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
+
+  // ตราสัญญาหนี้ประทับลง — วงสัญญาสองชั้น + ขีดบัญชีทอง + ยันต์หกเหลี่ยม (สีตามพลังต้องห้าม)
+  debtSeal(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.62), col = o.color || '#b066dd';
+    const p = _mk('dseal', x, y, life, col); p.size = o.size || 40; p.c2 = o.color2 || '#d4a017'; _push(p);
+    const g = _mk('glow', x, y, life * 0.6, col); g.size = 22; _push(g);
+  },
+  // โซ่เงาผูกมัด "รัดเข้า" หาเป้า — ลิงก์โซ่ไล่จากวงนอกเข้าศูนย์กลาง (รับพิกัด ctx.x/y)
+  debtChain(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#9944cc';
+    let n = _nParts(o.count || 3);
+    const life = _rmLife(o.dur || 0.5);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+      const rad = 52 + Math.random() * 30;
+      const p = _mk('dchain', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
+      p.rot = ang; p.size = rad; p.data = i * 0.03; // delay + reach length
+      _push(p);
+    }
+  },
+  // ตัวเลข/สัญลักษณ์ดอกเบี้ยลอยขึ้น (rising debt/interest glyphs; รับพิกัด ctx.x/y)
+  ledgerGlyph(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#d4a017';
+    let n = _nParts(o.count || 4);
+    const life = _rmLife(o.dur || 0.7);
+    const G = ['฿', '¥', '%', '$', '↑'];
+    for (let i = 0; i < n; i++) {
+      const p = _mk('dglyph', x + (Math.random() - 0.5) * 60, y, life, col);
+      p.vy = -(60 + Math.random() * 70); p.size = 13 + Math.random() * 5;
+      p.data = i * 0.05; p.txt = G[i % G.length];
+      _push(p);
+    }
+  },
+  // หลุมทวงหนี้ดูดเข้า — แกนเหว (reuse 'void') + วงแหวน + สะเก็ดลู่เข้า (collection gravity well)
+  collectorPull(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.62), col = o.color || '#aa33ff';
+    const v = _mk('void', x, y, life, '#1a0022'); v.size = 46; _push(v);
+    const r = _mk('ring', x, y, life, col); r.size = 30; _push(r);
+    let n = _nParts(o.count || 8);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.6;
+      const rad = 56 + Math.random() * 44;
+      const p = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
+      const sp = rad / life;                 // ถึงศูนย์กลางราว ๆ ตอนจบ
+      p.vx = -Math.cos(ang) * sp; p.vy = -Math.sin(ang) * sp;
+      p.size = 2 + Math.random() * 2; p.data = 1; // ember = ไม่โดนโน้มถ่วง, ถูกดูดเข้า
+      _push(p);
+    }
+  },
+  // เหรียญต้องสาปถูก "สูบจ่าย" ลงล่าง (cursed coins siphoned away; รับพิกัด ctx.x/y)
+  debtCoinDrain(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.7), col = o.color || '#d4a017';
+    let n = _nParts(7);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2;
+      const rad = 30 + Math.random() * 40;
+      const p = _mk('dcoin', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad - 10, life, col);
+      p.vx = -Math.cos(ang) * rad * 0.8;     // ลู่เข้าศูนย์กลาง
+      p.vy = 40 + Math.random() * 40;        // จมลง (สูบจ่ายหนี้)
+      p.size = 5 + Math.random() * 2; p.rot = Math.random() * 6; p.data = 6 + Math.random() * 6;
+      _push(p);
+    }
+  },
+  // ตราสัญญาแตก + คลื่นปลดหนี้ — คลื่นกระแทก (reuse 'bwave') + เศษตราแตกกระจาย (reuse 'crack')
+  sealBreak(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.5), col = o.color || '#b066dd';
+    const w = _mk('bwave', x, y, life, col); w.size = 24; w.data = 4; _push(w);
+    let n = _nParts(o.count || 5);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+      const p = _mk('crack', x, y, life, col);
+      p.rot = ang; p.size = 46 + Math.random() * 28; p.data = 2.5;
+      _push(p);
+    }
+  },
+
   // ── BOSS SKILL PRIMITIVES ──────────────────────────────────────────────────
   // "ท่าไม้ตาย" ของบอสแต่ละตัว — ยิงเฉพาะตอน skill activate (Overdrive) เท่านั้น
   // ไม่มี loop ถาวร, particle ต่อครั้งจำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
@@ -700,7 +780,8 @@ function spawnCardCanvasVfx(cardId, context, coord) {
   for (const s of list) {
     if (!Array.isArray(s)) continue;
     const name = s[0];
-    const opts = { color: s[1] };
+    // '$state' sentinel (เช่น LORD OF DEBT seal สีพลังต้องห้าม) → fallback ใน convenience path
+    const opts = { color: (s[1] === '$state' ? '#b066dd' : s[1]) };
     if (coord) { opts.x = coord.x; opts.y = coord.y; }
     // เดา arg ที่สอง: ตัวเลข = count, สตริง = variant (พอเพียงสำหรับ convenience API)
     if (typeof s[2] === 'number') opts.count = s[2];
@@ -1127,6 +1208,97 @@ function _draw(p, dt) {
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
       ctx.fillText(SUITS[(p.data | 0) % 4], 0, 0);
       ctx.shadowBlur = 0;
+      ctx.restore();
+      break;
+    }
+    // ── LORD OF DEBT kinds (debt contract) ────────────────────────────────
+    case 'dseal': {
+      // ตราสัญญาหนี้ประทับลง: วง 2 ชั้น + ขีดบัญชีทอง + ยันต์หกเหลี่ยม + จังหวะ "ตอก" ลงมา
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const stamp = t < 0.2 ? (1.55 - t / 0.2 * 0.55) : 1; // ตอกลงแล้วนิ่ง
+      const r = p.size * stamp;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(t * 0.6);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.4;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.66, 0, 6.283); ctx.stroke();
+      // ขีดบัญชี (ทอง) 6 ขีด — เหมือนตราสัญญา
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = _rgba(p.c2 || '#d4a017', 1); ctx.lineWidth = 2;
+      for (let k = 0; k < 6; k++) {
+        const ang = (k / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * r * 0.66, Math.sin(ang) * r * 0.66);
+        ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+        ctx.stroke();
+      }
+      // ยันต์หกเหลี่ยมด้านใน (contract sigil)
+      ctx.strokeStyle = _rgba('#ffffff', a * 0.8); ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let k = 0; k <= 6; k++) {
+        const ang = (k / 6) * Math.PI * 2;
+        const px = Math.cos(ang) * r * 0.42, py = Math.sin(ang) * r * 0.42;
+        if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'dchain': {
+      // โซ่ผูกมัด "รัดเข้า": ลิงก์โซ่ไล่จากวงนอก (p.x,p.y) เข้าศูนย์กลาง ตามอายุ
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      const a = Math.sin(Math.min(1, lt) * Math.PI);
+      const reach = Math.min(1, lt * 2.2);   // รัดเข้าเร็ว
+      const cx = p.x - Math.cos(p.rot) * p.size; // ศูนย์กลาง
+      const cy = p.y - Math.sin(p.rot) * p.size;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.2;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      const links = 4;
+      for (let k = 0; k < links; k++) {
+        const f = ((k + 0.5) / links) * reach;
+        const mx = p.x + (cx - p.x) * f, my = p.y + (cy - p.y) * f;
+        ctx.beginPath(); ctx.ellipse(mx, my, 5.5, 3, p.rot, 0, 6.283); ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      break;
+    }
+    case 'dglyph': {
+      // ตัวเลข/สัญลักษณ์ดอกเบี้ยลอยขึ้น (mounting interest)
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      p.y += p.vy * dt; p.vy *= 0.96;        // ลอยขึ้นแล้วชะลอ
+      const a = lt < 0.2 ? lt / 0.2 : (1 - (lt - 0.2) / 0.8);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.font = 'bold ' + Math.round(p.size) + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 6;
+      ctx.fillText(p.txt || '%', p.x, p.y);
+      ctx.shadowBlur = 0;
+      break;
+    }
+    case 'dcoin': {
+      // เหรียญต้องสาปถูกสูบจ่าย: ลู่เข้า + จมลง + จาง + ขอบม่วงหนี้
+      p.vy += 240 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = (1 - t) * 0.9;
+      const rx = p.size * Math.abs(Math.cos(p.rot)) + 1, ry = p.size;
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = (1 - t) * 0.7;
+      ctx.strokeStyle = _rgba('#6a1b9a', 1); ctx.lineWidth = 1.4; // ขอบม่วง (หนี้)
+      ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 6.283); ctx.stroke();
       ctx.restore();
       break;
     }
