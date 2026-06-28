@@ -5720,9 +5720,13 @@ function _clearSurpriseClasses(screen) {
 
 // Low VFX path: OS reduced-motion OR Flash Effect = OFF
 function _revealLowFx() {
-  try {
-    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
-  } catch(e) {}
+  // The reveal's collapsed/calm path is driven ONLY by the EXPLICIT in-game
+  // Flash Effect = OFF. OS `prefers-reduced-motion` is intentionally NOT checked
+  // here: reduced-motion devices still play the full reveal state machine (idle
+  // float, charge particles, hinting, fakeout, flip, burst) — only the 3D flip
+  // spin is gentled in CSS (@media prefers-reduced-motion). This decouples the
+  // OS setting from the deliberate in-game Low-VFX option so a phone with
+  // "Reduce Motion" on no longer strips the reveal to an instant flip.
   return !!(typeof gameSettings !== 'undefined' && gameSettings && gameSettings.flashEffect === 'off');
 }
 
