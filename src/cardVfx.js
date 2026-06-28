@@ -839,6 +839,42 @@ function pSoulReap(color, count, x, y) {
   }
 }
 
+// ── fire-clone differentiators (EDGEGA claw / ATROSUS resonance) ─────────────
+// แยกบุคลิกการ์ดไฟสามใบให้ต่างกัน: IFRIED = ไฟ/อินเฟอร์โน (เจ้าของไฟ), EDGEGA =
+// รอยเล็บเสือปะทุ (claw rake), ATROSUS = คลื่นเรโซแนนซ์อสูร (harmonic wave).
+
+// clawRake — รอยเล็บกรงเล็บเสือ 3–4 เส้นโค้งขนาน + สะเก็ดคม (รับพิกัด ctx.x/y)
+function pClawRake(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('clawRake', { color: color || '#ff7733', count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.42);
+  const n = _reduced ? 2 : (count || 4);
+  for (let i = 0; i < n; i++) {
+    const el = _take('cv-claw');
+    el.style.left = p.x + 'px'; el.style.top = (p.y + (i - (n - 1) / 2) * 16) + 'px';
+    el.style.setProperty('--cv', color || '#ff7733');
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (i * 0.04) + 's';
+    _emit(el, dur * 1000 + i * 50 + 100);
+  }
+}
+
+// resonanceWave — คลื่นเรโซแนนซ์ขยายเป็นจังหวะซ้อน (harmonic resonance)
+function pResonanceWave(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('resonanceWave', { color: color || '#ee3333', x: c.x, y: c.y })) return;
+  const dur = _dur(0.7);
+  const n = _reduced ? 1 : 3;
+  for (let i = 0; i < n; i++) {
+    const el = _take('cv-rwave');
+    el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+    el.style.setProperty('--cv', color || '#ee3333');
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (i * 0.13) + 's';
+    _emit(el, dur * 1000 + i * 140 + 120);
+  }
+}
+
 // dispatcher: ชื่อ primitive → ฟังก์ชัน (ใช้ใน VFX_MAP แบบ data-driven)
 const PRIM = {
   flash: pFlash, pulse: pPulse, slash: pSlash, spark: pSpark,
@@ -856,6 +892,7 @@ const PRIM = {
   collectorPull: pCollectorPull, debtCoinDrain: pDebtCoinDrain, sealBreak: pSealBreak,
   timeStop: pTimeStop, voidRift: pVoidRift, reaperScythe: pReaperScythe,
   deathKnell: pDeathKnell, soulReap: pSoulReap,
+  clawRake: pClawRake, resonanceWave: pResonanceWave,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -867,6 +904,7 @@ const COORD_ARG = {
   debtSeal: [1, 2], debtChain: [2, 3], ledgerGlyph: [2, 3],
   collectorPull: [1, 2], debtCoinDrain: [1, 2],
   reaperScythe: [2, 3], soulReap: [2, 3],
+  clawRake: [2, 3],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -1136,8 +1174,10 @@ const VFX_MAP = {
            sinstack: [['sinEmber', '#ff5522', 6], ['demonSigil', '#cc0011']],
            sinmax:   [['demonSigil', '#ffcc33'], ['bloodShock', '#cc0011'], ['devilBetBurst', '#ffcc33'], ['cursedFlame', '#ff3300']],
          } },
-  // EDGEGA — Lv2 Burst เสือ: ไฟพุ่ง + เล็บสามรอย
-  eg:  { rarity: 'mythic', theme: 'crit', affects: 'odBar', aura: ['fire',  '#ff6622'],  on: { od: [['fireBurst', '#ff6622'], ['slash', '#ff8844', 3]] } },
+  // EDGEGA — Lv2 Burst เสือ (claw rake): ไม่ใช่ไฟพุ่งกลางแล้ว — เป็น "รอยเล็บเสือปะทุ"
+  // (วาบ + กรงเล็บ 4 รอยขนานราดข้าม + สะเก็ดคม) ตอน Lv2 Burst เปิด ทุก 15 วิ. ต่างชัด
+  // จาก IFRIED (ไฟ/อินเฟอร์โน) และ ATROSUS (คลื่นเรโซแนนซ์).
+  eg:  { rarity: 'mythic', theme: 'crit', affects: 'odBar', aura: ['fire',  '#ff6622'],  on: { od: [['flash', '#2a1000'], ['clawRake', '#ff7733', 4], ['spark', '#ffd08a', 6]] } },
   // NOSIRIS — Soul Stack 0–5 (สะสมตอน BREAK) → JUDGMENT ตอนเต็ม 5: แสง holy ทอง + พัลส์,
   // pip ต่อ soul stack จริง (ctx.stack), เต็ม 5 = expire flourish (JUDGMENT/ปฏิเสธความตาย)
   // JUDGMENT (เต็ม 5 = ปฏิเสธความตาย) ได้ payoff เฉพาะของตัวเอง: วาบทอง + แสง holy ทอง→ม่วงคู่ +
@@ -1174,13 +1214,17 @@ const VFX_MAP = {
   bz:  { rarity: 'mythic', theme: 'soul', affects: 'break', aura: ['drain', '#88cc00'],  on: { break: [['shadowBurst', '#88cc00'], ['spark', '#a4dd2a', 7]] } },
   // VALKYRIZZ — ปีกศักดิ์สิทธิ์ + หอก: แสง holy + ฟันสว่าง
   vr:  { rarity: 'mythic', theme: 'idol', affects: 'break', aura: ['holy',  '#cc88ff'],  on: { break: [['holyBurst', '#d6a3ff'], ['slash', '#e0b8ff', 1]] } },
-  // ATROSUS — Resonance อสูรเกรี้ยว: ไฟพุ่ง + เล็บสามรอยแดง
-  at:  { rarity: 'mythic', theme: 'crit', affects: 'break', aura: ['fire',  '#ee3333'],  on: { break: [['fireBurst', '#ee3333'], ['slash', '#ff4444', 3]] } },
+  // ATROSUS — RESONANCE อสูรเกรี้ยว (resonance wave): ไม่ใช่ไฟพุ่งแล้ว — เป็น "คลื่นเรโซแนนซ์"
+  // (วงคลื่นฮาร์มอนิกขยายเป็นจังหวะซ้อน + พัลส์แดงสั่น) ตอน BREAK เปิด Resonance. ต่างชัดจาก
+  // IFRIED (ไฟ) และ EDGEGA (กรงเล็บ).
+  at:  { rarity: 'mythic', theme: 'crit', affects: 'break', aura: ['fire',  '#ee3333'],  on: { break: [['resonanceWave', '#ee3333'], ['pulse', '#ff5544']] } },
   // KILL-D01 — เลเซอร์หุ่นยนต์: glitch scanline + เส้นเลเซอร์ + วาบ
   kl:  { rarity: 'mythic', theme: 'analysis', affects: 'break', aura: ['tech',  '#00ffee'],  on: { break: [['glitch', '#00ffee'], ['streak', '#aaffff'], ['flash', '#003333']] } },
   // IFRIED — Inferno Stack สะสมตอนคริ (aura-only, ไม่มี pip): ember ตอนสะสม (throttle),
   // Inferno Burst ตอนครบ 10 = ไฟพุ่งใหญ่ + วาบ; affects=enemy (ไฟลงศัตรู)
-  if:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', aura: ['fire',  '#ff4400'],  on: { break: [['fireBurst', '#ff4400'], ['spark', '#ff7722', 7]], emberhit: ['spark', '#ff6622', 4], inferno: [['fireBurst', '#ff4400'], ['spark', '#ff8844', 8], ['flash', '#2a0a00']] } },
+  // IFRIED ครองไฟแต่ผู้เดียว: Inferno Burst เป็น "จุดสุดยอดของไฟ" — ไฟพุ่งสองชั้น (แดง→ทอง) +
+  // สะเก็ดเยอะ + คลื่นความร้อน. EDGEGA/ATROSUS เลิกใช้ fireBurst แล้ว → ไฟ = IFRIED เท่านั้น.
+  if:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', aura: ['fire',  '#ff4400'],  on: { break: [['fireBurst', '#ff4400'], ['spark', '#ff7722', 7]], emberhit: ['spark', '#ff6622', 4], inferno: [['flash', '#2a0a00'], ['fireBurst', '#ff4400'], ['fireBurst', '#ffaa22'], ['spark', '#ff8844', 10], ['pulse', '#ff6622']] } },
   // RSICK-0806 — ไซเบอร์ Execution: glitch + พัลส์แดง
   rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff2233'],  on: { break: [['glitch', '#ff2233'], ['pulse', '#ff4455']] } },
   // FALLEN WECHAT — Overloaded BREAK เทวดาตก: glitch + คลื่นมืด + วาบดำ

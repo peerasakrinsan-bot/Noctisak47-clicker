@@ -657,6 +657,42 @@ const BUILD = {
     }
   },
 
+  // ── fire-clone differentiators (EDGEGA claw / ATROSUS resonance) ────────────
+  // แยกบุคลิกการ์ดไฟ: EDGEGA = รอยเล็บเสือปะทุ, ATROSUS = คลื่นเรโซแนนซ์อสูร
+  // (IFRIED ยังครองไฟ/อินเฟอร์โนผ่าน fireBurst). event-driven, particle จำกัด.
+
+  // รอยเล็บกรงเล็บเสือ — เส้นโค้งคมขนาน 3–4 เส้น + สะเก็ดคม (รับพิกัด ctx.x/y)
+  clawRake(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ff7733';
+    let n = _reduced ? 2 : (o.count || 4);
+    const life = _rmLife(o.dur || 0.42);
+    const baseRot = (o.rot !== undefined ? o.rot : -0.5);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('claw', x, y + (i - (n - 1) / 2) * 16, life, col);
+      p.rot = baseRot; p.size = o.len || 130; p.data = i * 0.04; p.seed = Math.random();
+      _push(p);
+    }
+    let s = _nParts(5);
+    for (let i = 0; i < s; i++) {
+      const ang = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 120;
+      const e = _mk('spark', x, y, life, '#ffd08a');
+      e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp; e.size = 2 + Math.random() * 2; e.data = 1;
+      _push(e);
+    }
+  },
+  // คลื่นเรโซแนนซ์อสูร — วงฮาร์มอนิกขยายเป็นจังหวะซ้อน (sustained resonance) + แกนสั่น
+  resonanceWave(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ee3333';
+    const life = _rmLife(o.dur || 0.7);
+    const waves = (_reduced || _intensity <= 0.4) ? 1 : (o.count || 3);
+    for (let i = 0; i < waves; i++) {
+      const p = _mk('rwave', x, y, life, col);
+      p.size = 30 + i * 6; p.data = i * 0.13;   // จังหวะเรโซแนนซ์ซ้อน
+      _push(p);
+    }
+    const g = _mk('glow', x, y, life * 0.5, col); g.size = 40; _push(g);
+  },
+
   // ── BOSS SKILL PRIMITIVES ──────────────────────────────────────────────────
   // "ท่าไม้ตาย" ของบอสแต่ละตัว — ยิงเฉพาะตอน skill activate (Overdrive) เท่านั้น
   // ไม่มี loop ถาวร, particle ต่อครั้งจำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
@@ -1528,6 +1564,45 @@ function _draw(p, dt) {
       ctx.fillStyle = _rgba('#ffffff', a);
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 0.7, 0, 6.283); ctx.fill();
       ctx.restore();
+      break;
+    }
+    // ── fire-clone differentiator kinds ──────────────────────────────────
+    case 'claw': {
+      // รอยเล็บเสือ: เส้นโค้งคม แกนขาว ขอบสี ลากออกเร็วแล้วจาง (honor p.data delay)
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      const grow = lt < 0.4 ? (lt / 0.4) : 1;
+      const a = lt < 0.4 ? (lt / 0.4) : (1 - (lt - 0.4) / 0.6);
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const w = p.size * grow, bend = (p.seed - 0.5) * 36 - 28; // โค้งเหมือนรอยเล็บ
+      const grad = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+      grad.addColorStop(0, _rgba(p.color, 0));
+      grad.addColorStop(0.5, _rgba('#ffffff', 1));
+      grad.addColorStop(1, _rgba(p.color, 0));
+      ctx.strokeStyle = grad; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(-w / 2, 0); ctx.quadraticCurveTo(0, bend, w / 2, 0); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'rwave': {
+      // คลื่นเรโซแนนซ์: วงขยาย + ความหนา "สั่น" เป็นจังหวะฮาร์มอนิก + วงในจาง (honor p.data delay)
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      const r = p.size * (0.4 + lt * 3.2);
+      const a = (1 - lt);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1);
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 10;
+      ctx.lineWidth = 2 + Math.abs(Math.sin(lt * Math.PI * 4)) * 2.5; // สั่นฮาร์มอนิก
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.globalAlpha = a * 0.5; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 0.78, 0, 6.283); ctx.stroke();
       break;
     }
   }

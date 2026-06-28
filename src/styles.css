@@ -6542,6 +6542,32 @@
   100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(.5); }
 }
 
+/* ── fire-clone differentiators (EDGEGA claw / ATROSUS resonance) — DOM fallback ──
+   EDGEGA = รอยเล็บเสือ, ATROSUS = คลื่นเรโซแนนซ์. transform/opacity สั้น ๆ, มือถือ-safe. */
+/* clawRake — รอยเล็บกรงเล็บโค้ง (แกนขาว ขอบสี) ลากออกแล้วจาง */
+.cv-claw {
+  width: 130px; height: 16px; transform: translate(-50%, -50%) rotate(-28deg) scaleX(.2); opacity: 0;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent, var(--cv, #ff7733) 30%, #fff 50%, var(--cv, #ff7733) 70%, transparent);
+  box-shadow: 0 0 10px var(--cv, #ff7733);
+  animation: cvClaw .42s ease-out forwards;
+}
+@keyframes cvClaw {
+  0%   { opacity: 0;  transform: translate(-50%, -50%) rotate(-28deg) scaleX(.2); }
+  40%  { opacity: .95; transform: translate(-50%, -50%) rotate(-28deg) scaleX(1); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) rotate(-28deg) scaleX(1.08); }
+}
+/* resonanceWave — วงเรโซแนนซ์ขยายเป็นจังหวะ (กังวานฮาร์มอนิก) */
+.cv-rwave {
+  width: 30px; height: 30px; transform: translate(-50%, -50%) scale(.4); opacity: 0;
+  border-radius: 50%; border: 3px solid var(--cv, #ee3333); box-shadow: 0 0 14px var(--cv, #ee3333);
+  animation: cvRWave .7s ease-out forwards;
+}
+@keyframes cvRWave {
+  0%   { opacity: .9; transform: translate(-50%, -50%) scale(.4); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) scale(3.6); }
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    GAMEPLAY-ELEMENT VFX LAYER (.game-vfx-*)
    ──────────────────────────────────────────────────────────────────────────
