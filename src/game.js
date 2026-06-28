@@ -5572,6 +5572,39 @@ let _revealTimers = [];
 // → settled (or skipped → settled). Drives the second-tap skip dispatcher.
 let _revealState = 'idle';
 
+// monotonic clock helper (reveal timing must not depend on wall-clock jumps)
+function _revealNow() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+
+// ── REVEAL TIMELINE INSTRUMENTATION (dev-only, zero-cost when off) ─────────
+// Logs every reveal stage with elapsed ms from RevealStart so the full tap →
+// reveal timeline can be audited in a real browser. Enable with
+// `localStorage.setItem('reveal_debug','1')` (or `window.REVEAL_DEBUG = true`).
+// Never runs in production (gated) and never touches gameplay/save state.
+let _revealT0 = 0;            // RevealStart timestamp (perf clock)
+let _revealStartedAt = 0;     // same anchor, used by the skip-duration floor
+const _REVEAL_DEBUG = (() => {
+  try {
+    if(typeof window !== 'undefined' && window.REVEAL_DEBUG) return true;
+    if(typeof localStorage !== 'undefined' && localStorage.getItem('reveal_debug') === '1') return true;
+  } catch(e) {}
+  return false;
+})();
+function _revealMark(stage, extra) {
+  let on = _REVEAL_DEBUG;
+  try { if(!on && typeof window !== 'undefined' && window.REVEAL_DEBUG) on = true; } catch(e) {}
+  if(!on) return;
+  const el = (_revealNow() - _revealT0);
+  try { console.log('[reveal] +' + el.toFixed(0).padStart(4, ' ') + 'ms ' + stage + (extra ? '  ' + extra : '')); } catch(e) {}
+}
+
+// ── MINIMUM SKIP / REVEAL DURATION FLOOR ──────────────────────────────────
+// The double-tap skip must NEVER collapse the reveal to "instant". Any skip
+// event (a genuine impatient second tap, or a synthesized/ghost event the
+// click/mousedown guard below doesn't recognise) that lands before this floor
+// is rejected — the reveal keeps playing. This is the spec floor: skip may
+// bypass only AFTER 300ms; no code path may reveal the card in <300ms.
+const MIN_SKIP_MS = 300;
+
 // ══════════════════════════════════════════════════════════════════════
 // MULTI-PATTERN FAKEOUT REVEAL — cosmetic-only presentation layer
 // ──────────────────────────────────────────────────────────────────────
@@ -5811,6 +5844,7 @@ function _detachSkip() {
 // particles, charge/flip classes, flash, then shows the final face + info +
 // reward + COLLECT. Idempotent and safe to call once.
 function _finalizeReveal() {
+  _revealMark('FinalizeReveal');
   const screen = $('cardDrawScreen');
   const result = _cardDrawResult;
   const tier   = (result && result.tier) ? result.tier : null;
@@ -5852,8 +5886,20 @@ function _finalizeReveal() {
 }
 
 // Second-tap handler: skip the running animation to the final result.
+// Enforces the minimum-skip floor: a skip attempt before MIN_SKIP_MS has
+// elapsed since RevealStart is REJECTED (the reveal keeps playing) so no input
+// — genuine fast double-tap or an unrecognised synthesized event — can ever
+// collapse the reveal below the floor.
 function _skipReveal() {
   if(_revealState === 'idle' || _revealState === 'settled') { _detachSkip(); return; }
+  _revealMark('SkipRequested', 'state=' + _revealState);
+  const elapsed = _revealNow() - _revealStartedAt;
+  if(elapsed < MIN_SKIP_MS) {
+    // too soon — refuse the skip, keep the suspense; a later tap can still skip
+    _revealMark('SkipRejected', 'elapsed=' + elapsed.toFixed(0) + 'ms < ' + MIN_SKIP_MS + 'ms');
+    return;
+  }
+  _revealMark('SkipAccepted', 'elapsed=' + elapsed.toFixed(0) + 'ms');
   _revealState = 'skipped';
   _finalizeReveal();
 }
@@ -6019,6 +6065,7 @@ function _runSurpriseReveal(result, plan, screen) {
   screen.classList.remove('is-idle');
   screen.classList.add('is-charging');
   _revealState = 'charging';
+  _revealMark('ChargeStart', 'fakeout=' + pattern + ' charge=' + T.charge + 'ms');
   _attachSkip(); // skip → _finalizeReveal() jumps straight to the TRUE rarity
   hiddenEl.classList.add('charging');
   if(pattern === 'particleReverse') _spawnRevealParticles(fakeTier, 12); // motes move outward
@@ -6030,6 +6077,7 @@ function _runSurpriseReveal(result, plan, screen) {
     screen.classList.remove('is-charging');
     screen.classList.add('is-hinting');
     _revealState = 'hinting';
+    _revealMark('ChargeComplete', 'hint=' + T.hint + 'ms');
 
     after(T.hint, () => {
       screen.classList.remove('is-hinting');
@@ -6037,6 +6085,7 @@ function _runSurpriseReveal(result, plan, screen) {
       _revealState = 'surprise-fake';
       hiddenEl.classList.remove('charging');
       setLabel(fakeCfg.label); // tease the FAKE rarity so the pull reads lower
+      _revealMark('FakeoutShown', 'fakeRarity=' + fakeCfg.label + ' hold=' + T.frame + 'ms');
       _revealHaptic([10]);
       after(T.frame, _runTwist); // ── PHASE C ──
     });
@@ -6047,6 +6096,7 @@ function _runSurpriseReveal(result, plan, screen) {
     screen.classList.remove('is-surprise-fake');
     _revealState = 'surprise-transform';
     screen.classList.add('is-surprise-transform', twistCls);
+    _revealMark('FakeoutUpgrade', 'fake=' + fakeTier + '→true=' + trueTier + ' twist=' + T.twist + 'ms');
 
     // doubleUpgrade: premium → ELITE → mythic (two visible upgrades, one burst)
     if(pattern === 'doubleUpgrade') {
@@ -6114,6 +6164,7 @@ function _runSurpriseReveal(result, plan, screen) {
   function _surpriseBurstTrue() {
     screen.classList.add('is-flipping');
     _revealState = 'flipping';
+    _revealMark('RevealFlip', 'flipHalf=' + T.flipHalf + 'ms');
     hiddenEl.classList.add('flip-out');
     after(T.flipHalf, () => whenReady(() => {
       hiddenEl.style.display = 'none';
@@ -6127,6 +6178,7 @@ function _runSurpriseReveal(result, plan, screen) {
         screen.classList.remove('is-flipping');
         screen.classList.add('is-burst');
         _revealState = 'burst';
+        _revealMark('RevealComplete', 'trueRarity=' + trueCfg.label + ' burst=' + T.burst + 'ms');
         setLabel(trueCfg.label);
         _spawnRevealParticles(trueTier);
         _revealHaptic([trueTier === 'mythic' ? 40 : 28]);
@@ -6142,6 +6194,7 @@ function _runSurpriseReveal(result, plan, screen) {
           label.classList.remove('pop'); label.style.opacity = '0';
           _showDupeBanner(result);
           $('cardDrawCollectBtn').classList.add('visible');
+          _revealMark('Settled');
         });
       });
     }));
@@ -6154,10 +6207,15 @@ function revealCard(e) {
   // to the skip handler (_onSkipTap), so this guard just blocks restarts.
   if(_revealState !== 'idle') return;
 
+  // anchor the reveal clock: drives the dev timeline log AND the minimum-skip
+  // floor (no skip may resolve before MIN_SKIP_MS after this instant).
+  _revealStartedAt = _revealT0 = _revealNow();
+  _revealMark('RevealStart', e ? 'via=' + e.type : 'via=programmatic');
+
   // touch-started reveal: arm the ghost-click guard so the synthesized mouse
   // click from THIS tap can't immediately skip the reveal it just started.
   if(e && e.type === 'touchstart') {
-    _ghostClickGuardUntil = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + GHOST_CLICK_GUARD_MS;
+    _ghostClickGuardUntil = _revealNow() + GHOST_CLICK_GUARD_MS;
   }
 
   const result = _cardDrawResult;
@@ -6170,7 +6228,12 @@ function revealCard(e) {
   // Rarely re-route Elite/Mythic into one randomly-chosen fakeout pattern (true
   // rarity in `result` is untouched). Skipped under Low VFX (in _planSurprise).
   _revealSurprise = _planSurprise(result);
-  if(_revealSurprise) { _runSurpriseReveal(result, _revealSurprise, screen); return; }
+  if(_revealSurprise) {
+    _revealMark('FakeoutSelected', 'pattern=' + _revealSurprise.pattern + ' fake=' + _revealSurprise.fakeTier + ' true=' + tier);
+    _runSurpriseReveal(result, _revealSurprise, screen);
+    return;
+  }
+  _revealMark('NormalReveal', 'tier=' + tier);
 
   // push per-rarity timing to CSS so animation length tracks JS sequencing
   screen.style.setProperty('--charge-dur', cfg.charge+'ms');
@@ -6210,6 +6273,7 @@ function revealCard(e) {
   screen.classList.remove('is-idle');
   screen.classList.add('is-charging');
   _revealState = 'charging';
+  _revealMark('ChargeStart', 'dur=' + chargeMs + 'ms' + (lowFx ? ' (lowFx)' : ''));
   // route every subsequent tap to the skip handler (safe: listeners added now
   // do not fire for the tap currently being dispatched)
   _attachSkip();
@@ -6224,6 +6288,7 @@ function revealCard(e) {
     screen.classList.remove('is-charging');
     screen.classList.add('is-hinting');
     _revealState = 'hinting';
+    _revealMark('ChargeComplete', 'hint=' + hintMs + 'ms');
     // a short tension tick for the rarer tiers as the colour bleeds through
     if(!lowFx && (tier === 'elite' || tier === 'mythic')) {
       _revealHaptic(tier === 'mythic' ? [12,24,12] : [10]);
@@ -6234,6 +6299,7 @@ function revealCard(e) {
     screen.classList.remove('is-hinting');
     screen.classList.add('is-flipping');
     _revealState = 'flipping';
+    _revealMark('RevealFlip', 'flipHalf=' + flipHalf + 'ms');
     hiddenEl.classList.remove('charging');
     if(!lowFx) hiddenEl.classList.add('flip-out');
 
@@ -6270,6 +6336,7 @@ function revealCard(e) {
         revealed.style.display = 'flex';
         revealed.classList.remove('show'); void revealed.offsetWidth; revealed.classList.add('show');
 
+        _revealMark('RevealComplete', 'burst=' + burstMs + 'ms');
         // ── STATE: SETTLED ──
         after(burstMs, () => {
           screen.classList.remove('is-burst');
@@ -6281,6 +6348,7 @@ function revealCard(e) {
           label.style.opacity = '0'; // fade the stamp so it never covers art at rest
           _showDupeBanner(result);
           $('cardDrawCollectBtn').classList.add('visible');
+          _revealMark('Settled');
         });
       });
     }));
