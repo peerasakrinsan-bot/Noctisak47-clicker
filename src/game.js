@@ -5523,6 +5523,88 @@ let _revealTimers = [];
 // → settled (or skipped → settled). Drives the second-tap skip dispatcher.
 let _revealState = 'idle';
 
+// ══════════════════════════════════════════════════════════════════════
+// SURPRISE UPGRADE REVEAL — cosmetic-only fakeout layer
+// ──────────────────────────────────────────────────────────────────────
+// Rarely, an Elite/Mythic pull is *presented* as a lower rarity first, then
+// transforms into its true rarity for extra anticipation. This is PURELY a
+// presentation change: the gacha already rolled the real card in
+// rollCardDrop() BEFORE the reveal, and `_cardDrawResult` (the true rarity /
+// card) is NEVER touched here. The fake rarity is only ever a CSS palette
+// class + a teaser label during the early phases — it never enters the
+// collection, never plays reward/dupe sounds, never saves. Skip jumps
+// straight to the true result via the shared _finalizeReveal() path.
+//   Elite  → appears STANDARD, then bursts into ELITE   (15–20% of Elites)
+//   Mythic → appears PREMIUM,  then bursts into MYTHIC   (25–35% of Mythics)
+//   Mythic "Blackout" → darken + heartbeat + explosion   (5–10% of Mythics)
+// Disabled entirely under Low VFX / reduced-motion (falls back to normal).
+const SURPRISE_CHANCE = { elite: 0.17, mythic: 0.30 }; // within the 15–20% / 25–35% spec
+const SURPRISE_BLACKOUT_CHANCE = 0.07;                 // 5–10% of Mythic pulls (exclusive sub-form)
+const SURPRISE_FAKE_TIER = { elite: 'standard', mythic: 'premium' };
+// Surprise pacing (ms) — total lands inside the 2.2–3.0s window:
+//   elite  ≈ 360+200+300+440+300+300+600 ≈ 2.50s
+//   mythic ≈ 440+240+520+520+320+320+620 ≈ 2.98s
+//   blackout ≈ 360 + 620(hold) + 320+320 + 700 ≈ 2.32s
+const SURPRISE_TIMING = {
+  elite:  { charge:360, hint:200, pause:300, trans:440, flipHalf:300, burst:600 },
+  mythic: { charge:440, hint:240, pause:520, trans:520, flipHalf:320, burst:620 },
+};
+const SURPRISE_BLACKOUT_HOLD = 620;
+
+// the active surprise plan for the in-flight reveal (null = normal reveal)
+let _revealSurprise = null;
+
+// Decide (cosmetic-only) whether this reveal should fake a lower rarity.
+// Reads only the TRUE tier to gate eligibility; the dice rolled here do not
+// and cannot change the gacha outcome (already locked in `_cardDrawResult`).
+function _planSurprise(result) {
+  if(!result || !result.tier) return null;
+  if(_revealLowFx()) return null; // disabled under Low VFX / reduced-motion
+  const tier = result.tier;
+  if(tier === 'elite') {
+    if(Math.random() < SURPRISE_CHANCE.elite) return { fakeTier: SURPRISE_FAKE_TIER.elite, blackout:false };
+    return null;
+  }
+  if(tier === 'mythic') {
+    const r = Math.random();
+    if(r < SURPRISE_BLACKOUT_CHANCE) return { fakeTier: SURPRISE_FAKE_TIER.mythic, blackout:true };
+    if(r < SURPRISE_BLACKOUT_CHANCE + SURPRISE_CHANCE.mythic) return { fakeTier: SURPRISE_FAKE_TIER.mythic, blackout:false };
+    return null;
+  }
+  return null;
+}
+
+// Synthesised low bass "thump" for the Mythic transform / blackout heartbeat.
+// Web Audio only (no new asset); honours SFX setting + Low VFX. Not a reward
+// sound — it is the transform impact, fired only on the cosmetic twist.
+function _revealBassHit() {
+  if(_revealLowFx()) return;
+  if(typeof gameSettings === 'undefined' || !gameSettings || !gameSettings.sfxOn) return;
+  try {
+    const ctx = _getActx();
+    if(ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(38, now + 0.42);
+    const peak = Math.max(0.0006, 0.9 * (gameSettings.sfxVolume || 1));
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(peak, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.6);
+  } catch(e) {}
+}
+
+// Strip every transient surprise class so a stale fake palette / overlay can
+// never bleed into the final settled state (called from finalize + reset).
+function _clearSurpriseClasses(screen) {
+  if(!screen) return;
+  screen.classList.remove('is-surprise-fake','is-surprise-transform','is-surprise-blackout');
+}
+
 // Low VFX path: OS reduced-motion OR Flash Effect = OFF
 function _revealLowFx() {
   try {
@@ -5647,11 +5729,16 @@ function _finalizeReveal() {
   _clearRevealParticles();
   // drop transient state + card animation classes
   screen.classList.remove('is-idle','is-charging','is-hinting','is-flipping','is-burst');
+  _clearSurpriseClasses(screen);
+  _revealSurprise = null;
   const hiddenEl = $('cardDrawHidden');
   hiddenEl.classList.remove('charging','flip-out');
   hiddenEl.style.display = 'none';
   $('cardDrawFlash').classList.remove('fire');
-  if(tier && !screen.classList.contains('reveal--'+tier)) screen.classList.add('reveal--'+tier);
+  // force the TRUE rarity palette — strip any leftover fake reveal--* class so
+  // a skipped/finished surprise can never settle on the fake colour.
+  screen.classList.remove('reveal--standard','reveal--premium','reveal--elite','reveal--mythic');
+  if(tier) screen.classList.add('reveal--'+tier);
   // final card face (no flip animation when skipping straight to the result)
   const img = $('cardDrawRevealedImg');
   _populateRevealedCard(result, tier);
@@ -5687,13 +5774,16 @@ function _resetCardDrawScreen() {
   if(_revealTimers.length) { _revealTimers.forEach(clearTimeout); _revealTimers = []; }
   _detachSkip();
   _revealState = 'idle';
+  _revealSurprise = null;
   screen.classList.remove('is-charging','is-hinting','is-flipping','is-burst','is-settled',
     'reveal--standard','reveal--premium','reveal--elite','reveal--mythic');
+  _clearSurpriseClasses(screen);
   screen.classList.add('is-idle');
   screen.style.removeProperty('--charge-dur');
   screen.style.removeProperty('--hint-dur');
   screen.style.removeProperty('--flip-half');
   screen.style.removeProperty('--burst-dur');
+  screen.style.removeProperty('--trans-dur');
 
   const hidden = $('cardDrawHidden');
   hidden.style.display = 'block';
@@ -5780,6 +5870,161 @@ function _showDupeBanner(result) {
   }
 }
 
+// ── SURPRISE UPGRADE REVEAL sequence ──────────────────────────────────────
+// Presents the pull as `plan.fakeTier`, then transforms into the TRUE rarity.
+// Reuses every existing reveal primitive (charge motes, flash, burst particles,
+// flip, label) — only the ordering + palette swap + one extra inward burst are
+// new, so it stays mobile-safe (no new permanent loops). `result` is read-only
+// here; the real card/tier is only committed by collectCard() after COLLECT.
+function _runSurpriseReveal(result, plan, screen) {
+  const trueTier = result.tier;
+  const fakeTier = plan.fakeTier;
+  const blackout = !!plan.blackout;
+  const trueCfg  = REVEAL_CFG[trueTier] || REVEAL_CFG.standard;
+  const fakeCfg  = REVEAL_CFG[fakeTier] || REVEAL_CFG.standard;
+  const T        = SURPRISE_TIMING[trueTier] || SURPRISE_TIMING.elite;
+  const hiddenEl = $('cardDrawHidden');
+  const label    = $('cardDrawRarityLabel');
+  const flash    = $('cardDrawFlash');
+
+  // timing CSS vars: fake tier early, true tier for the final flip/burst
+  screen.style.setProperty('--charge-dur', T.charge+'ms');
+  screen.style.setProperty('--hint-dur',   T.hint+'ms');
+  screen.style.setProperty('--flip-half',  T.flipHalf+'ms');
+  screen.style.setProperty('--burst-dur',  T.burst+'ms');
+  screen.style.setProperty('--trans-dur',  T.trans+'ms');
+
+  // start under the FAKE rarity palette (the player "sees" a lower rarity)
+  screen.classList.add('reveal--'+fakeTier);
+  $('cardDrawHint').classList.add('hidden');
+
+  // preload the TRUE card art during the fakeout so the final flip is instant
+  let _imgReady = !(result.card && result.card.img);
+  if(!_imgReady) {
+    const pre = new Image();
+    pre.onload = pre.onerror = () => { _imgReady = true; };
+    pre.src = result.card.img;
+  }
+  const after = (ms, fn) => { _revealTimers.push(setTimeout(fn, ms)); };
+  const whenReady = (fn) => {
+    if(_imgReady) return fn();
+    let waited = 0;
+    const tick = () => {
+      if(_imgReady || waited > 1200) return fn();
+      waited += 60; _revealTimers.push(setTimeout(tick, 60));
+    };
+    tick();
+  };
+
+  // ── PHASE A: fake charge (gray/white for elite→std, blue for mythic→prem) ──
+  screen.classList.remove('is-idle');
+  screen.classList.add('is-charging');
+  _revealState = 'charging';
+  _attachSkip(); // skip → _finalizeReveal() jumps straight to the TRUE rarity
+  hiddenEl.classList.add('charging');
+  _spawnChargeParticles(fakeTier);
+  _revealHaptic(fakeCfg.haptic);
+
+  // ── PHASE B: fake hint → "frame appears" (fake rarity label, card still face-down) ──
+  after(T.charge, () => {
+    screen.classList.remove('is-charging');
+    screen.classList.add('is-hinting');
+    _revealState = 'hinting';
+
+    after(T.hint, () => {
+      screen.classList.remove('is-hinting');
+      screen.classList.add('is-surprise-fake');
+      _revealState = 'surprise-fake';
+      hiddenEl.classList.remove('charging');
+      // tease the FAKE rarity label so the pull reads as a lower rarity
+      label.style.opacity = '';
+      label.textContent = fakeCfg.label;
+      label.classList.remove('pop'); void label.offsetWidth; label.classList.add('pop');
+      _revealHaptic([10]);
+
+      // short suspense pause before the twist (blackout skips the fake-frame beat)
+      after(blackout ? 120 : T.pause, _surpriseTransform);
+    });
+  });
+
+  // ── PHASE C: TRANSFORM — fake collapses, true rarity rushes in ──
+  function _surpriseTransform() {
+    // swap palette fake → true
+    screen.classList.remove('reveal--'+fakeTier);
+    screen.classList.add('reveal--'+trueTier);
+    screen.classList.remove('is-surprise-fake');
+    // drop the fake label
+    label.classList.remove('pop'); label.style.opacity = '0'; label.textContent = '';
+
+    if(blackout) {
+      // BLACKOUT: darken, stop all particles, one heartbeat, then explode
+      _revealState = 'surprise-transform';
+      screen.classList.add('is-surprise-blackout');
+      _clearRevealParticles();
+      _revealBassHit();
+      _revealHaptic([0, 70]); // heartbeat thump
+      after(SURPRISE_BLACKOUT_HOLD, () => {
+        screen.classList.remove('is-surprise-blackout');
+        flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
+        _spawnChargeParticles(trueTier); // rainbow energy explodes inward (1 extra burst)
+        _surpriseBurstTrue();
+      });
+      return;
+    }
+
+    // standard fakeout twist: frame glitch/crack + reversed inward rush in TRUE colour
+    _revealState = 'surprise-transform';
+    screen.classList.add('is-surprise-transform');
+    if(trueTier === 'mythic') _revealBassHit(); // bass hit + darken (CSS) for Mythic
+    flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
+    _spawnChargeParticles(trueTier); // the "1 additional burst" — reuses .rcp motes
+    _revealHaptic(trueTier === 'mythic' ? [20,40,25] : [14,30,18]);
+    after(T.trans, () => {
+      screen.classList.remove('is-surprise-transform');
+      _surpriseBurstTrue();
+    });
+  }
+
+  // ── PHASE D: TRUE flip + burst (identical end-state to a normal reveal) ──
+  function _surpriseBurstTrue() {
+    screen.classList.add('is-flipping');
+    _revealState = 'flipping';
+    hiddenEl.classList.add('flip-out');
+    after(T.flipHalf, () => whenReady(() => {
+      hiddenEl.style.display = 'none';
+      const img = $('cardDrawRevealedImg');
+      flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
+      _populateRevealedCard(result, trueTier);
+      img.style.display = 'block';
+      img.classList.remove('flip-in'); void img.offsetWidth; img.classList.add('flip-in');
+
+      after(T.flipHalf, () => {
+        screen.classList.remove('is-flipping');
+        screen.classList.add('is-burst');
+        _revealState = 'burst';
+        label.style.opacity = '';
+        label.textContent = trueCfg.label;
+        label.classList.remove('pop'); void label.offsetWidth; label.classList.add('pop');
+        _spawnRevealParticles(trueTier);
+        _revealHaptic([trueTier === 'mythic' ? 40 : 28]);
+        const revealed = $('cardDrawRevealed');
+        revealed.style.display = 'flex';
+        revealed.classList.remove('show'); void revealed.offsetWidth; revealed.classList.add('show');
+
+        after(T.burst, () => {
+          screen.classList.remove('is-burst');
+          screen.classList.add('is-settled');
+          _revealState = 'settled';
+          _detachSkip();
+          label.classList.remove('pop'); label.style.opacity = '0';
+          _showDupeBanner(result);
+          $('cardDrawCollectBtn').classList.add('visible');
+        });
+      });
+    }));
+  }
+}
+
 function revealCard() {
   const screen = $('cardDrawScreen');
   // only the idle → charging transition starts here; any later tap is routed
@@ -5791,6 +6036,12 @@ function revealCard() {
   const cfg    = (tier && REVEAL_CFG[tier]) ? REVEAL_CFG[tier] : REVEAL_CFG.standard;
   const lowFx  = _revealLowFx();
   const hiddenEl = $('cardDrawHidden');
+
+  // ── SURPRISE UPGRADE REVEAL (cosmetic-only) ──
+  // Rarely re-route Elite/Mythic into a fakeout sequence (true rarity in
+  // `result` is untouched). Skipped under Low VFX (handled inside _planSurprise).
+  _revealSurprise = _planSurprise(result);
+  if(_revealSurprise) { _runSurpriseReveal(result, _revealSurprise, screen); return; }
 
   // push per-rarity timing to CSS so animation length tracks JS sequencing
   screen.style.setProperty('--charge-dur', cfg.charge+'ms');
