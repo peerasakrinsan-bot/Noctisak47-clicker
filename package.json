@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "smoke": "node scripts/smoke-blh.mjs",
     "card-audit": "node scripts/card-audit.mjs",
-    "card-vfx-audit": "node scripts/card-vfx-audit.mjs"
+    "card-vfx-audit": "node scripts/card-vfx-audit.mjs",
+    "reveal-audit": "node scripts/reveal-fakeout-audit.mjs"
   },
   "devDependencies": {
     "vite": "^8.0.16"

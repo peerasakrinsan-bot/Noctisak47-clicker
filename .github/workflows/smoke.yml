@@ -23,6 +23,8 @@ jobs:
         run: npm run card-audit
       - name: Card VFX audit
         run: npm run card-vfx-audit
+      - name: Reveal fakeout audit (probabilities + drop-rate/save safety)
+        run: npm run reveal-audit
       - name: Build (Vite + service-worker postbuild)
         run: npm run build
       - name: Smoke check (mode select + Boss Loop Hero wiring)

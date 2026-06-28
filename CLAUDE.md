@@ -18,6 +18,7 @@ npm run preview      # serve dist/ locally
 npm run smoke        # headless smoke check (mode-select + Boss Loop Hero wiring)
 npm run card-audit   # static integrity audit of normal-mode CARD_POOL (no browser)
 npm run card-vfx-audit # integrity audit of the Elite/Mythic card VFX layer (no browser)
+npm run reveal-audit # audit of the multi-pattern fakeout reveal (probabilities + drop-rate/save safety, no browser)
 ```
 
 For mobile testing, use browser DevTools device emulation or connect a real device on the same local network.

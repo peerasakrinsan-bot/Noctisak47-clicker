@@ -1708,42 +1708,72 @@
     100% { opacity:1; transform:translate(-50%,-50%) scale(1); }
   }
 
-  /* ══ SURPRISE UPGRADE REVEAL — cosmetic fakeout twist ══
-     Darkening veil + transform shake/glitch/crack for the Elite/Mythic
-     fakeout. The surprise sequence NEVER runs under Low VFX / reduced-motion
-     (gated in JS), so these are pure full-FX flourishes. transform/opacity
-     (+ a short one-shot filter) only — no permanent loops. The veil sits below
-     #cardDrawArea (z-index:2) so the lit card stays the focal point. */
+  /* ══ MULTI-PATTERN FAKEOUT REVEAL — cosmetic twist layer ══
+     One of 11 twist patterns (4 Elite / 6 Mythic / Jackpot) decorates the
+     transform between the fake and true rarity. The fakeout NEVER runs under
+     Low VFX / reduced-motion (gated in JS), so these are pure full-FX
+     flourishes: transform/opacity (+ short one-shot filter) only, no permanent
+     loops. The veil sits below #cardDrawArea (z-index:2) so the lit card stays
+     the focal point. Each `.fk-<pattern>` class gives that pattern its own
+     look so reveals stay unmemorizable. */
   .reveal-surprise-veil {
     position:absolute; inset:0; z-index:2; pointer-events:none;
     background:#000; opacity:0; will-change:opacity;
     transition:opacity 220ms ease;
   }
-  /* Mythic transform: slight screen darken behind the lit card */
-  #cardDrawScreen.reveal--mythic.is-surprise-transform .reveal-surprise-veil { opacity:0.34; }
-  /* Blackout: near-full darken — the card back becomes the lone focal point */
-  #cardDrawScreen.is-surprise-blackout .reveal-surprise-veil { opacity:0.82; transition:opacity 150ms ease; }
+  /* ── screen-dim / void veil per pattern ── */
+  #cardDrawScreen.reveal--mythic.is-surprise-transform .reveal-surprise-veil { opacity:0.30; }
+  #cardDrawScreen.is-surprise-blackout .reveal-surprise-veil { opacity:0.86; transition:opacity 150ms ease; }
+  /* eclipseReveal — circular shadow eclipse (dark ring closing over the card) */
+  #cardDrawScreen.fk-eclipseReveal .reveal-surprise-veil {
+    background:radial-gradient(circle at 50% 42%, transparent 24%, rgba(0,0,0,0.92) 60%);
+    opacity:0.92; transition:opacity 180ms ease;
+  }
+  /* shadowReveal — purple-black energy leak before the gold/rainbow erupts */
+  #cardDrawScreen.fk-shadowReveal .reveal-surprise-veil {
+    background:radial-gradient(circle at 50% 44%, rgba(60,0,95,0.6), rgba(0,0,0,0.9));
+    opacity:0.7; transition:opacity 180ms ease;
+  }
 
-  /* the face-down card "frame" reacts as the fake rarity collapses */
-  #cardDrawScreen.reveal--elite.is-surprise-transform  #cardDrawHidden {
-    animation:surpriseGlitch var(--trans-dur,440ms) cubic-bezier(.36,.07,.19,.97) both;
+  /* ── the face-down card "frame" reacts; one bespoke animation per pattern ── */
+  #cardDrawScreen.fk-delayedUpgrade  #cardDrawHidden,
+  #cardDrawScreen.fk-frameCrack      #cardDrawHidden,
+  #cardDrawScreen.fk-particleReverse #cardDrawHidden,
+  #cardDrawScreen.fk-eclipseReveal   #cardDrawHidden {
+    animation:surpriseShake var(--trans-dur,460ms) cubic-bezier(.36,.07,.19,.97) both;
   }
-  #cardDrawScreen.reveal--mythic.is-surprise-transform #cardDrawHidden {
-    animation:surpriseShake var(--trans-dur,520ms) cubic-bezier(.36,.07,.19,.97) both;
+  #cardDrawScreen.fk-colorCorruption #cardDrawHidden,
+  #cardDrawScreen.fk-wrongColor      #cardDrawHidden {
+    animation:fkFlicker var(--trans-dur,460ms) steps(3,end) both;
   }
-  /* Mythic frame-crack flash (golden-white seams across the card) */
-  #cardDrawScreen.reveal--mythic.is-surprise-transform #cardDrawHidden::after {
+  #cardDrawScreen.fk-doubleUpgrade   #cardDrawHidden {
+    animation:surpriseGlitch calc(var(--trans-dur,760ms) / 2) cubic-bezier(.36,.07,.19,.97) both;
+  }
+  #cardDrawScreen.fk-shadowReveal    #cardDrawHidden {
+    animation:fkShadowDark var(--trans-dur,560ms) ease-in-out both;
+  }
+  #cardDrawScreen.fk-heartbeatPause  #cardDrawHidden {
+    animation:surpriseHeartbeat 640ms ease-out both;
+  }
+  #cardDrawScreen.fk-blackoutReveal  #cardDrawHidden {
+    animation:fkImpact var(--trans-dur,720ms) ease-out both;
+  }
+  #cardDrawScreen.fk-jackpot         #cardDrawHidden {
+    animation:fkColorCycle 380ms linear 2, surpriseShake 760ms cubic-bezier(.36,.07,.19,.97) both;
+  }
+  /* frame-crack flash (golden-white seams) — crack patterns + jackpot */
+  #cardDrawScreen.fk-delayedUpgrade #cardDrawHidden::after,
+  #cardDrawScreen.fk-frameCrack     #cardDrawHidden::after,
+  #cardDrawScreen.fk-doubleUpgrade  #cardDrawHidden::after,
+  #cardDrawScreen.fk-jackpot        #cardDrawHidden::after {
     content:''; position:absolute; inset:0; border-radius:8px; pointer-events:none;
     background:
       linear-gradient(58deg,  transparent 47%, rgba(255,255,255,0.92) 49%, transparent 51%),
-      linear-gradient(118deg, transparent 44%, rgba(255,238,190,0.82) 46%, transparent 48%);
+      linear-gradient(118deg, transparent 44%, rgba(180,225,255,0.82) 46%, transparent 48%);
     mix-blend-mode:screen; opacity:0; will-change:opacity;
     animation:surpriseCrack var(--trans-dur,520ms) ease-out both;
   }
-  /* Blackout heartbeat — one slow thump on the card before it explodes */
-  #cardDrawScreen.is-surprise-blackout #cardDrawHidden {
-    animation:surpriseHeartbeat 620ms ease-out both;
-  }
+
   @keyframes surpriseShake {
     0%,100% { transform:translate(0,0) rotate(0deg); }
     12% { transform:translate(-5px,2px)  rotate(-1.4deg); }
@@ -1771,19 +1801,44 @@
     64%  { transform:scale(1.04); filter:brightness(0.95); }
     100% { transform:scale(1);    filter:brightness(0.7); }
   }
-  /* Defensive: kill the surprise flourishes if the screen is ever in a
-     low-FX/reduced-motion state (the JS path already avoids them). */
+  /* colorCorruption / wrongColor — the fake colour glitches toward the true hue */
+  @keyframes fkFlicker {
+    0%,100% { filter:none; opacity:1; }
+    25% { filter:hue-rotate(180deg) saturate(1.6) brightness(1.2); opacity:0.85; }
+    50% { filter:hue-rotate(205deg) saturate(2)   brightness(0.9); }
+    75% { filter:hue-rotate(190deg) saturate(1.8) brightness(1.3); opacity:0.92; }
+  }
+  /* jackpot — rapid full-spectrum colour cycle */
+  @keyframes fkColorCycle {
+    0%   { filter:hue-rotate(0deg)   saturate(1.8) brightness(1.2); }
+    100% { filter:hue-rotate(360deg) saturate(1.8) brightness(1.2); }
+  }
+  /* shadowReveal — card darkens as the shadow energy leaks, then recovers */
+  @keyframes fkShadowDark {
+    0%   { filter:brightness(1); }
+    45%  { filter:brightness(0.32) saturate(0.6); }
+    70%  { filter:brightness(0.5); }
+    100% { filter:brightness(0.9); }
+  }
+  /* blackoutReveal — single impact pulse out of the dark */
+  @keyframes fkImpact {
+    0%   { transform:scale(1);    filter:brightness(0.4); }
+    55%  { transform:scale(0.97); filter:brightness(0.3); }
+    70%  { transform:scale(1.05); filter:brightness(1.4); }
+    100% { transform:scale(1);    filter:brightness(0.7); }
+  }
+  /* Defensive: kill every fakeout flourish if the screen is ever in a
+     low-FX / reduced-motion state (the JS path already avoids them). */
   body.low-vfx   .reveal-surprise-veil,
   body.flash-off .reveal-surprise-veil { opacity:0 !important; transition:none !important; }
-  body.low-vfx   #cardDrawScreen.is-surprise-transform #cardDrawHidden,
-  body.flash-off #cardDrawScreen.is-surprise-transform #cardDrawHidden,
-  body.low-vfx   #cardDrawScreen.is-surprise-blackout  #cardDrawHidden,
-  body.flash-off #cardDrawScreen.is-surprise-blackout  #cardDrawHidden { animation:none !important; }
+  body.low-vfx   #cardDrawScreen[class*="fk-"] #cardDrawHidden,
+  body.flash-off #cardDrawScreen[class*="fk-"] #cardDrawHidden { animation:none !important; }
+  body.low-vfx   #cardDrawScreen[class*="fk-"] #cardDrawHidden::after,
+  body.flash-off #cardDrawScreen[class*="fk-"] #cardDrawHidden::after { display:none !important; }
   @media (prefers-reduced-motion: reduce) {
     .reveal-surprise-veil { opacity:0 !important; transition:none !important; }
-    #cardDrawScreen.is-surprise-transform #cardDrawHidden,
-    #cardDrawScreen.is-surprise-blackout  #cardDrawHidden { animation:none !important; }
-    #cardDrawScreen.reveal--mythic.is-surprise-transform #cardDrawHidden::after { display:none !important; }
+    #cardDrawScreen[class*="fk-"] #cardDrawHidden { animation:none !important; }
+    #cardDrawScreen[class*="fk-"] #cardDrawHidden::after { display:none !important; }
   }
 
   /* ══ BELOW-CARD LAYER — info + duplicate reward + COLLECT ══

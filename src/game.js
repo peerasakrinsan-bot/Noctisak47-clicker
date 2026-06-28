@@ -5524,60 +5524,83 @@ let _revealTimers = [];
 let _revealState = 'idle';
 
 // ══════════════════════════════════════════════════════════════════════
-// SURPRISE UPGRADE REVEAL — cosmetic-only fakeout layer
+// MULTI-PATTERN FAKEOUT REVEAL — cosmetic-only presentation layer
 // ──────────────────────────────────────────────────────────────────────
 // Rarely, an Elite/Mythic pull is *presented* as a lower rarity first, then
-// transforms into its true rarity for extra anticipation. This is PURELY a
-// presentation change: the gacha already rolled the real card in
-// rollCardDrop() BEFORE the reveal, and `_cardDrawResult` (the true rarity /
-// card) is NEVER touched here. The fake rarity is only ever a CSS palette
-// class + a teaser label during the early phases — it never enters the
-// collection, never plays reward/dupe sounds, never saves. Skip jumps
-// straight to the true result via the shared _finalizeReveal() path.
+// transforms into its true rarity. To stop players memorizing the sequence,
+// each fakeout randomly picks ONE pattern from a per-rarity pool (4 Elite /
+// 6 Mythic + a rare Jackpot). This is PURELY presentation: the gacha already
+// rolled the real card in rollCardDrop() BEFORE the reveal, and
+// `_cardDrawResult` (true rarity + card) is NEVER read for the outcome nor
+// mutated here. The fake rarity is only ever a CSS palette class + teaser
+// label during the early phases — it never enters the collection, plays no
+// reward/dupe sounds, never saves. Skip (2nd tap / COLLECT) jumps straight to
+// the true result via the shared _finalizeReveal() path. Disabled entirely
+// under Low VFX / reduced-motion (planner returns null → normal reveal).
 //   Elite  → appears STANDARD, then bursts into ELITE   (15–20% of Elites)
 //   Mythic → appears PREMIUM,  then bursts into MYTHIC   (25–35% of Mythics)
-//   Mythic "Blackout" → darken + heartbeat + explosion   (5–10% of Mythics)
-// Disabled entirely under Low VFX / reduced-motion (falls back to normal).
-const SURPRISE_CHANCE = { elite: 0.17, mythic: 0.30 }; // within the 15–20% / 25–35% spec
-const SURPRISE_BLACKOUT_CHANCE = 0.07;                 // 5–10% of Mythic pulls (exclusive sub-form)
-const SURPRISE_FAKE_TIER = { elite: 'standard', mythic: 'premium' };
-// Surprise pacing (ms) — total lands inside the 2.2–3.0s window:
-//   elite  ≈ 360+200+300+440+300+300+600 ≈ 2.50s
-//   mythic ≈ 440+240+520+520+320+320+620 ≈ 2.98s
-//   blackout ≈ 360 + 620(hold) + 320+320 + 700 ≈ 2.32s
-const SURPRISE_TIMING = {
-  elite:  { charge:360, hint:200, pause:300, trans:440, flipHalf:300, burst:600 },
-  mythic: { charge:440, hint:240, pause:520, trans:520, flipHalf:320, burst:620 },
+const FAKEOUT_CHANCE    = { elite: 0.17, mythic: 0.30 }; // within 15–20% / 25–35%
+const FAKEOUT_FAKE_TIER = { elite: 'standard', mythic: 'premium' };
+const ELITE_FAKEOUT_PATTERNS  = ['delayedUpgrade','frameCrack','particleReverse','colorCorruption'];
+const MYTHIC_FAKEOUT_PATTERNS = ['heartbeatPause','shadowReveal','doubleUpgrade','eclipseReveal','wrongColor','blackoutReveal'];
+// rarer mythic sub-rolls, taken as a fraction OF the mythic fakeouts that fire:
+const MYTHIC_JACKPOT_CHANCE   = 0.015; // 1–2% of mythic fakeouts → MYTHIC JACKPOT REVEAL
+const MYTHIC_SPECIAL_CHANCE   = 0.08;  // 5–10% of mythic fakeouts → "special" dramatic patterns
+const MYTHIC_SPECIAL_PATTERNS = ['blackoutReveal','eclipseReveal'];
+// every transient twist class (cleared on finalize/reset so no stale state leaks)
+const FAKEOUT_TWIST_CLASSES = ['fk-delayedUpgrade','fk-frameCrack','fk-particleReverse','fk-colorCorruption',
+  'fk-heartbeatPause','fk-shadowReveal','fk-doubleUpgrade','fk-eclipseReveal','fk-wrongColor','fk-blackoutReveal','fk-jackpot'];
+// Per-pattern pacing (ms). Total = charge+hint+frame+twist + 2·flipHalf + burst.
+// Elite fakeouts land in 2.2–2.7s, Mythic in 2.5–3.2s, Jackpot strongest (~3.1s).
+const FAKEOUT_TIMING = {
+  delayedUpgrade:  { charge:360, hint:160, frame:300, twist:440, flipHalf:300, burst:560 }, // ~2.42s
+  frameCrack:      { charge:320, hint:150, frame:240, twist:520, flipHalf:300, burst:560 }, // ~2.39s
+  particleReverse: { charge:380, hint:150, frame:220, twist:480, flipHalf:300, burst:560 }, // ~2.39s
+  colorCorruption: { charge:360, hint:160, frame:300, twist:420, flipHalf:300, burst:560 }, // ~2.40s
+  heartbeatPause:  { charge:420, hint:200, frame:280, twist:640, flipHalf:320, burst:620 }, // ~2.80s
+  shadowReveal:    { charge:420, hint:200, frame:320, twist:560, flipHalf:320, burst:640 }, // ~2.78s
+  doubleUpgrade:   { charge:380, hint:180, frame:260, twist:760, flipHalf:320, burst:620 }, // ~2.84s (two swaps)
+  eclipseReveal:   { charge:420, hint:200, frame:300, twist:620, flipHalf:320, burst:640 }, // ~2.82s
+  wrongColor:      { charge:420, hint:200, frame:320, twist:560, flipHalf:320, burst:620 }, // ~2.76s
+  blackoutReveal:  { charge:400, hint:180, frame:240, twist:720, flipHalf:320, burst:680 }, // ~2.86s
+  jackpot:         { charge:440, hint:200, frame:300, twist:760, flipHalf:340, burst:720 }, // ~3.10s
 };
-const SURPRISE_BLACKOUT_HOLD = 620;
 
-// the active surprise plan for the in-flight reveal (null = normal reveal)
+// the active fakeout plan for the in-flight reveal (null = normal reveal)
 let _revealSurprise = null;
 
-// Decide (cosmetic-only) whether this reveal should fake a lower rarity.
-// Reads only the TRUE tier to gate eligibility; the dice rolled here do not
-// and cannot change the gacha outcome (already locked in `_cardDrawResult`).
+const _fkPick = (arr) => arr[(Math.random()*arr.length)|0];
+
+// Decide (cosmetic-only) whether this reveal fakes a lower rarity, and which
+// pattern. Reads only the TRUE tier to gate eligibility; the dice rolled here
+// cannot change the gacha outcome (already locked in `_cardDrawResult`).
+// Exactly ONE pattern is returned per fakeout.
 function _planSurprise(result) {
   if(!result || !result.tier) return null;
   if(_revealLowFx()) return null; // disabled under Low VFX / reduced-motion
   const tier = result.tier;
   if(tier === 'elite') {
-    if(Math.random() < SURPRISE_CHANCE.elite) return { fakeTier: SURPRISE_FAKE_TIER.elite, blackout:false };
-    return null;
+    if(Math.random() >= FAKEOUT_CHANCE.elite) return null;
+    return { tier:'elite', fakeTier: FAKEOUT_FAKE_TIER.elite, pattern: _fkPick(ELITE_FAKEOUT_PATTERNS) };
   }
   if(tier === 'mythic') {
+    if(Math.random() >= FAKEOUT_CHANCE.mythic) return null; // no fakeout this pull
+    // a fakeout WILL happen — pick which pattern (sub-rolls fraction OF fakeouts)
     const r = Math.random();
-    if(r < SURPRISE_BLACKOUT_CHANCE) return { fakeTier: SURPRISE_FAKE_TIER.mythic, blackout:true };
-    if(r < SURPRISE_BLACKOUT_CHANCE + SURPRISE_CHANCE.mythic) return { fakeTier: SURPRISE_FAKE_TIER.mythic, blackout:false };
-    return null;
+    let pattern;
+    if(r < MYTHIC_JACKPOT_CHANCE) pattern = 'jackpot';
+    else if(r < MYTHIC_JACKPOT_CHANCE + MYTHIC_SPECIAL_CHANCE) pattern = _fkPick(MYTHIC_SPECIAL_PATTERNS);
+    else pattern = _fkPick(MYTHIC_FAKEOUT_PATTERNS);
+    return { tier:'mythic', fakeTier: FAKEOUT_FAKE_TIER.mythic, pattern, jackpot: pattern === 'jackpot' };
   }
   return null;
 }
 
-// Synthesised low bass "thump" for the Mythic transform / blackout heartbeat.
-// Web Audio only (no new asset); honours SFX setting + Low VFX. Not a reward
-// sound — it is the transform impact, fired only on the cosmetic twist.
-function _revealBassHit() {
+// Synthesised low bass "thump" for the Mythic transforms / impacts. Web Audio
+// only (no new asset); honours SFX setting + Low VFX. Not a reward sound — it
+// is the transform impact, fired only on cosmetic twists. `strong` (jackpot)
+// adds a brighter click layer for the game's biggest reveal.
+function _revealBassHit(strong) {
   if(_revealLowFx()) return;
   if(typeof gameSettings === 'undefined' || !gameSettings || !gameSettings.sfxOn) return;
   try {
@@ -5587,22 +5610,23 @@ function _revealBassHit() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(120, now);
-    osc.frequency.exponentialRampToValueAtTime(38, now + 0.42);
-    const peak = Math.max(0.0006, 0.9 * (gameSettings.sfxVolume || 1));
+    osc.frequency.setValueAtTime(strong ? 150 : 120, now);
+    osc.frequency.exponentialRampToValueAtTime(strong ? 44 : 38, now + 0.42);
+    const peak = Math.max(0.0006, (strong ? 1.0 : 0.9) * (gameSettings.sfxVolume || 1));
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.exponentialRampToValueAtTime(peak, now + 0.03);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + (strong ? 0.62 : 0.55));
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(now); osc.stop(now + 0.6);
+    osc.start(now); osc.stop(now + (strong ? 0.68 : 0.6));
   } catch(e) {}
 }
 
-// Strip every transient surprise class so a stale fake palette / overlay can
+// Strip every transient fakeout class so a stale fake palette / overlay can
 // never bleed into the final settled state (called from finalize + reset).
 function _clearSurpriseClasses(screen) {
   if(!screen) return;
   screen.classList.remove('is-surprise-fake','is-surprise-transform','is-surprise-blackout');
+  for(const c of FAKEOUT_TWIST_CLASSES) screen.classList.remove(c);
 }
 
 // Low VFX path: OS reduced-motion OR Flash Effect = OFF
@@ -5623,12 +5647,13 @@ function _clearRevealParticles() {
   if(c) c.textContent = '';
 }
 
-// Event-based, capped particle burst (auto-removes each node on animationend)
-function _spawnRevealParticles(tier) {
+// Event-based, capped particle burst (auto-removes each node on animationend).
+// `countOverride` lets a fakeout twist tune the spray size (still bounded).
+function _spawnRevealParticles(tier, countOverride) {
   if(_revealLowFx()) return;
   const cfg = REVEAL_CFG[tier]; if(!cfg) return;
   const c = $('cardDrawParticles'); if(!c) return;
-  const n = cfg.particles;
+  const n = Math.min(countOverride || cfg.particles, 18);
   const frag = document.createDocumentFragment();
   for(let i=0; i<n; i++) {
     const p = document.createElement('span');
@@ -5653,11 +5678,11 @@ function _spawnRevealParticles(tier) {
 // card centre ("magnetized energy"), staggered across the charge window so
 // they keep streaming in. Mythic gets per-mote prismatic hues. Event-based:
 // each node removes itself on animationend; transform/opacity only.
-function _spawnChargeParticles(tier) {
+function _spawnChargeParticles(tier, countOverride) {
   if(_revealLowFx()) return;
   const cfg = REVEAL_CFG[tier]; if(!cfg) return;
   const c = $('cardDrawParticles'); if(!c) return;
-  const n = cfg.chargeParticles || 0;
+  const n = Math.min(countOverride || cfg.chargeParticles || 0, 34);
   if(!n) return;
   const chargeDur = cfg.charge;
   const frag = document.createDocumentFragment();
@@ -5870,19 +5895,22 @@ function _showDupeBanner(result) {
   }
 }
 
-// ── SURPRISE UPGRADE REVEAL sequence ──────────────────────────────────────
-// Presents the pull as `plan.fakeTier`, then transforms into the TRUE rarity.
-// Reuses every existing reveal primitive (charge motes, flash, burst particles,
-// flip, label) — only the ordering + palette swap + one extra inward burst are
-// new, so it stays mobile-safe (no new permanent loops). `result` is read-only
-// here; the real card/tier is only committed by collectCard() after COLLECT.
+// ── MULTI-PATTERN FAKEOUT REVEAL sequence ─────────────────────────────────
+// Presents the pull as `plan.fakeTier`, then runs ONE randomly-chosen twist
+// pattern before transforming into the TRUE rarity. Reuses every existing
+// reveal primitive (charge motes, flash, burst particles, flip, label) — only
+// the ordering + palette swaps + one extra burst per reveal are new, so it
+// stays mobile-safe (no new permanent loops). `result` is read-only here; the
+// real card/tier is only committed by collectCard() after COLLECT. Skip from
+// ANY phase jumps straight to the true result via _finalizeReveal().
 function _runSurpriseReveal(result, plan, screen) {
   const trueTier = result.tier;
   const fakeTier = plan.fakeTier;
-  const blackout = !!plan.blackout;
+  const pattern  = plan.pattern;
   const trueCfg  = REVEAL_CFG[trueTier] || REVEAL_CFG.standard;
   const fakeCfg  = REVEAL_CFG[fakeTier] || REVEAL_CFG.standard;
-  const T        = SURPRISE_TIMING[trueTier] || SURPRISE_TIMING.elite;
+  const T        = FAKEOUT_TIMING[pattern] || FAKEOUT_TIMING.delayedUpgrade;
+  const twistCls = 'fk-' + pattern;
   const hiddenEl = $('cardDrawHidden');
   const label    = $('cardDrawRarityLabel');
   const flash    = $('cardDrawFlash');
@@ -5892,7 +5920,7 @@ function _runSurpriseReveal(result, plan, screen) {
   screen.style.setProperty('--hint-dur',   T.hint+'ms');
   screen.style.setProperty('--flip-half',  T.flipHalf+'ms');
   screen.style.setProperty('--burst-dur',  T.burst+'ms');
-  screen.style.setProperty('--trans-dur',  T.trans+'ms');
+  screen.style.setProperty('--trans-dur',  T.twist+'ms');
 
   // start under the FAKE rarity palette (the player "sees" a lower rarity)
   screen.classList.add('reveal--'+fakeTier);
@@ -5915,17 +5943,24 @@ function _runSurpriseReveal(result, plan, screen) {
     };
     tick();
   };
+  const fireFlash = () => { flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire'); };
+  const setLabel  = (txt) => {
+    label.style.opacity = ''; label.textContent = txt;
+    label.classList.remove('pop'); void label.offsetWidth; label.classList.add('pop');
+  };
+  const dropLabel = () => { label.classList.remove('pop'); label.style.opacity = '0'; label.textContent = ''; };
 
-  // ── PHASE A: fake charge (gray/white for elite→std, blue for mythic→prem) ──
+  // ── PHASE A: fake charge (particleReverse sprays OUTWARD; others charge in) ──
   screen.classList.remove('is-idle');
   screen.classList.add('is-charging');
   _revealState = 'charging';
   _attachSkip(); // skip → _finalizeReveal() jumps straight to the TRUE rarity
   hiddenEl.classList.add('charging');
-  _spawnChargeParticles(fakeTier);
+  if(pattern === 'particleReverse') _spawnRevealParticles(fakeTier, 12); // motes move outward
+  else _spawnChargeParticles(fakeTier);
   _revealHaptic(fakeCfg.haptic);
 
-  // ── PHASE B: fake hint → "frame appears" (fake rarity label, card still face-down) ──
+  // ── PHASE B: fake hint → "frame appears" (fake rarity label, card face-down) ──
   after(T.charge, () => {
     screen.classList.remove('is-charging');
     screen.classList.add('is-hinting');
@@ -5936,51 +5971,76 @@ function _runSurpriseReveal(result, plan, screen) {
       screen.classList.add('is-surprise-fake');
       _revealState = 'surprise-fake';
       hiddenEl.classList.remove('charging');
-      // tease the FAKE rarity label so the pull reads as a lower rarity
-      label.style.opacity = '';
-      label.textContent = fakeCfg.label;
-      label.classList.remove('pop'); void label.offsetWidth; label.classList.add('pop');
+      setLabel(fakeCfg.label); // tease the FAKE rarity so the pull reads lower
       _revealHaptic([10]);
-
-      // short suspense pause before the twist (blackout skips the fake-frame beat)
-      after(blackout ? 120 : T.pause, _surpriseTransform);
+      after(T.frame, _runTwist); // ── PHASE C ──
     });
   });
 
-  // ── PHASE C: TRANSFORM — fake collapses, true rarity rushes in ──
-  function _surpriseTransform() {
-    // swap palette fake → true
+  // ── PHASE C: TRANSFORM — run the chosen pattern, then reveal the TRUE card ──
+  function _runTwist() {
+    screen.classList.remove('is-surprise-fake');
+    _revealState = 'surprise-transform';
+    screen.classList.add('is-surprise-transform', twistCls);
+
+    // doubleUpgrade: premium → ELITE → mythic (two visible upgrades, one burst)
+    if(pattern === 'doubleUpgrade') {
+      screen.classList.remove('reveal--'+fakeTier);
+      screen.classList.add('reveal--elite');
+      setLabel((REVEAL_CFG.elite && REVEAL_CFG.elite.label) || 'ELITE');
+      fireFlash(); _revealHaptic([14,24,14]);
+      after(T.twist*0.5, () => {
+        screen.classList.remove('reveal--elite');
+        screen.classList.add('reveal--'+trueTier);
+        dropLabel();
+        _revealBassHit(); fireFlash();
+        _spawnChargeParticles(trueTier); // the single twist burst
+        _revealHaptic([20,40,25]);
+        after(T.twist*0.5, () => { screen.classList.remove('is-surprise-transform', twistCls); _surpriseBurstTrue(); });
+      });
+      return;
+    }
+
+    // every other pattern swaps fake → true here
     screen.classList.remove('reveal--'+fakeTier);
     screen.classList.add('reveal--'+trueTier);
-    screen.classList.remove('is-surprise-fake');
-    // drop the fake label
-    label.classList.remove('pop'); label.style.opacity = '0'; label.textContent = '';
+    dropLabel();
 
-    if(blackout) {
-      // BLACKOUT: darken, stop all particles, one heartbeat, then explode
-      _revealState = 'surprise-transform';
+    // "freeze / void" patterns: stop particles, dim, single impact, then explode
+    if(pattern === 'heartbeatPause' || pattern === 'blackoutReveal') {
       screen.classList.add('is-surprise-blackout');
-      _clearRevealParticles();
-      _revealBassHit();
-      _revealHaptic([0, 70]); // heartbeat thump
-      after(SURPRISE_BLACKOUT_HOLD, () => {
-        screen.classList.remove('is-surprise-blackout');
-        flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
-        _spawnChargeParticles(trueTier); // rainbow energy explodes inward (1 extra burst)
+      _clearRevealParticles(); // everything stops / VFX nearly disappear
+      const impactAt = pattern === 'blackoutReveal' ? T.twist*0.6 : T.twist*0.45;
+      after(impactAt, () => { _revealBassHit(); _revealHaptic([0,70]); }); // heartbeat / impact pulse
+      after(T.twist, () => {
+        screen.classList.remove('is-surprise-blackout', 'is-surprise-transform', twistCls);
+        fireFlash();
+        _spawnChargeParticles(trueTier); // prismatic explosion (the one twist burst)
         _surpriseBurstTrue();
       });
       return;
     }
 
-    // standard fakeout twist: frame glitch/crack + reversed inward rush in TRUE colour
-    _revealState = 'surprise-transform';
-    screen.classList.add('is-surprise-transform');
-    if(trueTier === 'mythic') _revealBassHit(); // bass hit + darken (CSS) for Mythic
-    flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
+    // JACKPOT: rapid colour cycle + shake + audio + massive rainbow burst
+    if(pattern === 'jackpot') {
+      _revealBassHit(true);
+      _revealHaptic([10,20,10,20,10,20]);
+      after(T.twist, () => {
+        screen.classList.remove('is-surprise-transform', twistCls);
+        fireFlash();
+        _spawnChargeParticles(trueTier, 30); // strongest reveal — bigger (bounded) burst
+        _surpriseBurstTrue();
+      });
+      return;
+    }
+
+    // generic twist: crack/flicker/eclipse/shadow (CSS) + one inward rush burst
+    if(trueTier === 'mythic') _revealBassHit();
+    if(pattern !== 'colorCorruption') fireFlash(); // corruption stays a quiet flicker
     _spawnChargeParticles(trueTier); // the "1 additional burst" — reuses .rcp motes
     _revealHaptic(trueTier === 'mythic' ? [20,40,25] : [14,30,18]);
-    after(T.trans, () => {
-      screen.classList.remove('is-surprise-transform');
+    after(T.twist, () => {
+      screen.classList.remove('is-surprise-transform', twistCls);
       _surpriseBurstTrue();
     });
   }
@@ -5993,7 +6053,7 @@ function _runSurpriseReveal(result, plan, screen) {
     after(T.flipHalf, () => whenReady(() => {
       hiddenEl.style.display = 'none';
       const img = $('cardDrawRevealedImg');
-      flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
+      fireFlash();
       _populateRevealedCard(result, trueTier);
       img.style.display = 'block';
       img.classList.remove('flip-in'); void img.offsetWidth; img.classList.add('flip-in');
@@ -6002,9 +6062,7 @@ function _runSurpriseReveal(result, plan, screen) {
         screen.classList.remove('is-flipping');
         screen.classList.add('is-burst');
         _revealState = 'burst';
-        label.style.opacity = '';
-        label.textContent = trueCfg.label;
-        label.classList.remove('pop'); void label.offsetWidth; label.classList.add('pop');
+        setLabel(trueCfg.label);
         _spawnRevealParticles(trueTier);
         _revealHaptic([trueTier === 'mythic' ? 40 : 28]);
         const revealed = $('cardDrawRevealed');
@@ -6037,9 +6095,9 @@ function revealCard() {
   const lowFx  = _revealLowFx();
   const hiddenEl = $('cardDrawHidden');
 
-  // ── SURPRISE UPGRADE REVEAL (cosmetic-only) ──
-  // Rarely re-route Elite/Mythic into a fakeout sequence (true rarity in
-  // `result` is untouched). Skipped under Low VFX (handled inside _planSurprise).
+  // ── MULTI-PATTERN FAKEOUT REVEAL (cosmetic-only) ──
+  // Rarely re-route Elite/Mythic into one randomly-chosen fakeout pattern (true
+  // rarity in `result` is untouched). Skipped under Low VFX (in _planSurprise).
   _revealSurprise = _planSurprise(result);
   if(_revealSurprise) { _runSurpriseReveal(result, _revealSurprise, screen); return; }
 
