@@ -5765,7 +5765,23 @@ function _spawnChargeParticles(tier, countOverride) {
 // same tap also skip. Deferring guarantees only a subsequent tap can skip,
 // while keeping the card itself a valid skip target (no stopPropagation).
 let _skipAttachTimer = null;
+// Ghost-click guard: a TOUCH that starts the reveal also produces a synthesized
+// "compatibility" mouse click a moment later. On browsers/in-app webviews that
+// don't suppress it after touchstart's preventDefault() (Android WebView, LINE/
+// FB/WeChat in-app browsers, …), that ghost click would hit the skip listener
+// and make the STARTING tap skip its own reveal → instant reveal + no fakeout.
+// We mark a short window after a touch-started reveal and swallow exactly that
+// synthesized mouse event. A genuine second tap skips via `touchstart` (not a
+// click), so double-tap skip is unaffected; desktop (mouse) never sets the guard.
+const GHOST_CLICK_GUARD_MS = 800;
+let _ghostClickGuardUntil = 0;
 function _onSkipTap(e) {
+  // reject the initiating touch's synthesized ghost mouse event (never a real skip)
+  if(e && (e.type === 'click' || e.type === 'mousedown') &&
+     (typeof performance !== 'undefined' ? performance.now() : Date.now()) < _ghostClickGuardUntil) {
+    if(e.cancelable) { try { e.preventDefault(); } catch(_) {} }
+    return;
+  }
   if(e && e.cancelable) { try { e.preventDefault(); } catch(_) {} }
   _skipReveal();
 }
@@ -6132,11 +6148,17 @@ function _runSurpriseReveal(result, plan, screen) {
   }
 }
 
-function revealCard() {
+function revealCard(e) {
   const screen = $('cardDrawScreen');
   // only the idle → charging transition starts here; any later tap is routed
   // to the skip handler (_onSkipTap), so this guard just blocks restarts.
   if(_revealState !== 'idle') return;
+
+  // touch-started reveal: arm the ghost-click guard so the synthesized mouse
+  // click from THIS tap can't immediately skip the reveal it just started.
+  if(e && e.type === 'touchstart') {
+    _ghostClickGuardUntil = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + GHOST_CLICK_GUARD_MS;
+  }
 
   const result = _cardDrawResult;
   const tier   = (result && result.tier) ? result.tier : null;
