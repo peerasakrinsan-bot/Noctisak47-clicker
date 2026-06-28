@@ -24,9 +24,36 @@
 // Comments mix Thai/English to match the surrounding codebase.
 
 // ── caps (กันไม่ให้ particle/หน่วยความจำพุ่งบนมือถือ) ────────────────────────
-const MAX_PARTICLES = 340;   // global hard cap — drop oldest when exceeded
+const MAX_PARTICLES = 340;   // global hard pool ceiling — array/pool never exceed this
 const MAX_DPR       = 2.5;   // cap devicePixelRatio (เลี่ยง buffer ใหญ่เกินบนจอ 3x+)
 const MAX_DT        = 0.05;  // clamp dt (กันกระโดดหลังสลับแท็บ/เฟรมหล่น)
+
+// ── dynamic particle budget (heavy-combat detection) ─────────────────────────
+// MAX_PARTICLES is the absolute ceiling; the *effective* cap tightens when many
+// bursts land in a short window (worst case: OD Lv3 + Mythic payoff + boss-skill
+// VFX + BREAK firing together). We never drop an effect — under load we just
+// retire the OLDEST particles sooner (older = already-fading earlier bursts;
+// the freshest, most gameplay-relevant burst always survives). Mirrors how a
+// commercial mobile title scales its particle budget by scene pressure.
+const SOFT_CAP_NORMAL    = 320;  // normal combat
+const SOFT_CAP_HEAVY     = 220;  // ≥ HEAVY_BURST_COUNT bursts inside the window
+const SOFT_CAP_LOW       = 140;  // in-game Low VFX (intensity ≤ 0.5)
+const HEAVY_BURST_WINDOW = 520;  // ms window used to sense burst pressure
+const HEAVY_BURST_COUNT  = 6;    // bursts within the window ⇒ "heavy combat"
+let _burstTimes = [];            // recent spawnCanvasVfx timestamps (trimmed to window)
+function _noteBurst(now) {
+  _burstTimes.push(now);
+  const cut = now - HEAVY_BURST_WINDOW;
+  if (_burstTimes[0] < cut) {
+    let i = 0;
+    while (i < _burstTimes.length && _burstTimes[i] < cut) i++;
+    if (i) _burstTimes.splice(0, i);
+  }
+}
+function _effectiveCap() {
+  if (_intensity <= 0.5) return SOFT_CAP_LOW;
+  return (_burstTimes.length >= HEAVY_BURST_COUNT) ? SOFT_CAP_HEAVY : SOFT_CAP_NORMAL;
+}
 
 // ── reduced-motion (เคารพการตั้งค่าระดับ OS) ────────────────────────────────
 let _reduced = false;
@@ -149,7 +176,10 @@ function _rgba(hex, a) {
 function _alloc() { return _pool.pop() || {}; }
 function _recycle(p) { if (_pool.length < MAX_PARTICLES) { p.pts = null; p.draw = ''; _pool.push(p); } }
 function _push(p) {
-  if (_parts.length >= MAX_PARTICLES) { _recycle(_parts.shift()); } // drop oldest
+  // retire oldest until under the (possibly tightened) effective cap — keeps the
+  // freshest burst alive while transient pileups stay mobile-safe.
+  const cap = _effectiveCap();
+  while (_parts.length >= cap) { _recycle(_parts.shift()); }
   _parts.push(p);
 }
 
@@ -890,6 +920,8 @@ function spawnCanvasVfx(type, options) {
   if (_intensity <= 0.0) return;     // 'off' mode → ข้าม transient ทั้งหมด
   const b = BUILD[type];
   if (!b) return;                    // unknown primitive → safe no-op
+  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  _noteBurst(now);                   // feed heavy-combat detection (dynamic budget)
   try { b(options || {}); } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
   _start();
 }
@@ -1827,6 +1859,8 @@ const CanvasVFX = {
   // debug-only introspection (ไม่ใช่ส่วนหนึ่งของ logic เกม)
   _count: () => _parts.length,
   _running: () => !!_raf,
+  _cap: () => _effectiveCap(),        // current dynamic particle budget
+  _heavy: () => _burstTimes.length >= HEAVY_BURST_COUNT,
 };
 
 if (typeof window !== 'undefined') window.CanvasVFX = CanvasVFX;
