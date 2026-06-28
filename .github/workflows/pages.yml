@@ -1,0 +1,42 @@
+# .github/workflows/pages.yml
+# Minimal fix: build the Vite app and publish dist/ to GitHub Pages.
+# Pages auto-deploy stopped on 2026-05-07 (pre-Vite-migration). After the
+# migration the app needs a build step, but no deploy workflow existed, so no
+# June code (reveal fakeout, Drake, the reveal fixes) was ever served.
+#
+# REQUIRED one-time setting: repo → Settings → Pages → Build and deployment →
+# Source = "GitHub Actions" (otherwise this workflow's artifact is never served).
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

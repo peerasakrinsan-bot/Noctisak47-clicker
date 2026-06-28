@@ -44,6 +44,12 @@ import './bossLoopHero.js';
 import { inject } from '@vercel/analytics';
 inject();
 
+// ── TEMP: PWA debug overlay (reveal-regression diagnostics) ─────────────────
+// Gated off by default (?diag=1 / localStorage noctisDiag=1 / localhost). Shows
+// running version, bundle hash, SW state, build time, reveal-build marker, and a
+// live RUNNING-vs-DEPLOYED comparison. Remove once cache/deploy issue is closed.
+import './debugOverlay.js';
+
 // ── INTERACTION HARDENING ──────────────────────────────────────────────────
 // Prevent drag-ghost images on game assets (desktop + Android).
 document.addEventListener('dragstart', (e) => {

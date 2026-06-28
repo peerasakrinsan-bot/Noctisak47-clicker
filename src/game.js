@@ -5572,6 +5572,13 @@ let _revealTimers = [];
 // → settled (or skipped → settled). Drives the second-tap skip dispatcher.
 let _revealState = 'idle';
 
+// TEMP (reveal regression diagnostics): a build marker the dev-only debug overlay
+// reads to prove WHICH reveal code is actually running. Its mere presence means
+// the suspense state machine (idle-float + charge particles + fakeout, added
+// 2026-06-25) is in this bundle; a stale pre-2026-06-25 build will not define it.
+// Remove together with src/debugOverlay.js once the cache/deploy issue is closed.
+try { window.NOCTIS_REVEAL_BUILD = 'statemachine+fakeout (2026.06.28.14)'; } catch(_) {}
+
 // monotonic clock helper (reveal timing must not depend on wall-clock jumps)
 function _revealNow() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
 
