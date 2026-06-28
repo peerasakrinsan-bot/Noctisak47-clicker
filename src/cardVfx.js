@@ -1001,6 +1001,11 @@ const TARGET_EL = {
   debt:   ['debtStackCounter'],
 };
 const _targetTimers = new WeakMap();
+// HUD-pulse throttle — กัน score/combo/timer/OD pulse กระพริบรัวทุกเฟรมตอน damage
+// spam หรือหลายเอฟเฟกต์ยิงพร้อมกัน (worst case: OD + boss skill + card payoff).
+// คอสเมติกล้วน: pulse ที่ถี่เกินถูกข้าม (อันแรกในหน้าต่างยังเล่นครบ).
+const _PULSE_THROTTLE = 90; // ms ต่อ target element
+const _lastPulse = {};
 function _resolveTarget(key) {
   const ids = TARGET_EL[key];
   if (!ids) return null;
@@ -1013,6 +1018,9 @@ function _resolveTarget(key) {
 function targetPulse(key, color, theme) {
   const el = _resolveTarget(key);
   if (!el || !el.classList) return;        // ไม่เจอ element → no-op
+  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  if (_lastPulse[key] && (now - _lastPulse[key]) < _PULSE_THROTTLE) return;
+  _lastPulse[key] = now;
   if (color) el.style.setProperty('--gv', color);
   // restart animation บนการยิงถี่: ถอดคลาส → force reflow → ใส่ใหม่
   el.classList.remove('game-vfx-trigger');
