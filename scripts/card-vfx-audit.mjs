@@ -111,13 +111,14 @@ for (const id of mapped) {
 if (!orphan) ok('no orphan VFX_MAP entries');
 
 // ── 3) every aura style known + every primitive name known ───────────────────
-const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal']);
+const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt']);
 const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinBurst',
   'breakCrack', 'odGlow', 'streak', 'drainPulse', 'comboRing', 'bossFlare', 'moonRing',
   'bolt', 'fireBurst', 'holyBurst', 'glitch',
   'moonPulse', 'crescentArc', 'eclipseRing', 'lunarSpark', 'feverWave',
   'jackpotFlash', 'slotReel', 'cursedCoin', 'stakeRing', 'suitSpark', 'riskPulse',
-  'demonSigil', 'contractRing', 'sinEmber', 'devilBetBurst', 'cursedFlame', 'bloodShock']);
+  'demonSigil', 'contractRing', 'sinEmber', 'devilBetBurst', 'cursedFlame', 'bloodShock',
+  'debtSeal', 'debtChain', 'ledgerGlyph', 'collectorPull', 'debtCoinDrain', 'sealBreak']);
 let badAura = 0, badPrim = 0, noEffect = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
   if (!e.aura || !AURA_STYLES.has(e.aura[0]) || typeof e.aura[1] !== 'string') {
@@ -137,7 +138,7 @@ if (!badAura) ok('every aura uses a known style + color');
 if (!badPrim) ok('every `on` context uses a known primitive');
 
 // ── 3b) gameplay metadata: theme + affects + stack (อัปเกรด in-game VFX) ──────
-const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time', 'moonFever', 'darkJackpot', 'demonContract']);
+const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time', 'moonFever', 'darkJackpot', 'demonContract', 'debtContract']);
 const TARGETS = new Set(['odBar', 'combo', 'timer', 'zeny', 'break', 'enemy', 'player', 'debt']);
 let badTheme = 0, badAffects = 0, badStack = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
@@ -234,8 +235,12 @@ try {
   api.setActiveCard('ltn', 'elite');                 // LADY TRAINEE compact charge ring
   api.trigger('ltn', 'odlevel', { charge: 7, chargeMax: 15 });
   api.trigger('ltn', 'spotlight', {});               // Spotlight stage-light at 10
-  api.setActiveCard('ld', 'mythic');                 // LORD OF DEBT counter reaction
-  api.trigger('ld', 'debt', {});                     // affects 'debt' → #debtStackCounter pulses
+  api.setActiveCard('ld', 'mythic');                 // LORD OF DEBT — debt contract (debtContract)
+  api.trigger('ld', 'debt', { color: '#ff4422', tier: 1, stack: 1 }); // seal ($state→ctx.color) + chains + ledger; aura tier
+  api.trigger('ld', 'debtmax', {});                  // MAX DEBT — collector pull (inevitable collection)
+  api.trigger('ld', 'break', {});                    // BREAK voids the contract — seal shatter
+  api.trigger('ld', 'debtclear', { tier: 0, stacks: 5 }); // debt collected: coin siphon + aura reset
+  api.trigger('ld', 'hit', { x: 30, y: 40 });        // BERSERK chained shadow slash
   api.setCharge('ltn', 12, 15);                      // direct compact charge
   api.setAuraTier('gus', 3);                         // direct aura tier
   api.clearCharge();
