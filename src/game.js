@@ -1908,8 +1908,6 @@ function scheduleWeakPoint() {
   if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_akSpawnFast) delay *= (1 - window._csState._lod_akSpawnFast);
   // DEVILINGO: 15 วิแรกของ encounter → AK47 spawn +20% เร็วขึ้น
   if(window._csState && window._csState.cs_devilingo && window._csState._devilingoCombatStart && Date.now() - window._csState._devilingoCombatStart <= 15000) delay *= 0.80;
-  // DRAKE TAKE: AK47 FAST during the 6s window
-  if(window._csState && window._csState.cs_drakeIgnoreThreshold && window._csState._drakeTakeEndTime && performance.now() < window._csState._drakeTakeEndTime) delay *= 0.60;
   wpSchedule = setTimeout(showWeakPoint, delay);
 }
 
@@ -2045,6 +2043,7 @@ function showWeakPoint() {
   wp.style.top  = py + 'px';
   wp.style.display = 'block';
   wp.classList.remove('wp-vanish');
+  wp.classList.remove('wp-treasure');
   wpActive = true;
 
   // ── Duration: 1.0–1.4s base + card bonuses (unchanged)
@@ -2052,13 +2051,22 @@ function showWeakPoint() {
   // LORD OF DEBT: HUNTER state — AK47 visible time +40%
   const _lodHunterDurBonus = (window._csState && window._csState.cs_lordofdeath && window._csState._lod_wpDurationBonus)
     ? (1000 + Math.random()*400) * window._csState._lod_wpDurationBonus : 0;
-  const ttl = 1000 + Math.random()*400 + _wpDurationBonus + _lodHunterDurBonus;
+  let ttl = 1000 + Math.random()*400 + _wpDurationBonus + _lodHunterDurBonus;
 
   // ── Scale: LORD OF DEBT HUNTER +20% (unchanged, scale is purely visual)
   if(window._csState && window._csState.cs_lordofdeath && window._csState._lod_wpSizeBonus) {
     wp.style.transform = `translate(-50%,-50%) scale(${1 + window._csState._lod_wpSizeBonus})`;
   } else {
     wp.style.transform = '';
+  }
+
+  // ── DRAKE — X MARKS THE SPOT: turn this weak point into a golden treasure ──
+  const _drakeCs = window._csState;
+  if(_drakeCs && _drakeCs.cs_drakeTreasure && _drakeCs._drakeArmed && !_drakeCs._drakeWpActive) {
+    _drakeCs._drakeArmed = false;      // consume the arm — one treasure per cycle
+    _drakeCs._drakeWpActive = true;    // this WP carries the plunder reward
+    wp.classList.add('wp-treasure');
+    ttl = DRAKE_TREASURE_TTL;          // fair, slightly longer window for the big take
   }
 
   wpTimeout = setTimeout(hideWeakPoint, ttl);
@@ -2069,6 +2077,10 @@ function hideWeakPoint(hit=false) {
   wpActive = false;
   const wp = $('weakPoint');
   wp.classList.add('wp-vanish');
+  wp.classList.remove('wp-treasure');
+  // DRAKE — treasure slipped away on a miss (fizzle, no extra penalty). On a hit,
+  // keep _drakeWpActive set so csOnWpHit can pay out DRAKE PLUNDER.
+  if(!hit && window._csState && window._csState._drakeWpActive) window._csState._drakeWpActive = false;
   setTimeout(()=>{ wp.style.display='none'; wp.classList.remove('wp-vanish'); }, 200);
   if(!hit) {
     // พลาด WP → reset counter กลับ 0! (ห้ามพลาดแม้แต่อันเดียว)
@@ -2267,6 +2279,8 @@ function triggerBombExplosion() {
     window._csState._hydraHeads = Math.min(3, (window._csState._hydraHeads || 0) + 1);
     _cardFx('head', { stack: window._csState._hydraHeads, max: 3 }); // HYDRA head pip + fang strike (cosmetic)
   }
+  // DRAKE: count this AK47 chain toward arming "X MARKS THE SPOT"
+  drakeOnAk47Complete();
   // THANATOS: เก็บ AK47 ครบ → OD bar เต็มทันที + เปิด OD ถ้ายังไม่ active
   if(window._csState && window._csState.cs_thanatos) {
     _el.godFill.style.width = '100%';
@@ -2550,11 +2564,11 @@ const CARD_POOL = [
     apply(s){ s.cs_turtleShogun = true; }
   },
   { id:'dk',      name:'DRAKE CARD',         img:'cards/drake.png',       rarity:'elite',
-    effect:'HP ผ่าน 75/50/25%: <strong>Phase Burst</strong><br><br>75%: OD <strong>+20%</strong> + DMG <strong>+15%</strong> 4 วิ<br>50%: OD <strong>+30%</strong> + DMG <strong>+25%</strong> + Combo lock 4 วิ<br>25%: OD <strong>+50%</strong> + BREAK DMG <strong>+35%</strong><br><br>ครบ 3 เฟส: <strong>DRAKE TAKE</strong> 6 วิ (DMG ×2, BREAK ×2)', tradeoff:null,
-    shortDescription:'ผ่านแต่ละเฟส HP รับ Phase Burst\nครบ 3 เฟส ปลด DRAKE TAKE 6 วิ',
-    fullDescription:'[PHASE BURST]\nHP ผ่าน 75/50/25% ครั้งละ 1 ครั้ง\n\n75%: OD +20%, DMG +15% (4 วิ)\n50%: OD +30%, DMG +25%, Combo lock (4 วิ)\n25%: OD +50%, BREAK DMG +35%\n\n[DRAKE TAKE]\nครบทั้ง 3 เฟส: เปิด 6 วิ\n• DMG ×2\n• BREAK ×2',
-    balanceNote:'FIXED - เพิ่ม apply() ที่หายไป ทำให้ Phase Burst ทำงานได้จริง',
-    apply(s){ s.cs_drakeIgnoreThreshold = true; }
+    effect:'ทุก 3 AK47: <strong>X MARKS THE SPOT</strong><br><br>จุดอ่อน “สมบัติ” สีทองโผล่ในชุดถัดไป (หน้าต่าง ~2.2 วิ)<br>แตะทัน → <strong>DRAKE PLUNDER</strong>:<br>• เบิร์สต์ดาเมจก้อนใหญ่<br>• ปล้น Zeny ก้อนโต (ตาม Combo)<br>• OD <strong>+12%</strong><br><br>พลาดหน้าต่าง = สมบัติหลุดมือ (ไม่มีโทษ)', tradeoff:null,
+    shortDescription:'ทุก 3 AK47 → จุดอ่อนสมบัติทองโผล่\nแตะทันปล้น DRAKE PLUNDER (เบิร์สต์ + Zeny ก้อนโต)',
+    fullDescription:'[X MARKS THE SPOT]\nเก็บ AK47 ครบ 3 ชุด → จุดอ่อน “สมบัติ” สีทองจะโผล่ในชุดถัดไป (หน้าต่าง ~2.2 วิ — โจรสลัดรอจังหวะปล้นครั้งใหญ่)\n\n[DRAKE PLUNDER] แตะจุดสมบัติทันเวลา:\n• เบิร์สต์ดาเมจก้อนใหญ่ใส่ศัตรู\n• ปล้น Zeny ก้อนโต (มากขึ้นตาม Combo)\n• OD +12%\n\nพลาดหน้าต่าง = สมบัติหลุดมือ (ไม่มีโทษ) ต้องสะสม AK47 ใหม่อีก 3 ชุด',
+    balanceNote:'REWORK - ลบ HP threshold เดิม (เด้งทุกไฟต์) เปลี่ยนเป็นโอกาสปล้นครั้งใหญ่ทุก 3 AK47',
+    apply(s){ s.cs_drakeTreasure = true; }
   },
   { id:'ak',name:'ABYSMELL KNIGHT CARD', img:'cards/abysmell_knight.png', rarity:'elite',
     shortDescription:'คอมโบ 30+ เปิด EXECUTION READY 5 วิ\nต้องคุมคอมโบเพื่อจบงานบอส',
@@ -4441,8 +4455,6 @@ function csApplyDmgMod(baseDmg, isGod) {
   // Goblin Leader: combo >= 30 dmg +20%
   if(cs.cs_goblinLeader && combo >= 25) d *= 1.20;
   if(cs.cs_freeoni && cs._freeoniOdDmgStack) d *= (1 + cs._freeoniOdDmgStack);
-  if(cs.cs_drakeIgnoreThreshold && cs._drakeDmgEndTime && performance.now() < cs._drakeDmgEndTime) d *= (1 + (cs._drakeDmgBonus || 0));
-  if(cs.cs_drakeIgnoreThreshold && cs._drakeTakeEndTime && performance.now() < cs._drakeTakeEndTime) d *= 2.0;
   // Baphomet: accumulated dmg bonus from AK47 completions
   if(cs.cs_baphomet && cs._baphometSinStack) d *= (1 + cs._baphometSinStack);
   // Orc Hero: accumulated dmg bonus from OD completions
@@ -4736,10 +4748,6 @@ function csOnKO() {
   // RAYTRICK: reset active state on KO — new enemy starts at full HP, must re-earn the bonus
   if(cs.cs_raydric && cs.cs_raydricResetOnKO) {
     cs._raydricActive = false;
-  }
-  // Drake: reset threshold tracking on KO (new enemy spawns)
-  if(cs.cs_drakeIgnoreThreshold) {
-    cs._drakeTriggered = new Set();
   }
   // MINORAGE — ORE RAGE: Ore Crack ไม่รีเซ็ตตอน KO (สะสมข้ามศัตรูภายในรอบ
   // แล้วระเบิดตอน BREAK) — เคลียร์เฉพาะตอนเริ่ม/จบรอบผ่าน _csState ใหม่
@@ -5245,32 +5253,64 @@ function csOnWpHit(x, y) {
   if(cs.cs_thanatos && cs._thanatosPhaseEndTime && performance.now() < cs._thanatosPhaseEndTime && godLevel > 0) {
     godSecondsLeft += 1;
   }
+  // DRAKE — X MARKS THE SPOT: tapped the golden treasure → DRAKE PLUNDER (big take)
+  if(cs.cs_drakeTreasure && cs._drakeWpActive) drakePlunder(x, y);
   // NOTE: No OCA roll here — single weak point pickup must NOT trigger OCA.
   // OCA rolls only on: AK47 complete (all 5 WPs → onAk47Complete) and BREAK success.
 }
 
-function _csHandleDrakeThreshold(ratio, key){
+// ══════════════════════════════════════════════════════════════
+// DRAKE — "X MARKS THE SPOT" (Elite, pirate/opportunist)
+// ──────────────────────────────────────────────────────────────
+// ทุก DRAKE_ARM_EVERY ชุด AK47 → ติดอาวุธ "สมบัติ": จุดอ่อนถัดไปกลายเป็น
+// จุดสมบัติสีทอง (หน้าต่างยาวขึ้นเล็กน้อย). แตะทัน → DRAKE PLUNDER ครั้งใหญ่
+// (เบิร์สต์ดาเมจ + ปล้น Zeny ตาม Combo + OD +12%). พลาด = สมบัติหลุดมือ
+// (fizzle, ไม่มีโทษเพิ่ม) ต้องสะสม AK47 ใหม่. ไม่มี passive ถาวร, ไม่ใช้ตัวนับ UI.
+const DRAKE_ARM_EVERY      = 3;      // arm after every N completed AK47 chains
+const DRAKE_TREASURE_TTL   = 2200;   // ms — treasure weak-point visible window
+const DRAKE_PLUNDER_OD     = 12;     // % OD bar gained on a successful plunder
+const DRAKE_PLUNDER_HP_BOSS   = 0.15; // plunder burst = 15% boss max HP
+const DRAKE_PLUNDER_HP_NORMAL = 1.50; // plunder burst = 150% normal-enemy max HP
+
+// Count one completed AK47 chain toward arming the treasure (called on AK47 bomb).
+function drakeOnAk47Complete(){
   const cs = window._csState;
-  if(!cs || !cs.cs_drakeIgnoreThreshold || cs.cs_baphomet || cs.cs_goldenbug) return;
-  if(!cs._drakeTriggered) cs._drakeTriggered = new Set();
-  if(cs._drakeTriggered.has(key)) return;
-  const phaseMap = { '75': {od:20,dmg:0.15,combo:false}, '50': {od:30,dmg:0.25,combo:true}, '25': {od:50,dmg:0.00,combo:false} };
-  const th = parseInt(key,10) / 100;
-  if(ratio >= th) return;
-  cs._drakeTriggered.add(key);
-  const p = phaseMap[key];
-  const cur = parseFloat(_el.godFill.style.width)||0;
-  _el.godFill.style.width = Math.min(100, cur + p.od) + '%';
-  if(p.dmg > 0){ cs._drakeDmgBonus = p.dmg; cs._drakeDmgEndTime = performance.now()+4000; }
-  if(p.combo) cs._drakeComboLockEndTime = performance.now()+4000;
-  if(key === '25') cs.cs_breakPower = (cs.cs_breakPower||0) + 0.35;
-  if(cs._drakeTriggered.has('75') && cs._drakeTriggered.has('50') && cs._drakeTriggered.has('25')) {
-    cs._drakeTakeEndTime = performance.now()+6000;
-    _cardFx('drake'); // DRAKE — golden dragon burst
-    showBigSplash('DRAKE TAKE', 'OD x2 • BREAK x2 • AK47 FAST', '#66ccff', false);
-  } else {
-    triggerFlash('flash-boss');
+  if(!cs || !cs.cs_drakeTreasure) return;
+  if(cs._drakeArmed) return; // already waiting for a treasure to be tapped
+  cs._drakeAkCount = (cs._drakeAkCount || 0) + 1;
+  if(cs._drakeAkCount >= DRAKE_ARM_EVERY){
+    cs._drakeAkCount = 0;
+    cs._drakeArmed = true; // next weak point spawns as a golden treasure
+    showBigSplash('X MARKS THE SPOT', 'จุดสมบัติทองกำลังจะโผล่ — ปล้นให้ทัน!', '#ffcc33', false);
   }
+}
+
+// Resolve a successful tap on the golden treasure weak point: DRAKE PLUNDER.
+function drakePlunder(x, y){
+  const cs = window._csState;
+  if(!cs || !cs.cs_drakeTreasure) return;
+  cs._drakeWpActive = false; // consume the treasure
+  // ── big plunder burst (a "take", not a full execute) ──
+  const burst = isBoss
+    ? Math.round(bossMaxHP * DRAKE_PLUNDER_HP_BOSS)
+    : Math.round(maxHP * DRAKE_PLUNDER_HP_NORMAL);
+  applyBossDamage(burst, 'drake-plunder');
+  showWpHitFX(x, y - 60, burst); // offset above the normal WP number so the big take reads clearly
+  // ── steal Zeny — bigger the longer you've been building combo ──
+  const plunderCoins = Math.round((40 + combo * 1.5) * (1.25 + (_sc.coinMult || 0)));
+  roundCoins += plunderCoins;
+  spawnCoinPopup(plunderCoins);
+  // ── small OD chip (skip if a card disables OD charging) ──
+  if(!cs.cs_baphomet && !cs.cs_goldenbug){
+    const cur = parseFloat(_el.godFill.style.width) || 0;
+    _el.godFill.style.width = Math.min(100, cur + DRAKE_PLUNDER_OD) + '%';
+    if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod) activateGodLevel(1);
+  }
+  _cardFx('drake', { x, y }); // DRAKE — golden plunder burst (cosmetic)
+  showBigSplash('DRAKE PLUNDER', 'ปล้นสำเร็จ! +' + plunderCoins + ' ZENY', '#ffcc33', true);
+  if(navigator.vibrate) navigator.vibrate([60, 30, 120]);
+  if(isBoss){ if(bossHP <= 0){ setTimeout(()=>{ if(gameRunning && !gamePaused) bossKO(); }, 200); } }
+  else { if(hp <= 0){ setTimeout(()=>{ if(gameRunning && !gamePaused) normalKO(); }, 200); } }
 }
 
 // ── helper: on time up — osiris ──
@@ -7435,8 +7475,6 @@ function pressureHitTarget(x, y) {
   // cs_breakPower: extra BREAK progress per tap (HYDRA +0.15, CATULLANUX +0.20, stacks)
   const _bpBonus = (window._csState && window._csState.cs_breakPower) || 0;
   if(_bpBonus > 0) PRESSURE.targetHits += _bpBonus;
-  // DRAKE TAKE: BREAK x2 progress per tap during the 6s window (base ++ → +1 doubles it)
-  if(window._csState && window._csState.cs_drakeIgnoreThreshold && window._csState._drakeTakeEndTime && performance.now() < window._csState._drakeTakeEndTime) PRESSURE.targetHits += 1;
   // INCANTATION SCAMURAI: contract adds BREAK progress
   if(window._csState && window._csState.cs_incantation && window._csState._incantationContractEndTime && performance.now() < window._csState._incantationContractEndTime) PRESSURE.targetHits += 0.20;
   // EXECUSIONER: +15% BREAK progress when boss/enemy HP < 25%
@@ -8230,7 +8268,6 @@ function processHit(e, now) {
     window._csState._ktullanuxComboProtect ||
     (window._csState._freeModeEndTime && performance.now() < window._csState._freeModeEndTime) ||
     (window._csState._weebFocusEndTime && performance.now() < window._csState._weebFocusEndTime) ||
-    (window._csState._drakeComboLockEndTime && performance.now() < window._csState._drakeComboLockEndTime) ||
     (window._csState.cs_comboNoReset && Math.random() < window._csState.cs_comboNoReset) ||
     // LORD OF DEBT: REQUIEM state — combo cannot decay (suppress reset)
     _lodDebtRequiemActive
@@ -8573,14 +8610,8 @@ function processHit(e, now) {
         _el.bossName.style.color = '#ff4400';
         showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
       }
-      _csHandleDrakeThreshold(bossHP / bossMaxHP, '75');
-      _csHandleDrakeThreshold(bossHP / bossMaxHP, '50');
-      _csHandleDrakeThreshold(bossHP / bossMaxHP, '25');
       if(bossHP <= 0) bossKO();
     } else {
-      _csHandleDrakeThreshold(hp / maxHP, '75');
-      _csHandleDrakeThreshold(hp / maxHP, '50');
-      _csHandleDrakeThreshold(hp / maxHP, '25');
       if(window._csState && window._csState.cs_raydric && !window._csState._raydricActive){
         if((hp/maxHP) <= 0.60) window._csState._raydricActive = true;
       }
@@ -8647,16 +8678,8 @@ function applyDamage(dmg,e,isCrit) {
       _el.bossName.style.color='#ff4400';
       showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
     }
-    // DRAKE: OD charge +20% each time boss HP crosses 75%, 50%, 25%
-    _csHandleDrakeThreshold(bossHP / bossMaxHP, '75');
-    _csHandleDrakeThreshold(bossHP / bossMaxHP, '50');
-    _csHandleDrakeThreshold(bossHP / bossMaxHP, '25');
     if(bossHP<=0) bossKO();
   } else {
-    // DRAKE: OD charge +20% each time HP crosses 75%, 50%, 25%
-    _csHandleDrakeThreshold(hp / maxHP, '75');
-    _csHandleDrakeThreshold(hp / maxHP, '50');
-    _csHandleDrakeThreshold(hp / maxHP, '25');
     // RAYDRIC: activate permanently once enemy HP drops to <= 60%
     if(window._csState && window._csState.cs_raydric && !window._csState._raydricActive) {
       if((hp / maxHP) <= 0.60) window._csState._raydricActive = true;

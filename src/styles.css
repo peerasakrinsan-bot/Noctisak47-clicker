@@ -3210,6 +3210,17 @@
   #weakPoint.wp-vanish { animation:wpVanish 0.2s forwards; }
   @keyframes wpVanish { to{opacity:0; transform:translate(-50%,-50%) scale(1.5);} }
 
+  /* ══ DRAKE — X MARKS THE SPOT (golden treasure weak point) ══ */
+  #weakPoint.wp-treasure {
+    border-color:#ffcc33;
+    animation:wpTreasure 0.55s ease-in-out infinite alternate;
+  }
+  @keyframes wpTreasure {
+    0%  { box-shadow:0 0 18px 6px rgba(255,204,51,0.75), 0 0 8px 2px rgba(255,140,0,0.6); transform:translate(-50%,-50%) scale(1.02); }
+    100%{ box-shadow:0 0 40px 16px rgba(255,204,51,0.95), 0 0 18px 6px rgba(255,170,0,0.8); transform:translate(-50%,-50%) scale(1.16); }
+  }
+  #weakPoint.wp-treasure.wp-vanish { animation:wpVanish 0.2s forwards; }
+
   /* ══ WEAK POINT COUNTER ══ */
   #wpCounter {
     position:absolute; bottom:75px; left:50%;

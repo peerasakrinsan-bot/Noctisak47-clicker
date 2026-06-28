@@ -121,15 +121,18 @@ else bad('elite or mythic tier is empty');
 // silently regress back to the mismatched behavior.
 const has = (re, label) => { if (re.test(src)) ok(label); else bad(`logic regressed: ${label}`); };
 
-// DRAKE TAKE: damage multiplier is ×2 (not the old ×1.30)
-has(/_drakeTakeEndTime\s*&&\s*performance\.now\(\)\s*<\s*cs\._drakeTakeEndTime\)\s*d\s*\*=\s*2(\.0)?\b/,
-  'DRAKE TAKE damage ×2');
-// DRAKE TAKE: BREAK ×2 progress per tap during the window
-has(/cs_drakeIgnoreThreshold[^\n]*_drakeTakeEndTime[^\n]*PRESSURE\.targetHits\s*\+=\s*1/,
-  'DRAKE TAKE BREAK ×2 progress');
-// DRAKE TAKE: AK47 FAST spawn during the window
-has(/cs_drakeIgnoreThreshold[^\n]*_drakeTakeEndTime[^\n]*delay\s*\*=/,
-  'DRAKE TAKE AK47 fast spawn');
+// DRAKE — X MARKS THE SPOT: arms a treasure every N completed AK47 chains
+has(/_drakeAkCount\s*>=\s*DRAKE_ARM_EVERY[\s\S]*?_drakeArmed\s*=\s*true/,
+  'DRAKE arms a treasure every N AK47 chains');
+// DRAKE — treasure weak point + plunder payout exist (not a passive buff)
+has(/_drakeArmed[\s\S]*?wp\.classList\.add\('wp-treasure'\)/,
+  'DRAKE spawns a golden treasure weak point');
+has(/function\s+drakePlunder[\s\S]*?applyBossDamage\(burst,\s*'drake-plunder'\)/,
+  'DRAKE PLUNDER deals a one-time burst on a timed tap');
+// DRAKE — the old HP-threshold machinery is fully removed
+if (/cs_drakeIgnoreThreshold|_drakeTakeEndTime|_csHandleDrakeThreshold/.test(src))
+  bad('DRAKE still references removed HP-threshold machinery');
+else ok('DRAKE HP-threshold mechanic fully removed');
 // THANABROS: OD time +1s on AK47 complete while Thanatos Phase active
 has(/_thanatosPhaseEndTime[^\n]*godLevel\s*>\s*0\)\s*\{[^}]*godSecondsLeft\s*\+=\s*1/,
   'THANABROS OD +1s during Thanatos Phase');
