@@ -605,6 +605,58 @@ const BUILD = {
     }
   },
 
+  // ── THANABROS primitives (death / time-stop reaping) ───────────────────────
+  // "ตัดเวลา / มือมรณะ / เก็บเกี่ยววิญญาณ": นาฬิกาหยุดเวลา / รอยแยกเหวมรณะ / เคียวมรณะ
+  // กวาด / ระฆังมรณะกังวาน / วิญญาณถูกเก็บเข้า. ม่วงมรณะ-ดำเหว-ขาวสเปกตรัล.
+  // event-driven, particle จำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
+
+  // นาฬิกาหยุดเวลา — หน้าปัดหมุนเร็วแล้ว "หยุด" + วาบซีดสั้น ๆ
+  timeStop(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.7), col = o.color || '#e0b3ff';
+    const c = _mk('tclock', x, y, life, col); c.size = o.size || 52; _push(c);
+    const f = _mk('flash', 0, 0, _rmLife(0.22), col); f.size = 0.18; _push(f);
+  },
+  // รอยแยกเหวมรณะ — แกนเหว (reuse 'void') + วงแหวนมรณะ (death gate opens)
+  voidRift(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.6);
+    const v = _mk('void', x, y, life, o.color || '#660066'); v.size = o.size || 52; _push(v);
+    const r = _mk('ring', x, y, life, o.color2 || '#cc44cc'); r.size = 30; _push(r);
+  },
+  // เคียวมรณะกวาดข้าม — อาร์คเคียวกวาดเป็นวง (รับพิกัด ctx.x/y)
+  reaperScythe(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#cc44cc';
+    let n = _reduced ? 1 : (o.count || 2);
+    const life = _rmLife(o.dur || 0.5);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('scythe', x, y, life, col);
+      p.rot = (o.rot !== undefined ? o.rot : 0) + (i - (n - 1) / 2) * Math.PI; // เคียวฝั่งตรงข้าม
+      p.size = (o.len || 70) + i * 10; p.data = i * 0.06; p.seed = Math.random();
+      _push(p);
+    }
+  },
+  // ระฆังมรณะกังวาน — คลื่นกระแทกวงซ้อน (reuse 'bwave') + แกนเรืองมรณะ
+  deathKnell(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.7), col = o.color || '#cc00cc';
+    const g = _mk('glow', x, y, life * 0.6, col); g.size = 44; _push(g);
+    const w = _mk('bwave', x, y, life, col); w.size = 26; w.data = 4; _push(w);
+    if (!_reduced && _intensity > 0.4) { const w2 = _mk('bwave', x, y, life * 0.82, '#e0b3ff'); w2.size = 16; w2.data = 2.5; _push(w2); }
+  },
+  // วิญญาณถูกเก็บเข้าหาศูนย์กลาง — สายวิญญาณลู่เข้า (รับพิกัด ctx.x/y)
+  soulReap(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#dd99ff';
+    let n = _nParts(o.count || 8);
+    const life = _rmLife(o.dur || 0.6);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+      const rad = 56 + Math.random() * 46;
+      const p = _mk('wisp', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
+      const sp = rad / life;                 // ถึงศูนย์กลางราว ๆ ตอนจบ
+      p.vx = -Math.cos(ang) * sp; p.vy = -Math.sin(ang) * sp;
+      p.size = 2.4 + Math.random() * 1.8;
+      _push(p);
+    }
+  },
+
   // ── BOSS SKILL PRIMITIVES ──────────────────────────────────────────────────
   // "ท่าไม้ตาย" ของบอสแต่ละตัว — ยิงเฉพาะตอน skill activate (Overdrive) เท่านั้น
   // ไม่มี loop ถาวร, particle ต่อครั้งจำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
@@ -1403,6 +1455,79 @@ function _draw(p, dt) {
       ctx.globalAlpha = a;
       ctx.strokeStyle = _rgba('#e9c8ff', 1); ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 0.92, 0, 6.283); ctx.stroke();
+      break;
+    }
+    // ── THANABROS kinds ──────────────────────────────────────────────────
+    case 'tclock': {
+      // นาฬิกาหยุดเวลา: หน้าปัด + ขีดเวลา + เข็มหมุนเร็วช่วงแรกแล้ว "หยุด" (เวลาถูกตัด)
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const r = p.size * (0.85 + t * 0.15);
+      const sweep = t < 0.35 ? (t / 0.35) : 1;     // เข็มกวาดเร็วแล้วค้าง
+      const hand = sweep * Math.PI * 3.2;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.2;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.stroke();         // หน้าปัด
+      ctx.shadowBlur = 0; ctx.lineWidth = 2;
+      for (let k = 0; k < 12; k++) {                                     // ขีดชั่วโมง
+        const ang = (k / 12) * Math.PI * 2, inner = (k % 3 === 0) ? 0.78 : 0.88;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * r * inner, Math.sin(ang) * r * inner);
+        ctx.lineTo(Math.cos(ang) * r * 0.97, Math.sin(ang) * r * 0.97);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = _rgba('#ffffff', a); ctx.lineCap = 'round';
+      ctx.lineWidth = 2.8;                                              // เข็มสั้น
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(hand - Math.PI / 2) * r * 0.5, Math.sin(hand - Math.PI / 2) * r * 0.5); ctx.stroke();
+      ctx.lineWidth = 1.8;                                              // เข็มยาว
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(hand * 1.7 - Math.PI / 2) * r * 0.72, Math.sin(hand * 1.7 - Math.PI / 2) * r * 0.72); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'scythe': {
+      // เคียวมรณะกวาด: อาร์คเคียวสองชั้น (คม) กวาดเป็นวงตามอายุ (รับ p.data = delay)
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      const a = Math.sin(Math.min(1, lt) * Math.PI);
+      const dir = p.seed < 0.5 ? -1 : 1;
+      const sweep = (lt * 1.6 - 0.8) * dir;          // กวาด -0.8..0.8 rad
+      const R = p.size * (0.9 + lt * 0.3);
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot + sweep);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 12;
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(0, 0, R, -0.9, 0.9); ctx.stroke();        // คมนอก
+      ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.globalAlpha = a * 0.7;
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.82, -0.7, 0.7); ctx.stroke(); // คมใน
+      ctx.restore();
+      break;
+    }
+    case 'wisp': {
+      // วิญญาณถูกเก็บ: หัวเรือง + หางลู่ตามทิศตรงข้ามการเคลื่อน, ถูกดูดเข้าศูนย์กลาง
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.98; p.vy *= 0.98;
+      const a = (t < 0.2) ? (t / 0.2) : (1 - (t - 0.2) / 0.8);
+      const sp = Math.hypot(p.vx, p.vy) || 1;
+      const tx = -p.vx / sp, ty = -p.vy / sp;
+      const tail = p.size * 4;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const grad = ctx.createLinearGradient(p.x, p.y, p.x + tx * tail, p.y + ty * tail);
+      grad.addColorStop(0, _rgba(p.color, 1));
+      grad.addColorStop(1, _rgba(p.color, 0));
+      ctx.strokeStyle = grad; ctx.lineWidth = p.size; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + tx * tail, p.y + ty * tail); ctx.stroke();
+      ctx.fillStyle = _rgba('#ffffff', a);
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 0.7, 0, 6.283); ctx.fill();
+      ctx.restore();
       break;
     }
   }

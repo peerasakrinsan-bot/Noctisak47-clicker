@@ -757,6 +757,88 @@ function pSealBreak(color) {
   _emit(el, dur * 1000 + 120);
 }
 
+// ── THANABROS primitives (death / time-stop reaping) ─────────────────────────
+// บุคลิก "ตัดเวลา / มือมรณะ / เก็บเกี่ยววิญญาณ": นาฬิกาหยุดเวลา / รอยแยกเหวมรณะ /
+// เคียวมรณะกวาด / ระฆังมรณะกังวาน / วิญญาณถูกเก็บเข้า. ม่วงมรณะ-ดำเหว-ขาวสเปกตรัล.
+// canvas-first (เหมือน primitive อื่น) + DOM fallback ครบ.
+
+// timeStop — นาฬิกาหยุดเวลา (หน้าปัดหมุนเร็วแล้ว "หยุด")
+function pTimeStop(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('timeStop', { color: color || '#e0b3ff', x: c.x, y: c.y })) return;
+  const dur = _dur(0.7);
+  const el = _take('cv-tstop');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#e0b3ff');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i><i></i>';
+  _emit(el, dur * 1000 + 140);
+}
+
+// voidRift — รอยแยกเหวมรณะ (death-gate void tear เปิดออก)
+function pVoidRift(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('voidRift', { color: color || '#660066', x: c.x, y: c.y })) return;
+  const dur = _dur(0.6);
+  const el = _take('cv-vrift');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#660066');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i>';
+  _emit(el, dur * 1000 + 120);
+}
+
+// reaperScythe — เคียวมรณะกวาดข้าม (รับพิกัด ctx.x/y เช่นจุด AK47)
+function pReaperScythe(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('reaperScythe', { color: color || '#cc44cc', count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.5);
+  const n = _reduced ? 1 : (count || 2);
+  for (let i = 0; i < n; i++) {
+    const el = _take('cv-scythe');
+    el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+    el.style.setProperty('--cv', color || '#cc44cc');
+    el.style.setProperty('--rot', (i * 180) + 'deg');
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = (i * 0.06) + 's';
+    _emit(el, dur * 1000 + i * 70 + 120);
+  }
+}
+
+// deathKnell — ระฆังมรณะกังวาน (tolling shockwave วงซ้อน)
+function pDeathKnell(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('deathKnell', { color: color || '#cc00cc', x: c.x, y: c.y })) return;
+  const dur = _dur(0.7);
+  const el = _take('cv-knell');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#cc00cc');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i><i></i>';
+  _emit(el, dur * 1000 + 140);
+}
+
+// soulReap — วิญญาณถูกเก็บเข้าหาศูนย์กลาง (souls pulled inward; รับพิกัด ctx.x/y)
+function pSoulReap(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('soulReap', { color: color || '#dd99ff', count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.6);
+  const n = _reduced ? 3 : (count || 8);
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+    const rad = 56 + Math.random() * 46;
+    const e = _take('cv-wisp');
+    e.style.left = (p.x + Math.cos(ang) * rad) + 'px';
+    e.style.top = (p.y + Math.sin(ang) * rad) + 'px';
+    e.style.setProperty('--cv', color || '#dd99ff');
+    e.style.setProperty('--dx', (-Math.cos(ang) * rad) + 'px');
+    e.style.setProperty('--dy', (-Math.sin(ang) * rad) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 120);
+  }
+}
+
 // dispatcher: ชื่อ primitive → ฟังก์ชัน (ใช้ใน VFX_MAP แบบ data-driven)
 const PRIM = {
   flash: pFlash, pulse: pPulse, slash: pSlash, spark: pSpark,
@@ -772,6 +854,8 @@ const PRIM = {
   devilBetBurst: pDevilBetBurst, cursedFlame: pCursedFlame, bloodShock: pBloodShock,
   debtSeal: pDebtSeal, debtChain: pDebtChain, ledgerGlyph: pLedgerGlyph,
   collectorPull: pCollectorPull, debtCoinDrain: pDebtCoinDrain, sealBreak: pSealBreak,
+  timeStop: pTimeStop, voidRift: pVoidRift, reaperScythe: pReaperScythe,
+  deathKnell: pDeathKnell, soulReap: pSoulReap,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -782,6 +866,7 @@ const COORD_ARG = {
   demonSigil: [1, 2], sinEmber: [2, 3], devilBetBurst: [1, 2], cursedFlame: [1, 2],
   debtSeal: [1, 2], debtChain: [2, 3], ledgerGlyph: [2, 3],
   collectorPull: [1, 2], debtCoinDrain: [1, 2],
+  reaperScythe: [2, 3], soulReap: [2, 3],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -1030,8 +1115,16 @@ const VFX_MAP = {
   ltn: { rarity: 'elite', theme: 'idol', affects: 'odBar', aura: ['holy',  '#ff99dd'],  on: { od: [['holyBurst', '#ff99dd'], ['comboRing', '#ffaae0']], odlevel: ['spark', '#ffaae0', 4], spotlight: [['holyBurst', '#ff99dd'], ['flash', '#2a1024']] } },
 
   // ── MYTHIC ──
-  // THANABROS — Thanatos Phase (หยุดเวลา/มืด): วาบดำ + OD glow + คลื่นมืด + glitch บิดเวลา; AK47 ม่วงพัลส์
-  th:  { rarity: 'mythic', theme: 'time', affects: 'timer', aura: ['shadow', '#cc00cc'], on: { thanatos: [['flash', '#1a0022'], ['odGlow', '#dd33dd'], ['shadowBurst', '#660066', 0.6], ['glitch', '#cc44cc']], ak47: [['spark', '#dd55dd', 6], ['pulse', '#cc33cc']] } },
+  // THANABROS — THANATOS PHASE / มือมรณะตัดเวลา (thanatos): ออร่าเงามรณะ (passive) →
+  // เข้า Phase = นาฬิกาหยุดเวลา (timeStop) + รอยแยกเหวมรณะเปิด (voidRift) + เคียวมรณะกวาด
+  // (reaperScythe) + ระฆังมรณะกังวาน (deathKnell) + วิญญาณถูกเก็บเข้า (soulReap) — บุคลิก
+  // "หยุดเวลา/เก็บเกี่ยวความตาย" เฉพาะตัว (ไม่ใช่ glitch/shadowBurst กลางอีกต่อไป).
+  // AK47 ระหว่าง Phase (ต่อ OD timer) = เคียวกวาด + วิญญาณถูกเก็บที่จุด WP. affects=timer
+  // → นาฬิกาตอบสนอง (เวลาถูกตัด).
+  th:  { rarity: 'mythic', theme: 'thanatos', affects: 'timer', aura: ['shadow', '#cc00cc'], on: {
+           thanatos: [['timeStop', '#e0b3ff'], ['voidRift', '#660066'], ['reaperScythe', '#cc44cc', 2], ['deathKnell', '#cc00cc'], ['soulReap', '#dd99ff', 8]],
+           ak47:     [['reaperScythe', '#dd55dd', 1], ['soulReap', '#e0b3ff', 6]],
+         } },
   // BAPHOBET — DEVIL BET / สัญญาปีศาจ (demonContract): ออร่านรกแดง-ดำหายใจ (passive) →
   // BREAK = เดิมพัน: วงสัญญานรก + คลื่นไฟต้องสาป + เล็บปีศาจ → แต่ละ SIN ที่ได้ = พัลส์สัญญา:
   // สะเก็ดบาปดูดเข้า + ยันต์ปีศาจ (ความเข้ม aura ไต่ตาม tier จริงจาก _baphometSinStacks 0–5)

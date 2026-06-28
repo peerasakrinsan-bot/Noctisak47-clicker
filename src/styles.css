@@ -6472,6 +6472,76 @@
   100% { opacity: 0; width: 30px; }
 }
 
+/* ── THANABROS primitives (death / time-stop reaping) — DOM fallback (canvas-less) ──
+   ม่วงมรณะ-ดำเหว-ขาวสเปกตรัล. ทุกตัว transform/opacity สั้น ๆ, มือถือ-safe. */
+/* timeStop — นาฬิกาหยุดเวลา (หน้าปัด + วงขีดเวลาด้านใน) */
+.cv-tstop {
+  width: 70px; height: 70px; transform: translate(-50%, -50%) scale(.6); opacity: 0;
+  animation: cvTStop .7s ease-out forwards;
+}
+.cv-tstop i {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2.4px solid var(--cv, #e0b3ff); box-shadow: 0 0 16px var(--cv, #e0b3ff);
+}
+.cv-tstop i:last-child { inset: 30%; border-style: dashed; box-shadow: none; }
+@keyframes cvTStop {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(.6) rotate(-40deg); }
+  35%  { opacity: .95; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.05) rotate(4deg); }
+}
+/* voidRift — รอยแยกเหวมรณะ (เลนส์มืดเปิดออกแนวตั้ง) */
+.cv-vrift {
+  width: 34px; height: 90px; transform: translate(-50%, -50%) scaleX(.1); opacity: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #1a0022 0%, var(--cv, #660066) 60%, transparent 78%);
+  box-shadow: 0 0 22px var(--cv, #660066);
+  animation: cvVRift .6s ease-out forwards;
+}
+.cv-vrift i { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #cc44cc; opacity: .8; }
+@keyframes cvVRift {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scaleX(.1); }
+  40%  { opacity: .95; transform: translate(-50%, -50%) scaleX(1); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scaleX(.15); }
+}
+/* reaperScythe — เคียวมรณะกวาด (อาร์คเสี้ยวหมุนกวาด) */
+.cv-scythe {
+  width: 120px; height: 120px; opacity: 0; border-radius: 50%;
+  border: 4px solid var(--cv, #cc44cc); border-right-color: transparent; border-bottom-color: transparent;
+  box-shadow: 0 0 14px var(--cv, #cc44cc);
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(.7);
+  animation: cvScythe .5s ease-out forwards;
+}
+@keyframes cvScythe {
+  0%   { opacity: 0;  transform: translate(-50%, -50%) rotate(calc(var(--rot, 0deg) - 50deg)) scale(.7); }
+  35%  { opacity: .9; }
+  100% { opacity: 0;  transform: translate(-50%, -50%) rotate(calc(var(--rot, 0deg) + 50deg)) scale(1.1); }
+}
+/* deathKnell — ระฆังมรณะกังวาน (วงคลื่นซ้อนเหลื่อมจังหวะ) */
+.cv-knell { width: 30px; height: 30px; transform: translate(-50%, -50%); opacity: 1; }
+.cv-knell i {
+  position: absolute; left: 50%; top: 50%; width: 30px; height: 30px;
+  transform: translate(-50%, -50%) scale(.4); opacity: 0; border-radius: 50%;
+  border: 3px solid var(--cv, #cc00cc); box-shadow: 0 0 16px var(--cv, #cc00cc);
+  animation: cvKnell .7s ease-out forwards;
+}
+.cv-knell i:last-child { border-color: #e0b3ff; box-shadow: 0 0 14px #e0b3ff; animation-delay: .12s; }
+@keyframes cvKnell {
+  0%   { opacity: .9; transform: translate(-50%, -50%) scale(.4); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) scale(3.6); }
+}
+/* soulReap — วิญญาณถูกเก็บเข้าหาศูนย์กลาง (--dx/--dy ชี้เข้าใน) */
+.cv-wisp {
+  width: 7px; height: 7px; transform: translate(-50%, -50%); opacity: 0; border-radius: 50%;
+  background: radial-gradient(circle, #ffffff, var(--cv, #dd99ff) 70%, transparent);
+  box-shadow: 0 0 8px var(--cv, #dd99ff);
+  animation: cvWisp .6s ease-in forwards;
+}
+@keyframes cvWisp {
+  0%   { opacity: 0; }
+  25%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(.5); }
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    GAMEPLAY-ELEMENT VFX LAYER (.game-vfx-*)
    ──────────────────────────────────────────────────────────────────────────
@@ -6493,6 +6563,7 @@
 .game-vfx-theme-darkJackpot { --gv-theme: #d4af37; } /* DARK STAKE LORD — ทองมืด-แดง-เขียวนีออน */
 .game-vfx-theme-demonContract { --gv-theme: #cc0011; } /* BAPHOBET — แดงเลือด-ดำ-ส้มนรก-ทองต้องสาป */
 .game-vfx-theme-debtContract { --gv-theme: #9944cc; }  /* LORD OF DEBT — ม่วงหนี้ต้องสาป-ทองบัญชี-ดำเหว */
+.game-vfx-theme-thanatos { --gv-theme: #cc00cc; }      /* THANABROS — ม่วงมรณะ-ดำเหว-ขาวสเปกตรัล */
 
 /* 1) PASSIVE-ACTIVE indicator — แปะบน aura ตัวละคร (#cvAuraEl) เพิ่มจาก cv-aura.
    ไม่เพิ่มภาระ: เป็นเพียง hook คลาส (texture/จังหวะหลักยังมาจาก cv-aura--*).
