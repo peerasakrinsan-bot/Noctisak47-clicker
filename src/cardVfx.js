@@ -969,8 +969,13 @@ const VFX_MAP = {
   hy:  { rarity: 'elite', theme: 'break', affects: 'break', aura: ['drain', '#44ff88'],  on: { break: [['breakCrack', '#44ff88', true], ['slash', '#7dffb0', 2]], ak47: ['spark', '#44ff88', 6] } },
   // FREEONI — แปลง combo เป็นน้ำแข็ง: พัลส์ฟ้า + สะเก็ดเย็นตอน BREAK, OD glow เย็นตอน AK47→OD
   ph:  { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#66ccff'],  on: { break: [['pulse', '#66ccff'], ['spark', '#aaf0ff', 6]], ak47: ['odGlow', '#9bdcff'] } },
-  // TURTLE SHOGUN — กระดองแตก (heavy shell crack) ตอนเข้า SHOGUN STANCE
-  tg:  { rarity: 'elite', theme: 'break', affects: 'break', aura: ['glow',  '#9bbb55'],  on: { break: ['breakCrack', '#bfe07a', true] } },
+  // TURTLE SHOGUN — SHOGUN STANCE = กระดองตั้งการ์ด: วงเกราะกระดองหุบเข้า + กระดองทุบพื้น
+  // (heavy shell slam) + ออร่าสแตนซ์ ตอนเปิด STANCE (จังหวะจริงของการ์ด ไม่ใช่แค่ BREAK).
+  // BREAK ยังคงกระดองแตกหนักไว้ตามเดิม.
+  tg:  { rarity: 'elite', theme: 'break', affects: 'break', aura: ['glow',  '#9bbb55'],  on: {
+           break:  ['breakCrack', '#bfe07a', true],
+           stance: [['flash', '#16240a'], ['comboRing', '#bfe07a'], ['breakCrack', '#9bbb55', true], ['pulse', '#bfe07a']],
+         } },
   // DRAKE — DRAKE TAKE คือหน้าต่างพลังใหญ่: วาบ + OD glow ทอง + ฟันคู่ + สะเก็ดทองเยอะ
   dk:  { rarity: 'elite', theme: 'crit', affects: 'odBar', aura: ['gold',  '#ffcc33'],  on: { drake: [['flash', '#3a2a00'], ['odGlow', '#ffcc33'], ['slash', '#ffd84a', 2], ['spark', '#ffe680', 8]] } },
   // ABYSMELL KNIGHT — execute มืด: วาบดำ + ฟันแดง + คลื่นมืดดูดเข้า
@@ -983,8 +988,12 @@ const VFX_MAP = {
   ic:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['glow',  '#cc66ff'],  on: { break: [['comboRing', '#cc66ff'], ['breakCrack', '#d49bff'], ['flash', '#1a0a2a']] } },
   // STORMYNITE — STORM CHARGE: สายฟ้าฟาด + วาบ + สะเก็ดไฟฟ้า
   sk:  { rarity: 'elite', theme: 'crit', affects: 'odBar', aura: ['tech',  '#66ddff'],  on: { od: [['flash', '#bff0ff'], ['bolt', '#9be7ff'], ['spark', '#cdf4ff', 6]] } },
-  // DORK LORD — NIGHT STACK (passive scaling): รอยร้าวมืดตอน BREAK
-  dl:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['shadow', '#7744aa'], on: { break: ['breakCrack', '#9a66cc'] } },
+  // DORK LORD — NIGHT STACK (passive scaling 0–5): aura เงา "หนักขึ้น" ตาม tier จริง (0–3)
+  // + พัลส์เงาตอนขึ้น tier (ค่ำคืนสะสมพลัง, เห็นได้ตลอดระหว่างเล่น); รอยร้าวมืดตอน BREAK ตามเดิม.
+  dl:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['shadow', '#7744aa'], on: {
+           break:      ['breakCrack', '#9a66cc'],
+           nightstack: ['shadowBurst', '#9a66cc', 0.5],
+         } },
   // MOONLIGHT FEVER — โหมดฟีเวอร์แสงจันทร์: ออร่าจันทราหายใจ (passive) → จังหวะพัลส์ +
   // จันทร์เสี้ยวกวาด (trigger) → สุริยุปราคา + คลื่นฟีเวอร์ + ประกายเงินดูดเข้า (burst).
   // ยิงตามบูสต์จริงของการ์ด: OD ×2 = eclipse burst (peak), BREAK = pulse+sweep, AK47 = sweep+sparks.
@@ -1038,7 +1047,13 @@ const VFX_MAP = {
   eg:  { rarity: 'mythic', theme: 'crit', affects: 'odBar', aura: ['fire',  '#ff6622'],  on: { od: [['fireBurst', '#ff6622'], ['slash', '#ff8844', 3]] } },
   // NOSIRIS — Soul Stack 0–5 (สะสมตอน BREAK) → JUDGMENT ตอนเต็ม 5: แสง holy ทอง + พัลส์,
   // pip ต่อ soul stack จริง (ctx.stack), เต็ม 5 = expire flourish (JUDGMENT/ปฏิเสธความตาย)
-  os:  { rarity: 'mythic', theme: 'soul', affects: 'break', stack: { gain: 'soulstack', reset: 'judgment', max: 5 }, aura: ['gold',  '#ffdd66'],  on: { break: [['holyBurst', '#ffe07a'], ['pulse', '#ffd84a']], soulstack: ['spark', '#ffe07a', 4] } },
+  // JUDGMENT (เต็ม 5 = ปฏิเสธความตาย) ได้ payoff เฉพาะของตัวเอง: วาบทอง + แสง holy ทอง→ม่วงคู่ +
+  // พัลส์ม่วง + ฝนประกายทอง (ใหญ่/ต่างจาก BREAK ปกติ) พร้อม stack expire flourish (reset='judgment').
+  os:  { rarity: 'mythic', theme: 'soul', affects: 'break', stack: { gain: 'soulstack', reset: 'judgment', max: 5 }, aura: ['gold',  '#ffdd66'],  on: {
+           break:    [['holyBurst', '#ffe07a'], ['pulse', '#ffd84a']],
+           soulstack: ['spark', '#ffe07a', 4],
+           judgment: [['flash', '#fff4d0'], ['holyBurst', '#ffe07a'], ['holyBurst', '#cc88ff'], ['pulse', '#cc88ff'], ['spark', '#ffe680', 8]],
+         } },
   // MISSSTRESS — ราชินีผึ้งสายฟ้าเหลือง: สายฟ้า + สะเก็ด + เหรียญ (zeny ตอน OD)
   mt:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffdd00'],  on: { od: [['bolt', '#ffe21a'], ['spark', '#ffe85a', 6], ['coinBurst', '#ffe21a']] } },
   // GOLDEN BRUH — GOLD RUSH ระเบิดทองใหญ่ (ยิงที่ context 'combo' จริง ตอน combo เต็ม)
@@ -1079,7 +1094,13 @@ const VFX_MAP = {
   fwc: { rarity: 'mythic', theme: 'break', affects: 'break', aura: ['shadow', '#ff2233'], on: { break: [['glitch', '#ff2233'], ['shadowBurst', '#330008', 0.5], ['flash', '#1a0008']] } },
   // DETAILED — ANALYZED BREAK กริด/สแกนแม่นยำ: glitch + สะเก็ดกริด + วาบ; Analysis Stack 0–8
   // (สะสมตอนเก็บ WP, −2 ตอนพลาด, รีเซ็ตเมื่อ BREAK จบ) → pip ต่อ stack จริง, เต็ม 8 = ANALYSIS COMPLETE
-  dtl: { rarity: 'mythic', theme: 'analysis', affects: 'break', stack: { gain: 'analysis', reset: 'analysisreset', max: 8 }, aura: ['tech',  '#00ffee'],  on: { break: [['glitch', '#00ffee'], ['spark', '#00ffee', 8], ['flash', '#003a3a']], analysis: ['spark', '#00ffee', 3] } },
+  // ANALYSIS COMPLETE (เต็ม 8/8) ได้ payoff เฉพาะ: วาบไซแอน + glitch + วงล็อกเป้า (comboRing) +
+  // ลำสแกนกวาด (streak) + สะเก็ดกริด — "ล็อกเป้าสำเร็จ" ต่างจาก break ปกติ; pip ยังเต็ม 8 ระหว่างเล่นพายอฟ.
+  dtl: { rarity: 'mythic', theme: 'analysis', affects: 'break', stack: { gain: 'analysis', reset: 'analysisreset', max: 8 }, aura: ['tech',  '#00ffee'],  on: {
+           break:    [['glitch', '#00ffee'], ['spark', '#00ffee', 8], ['flash', '#003a3a']],
+           analysis: ['spark', '#00ffee', 3],
+           analysiscomplete: [['flash', '#0a5a5a'], ['glitch', '#00ffee'], ['comboRing', '#00ffee'], ['streak', '#aaffff'], ['spark', '#00ffee', 8]],
+         } },
   // GLOOM UNDER SIDE — OBSESSION (passive scaling 0–20, ไม่มี pip): aura "หนักขึ้น" ตาม tier
   // จริง (0–3) + พัลส์เงาตอนขึ้น tier; affects=timer (obsession กินเวลา) → นาฬิกาตอบสนอง
   gus: { rarity: 'mythic', theme: 'soul', affects: 'timer', aura: ['shadow', '#6633aa'], on: { break: [['shadowBurst', '#7d44c4', 0.6], ['shadowBurst', '#5522aa', 0.45]], gloom: ['shadowBurst', '#7d44c4', 0.5] } },

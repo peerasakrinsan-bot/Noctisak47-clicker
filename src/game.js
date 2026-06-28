@@ -4617,7 +4617,7 @@ function csOnClick(isGod) {
   }
   // Amon Ra: combo >= 40 → dmg+40% + coin x1.5
   
-  if(cs.cs_turtleShogun){ const now=performance.now(); if(combo>=25 && now>=(cs._turtleShogunCooldownUntil||0) && now>=(cs._turtleShogunEndTime||0)){ cs._turtleShogunEndTime=now+6000; cs._turtleShogunCooldownUntil=now+12000; cs._turtleComboDecayFast=0.35; } if((cs._turtleShogunEndTime||0)<=now) cs._turtleComboDecayFast=0; }
+  if(cs.cs_turtleShogun){ const now=performance.now(); if(combo>=25 && now>=(cs._turtleShogunCooldownUntil||0) && now>=(cs._turtleShogunEndTime||0)){ cs._turtleShogunEndTime=now+6000; cs._turtleShogunCooldownUntil=now+12000; cs._turtleComboDecayFast=0.35; _cardFx('stance'); /* TURTLE SHOGUN — SHOGUN STANCE เปิด (cosmetic) */ } if((cs._turtleShogunEndTime||0)<=now) cs._turtleComboDecayFast=0; }
   if(cs.cs_incantation){
     const now = performance.now();
     if(combo >= 35 && now >= (cs._incantationCdUntil||0) && !cs._incantationContractEndTime) {
@@ -4643,7 +4643,12 @@ function csOnClick(isGod) {
       }
     }
   }
-  if(cs.cs_dorkLord){ const now=performance.now(); if(!cs._dorkNextStackAt) cs._dorkNextStackAt=now+15000; while((cs._dorkNightStacks||0)<5 && now>=cs._dorkNextStackAt){ cs._dorkNightStacks=(cs._dorkNightStacks||0)+1; cs._dorkNextStackAt+=15000; } cs._dorkTimerRateBonus=Math.min(0.15,(cs._dorkNightStacks||0)*0.03); }
+  if(cs.cs_dorkLord){ const now=performance.now(); if(!cs._dorkNextStackAt) cs._dorkNextStackAt=now+15000; while((cs._dorkNightStacks||0)<5 && now>=cs._dorkNextStackAt){ cs._dorkNightStacks=(cs._dorkNightStacks||0)+1; cs._dorkNextStackAt+=15000; } cs._dorkTimerRateBonus=Math.min(0.15,(cs._dorkNightStacks||0)*0.03);
+    // DORK LORD: NIGHT STACK build-up VFX (คอสเมติกล้วน): aura เงาหนักขึ้นตาม tier จริง (0–5 → 0–3)
+    // + พัลส์เงาตอนขึ้น tier. _dorkVfxTier กัน fire ซ้ำสำหรับภาพเท่านั้น (run-only, ไม่เซฟ, ไม่แตะ logic/บาลานซ์).
+    const _dorkTier = Math.min(3, Math.round((cs._dorkNightStacks||0)*0.6));
+    if(_dorkTier !== (cs._dorkVfxTier||0)){ cs._dorkVfxTier = _dorkTier; _cardFx('nightstack', { tier: _dorkTier }); }
+  }
   // Goblin Leader: combo+2 per click (applied in processHit combo line)
   // Beelzebub: accumulate corruption per click (max 50%)
   if(cs.cs_beelzebub) {
@@ -5227,6 +5232,7 @@ function csOnWpHit(x, y) {
     _cardFx('analysis', { stack: cs._analysisStacks, max: 8 }); // DETAILED analysis-stack pip (cosmetic)
     if(cs._analysisStacks >= 8 && !cs._analysisComplete) {
       cs._analysisComplete = true;
+      _cardFx('analysiscomplete'); // DETAILED — ANALYSIS COMPLETE payoff (cosmetic)
       showBigSplash('ANALYSIS COMPLETE', 'Next BREAK: WINDOW x2', '#00ffee', false);
     }
   }
