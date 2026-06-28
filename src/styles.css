@@ -6568,6 +6568,64 @@
   100% { opacity: 0;  transform: translate(-50%, -50%) scale(3.6); }
 }
 
+/* ── unexpressed-fantasy primitives (swarm / lock / zero / corruption) — DOM fallback ──
+   ฝูงแมลง / คอมโบล็อก / สุญญากาศศูนย์ / ไวรัสคอร์รัปต์. transform/opacity สั้น ๆ, มือถือ-safe. */
+/* insectSwarm — จุดแมลงเล็กบินกระจาย (--dx/--dy) */
+.cv-swarm {
+  width: 4px; height: 4px; transform: translate(-50%, -50%); opacity: 0; border-radius: 50%;
+  background: var(--cv, #88cc00); box-shadow: 0 0 5px var(--cv, #88cc00);
+  animation: cvSwarm .6s ease-out forwards;
+}
+@keyframes cvSwarm {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, -20px))); }
+}
+/* comboLock — วงเล็บ 4 มุมหุบเข้า "ล็อก" */
+.cv-lock { width: 70px; height: 70px; transform: translate(-50%, -50%); opacity: 0; animation: cvLock .55s ease-out forwards; }
+.cv-lock i {
+  position: absolute; width: 18px; height: 18px; border: 2.6px solid var(--cv, #ffaa44);
+  box-shadow: 0 0 8px var(--cv, #ffaa44);
+}
+.cv-lock i:nth-child(1) { left: 0;   top: 0;    border-right: none; border-bottom: none; }
+.cv-lock i:nth-child(2) { right: 0;  top: 0;    border-left: none;  border-bottom: none; }
+.cv-lock i:nth-child(3) { left: 0;   bottom: 0; border-right: none; border-top: none; }
+.cv-lock i:nth-child(4) { right: 0;  bottom: 0; border-left: none;  border-top: none; }
+@keyframes cvLock {
+  0%   { opacity: 0;  transform: translate(-50%, -50%) scale(1.5); }
+  40%  { opacity: .95; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) scale(.96); }
+}
+/* voidZero — วงขาว + แกนดำ หดยุบเข้าหาศูนย์ */
+.cv-vzero {
+  width: 90px; height: 90px; transform: translate(-50%, -50%) scale(1); opacity: 0; border-radius: 50%;
+  border: 2.6px solid var(--cv, #e8f4ff); box-shadow: 0 0 14px var(--cv, #e8f4ff);
+  animation: cvVZero .6s ease-in forwards;
+}
+.cv-vzero i {
+  position: absolute; inset: 8px; border-radius: 50%;
+  background: radial-gradient(circle, #000 0%, #0a0a12 70%, transparent 100%);
+}
+@keyframes cvVZero {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(1.2); }
+  30%  { opacity: .95; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(.2); } /* หดเข้าศูนย์ */
+}
+/* corruptGlitch — บล็อกดิจิทัลคอร์รัปต์กระตุก (full-layer) */
+.cv-cglitch { inset: 0; left: 0; top: 0; width: 100%; height: 100%; }
+.cv-cglitch > i {
+  position: absolute; background: var(--cv, #ff2233); opacity: 0; mix-blend-mode: screen;
+  border: 1px solid #fff; box-shadow: 0 0 6px var(--cv, #ff2233);
+  animation: cvCGlitch .4s steps(4, end) forwards;
+}
+@keyframes cvCGlitch {
+  0%   { opacity: 0;   transform: translateX(0); }
+  25%  { opacity: .6;  transform: translateX(10px); }
+  50%  { opacity: .3;  transform: translateX(-7px); }
+  75%  { opacity: .5;  transform: translateX(4px); }
+  100% { opacity: 0;   transform: translateX(0); }
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    GAMEPLAY-ELEMENT VFX LAYER (.game-vfx-*)
    ──────────────────────────────────────────────────────────────────────────

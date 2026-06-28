@@ -875,6 +875,75 @@ function pResonanceWave(color) {
   }
 }
 
+// ── unexpressed-fantasy primitives (swarm / lock / zero / corruption) ────────
+// ให้การ์ดที่บุคลิกยังไม่ออกได้ "เป็นตัวเอง": ฝูงแมลง (BEELZEBRUH/MISSSTRESS) /
+// คอมโบล็อก (CATULLANUX) / สุญญากาศศูนย์ (COKE ZERO) / ไวรัสคอร์รัปต์ (RSICK-0806).
+
+// insectSwarm — ฝูงแมลงบินส่าย (buzz) แล้วกระจาย (รับพิกัด ctx.x/y). สีเขียว=แมลงวัน / ทอง=ผึ้ง
+function pInsectSwarm(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('insectSwarm', { color: color || '#88cc00', count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.6);
+  const n = _reduced ? 4 : (count || 10);
+  for (let i = 0; i < n; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const rad = 10 + Math.random() * 40;
+    const e = _take('cv-swarm');
+    e.style.left = (p.x + Math.cos(ang) * rad) + 'px';
+    e.style.top = (p.y + Math.sin(ang) * rad) + 'px';
+    e.style.setProperty('--cv', color || '#88cc00');
+    e.style.setProperty('--dx', ((Math.random() - 0.5) * 50) + 'px');
+    e.style.setProperty('--dy', (-20 + (Math.random() - 0.5) * 50) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.015) + 's';
+    _emit(e, dur * 1000 + i * 20 + 120);
+  }
+}
+
+// comboLock — วงเล็บเป้าหมาย 4 มุมหุบเข้า "ล็อก" (combo lock)
+function pComboLock(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('comboLock', { color: color || '#ffaa44', x: c.x, y: c.y })) return;
+  const dur = _dur(0.55);
+  const el = _take('cv-lock');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#ffaa44');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i><i></i><i></i><i></i>';
+  _emit(el, dur * 1000 + 120);
+}
+
+// voidZero — วงขาว + แกนดำสุญญากาศ หดยุบเข้าหา "ศูนย์" (ZERO annihilation)
+function pVoidZero(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('voidZero', { color: color || '#e8f4ff', x: c.x, y: c.y })) return;
+  const dur = _dur(0.6);
+  const el = _take('cv-vzero');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#e8f4ff');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i>';
+  _emit(el, dur * 1000 + 120);
+}
+
+// corruptGlitch — บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption; ต่างจาก scanline glitch)
+function pCorruptGlitch(color) {
+  if (_toCanvas('corruptGlitch', { color: color || '#ff2233' })) return;
+  const dur = _dur(0.4);
+  const el = _take('cv-cglitch');
+  el.style.setProperty('--cv', color || '#ff2233');
+  el.style.animationDuration = dur + 's';
+  const n = _reduced ? 2 : 7;
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    const top = 12 + Math.random() * 70, left = Math.random() * 78;
+    const w = 8 + Math.random() * 34, h = 3 + Math.random() * 10;
+    html += `<i style="top:${top}%;left:${left}%;width:${w}px;height:${h}px;animation-delay:${(i * 0.03).toFixed(2)}s"></i>`;
+  }
+  el.innerHTML = html;
+  _emit(el, dur * 1000 + 120);
+}
+
 // dispatcher: ชื่อ primitive → ฟังก์ชัน (ใช้ใน VFX_MAP แบบ data-driven)
 const PRIM = {
   flash: pFlash, pulse: pPulse, slash: pSlash, spark: pSpark,
@@ -893,6 +962,7 @@ const PRIM = {
   timeStop: pTimeStop, voidRift: pVoidRift, reaperScythe: pReaperScythe,
   deathKnell: pDeathKnell, soulReap: pSoulReap,
   clawRake: pClawRake, resonanceWave: pResonanceWave,
+  insectSwarm: pInsectSwarm, comboLock: pComboLock, voidZero: pVoidZero, corruptGlitch: pCorruptGlitch,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -904,7 +974,7 @@ const COORD_ARG = {
   debtSeal: [1, 2], debtChain: [2, 3], ledgerGlyph: [2, 3],
   collectorPull: [1, 2], debtCoinDrain: [1, 2],
   reaperScythe: [2, 3], soulReap: [2, 3],
-  clawRake: [2, 3],
+  clawRake: [2, 3], insectSwarm: [2, 3],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -1187,12 +1257,15 @@ const VFX_MAP = {
            soulstack: ['spark', '#ffe07a', 4],
            judgment: [['flash', '#fff4d0'], ['holyBurst', '#ffe07a'], ['holyBurst', '#cc88ff'], ['pulse', '#cc88ff'], ['spark', '#ffe680', 8]],
          } },
-  // MISSSTRESS — ราชินีผึ้งสายฟ้าเหลือง: สายฟ้า + สะเก็ด + เหรียญ (zeny ตอน OD)
-  mt:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffdd00'],  on: { od: [['bolt', '#ffe21a'], ['spark', '#ffe85a', 6], ['coinBurst', '#ffe21a']] } },
+  // MISSSTRESS — ราชินีผึ้งสายฟ้าเหลือง (bee queen): ฝูงผึ้งทองรุมบิน + สายฟ้า + เหรียญทอง
+  // (zeny ตอน OD). ฝูงผึ้งทำให้ "ราชินีผึ้ง" ออกชัด ไม่ใช่แค่สายฟ้า+เหรียญกลาง.
+  mt:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffdd00'],  on: { od: [['insectSwarm', '#ffd24a', 10], ['bolt', '#ffe21a'], ['spark', '#ffe85a', 6], ['coinBurst', '#ffe21a']] } },
   // GOLDEN BRUH — GOLD RUSH ระเบิดทองใหญ่ (ยิงที่ context 'combo' จริง ตอน combo เต็ม)
   gb:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffcc00'],  on: { combo: [['flash', '#3a2e00'], ['coinBurst', '#ffcc00'], ['spark', '#ffe680', 8]] } },
-  // COKE ZERO — ศูนย์ดำ-ขาวเย็น: วาบขาว + วงพัลส์ + คลื่นมืด (คอนทราสต์ดำ-ขาว)
-  oh:  { rarity: 'mythic', theme: 'time', affects: 'break', aura: ['frost', '#e8f4ff'],  on: { break: [['flash', '#ffffff'], ['pulse', '#cfe8ff'], ['shadowBurst', '#0a0a0a', 0.5]] } },
+  // COKE ZERO — "ZERO" สุญญากาศดำ-ขาว (OD charge ×4): วาบขาว + วงสุญญากาศหดยุบเข้าหา "ศูนย์"
+  // (annihilation) ตอนเข้า OD — บุคลิก "ศูนย์/ความว่าง" ออกจริง (ไม่ใช่ flash+pulse กลาง). affects=odBar
+  // เพราะการ์ดเร่ง OD charge ×4 (OD คือหัวใจ).
+  oh:  { rarity: 'mythic', theme: 'time', affects: 'odBar', aura: ['frost', '#e8f4ff'],  on: { od: [['flash', '#ffffff'], ['voidZero', '#e8f4ff']] } },
   // LORD OF DEBT — DEBT CONTRACT (debtContract): ออร่าหนี้ม่วง-ทองบัญชี "หายใจ" (passive) ที่
   // ความเข้มไต่ตาม DEBT STACK จริง 0–5 → 0–3 (ภาระสะสมเห็นได้ตลอด, ตัวนับ #debtStackCounter ยัง
   // เป็นแหล่งความจริง ไม่สร้าง UI ซ้ำ). ทุกสัญญา (debt) = ตราสัญญาหนี้ประทับ (สีตามพลังต้องห้ามที่
@@ -1208,10 +1281,15 @@ const VFX_MAP = {
            debtclear: [['debtCoinDrain', '#d4a017'], ['ledgerGlyph', '#ff6688', 4]],
            hit:       [['slash', '#7744aa', 1], ['debtChain', '#9944cc', 2]],
          } },
-  // CATULLANUX — ราชาแมว combo lock: รอยร้าวหนัก + วง lock
-  kn:  { rarity: 'mythic', theme: 'analysis', affects: 'combo', aura: ['glow',  '#ffaa44'],  on: { break: [['breakCrack', '#ffbf6a', true], ['comboRing', '#ffcf8a']] } },
-  // BEELZEBRUH — ฝูงแมลงพิษเขียว: คลื่นมืดเขียว + สะเก็ดฝูง
-  bz:  { rarity: 'mythic', theme: 'soul', affects: 'break', aura: ['drain', '#88cc00'],  on: { break: [['shadowBurst', '#88cc00'], ['spark', '#a4dd2a', 7]] } },
+  // CATULLANUX — ราชาแมว COMBO LOCK: วงเล็บเป้าหมาย 4 มุมหุบเข้า "ล็อกคอมโบ" (combo lock) ตอน
+  // AK47 ครบ/BREAK สำเร็จ + รอยร้าวหนัก. affects=combo → กรอบคอมโบตอบสนอง (คอมโบถูกล็อก).
+  kn:  { rarity: 'mythic', theme: 'analysis', affects: 'combo', aura: ['glow',  '#ffaa44'],  on: {
+           break: [['comboLock', '#ffaa44'], ['breakCrack', '#ffbf6a', true]],
+           ak47:  [['comboLock', '#ffcf8a']],
+         } },
+  // BEELZEBRUH — เจ้าแห่งแมลงวัน/CORRUPTION: ฝูงแมลงวันเขียวรุมบิน (buzz) + คลื่นมืดเขียวสาป
+  // ตอน BREAK — บุคลิก "ฝูงแมลง" ออกจริง (ไม่ใช่ shadowBurst+spark กลาง).
+  bz:  { rarity: 'mythic', theme: 'soul', affects: 'break', aura: ['drain', '#88cc00'],  on: { break: [['insectSwarm', '#88cc00', 12], ['shadowBurst', '#5a7a00', 0.5]] } },
   // VALKYRIZZ — ปีกศักดิ์สิทธิ์ + หอก: แสง holy + ฟันสว่าง
   vr:  { rarity: 'mythic', theme: 'idol', affects: 'break', aura: ['holy',  '#cc88ff'],  on: { break: [['holyBurst', '#d6a3ff'], ['slash', '#e0b8ff', 1]] } },
   // ATROSUS — RESONANCE อสูรเกรี้ยว (resonance wave): ไม่ใช่ไฟพุ่งแล้ว — เป็น "คลื่นเรโซแนนซ์"
@@ -1225,10 +1303,13 @@ const VFX_MAP = {
   // IFRIED ครองไฟแต่ผู้เดียว: Inferno Burst เป็น "จุดสุดยอดของไฟ" — ไฟพุ่งสองชั้น (แดง→ทอง) +
   // สะเก็ดเยอะ + คลื่นความร้อน. EDGEGA/ATROSUS เลิกใช้ fireBurst แล้ว → ไฟ = IFRIED เท่านั้น.
   if:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', aura: ['fire',  '#ff4400'],  on: { break: [['fireBurst', '#ff4400'], ['spark', '#ff7722', 7]], emberhit: ['spark', '#ff6622', 4], inferno: [['flash', '#2a0a00'], ['fireBurst', '#ff4400'], ['fireBurst', '#ffaa22'], ['spark', '#ff8844', 10], ['pulse', '#ff6622']] } },
-  // RSICK-0806 — ไซเบอร์ Execution: glitch + พัลส์แดง
-  rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff2233'],  on: { break: [['glitch', '#ff2233'], ['pulse', '#ff4455']] } },
-  // FALLEN WECHAT — Overloaded BREAK เทวดาตก: glitch + คลื่นมืด + วาบดำ
-  fwc: { rarity: 'mythic', theme: 'break', affects: 'break', aura: ['shadow', '#ff2233'], on: { break: [['glitch', '#ff2233'], ['shadowBurst', '#330008', 0.5], ['flash', '#1a0008']] } },
+  // RSICK-0806 — ไวรัส EXECUTION ไซเบอร์: บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption) + สะเก็ด
+  // แดง + พัลส์ — ต่างจาก scanline glitch ของ KILL-D01/DETAILED/MAYA และจาก FALLEN WECHAT (crash).
+  rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff2233'],  on: { break: [['corruptGlitch', '#ff2233'], ['spark', '#ff4455', 6], ['pulse', '#ff2233']] } },
+  // FALLEN WECHAT — OVERLOADED BREAK เทวดาตก (system crash/overload): วาบมืด + glitch โหลดเกิน +
+  // กระดอง BREAK แตกหนัก (overload shatter) + คลื่นมืดเทวดาตก + สายฟ้าระบบลัด — "ระบบล่ม/พลังล้น"
+  // ต่างชัดจาก RSICK (viral corruption blocks).
+  fwc: { rarity: 'mythic', theme: 'break', affects: 'break', aura: ['shadow', '#ff2233'], on: { break: [['flash', '#1a0008'], ['glitch', '#ff2233'], ['breakCrack', '#ff3344', true], ['shadowBurst', '#330008', 0.5], ['bolt', '#ff5566']] } },
   // DETAILED — ANALYZED BREAK กริด/สแกนแม่นยำ: glitch + สะเก็ดกริด + วาบ; Analysis Stack 0–8
   // (สะสมตอนเก็บ WP, −2 ตอนพลาด, รีเซ็ตเมื่อ BREAK จบ) → pip ต่อ stack จริง, เต็ม 8 = ANALYSIS COMPLETE
   // ANALYSIS COMPLETE (เต็ม 8/8) ได้ payoff เฉพาะ: วาบไซแอน + glitch + วงล็อกเป้า (comboRing) +

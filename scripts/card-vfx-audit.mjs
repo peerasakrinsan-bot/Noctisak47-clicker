@@ -120,7 +120,8 @@ const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinB
   'demonSigil', 'contractRing', 'sinEmber', 'devilBetBurst', 'cursedFlame', 'bloodShock',
   'debtSeal', 'debtChain', 'ledgerGlyph', 'collectorPull', 'debtCoinDrain', 'sealBreak',
   'timeStop', 'voidRift', 'reaperScythe', 'deathKnell', 'soulReap',
-  'clawRake', 'resonanceWave']);
+  'clawRake', 'resonanceWave',
+  'insectSwarm', 'comboLock', 'voidZero', 'corruptGlitch']);
 let badAura = 0, badPrim = 0, noEffect = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
   if (!e.aura || !AURA_STYLES.has(e.aura[0]) || typeof e.aura[1] !== 'string') {

@@ -693,6 +693,46 @@ const BUILD = {
     const g = _mk('glow', x, y, life * 0.5, col); g.size = 40; _push(g);
   },
 
+  // ── unexpressed-fantasy primitives (swarm / lock / zero / corruption) ──────
+  // ฝูงแมลง (BEELZEBRUH/MISSSTRESS) / คอมโบล็อก (CATULLANUX) / สุญญากาศศูนย์ (COKE ZERO) /
+  // ไวรัสคอร์รัปต์ (RSICK-0806). event-driven, particle จำกัด, เคารพ reduced-motion/intensity.
+
+  // ฝูงแมลงบินส่าย (buzz) แล้วกระจาย (รับพิกัด ctx.x/y)
+  insectSwarm(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#88cc00';
+    let n = _nParts(o.count || 10);
+    const life = _rmLife(o.dur || 0.6);
+    for (let i = 0; i < n; i++) {
+      const ang = Math.random() * Math.PI * 2, rad = 10 + Math.random() * 40;
+      const p = _mk('swarm', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life * (0.7 + Math.random() * 0.3), col);
+      p.vx = (Math.random() - 0.5) * 60; p.vy = (Math.random() - 0.5) * 60 - 20;
+      p.size = 1.6 + Math.random() * 1.8; p.seed = Math.random() * 6.28; p.data = 2 + Math.random() * 3; // buzz freq
+      _push(p);
+    }
+  },
+  // คอมโบล็อก — วงเล็บเป้าหมาย 4 มุมหุบเข้า + วงแหวน
+  comboLock(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ffaa44', life = _rmLife(o.dur || 0.55);
+    const p = _mk('lock', x, y, life, col); p.size = o.size || 52; _push(p);
+    const r = _mk('ring', x, y, life, col); r.size = 26; _push(r);
+  },
+  // สุญญากาศศูนย์ — วงขาว + แกนดำ หดยุบเข้าหา "ศูนย์" (ZERO annihilation)
+  voidZero(o) {
+    const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.6);
+    const p = _mk('vzero', x, y, life, o.color || '#e8f4ff'); p.size = o.size || 54; _push(p);
+  },
+  // ไวรัสคอร์รัปต์ — บล็อกดิจิทัลกระตุก/เลื่อน (ต่างจาก scanline glitch)
+  corruptGlitch(o) {
+    const col = o.color || '#ff2233', life = _rmLife(o.dur || 0.4);
+    let n = _nParts(o.count || 7);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('cglitch', Math.random() * _cw, (0.15 + Math.random() * 0.7) * _ch, life, col);
+      p.size = 10 + Math.random() * 40; p.data = 3 + Math.random() * 10; // block w/h
+      p.vx = (Math.random() < 0.5 ? -1 : 1) * (20 + Math.random() * 40); p.seed = Math.random();
+      _push(p);
+    }
+  },
+
   // ── BOSS SKILL PRIMITIVES ──────────────────────────────────────────────────
   // "ท่าไม้ตาย" ของบอสแต่ละตัว — ยิงเฉพาะตอน skill activate (Overdrive) เท่านั้น
   // ไม่มี loop ถาวร, particle ต่อครั้งจำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
@@ -1603,6 +1643,76 @@ function _draw(p, dt) {
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0; ctx.globalAlpha = a * 0.5; ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 0.78, 0, 6.283); ctx.stroke();
+      break;
+    }
+    // ── unexpressed-fantasy kinds ────────────────────────────────────────
+    case 'swarm': {
+      // แมลงบินส่าย: เคลื่อนตาม v + สั่น (buzz) + ปีกสั้น + จาง
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const bx = Math.sin(p.age * p.data * 12 + p.seed) * 3;
+      const by = Math.cos(p.age * p.data * 9 + p.seed) * 3;
+      const a = (t < 0.2) ? (t / 0.2) : (1 - (t - 0.2) / 0.8);
+      const px = p.x + bx, py = p.y + by;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath(); ctx.arc(px, py, p.size, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = a * 0.45; ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(px - p.size * 1.7, py); ctx.lineTo(px + p.size * 1.7, py); ctx.stroke();
+      break;
+    }
+    case 'lock': {
+      // คอมโบล็อก: วงเล็บ L 4 มุม เริ่มกาง→หุบเข้า "ล็อก"
+      const snap = t < 0.4 ? (1 - t / 0.4) : 0;
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const sp = p.size * (0.5 + snap * 0.85), arm = p.size * 0.4;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 8;
+      for (let cx = -1; cx <= 1; cx += 2) for (let cy = -1; cy <= 1; cy += 2) {
+        const ox = cx * sp, oy = cy * sp;
+        ctx.beginPath();
+        ctx.moveTo(ox - cx * arm, oy); ctx.lineTo(ox, oy); ctx.lineTo(ox, oy - cy * arm);
+        ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    }
+    case 'vzero': {
+      // ZERO: แกนดำสุญญากาศ + วงขาวสว่าง หดยุบเข้าหาศูนย์ (annihilation)
+      const collapse = 1 - Math.min(1, t * 1.1);
+      const r = p.size * (0.3 + collapse);
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = a;
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      g.addColorStop(0, _rgba('#000000', a));
+      g.addColorStop(0.7, _rgba('#0a0a12', a * 0.7));
+      g.addColorStop(1, _rgba('#0a0a12', 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.6;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.04, 0, 6.283); ctx.stroke();
+      ctx.shadowBlur = 0;
+      break;
+    }
+    case 'cglitch': {
+      // ไวรัสคอร์รัปต์: บล็อกดิจิทัลกระตุก (flicker) + เลื่อนข้าง + ขอบขาว
+      p.x += p.vx * dt;
+      const flick = (Math.sin(p.age * 60 + p.seed * 30) > 0) ? 1 : 0.3;
+      const a = (1 - t) * flick;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 0.5);
+      ctx.fillRect(p.x, p.y, p.size, p.data);
+      ctx.globalAlpha = Math.max(0, a * 0.8);
+      ctx.strokeStyle = _rgba('#ffffff', 1); ctx.lineWidth = 1;
+      ctx.strokeRect(p.x, p.y, p.size, p.data);
       break;
     }
   }
