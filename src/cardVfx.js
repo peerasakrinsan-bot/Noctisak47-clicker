@@ -521,6 +521,120 @@ function pRiskPulse(color) {
   _emit(el, dur * 1000 + 100);
 }
 
+// ── BAPHOBET primitives (demon contract / devil bet) ─────────────────────────
+// บุคลิก "สัญญาปีศาจ / เดิมพันต้องสาป": ยันต์ปีศาจ / วงสัญญานรก / สะเก็ดบาปดูดเข้า /
+// แจ็คพอตนรกจ่าย / คลื่นไฟต้องสาป / วงช็อกเลือด-ดำ. ดำ-แดงเลือด-ส้มนรก-ทองต้องสาป-
+// ม่วงเงา. canvas-first (เหมือน primitive อื่น) + DOM fallback ครบ.
+
+// demonSigil — ยันต์/ตราสัญญาปีศาจวาบ (รับพิกัด ctx.x/y เช่นจุดศัตรู/AK47)
+function pDemonSigil(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('demonSigil', { color: color || '#cc0011', x: p.x, y: p.y })) return;
+  const dur = _dur(0.6);
+  const el = _take('cv-demonsigil');
+  el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+  el.style.setProperty('--cv', color || '#cc0011');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i><i></i>';
+  _emit(el, dur * 1000 + 140);
+}
+
+// contractRing — วงสัญญานรก (แกนมืดยุบ + ขอบแดงแผ่ออก)
+function pContractRing(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('contractRing', { color: color || '#aa0000', x: c.x, y: c.y })) return;
+  const dur = _dur(0.55);
+  const el = _take('cv-contractring');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#aa0000');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i>';
+  _emit(el, dur * 1000 + 120);
+}
+
+// sinEmber — สะเก็ดบาปถูกดูดเข้าหาเป้า (embers pulled inward; รับพิกัด ctx.x/y)
+function pSinEmber(color, count, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('sinEmber', { color: color || '#ff5522', count, x: p.x, y: p.y })) return;
+  const dur = _dur(0.5);
+  const n = _reduced ? 3 : (count || 6);
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + Math.random() * 0.6;
+    const rad = 48 + Math.random() * 40;
+    const e = _take('cv-sinember');
+    e.style.left = (p.x + Math.cos(ang) * rad) + 'px';
+    e.style.top = (p.y + Math.sin(ang) * rad) + 'px';
+    e.style.setProperty('--cv', color || '#ff5522');
+    e.style.setProperty('--dx', (-Math.cos(ang) * rad) + 'px');
+    e.style.setProperty('--dy', (-Math.sin(ang) * rad) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 120);
+  }
+}
+
+// devilBetBurst — DEVIL BET จ่าย: แกนระเบิดทองต้องสาป + สะเก็ดกระจาย (รับพิกัด ctx.x/y)
+function pDevilBetBurst(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('devilBetBurst', { color: color || '#ffcc33', x: p.x, y: p.y })) return;
+  const dur = _dur(0.62);
+  const el = _take('cv-devilbet');
+  el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+  el.style.setProperty('--cv', color || '#ffcc33');
+  el.style.animationDuration = dur + 's';
+  _emit(el, dur * 1000 + 120);
+  const n = _reduced ? 3 : 8;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2;
+    const dist = 40 + Math.random() * 44;
+    const e = _take('cv-spark');
+    e.style.left = p.x + 'px'; e.style.top = p.y + 'px';
+    e.style.setProperty('--cv', color || '#ffcc33');
+    e.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    e.style.setProperty('--dy', Math.sin(ang) * dist + 'px');
+    e.style.animationDuration = dur + 's';
+    _emit(e, dur * 1000 + 100);
+  }
+}
+
+// cursedFlame — คลื่นไฟต้องสาป (แกนไฟ + embers ลอยขึ้น; รับพิกัด ctx.x/y)
+function pCursedFlame(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('cursedFlame', { color: color || '#ff4400', x: p.x, y: p.y })) return;
+  const dur = _dur(0.6);
+  const el = _take('cv-cursedflame');
+  el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+  el.style.setProperty('--cv', color || '#ff4400');
+  el.style.animationDuration = dur + 's';
+  _emit(el, dur * 1000 + 100);
+  const n = _reduced ? 2 : 5;
+  for (let i = 0; i < n; i++) {
+    const e = _take('cv-ember');                 // reuse fireBurst ember class
+    const dx = (Math.random() - 0.5) * 50;
+    const rise = 40 + Math.random() * 44;
+    e.style.left = p.x + 'px'; e.style.top = p.y + 'px';
+    e.style.setProperty('--cv', color || '#ff6622');
+    e.style.setProperty('--dx', dx + 'px');
+    e.style.setProperty('--dy', -rise + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.03) + 's';
+    _emit(e, dur * 1000 + i * 40 + 100);
+  }
+}
+
+// bloodShock — วงช็อกเลือด-ดำ (red-black shock ring)
+function pBloodShock(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('bloodShock', { color: color || '#cc0011', x: c.x, y: c.y })) return;
+  const dur = _dur(0.5);
+  const el = _take('cv-bloodshock');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#cc0011');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i>';
+  _emit(el, dur * 1000 + 100);
+}
+
 // dispatcher: ชื่อ primitive → ฟังก์ชัน (ใช้ใน VFX_MAP แบบ data-driven)
 const PRIM = {
   flash: pFlash, pulse: pPulse, slash: pSlash, spark: pSpark,
@@ -532,6 +646,8 @@ const PRIM = {
   lunarSpark: pLunarSpark, feverWave: pFeverWave,
   jackpotFlash: pJackpotFlash, slotReel: pSlotReel, cursedCoin: pCursedCoin,
   stakeRing: pStakeRing, suitSpark: pSuitSpark, riskPulse: pRiskPulse,
+  demonSigil: pDemonSigil, contractRing: pContractRing, sinEmber: pSinEmber,
+  devilBetBurst: pDevilBetBurst, cursedFlame: pCursedFlame, bloodShock: pBloodShock,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -539,6 +655,7 @@ const COORD_ARG = {
   spark: [2, 3], coinBurst: [1, 2], streak: [1, 2], bolt: [1, 2], fireBurst: [1, 2],
   crescentArc: [2, 3], lunarSpark: [2, 3],
   slotReel: [1, 2], cursedCoin: [1, 2], suitSpark: [2, 3],
+  demonSigil: [1, 2], sinEmber: [2, 3], devilBetBurst: [1, 2], cursedFlame: [1, 2],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -780,9 +897,17 @@ const VFX_MAP = {
   // ── MYTHIC ──
   // THANABROS — Thanatos Phase (หยุดเวลา/มืด): วาบดำ + OD glow + คลื่นมืด + glitch บิดเวลา; AK47 ม่วงพัลส์
   th:  { rarity: 'mythic', theme: 'time', affects: 'timer', aura: ['shadow', '#cc00cc'], on: { thanatos: [['flash', '#1a0022'], ['odGlow', '#dd33dd'], ['shadowBurst', '#660066', 0.6], ['glitch', '#cc44cc']], ak47: [['spark', '#dd55dd', 6], ['pulse', '#cc33cc']] } },
-  // BAPHOBET — DEVIL BET ปีศาจแดง: ไฟพุ่ง + ฟันสาม + คลื่นมืด; SIN Stack 0–5 (สะสมตอน AK47,
-  // ไม่รีเซ็ตกลางรัน = buildup ดาเมจ) → pip ต่อ sin จริง; affects=enemy (สาปลงศัตรู)
-  bh:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', stack: { gain: 'sinstack', max: 5 }, aura: ['fire',  '#cc0000'],  on: { break: [['fireBurst', '#cc0000'], ['slash', '#ff2233', 3], ['shadowBurst', '#660000', 0.5]], sinstack: ['spark', '#ff3322', 4] } },
+  // BAPHOBET — DEVIL BET / สัญญาปีศาจ (demonContract): ออร่านรกแดง-ดำหายใจ (passive) →
+  // BREAK = เดิมพัน: วงสัญญานรก + คลื่นไฟต้องสาป + เล็บปีศาจ → แต่ละ SIN ที่ได้ = พัลส์สัญญา:
+  // สะเก็ดบาปดูดเข้า + ยันต์ปีศาจ (ความเข้ม aura ไต่ตาม tier จริงจาก _baphometSinStacks 0–5)
+  // → ครบ 5 (CONTRACT SEALED) = DEVIL BET จ่าย: ยันต์ทอง + วงช็อกเลือด-ดำ + ระเบิดทองต้องสาป
+  // + ไฟนรก. SIN Stack 0–5 (สะสมตอน DEVIL BET, ไม่รีเซ็ตกลางรัน = buildup ดาเมจ) → pip ต่อ sin
+  // จริง; affects=enemy (สาปดาเมจลงศัตรู).
+  bh:  { rarity: 'mythic', theme: 'demonContract', affects: 'enemy', stack: { gain: 'sinstack', max: 5 }, aura: ['infernal', '#cc0000'], on: {
+           break:    [['contractRing', '#aa0000'], ['cursedFlame', '#ff4400'], ['slash', '#ff2233', 3]],
+           sinstack: [['sinEmber', '#ff5522', 6], ['demonSigil', '#cc0011']],
+           sinmax:   [['demonSigil', '#ffcc33'], ['bloodShock', '#cc0011'], ['devilBetBurst', '#ffcc33'], ['cursedFlame', '#ff3300']],
+         } },
   // EDGEGA — Lv2 Burst เสือ: ไฟพุ่ง + เล็บสามรอย
   eg:  { rarity: 'mythic', theme: 'crit', affects: 'odBar', aura: ['fire',  '#ff6622'],  on: { od: [['fireBurst', '#ff6622'], ['slash', '#ff8844', 3]] } },
   // NOSIRIS — Soul Stack 0–5 (สะสมตอน BREAK) → JUDGMENT ตอนเต็ม 5: แสง holy ทอง + พัลส์,
@@ -836,7 +961,7 @@ const VFX_MAP = {
 // ใช้ child element เฉพาะ (#cvAuraEl) แทน ::before เพื่อไม่ชนกับ aura ของบอสสกิน
 // (toei-enigma-aura ใช้ทั้ง ::before และ ::after บน #fighter อยู่แล้ว).
 let _activeAuraId = null;
-const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake'];
+const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal'];
 
 function _auraEl(create) {
   const f = _fighter();
