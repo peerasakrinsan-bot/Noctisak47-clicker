@@ -7,6 +7,12 @@ import { defineConfig } from 'vite';
 // root และ subpath โดยไม่ต้องแก้ logic เกม.
 export default defineConfig({
   base: './',
+  // TEMP (reveal regression diagnostics): inject build timestamp so the dev-only
+  // debug overlay (src/debugOverlay.js) can show exactly when the running bundle
+  // was built. Remove together with debugOverlay.js once cache/deploy is resolved.
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   // ไฟล์ static ทั้งหมด (รูป/เสียง/cards/, manifest.json, sw.js) อยู่ใน public/
   // และถูกคัดลอกลง dist/ ตามชื่อเดิมเป๊ะ ๆ — runtime string paths ในเกมจึงใช้ได้เหมือนเดิม.
   publicDir: 'public',
