@@ -118,7 +118,10 @@ const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinB
   'moonPulse', 'crescentArc', 'eclipseRing', 'lunarSpark', 'feverWave',
   'jackpotFlash', 'slotReel', 'cursedCoin', 'stakeRing', 'suitSpark', 'riskPulse',
   'demonSigil', 'contractRing', 'sinEmber', 'devilBetBurst', 'cursedFlame', 'bloodShock',
-  'debtSeal', 'debtChain', 'ledgerGlyph', 'collectorPull', 'debtCoinDrain', 'sealBreak']);
+  'debtSeal', 'debtChain', 'ledgerGlyph', 'collectorPull', 'debtCoinDrain', 'sealBreak',
+  'timeStop', 'voidRift', 'reaperScythe', 'deathKnell', 'soulReap',
+  'clawRake', 'resonanceWave',
+  'insectSwarm', 'comboLock', 'voidZero', 'corruptGlitch']);
 let badAura = 0, badPrim = 0, noEffect = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
   if (!e.aura || !AURA_STYLES.has(e.aura[0]) || typeof e.aura[1] !== 'string') {
@@ -138,7 +141,7 @@ if (!badAura) ok('every aura uses a known style + color');
 if (!badPrim) ok('every `on` context uses a known primitive');
 
 // ── 3b) gameplay metadata: theme + affects + stack (อัปเกรด in-game VFX) ──────
-const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time', 'moonFever', 'darkJackpot', 'demonContract', 'debtContract']);
+const THEMES  = new Set(['soul', 'idol', 'analysis', 'crit', 'zeny', 'break', 'time', 'moonFever', 'darkJackpot', 'demonContract', 'debtContract', 'thanatos']);
 const TARGETS = new Set(['odBar', 'combo', 'timer', 'zeny', 'break', 'enemy', 'player', 'debt']);
 let badTheme = 0, badAffects = 0, badStack = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
