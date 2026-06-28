@@ -5550,7 +5550,10 @@ function _stopCollectBGM() {
 //    rarity burst → settle). All transient FX are CSS (transform/opacity);
 // JS only toggles state classes, swaps the image at the flip midpoint,
 // spawns the (capped, event-based) particle field, and fires haptics.
-// Honors Low VFX (flashEffect='off') and prefers-reduced-motion.
+// The reveal sequence is INDEPENDENT of the Flash Effect setting: it always
+// plays the full idle → charge → hint → (fakeout) → flip → burst → settle
+// sequence regardless of flashEffect (off/low/on). Flash Effect governs only
+// gameplay flashes (hits/OD/boss/screen/shake), never the reward reveal.
 // ══════════════════════════════════════════════════════════════════════
 // Per-rarity timing + particle budget (single source of truth; timings are
 // also pushed to CSS vars so animation length matches JS sequencing).
@@ -5624,8 +5627,8 @@ const MIN_SKIP_MS = 300;
 // mutated here. The fake rarity is only ever a CSS palette class + teaser
 // label during the early phases — it never enters the collection, plays no
 // reward/dupe sounds, never saves. Skip (2nd tap / COLLECT) jumps straight to
-// the true result via the shared _finalizeReveal() path. Disabled entirely
-// under Low VFX / reduced-motion (planner returns null → normal reveal).
+// the true result via the shared _finalizeReveal() path. The fakeout is part
+// of the reward reveal and is NOT gated by the Flash Effect setting.
 //   Elite  → appears STANDARD, then bursts into ELITE   (15–20% of Elites)
 //   Mythic → appears PREMIUM,  then bursts into MYTHIC   (25–35% of Mythics)
 const FAKEOUT_CHANCE    = { elite: 0.17, mythic: 0.30 }; // within 15–20% / 25–35%
@@ -5666,7 +5669,6 @@ const _fkPick = (arr) => arr[(Math.random()*arr.length)|0];
 // Exactly ONE pattern is returned per fakeout.
 function _planSurprise(result) {
   if(!result || !result.tier) return null;
-  if(_revealLowFx()) return null; // disabled under Low VFX / reduced-motion
   const tier = result.tier;
   if(tier === 'elite') {
     if(Math.random() >= FAKEOUT_CHANCE.elite) return null;
@@ -5686,11 +5688,11 @@ function _planSurprise(result) {
 }
 
 // Synthesised low bass "thump" for the Mythic transforms / impacts. Web Audio
-// only (no new asset); honours SFX setting + Low VFX. Not a reward sound — it
-// is the transform impact, fired only on cosmetic twists. `strong` (jackpot)
-// adds a brighter click layer for the game's biggest reveal.
+// only (no new asset); honours the SFX setting. Not a reward sound — it is the
+// transform impact, fired only on cosmetic twists. `strong` (jackpot) adds a
+// brighter click layer for the game's biggest reveal. Part of the reward
+// reveal: not gated by Flash Effect.
 function _revealBassHit(strong) {
-  if(_revealLowFx()) return;
   if(typeof gameSettings === 'undefined' || !gameSettings || !gameSettings.sfxOn) return;
   try {
     const ctx = _getActx();
@@ -5718,20 +5720,7 @@ function _clearSurpriseClasses(screen) {
   for(const c of FAKEOUT_TWIST_CLASSES) screen.classList.remove(c);
 }
 
-// Low VFX path: OS reduced-motion OR Flash Effect = OFF
-function _revealLowFx() {
-  // The reveal's collapsed/calm path is driven ONLY by the EXPLICIT in-game
-  // Flash Effect = OFF. OS `prefers-reduced-motion` is intentionally NOT checked
-  // here: reduced-motion devices still play the full reveal state machine (idle
-  // float, charge particles, hinting, fakeout, flip, burst) — only the 3D flip
-  // spin is gentled in CSS (@media prefers-reduced-motion). This decouples the
-  // OS setting from the deliberate in-game Low-VFX option so a phone with
-  // "Reduce Motion" on no longer strips the reveal to an instant flip.
-  return !!(typeof gameSettings !== 'undefined' && gameSettings && gameSettings.flashEffect === 'off');
-}
-
 function _revealHaptic(pattern) {
-  if(_revealLowFx()) return;
   try { if(navigator.vibrate && pattern) navigator.vibrate(pattern); } catch(e) {}
 }
 
@@ -5743,7 +5732,6 @@ function _clearRevealParticles() {
 // Event-based, capped particle burst (auto-removes each node on animationend).
 // `countOverride` lets a fakeout twist tune the spray size (still bounded).
 function _spawnRevealParticles(tier, countOverride) {
-  if(_revealLowFx()) return;
   const cfg = REVEAL_CFG[tier]; if(!cfg) return;
   const c = $('cardDrawParticles'); if(!c) return;
   const n = Math.min(countOverride || cfg.particles, 18);
@@ -5772,7 +5760,6 @@ function _spawnRevealParticles(tier, countOverride) {
 // they keep streaming in. Mythic gets per-mote prismatic hues. Event-based:
 // each node removes itself on animationend; transform/opacity only.
 function _spawnChargeParticles(tier, countOverride) {
-  if(_revealLowFx()) return;
   const cfg = REVEAL_CFG[tier]; if(!cfg) return;
   const c = $('cardDrawParticles'); if(!c) return;
   const n = Math.min(countOverride || cfg.chargeParticles || 0, 34);
@@ -6232,12 +6219,11 @@ function revealCard(e) {
   const result = _cardDrawResult;
   const tier   = (result && result.tier) ? result.tier : null;
   const cfg    = (tier && REVEAL_CFG[tier]) ? REVEAL_CFG[tier] : REVEAL_CFG.standard;
-  const lowFx  = _revealLowFx();
   const hiddenEl = $('cardDrawHidden');
 
   // ── MULTI-PATTERN FAKEOUT REVEAL (cosmetic-only) ──
   // Rarely re-route Elite/Mythic into one randomly-chosen fakeout pattern (true
-  // rarity in `result` is untouched). Skipped under Low VFX (in _planSurprise).
+  // rarity in `result` is untouched). Always eligible — not gated by Flash Effect.
   _revealSurprise = _planSurprise(result);
   if(_revealSurprise) {
     _revealMark('FakeoutSelected', 'pattern=' + _revealSurprise.pattern + ' fake=' + _revealSurprise.fakeTier + ' true=' + tier);
@@ -6274,25 +6260,23 @@ function revealCard(e) {
     tick();
   };
 
-  // Low VFX collapses the suspense to a short calm path; full path otherwise.
-  const chargeMs = lowFx ? 130 : cfg.charge;
-  const hintMs   = lowFx ? 90  : (cfg.hint || 220);
-  const flipHalf = lowFx ? 160 : cfg.flipHalf;
-  const burstMs  = lowFx ? 220 : cfg.burst;
+  // Full suspense timing — always; independent of the Flash Effect setting.
+  const chargeMs = cfg.charge;
+  const hintMs   = (cfg.hint || 220);
+  const flipHalf = cfg.flipHalf;
+  const burstMs  = cfg.burst;
 
   // ── STATE: CHARGING (tap impact + inward energy pull) ──
   screen.classList.remove('is-idle');
   screen.classList.add('is-charging');
   _revealState = 'charging';
-  _revealMark('ChargeStart', 'dur=' + chargeMs + 'ms' + (lowFx ? ' (lowFx)' : ''));
+  _revealMark('ChargeStart', 'dur=' + chargeMs + 'ms');
   // route every subsequent tap to the skip handler (safe: listeners added now
   // do not fire for the tap currently being dispatched)
   _attachSkip();
-  if(!lowFx) {
-    hiddenEl.classList.add('charging'); // press → rise → hold lifted (kept through hint)
-    _spawnChargeParticles(tier);        // magnetized energy flying into the card
-    _revealHaptic(cfg.haptic);
-  }
+  hiddenEl.classList.add('charging'); // press → rise → hold lifted (kept through hint)
+  _spawnChargeParticles(tier);        // magnetized energy flying into the card
+  _revealHaptic(cfg.haptic);
 
   // ── STATE: HINTING (rarity colour tease — no card face yet) ──
   after(chargeMs, () => {
@@ -6301,7 +6285,7 @@ function revealCard(e) {
     _revealState = 'hinting';
     _revealMark('ChargeComplete', 'hint=' + hintMs + 'ms');
     // a short tension tick for the rarer tiers as the colour bleeds through
-    if(!lowFx && (tier === 'elite' || tier === 'mythic')) {
+    if(tier === 'elite' || tier === 'mythic') {
       _revealHaptic(tier === 'mythic' ? [12,24,12] : [10]);
     }
 
@@ -6312,17 +6296,15 @@ function revealCard(e) {
     _revealState = 'flipping';
     _revealMark('RevealFlip', 'flipHalf=' + flipHalf + 'ms');
     hiddenEl.classList.remove('charging');
-    if(!lowFx) hiddenEl.classList.add('flip-out');
+    hiddenEl.classList.add('flip-out');
 
     // ── SWAP at the flip midpoint (wait for the image if needed) ──
     after(flipHalf, () => whenReady(() => {
       hiddenEl.style.display = 'none';
       const img = $('cardDrawRevealedImg');
 
-      if(!lowFx) {
-        const flash = $('cardDrawFlash');
-        flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
-      }
+      const flash = $('cardDrawFlash');
+      flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire');
 
       _populateRevealedCard(result, tier);
       img.style.display = 'block';

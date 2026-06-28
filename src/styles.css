@@ -1827,14 +1827,10 @@
     70%  { transform:scale(1.05); filter:brightness(1.4); }
     100% { transform:scale(1);    filter:brightness(0.7); }
   }
-  /* Defensive: kill every fakeout flourish if the screen is ever in a
-     low-FX / reduced-motion state (the JS path already avoids them). */
-  body.low-vfx   .reveal-surprise-veil,
-  body.flash-off .reveal-surprise-veil { opacity:0 !important; transition:none !important; }
-  body.low-vfx   #cardDrawScreen[class*="fk-"] #cardDrawHidden,
-  body.flash-off #cardDrawScreen[class*="fk-"] #cardDrawHidden { animation:none !important; }
-  body.low-vfx   #cardDrawScreen[class*="fk-"] #cardDrawHidden::after,
-  body.flash-off #cardDrawScreen[class*="fk-"] #cardDrawHidden::after { display:none !important; }
+  /* The fakeout flourish is part of the reward reveal — it is NOT gated by the
+     Flash Effect setting (off/low/on all play it). Only OS prefers-reduced-motion
+     gentles the rotational flip / veil flourish for vestibular comfort; the
+     fakeout state sequence itself still runs. */
   @media (prefers-reduced-motion: reduce) {
     .reveal-surprise-veil { opacity:0 !important; transition:none !important; }
     #cardDrawScreen[class*="fk-"] #cardDrawHidden { animation:none !important; }
@@ -2093,48 +2089,19 @@
   }
 
   /* ══════════════════════════════════════════════════════════════════
-     LOW VFX MODE / REDUCED MOTION — reveal fallback
-     body.flash-off / body.low-vfx (Flash Effect = OFF) and the OS
-     prefers-reduced-motion query collapse the reveal to a calm path:
-     • no flip spin, no charge press → simple fade
-     • no particles / rays / burst / sweep / energy ring / embers
-     • static ritual pulse only; rarity glow kept (readable & lightweight)
-     ══════════════════════════════════════════════════════════════════ */
-  body.low-vfx   #cardDrawScreen .reveal-particles,
-  body.flash-off #cardDrawScreen .reveal-particles,
-  body.low-vfx   #cardDrawScreen .reveal-rays,
-  body.flash-off #cardDrawScreen .reveal-rays,
-  body.low-vfx   #cardDrawScreen .reveal-burst,
-  body.flash-off #cardDrawScreen .reveal-burst,
-  body.low-vfx   #cardDrawScreen .reveal-sweep,
-  body.flash-off #cardDrawScreen .reveal-sweep,
-  body.low-vfx   #cardDrawScreen .reveal-energy-ring,
-  body.flash-off #cardDrawScreen .reveal-energy-ring,
-  body.low-vfx   #cardDrawScreen .reveal-charge-ring,
-  body.flash-off #cardDrawScreen .reveal-charge-ring,
-  body.low-vfx   #cardDrawScreen .reveal-embers,
-  body.flash-off #cardDrawScreen .reveal-embers,
-  body.low-vfx   #cardDrawScreen .reveal-flash,
-  body.flash-off #cardDrawScreen .reveal-flash { display:none !important; }
-  body.low-vfx   #cardDrawScreen .reveal-ritual-ring,
-  body.flash-off #cardDrawScreen .reveal-ritual-ring { animation:none !important; opacity:0.22 !important; }
-  /* no flip spin / charge press — calm fade swap */
-  body.low-vfx   #cardDrawHidden, body.flash-off #cardDrawHidden,
-  body.low-vfx   #cardDrawHidden.charging, body.flash-off #cardDrawHidden.charging,
-  body.low-vfx   #cardDrawHidden.flip-out, body.flash-off #cardDrawHidden.flip-out { animation:none !important; transform:none !important; }
-  body.low-vfx   #cardDrawRevealedImg.flip-in,
-  body.flash-off #cardDrawRevealedImg.flip-in { animation:cardRevealInfoIn 0.3s ease forwards !important; }
-  body.low-vfx   .reveal-rarity-label.pop,
-  body.flash-off .reveal-rarity-label.pop { animation:none !important; opacity:1 !important; transform:translate(-50%,-50%) scale(1) !important; }
+     OCA CARD REVEAL — DECOUPLED FROM FLASH EFFECT
+     The reward reveal ALWAYS plays its full sequence (idle float + aura,
+     inward charge particles, hinting, fakeout, flip, rarity burst, settle)
+     regardless of the in-game Flash Effect setting (off/low/on). The old
+     body.flash-off / body.low-vfx reveal collapse has been removed: Flash
+     Effect governs only gameplay flashes (hits/OD/boss/screen/shake), never
+     the reward reveal. Particle COUNTS are tuned in JS (REVEAL_CFG), not via
+     a Flash-Effect CSS override.
 
-  /* OS prefers-reduced-motion: the reveal now plays its FULL sequence — idle
-     float + aura, inward charge particles, hinting, fakeout, and the rarity
-     burst all remain. This is DECOUPLED from the explicit in-game Low-VFX /
-     Flash Effect = OFF collapse above (body.low-vfx / body.flash-off), which
-     alone still simplifies the reveal for players who deliberately choose it.
-     We gentle ONLY the one genuinely rotational motion — the 3D card flip spin
-     becomes a calm fade swap — so the sequence stays readable without the
-     vestibular spin. Everything else keeps its normal (transform/opacity) FX. */
+     OS prefers-reduced-motion remains the ONLY accessibility gentling, and it
+     does NOT alter the reveal state machine — every stage still executes; we
+     soften ONLY the one genuinely rotational motion (the 3D card flip spin
+     becomes a calm fade swap) to avoid vestibular discomfort. */
   @media (prefers-reduced-motion: reduce) {
     #cardDrawHidden.flip-out { animation:none !important; }
     #cardDrawRevealedImg.flip-in { animation:cardRevealInfoIn 0.3s ease forwards !important; }
