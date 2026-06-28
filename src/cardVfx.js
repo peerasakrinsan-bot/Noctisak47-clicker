@@ -926,6 +926,49 @@ function pVoidZero(color) {
   _emit(el, dur * 1000 + 120);
 }
 
+// ── GOLDEN BRUH primitive (MIDAS GOLD RUSH treasure eruption) ────────────────
+// บุคลิก "เจ้าแห่งทองคำ / รวยปะทุ": แกนทองกิลด์วาบ + วงช็อกทองแผ่ออก + น้ำพุทองคำแท่ง
+// (gold ingot fountain — รูปแท่งทอง ไม่ใช่เหรียญ/สะเก็ดกลม) พุ่งขึ้นแล้วร่วงลงตามแรง
+// โน้มถ่วง + เครื่องหมาย "$" ยักษ์ลอยขึ้น. ทองสุกใสล้วน (ทองสว่าง+ขาวอุ่น) — ต่างชัด
+// จาก DARK STAKE LORD (ทองมืดคาสิโน/777/ดอกไพ่), MISSSTRESS (ผึ้ง+สายฟ้า+เหรียญ),
+// DRAKE (น้ำพุเหรียญโจรสลัด). canvas-first + DOM fallback ครบ (reuse class เดิม).
+function pGoldRush(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('goldRush', { color: color || '#ffcc00', x: p.x, y: p.y })) return;
+  const dur = _dur(0.8);
+  // แกนทองกิลด์ (gilded core glow)
+  const core = _take('cv-odglow');
+  core.style.left = p.x + 'px'; core.style.top = p.y + 'px';
+  core.style.setProperty('--cv', color || '#ffd24a');
+  core.style.animationDuration = _dur(0.5) + 's';
+  _emit(core, _dur(0.5) * 1000 + 80);
+  // น้ำพุทองคำแท่ง (gold ingot fountain — reuse cv-coin เป็น fallback)
+  const n = _reduced ? 4 : 9;
+  for (let i = 0; i < n; i++) {
+    const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.26;
+    const dist = 46 + Math.random() * 52;
+    const e = _take('cv-coin');
+    e.style.left = p.x + 'px'; e.style.top = p.y + 'px';
+    e.style.setProperty('--cv', color || '#ffcc00');
+    e.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    e.style.setProperty('--dy', (Math.sin(ang) * dist - 24) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.03) + 's';
+    _emit(e, dur * 1000 + i * 40 + 120);
+  }
+  // เครื่องหมาย "$" ยักษ์ลอยขึ้น (treasure mega-glyph — reuse cv-ledgerglyph)
+  if (!_reduced) {
+    const g = _take('cv-ledgerglyph');
+    g.textContent = '$';
+    g.style.left = p.x + 'px'; g.style.top = (p.y - 8) + 'px';
+    g.style.setProperty('--cv', color || '#ffe680');
+    g.style.setProperty('--dy', '-54px');
+    g.style.fontSize = '40px';
+    g.style.animationDuration = dur + 's';
+    _emit(g, dur * 1000 + 140);
+  }
+}
+
 // corruptGlitch — บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption; ต่างจาก scanline glitch)
 function pCorruptGlitch(color) {
   if (_toCanvas('corruptGlitch', { color: color || '#ff2233' })) return;
@@ -963,6 +1006,7 @@ const PRIM = {
   deathKnell: pDeathKnell, soulReap: pSoulReap,
   clawRake: pClawRake, resonanceWave: pResonanceWave,
   insectSwarm: pInsectSwarm, comboLock: pComboLock, voidZero: pVoidZero, corruptGlitch: pCorruptGlitch,
+  goldRush: pGoldRush,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -975,6 +1019,7 @@ const COORD_ARG = {
   collectorPull: [1, 2], debtCoinDrain: [1, 2],
   reaperScythe: [2, 3], soulReap: [2, 3],
   clawRake: [2, 3], insectSwarm: [2, 3],
+  goldRush: [1, 2],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -1281,8 +1326,12 @@ const VFX_MAP = {
   // MISSSTRESS — ราชินีผึ้งสายฟ้าเหลือง (bee queen): ฝูงผึ้งทองรุมบิน + สายฟ้า + เหรียญทอง
   // (zeny ตอน OD). ฝูงผึ้งทำให้ "ราชินีผึ้ง" ออกชัด ไม่ใช่แค่สายฟ้า+เหรียญกลาง.
   mt:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffdd00'],  on: { od: [['insectSwarm', '#ffd24a', 10], ['bolt', '#ffe21a'], ['spark', '#ffe85a', 6], ['coinBurst', '#ffe21a']] } },
-  // GOLDEN BRUH — GOLD RUSH ระเบิดทองใหญ่ (ยิงที่ context 'combo' จริง ตอน combo เต็ม)
-  gb:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffcc00'],  on: { combo: [['flash', '#3a2e00'], ['coinBurst', '#ffcc00'], ['spark', '#ffe680', 8]] } },
+  // GOLDEN BRUH — MIDAS GOLD RUSH (goldRush): ยิงที่ context 'combo' จริง ตอน combo เต็ม
+  // (GOLD RUSH เปิด). บุคลิก "เจ้าแห่งทองคำ/รวยปะทุ" เฉพาะตัว: แกนทองกิลด์ + วงช็อกทอง +
+  // น้ำพุทองคำแท่ง (gold ingot fountain — แท่งทอง ไม่ใช่เหรียญกลม) + "$" ยักษ์ลอยขึ้น +
+  // วาบทอง. ทองสุกใสล้วน — ต่างชัดจาก DARK STAKE LORD (ทองมืดคาสิโน), MISSSTRESS (ผึ้ง),
+  // DRAKE (น้ำพุเหรียญ). affects=zeny → HUD โซน Zeny/score ตอบสนอง (การ์ดทำ Zeny ×9).
+  gb:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffcc00'],  on: { combo: [['flash', '#3a2e00'], ['goldRush', '#ffcc00']] } },
   // COKE ZERO — "ZERO" สุญญากาศดำ-ขาว (OD charge ×4): วาบขาว + วงสุญญากาศหดยุบเข้าหา "ศูนย์"
   // (annihilation) ตอนเข้า OD — บุคลิก "ศูนย์/ความว่าง" ออกจริง (ไม่ใช่ flash+pulse กลาง). affects=odBar
   // เพราะการ์ดเร่ง OD charge ×4 (OD คือหัวใจ).

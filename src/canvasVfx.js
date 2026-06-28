@@ -751,6 +751,31 @@ const BUILD = {
     const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.6);
     const p = _mk('vzero', x, y, life, o.color || '#e8f4ff'); p.size = o.size || 54; _push(p);
   },
+  // MIDAS GOLD RUSH — แกนทองกิลด์ + วงช็อกทอง + น้ำพุทองคำแท่ง (ingot) + "$" ยักษ์
+  // (GOLDEN BRUH). ทองสุกใสล้วน — silhouette แท่งทอง ต่างจากเหรียญกลม/สะเก็ด.
+  goldRush(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ffcc00', life = _rmLife(o.dur || 0.82);
+    // แกนทองกิลด์ (gilded core) + วงช็อกทอง (shockwave ring)
+    const core = _mk('glow', x, y, _rmLife(0.5), '#fff0a0'); core.size = 90; _push(core);
+    const ring = _mk('ring', x, y, _rmLife(0.6), '#ffd24a'); ring.size = 30; _push(ring);
+    // น้ำพุทองคำแท่ง — พุ่งขึ้นเป็นพัด แล้วร่วงลงตามแรงโน้มถ่วง + หมุน
+    let n = _nParts(o.count || 9);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.26;
+      const sp = 200 + Math.random() * 190;
+      const p = _mk('gbar', x, y, life, col);
+      p.vx = Math.cos(ang) * sp * 0.62; p.vy = Math.sin(ang) * sp - 90;
+      p.size = 13 + Math.random() * 9; p.rot = (Math.random() - 0.5) * 2;
+      p.data = (Math.random() - 0.5) * 9; // spin speed
+      _push(p);
+    }
+    // "$" ยักษ์ลอยขึ้น (treasure mega-glyph) — reuse dglyph kind, สีทอง
+    if (!_reduced) {
+      const g = _mk('dglyph', x, y - 8, _rmLife(0.78), '#ffe680');
+      g.txt = '$'; g.size = 40; g.vy = -78; g.data = 0.03;
+      _push(g);
+    }
+  },
   // ไวรัสคอร์รัปต์ — บล็อกดิจิทัลกระตุก/เลื่อน (ต่างจาก scanline glitch)
   corruptGlitch(o) {
     const col = o.color || '#ff2233', life = _rmLife(o.dur || 0.4);
@@ -1009,7 +1034,7 @@ function _tick(ts) {
 const _LIFE_TRIM = {
   spark: 0.88, crack: 0.88, ring: 0.88, suit: 0.88, streak: 0.88,
   shadow: 0.86, drain: 0.87, dcoin: 0.88,
-  coin: 0.93, ccoin: 0.93,
+  coin: 0.93, ccoin: 0.93, gbar: 0.92,
 };
 
 // ── R1 + R5: alpha-aware shadowBlur ──────────────────────────────────────────
@@ -1763,6 +1788,27 @@ function _draw(p, dt) {
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(12);
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.04, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
+      break;
+    }
+    case 'gbar': {
+      // ทองคำแท่ง (gold ingot): พุ่งขึ้น → ร่วงตามแรงโน้มถ่วง + หมุน. รูปสี่เหลี่ยมคางหมู
+      // + ไฮไลต์ขอบบน → อ่านเป็น "แท่งทอง" ชัด (ไม่ใช่เหรียญ/สะเก็ดกลม).
+      p.vy += 760 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      const a = 1 - t * t;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const w = p.size, h = p.size * 0.52;
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.5, h * 0.5); ctx.lineTo(w * 0.5, h * 0.5);
+      ctx.lineTo(w * 0.36, -h * 0.5); ctx.lineTo(-w * 0.36, -h * 0.5);
+      ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = Math.max(0, a * 0.7);
+      ctx.fillStyle = _rgba('#fff6c0', 1);
+      ctx.fillRect(-w * 0.3, -h * 0.5, w * 0.6, h * 0.18);
+      ctx.restore();
       break;
     }
     case 'cglitch': {
