@@ -226,9 +226,17 @@ function _mk(kind, x, y, life, color) {
   const p = _alloc();
   p.kind = kind; p.x = x; p.y = y; p.age = 0; p.life = life; p.color = color;
   p.vx = 0; p.vy = 0; p.size = 6; p.rot = 0; p.seed = Math.random();
-  p.pts = null; p.data = 0; p.c2 = 0; p.secondary = 0;
+  p.pts = null; p.data = 0; p.c2 = 0; p.secondary = 0; p.drag = 0;
   return p;
 }
+
+// ── naturalization helpers (cosmetic motion/timing curves; no extra particles) ─
+// easeOut: shockwaves/expansions shoot out fast then settle — replaces the
+// procedural constant-speed look with a decelerating one. Cheap (one mul/sub).
+function _easeOut(t) { const u = 1 - t; return 1 - u * u; }
+// jitterLife: break the synchronized-death tell — debris should not all expire on
+// the same frame. Returns a per-particle life spread around the burst's base life.
+function _jl(base) { return base * (0.66 + Math.random() * 0.62); }
 
 function _rmLife(base) { return _reduced ? Math.min(base, 0.2) : base; }
 
@@ -257,11 +265,14 @@ const BUILD = {
     let n = _nParts(o.count || 6);
     const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.36);
     for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5;
-      const sp = 90 + Math.random() * 150;
-      const p = _mk('spark', x, y, life, o.color || '#ffffff');
+      // weighted-random angle: even slot + wide jitter breaks the perfect-ring
+      // tell (debris never scatters at equal spacing); occasional fast flier.
+      const ang = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 1.15;
+      const fast = Math.random() < 0.22;
+      const sp = (fast ? 200 : 80) + Math.random() * (fast ? 130 : 130);
+      const p = _mk('spark', x, y, _jl(life), o.color || '#ffffff');
       p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp;
-      p.size = 2.5 + Math.random() * 2.5;
+      p.size = 2.2 + Math.random() * 3; p.drag = 1; // air drag → ease-out deceleration
       _push(p);
     }
   },
@@ -326,9 +337,11 @@ const BUILD = {
     let n = _nParts(heavy ? 7 : 5);
     const life = _rmLife(o.dur || 0.42), col = o.color || '#ffffff';
     for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
-      const p = _mk('crack', x, y, life, col);
-      p.rot = ang; p.size = (heavy ? 70 : 50) + Math.random() * 30;
+      // uneven angular spread + per-crack life/length spread → an irregular
+      // fracture star, not n equal spokes dying on the same frame.
+      const ang = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.95;
+      const p = _mk('crack', x, y, _jl(life), col);
+      p.rot = ang; p.size = (heavy ? 60 : 42) + Math.random() * (heavy ? 46 : 38);
       p.data = heavy ? 3 : 2; // line width
       _push(p);
     }
@@ -567,10 +580,10 @@ const BUILD = {
     const core = _mk('bcore', x, y, life, col); core.size = o.size || 56; _push(core);
     let n = _nParts(8);
     for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2;
-      const sp = 120 + Math.random() * 120;
-      const p = _mk('spark', x, y, life, col);
-      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp; p.size = 2.5 + Math.random() * 2;
+      const ang = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.7;
+      const sp = 120 + Math.random() * 130;
+      const p = _mk('spark', x, y, _jl(life), col);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp; p.size = 2.4 + Math.random() * 2.4; p.drag = 1;
       _push(p);
     }
   },
@@ -1271,10 +1284,11 @@ const BUILD = {
     let n = _nParts(o.count || 9);
     for (let i = 0; i < n; i++) {
       const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
-      const sp = 140 + Math.random() * 170;
-      const p = _mk('spark', x, y, _rmLife(dur), col);
+      const fast = Math.random() < 0.25;
+      const sp = (fast ? 230 : 130) + Math.random() * 170;
+      const p = _mk('spark', x, y, _jl(_rmLife(dur)), col);
       p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp;
-      p.size = 2.5 + Math.random() * 2.5; p.data = 1; // ไม่มีโน้มถ่วง (หมัดกระจายรัศมี)
+      p.size = 2.3 + Math.random() * 3; p.data = 1; p.drag = 1; // radial punch, drag → ease-out
       _push(p);
     }
     if (o.stars && !_reduced) {
@@ -1349,9 +1363,9 @@ const BUILD = {
     if (!_reduced && o.spark) {
       let s = _nParts(o.spark);
       for (let i = 0; i < s; i++) {
-        const ang = Math.random() * Math.PI * 2, sp = 100 + Math.random() * 120;
-        const sk = _mk('spark', x, y, _rmLife(dur * 1.1), col);
-        sk.vx = Math.cos(ang) * sp; sk.vy = Math.sin(ang) * sp; sk.size = 2 + Math.random() * 2; sk.data = 1;
+        const ang = Math.random() * Math.PI * 2, sp = 100 + Math.random() * 140;
+        const sk = _mk('spark', x, y, _jl(_rmLife(dur * 1.1)), col);
+        sk.vx = Math.cos(ang) * sp; sk.vy = Math.sin(ang) * sp; sk.size = 2 + Math.random() * 2.3; sk.data = 1; sk.drag = 1;
         _push(sk);
       }
     }
@@ -1537,13 +1551,20 @@ function _draw(p, dt) {
       break;
     }
     case 'spark': {
+      // air drag (opt-in): radial debris decelerates — fast start, slow finish,
+      // the core of natural motion. Inward-pull/ember sparks (drag 0) untouched.
+      if (p.drag) { const fr = p.vx * 3.1 * dt, fg = p.vy * 3.1 * dt; p.vx -= fr; p.vy -= fg; }
       if (!p.data) p.vy += 320 * dt;   // ember (data=1) ไม่ต้องโดนโน้มถ่วง
-      p.x += p.vx * dt; p.y += p.vy * dt;
+      // micro-turbulence: a touch of air-current sway so no spark flies a dead-
+      // straight line (per-particle phase from seed). Sub-pixel, no travel change.
+      const tb = (Math.sin(p.age * 10 + p.seed * 6.283)) * 9 * dt;
+      p.x += p.vx * dt + tb; p.y += p.vy * dt + tb * 0.4;
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 1 - t;
       ctx.fillStyle = _rgba(p.color, 1);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * (1 - t * 0.5), 0, 6.283);
+      // per-particle shrink rate (seed) — some sparks gutter out, some hold.
+      ctx.arc(p.x, p.y, p.size * (1 - t * (0.35 + p.seed * 0.5)), 0, 6.283);
       ctx.fill();
       break;
     }
@@ -1565,7 +1586,10 @@ function _draw(p, dt) {
       break;
     }
     case 'coin': {
-      p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      // gravity + mild horizontal air drag → the fountain arcs settle inward
+      // instead of flying off in straight lines (lighter than ore/ingots).
+      p.vy += 900 * dt; p.vx -= p.vx * 1.3 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.globalCompositeOperation = 'lighter';
@@ -1579,7 +1603,7 @@ function _draw(p, dt) {
     }
     case 'shadow': {
       ctx.globalCompositeOperation = 'source-over';
-      const r = p.size * (0.3 + t * 3);
+      const r = p.size * (0.3 + _easeOut(t) * 3);   // bloom out fast, settle
       const a = (1 - t) * 0.85;
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
       g.addColorStop(0, _rgba(p.color, a)); g.addColorStop(0.7, _rgba(p.color, a * 0.5));
@@ -1615,21 +1639,28 @@ function _draw(p, dt) {
       break;
     }
     case 'crack': {
-      const len = p.size * Math.min(1, t * 3);
+      // ease-out length (the fracture snaps outward then arrests) + a multi-jog
+      // jagged path (seed-driven) so it reads as a real splintering crack, not a
+      // single soft kink. +2 lineTo only — no new particle, no blur.
+      const len = p.size * _easeOut(Math.min(1, t * 3));
       const a = 1 - t;
+      const j = (p.seed - 0.5) * 4;      // per-crack jaggedness sign + scale
       ctx.save();
       ctx.translate(p.x, p.y); ctx.rotate(p.rot);
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
-      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = p.data; ctx.lineCap = 'round';
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = p.data; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.beginPath(); ctx.moveTo(0, 0);
-      ctx.lineTo(len * 0.6, len * 0.12 * (p.seed - 0.5) * 4); // เยื้องเล็กน้อยให้ดูแตก
+      ctx.lineTo(len * 0.32, len * 0.10 * j);
+      ctx.lineTo(len * 0.62, len * -0.07 * j);
+      ctx.lineTo(len * 0.84, len * 0.05 * j);
       ctx.lineTo(len, 0); ctx.stroke();
       ctx.restore();
       break;
     }
     case 'streak': {
       if (p.age < p.data) break;
+      p.vx -= p.vx * 1.6 * dt;   // whoosh decelerates (ease-out) instead of constant glide
       p.x += p.vx * dt;
       const a = 1 - t;
       ctx.globalCompositeOperation = 'lighter';
@@ -1663,12 +1694,16 @@ function _draw(p, dt) {
       break;
     }
     case 'ring': {
-      const r = p.size * (0.4 + t * 3) * (p.data ? 0.8 : 1);
+      // ease-out expansion (shoots out, decelerates) + faint eccentricity so the
+      // shockwave never reads as a math-perfect circle + lineWidth taper as it
+      // grows (energy thins). Same draw cost (ellipse == arc).
+      const r = p.size * (0.4 + _easeOut(t) * 3) * (p.data ? 0.8 : 1);
+      const ec = 1 + (p.seed - 0.5) * 0.1;
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = (1 - t);
-      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 3;
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 3 * (1 - t * 0.45);
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
-      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * ec, p.seed * 6.283, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
       break;
     }
@@ -1870,7 +1905,8 @@ function _draw(p, dt) {
     }
     case 'ccoin': {
       // เหรียญต้องสาป: หมุนพุ่งขึ้นหา HUD + ขอบเขียวนีออน
-      p.vy += 760 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      p.vy += 760 * dt; p.vx -= p.vx * 1.3 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.globalCompositeOperation = 'lighter';
@@ -2268,13 +2304,16 @@ function _draw(p, dt) {
     }
     case 'bwave': {
       // คลื่นกระแทกวงหนา — รัศมีโต ความหนาเรียวลง
-      const r = p.size * (0.3 + t * 4);
+      // ease-out radius (a real blast wave decelerates as it spreads) + faint
+      // eccentricity so the impact ring isn't a perfect circle. Same draw cost.
+      const r = p.size * (0.3 + _easeOut(t) * 4);
+      const ec = 1 + (p.seed - 0.5) * 0.08;
       const lw = Math.max(0.5, p.data * (1 - t));
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = (1 - t) * 0.9;
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = lw;
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
-      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * ec, p.seed * 6.283, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
       break;
     }
