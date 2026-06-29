@@ -2822,17 +2822,20 @@ function _draw(p, dt) {
 // แมปบอสแต่ละสกิน → ธีม/สี/ชุดเอฟเฟกต์ canvas เฉพาะตัว (ยิงตอน skill activate).
 // อยู่ในเลเยอร์ VFX ล้วน ๆ — ไม่อ่าน/เขียน save, balance, cs_* ใด ๆ. game.js แค่ส่ง
 // id สกินบอส + พิกัด + ระดับ OD มาให้ ส่วนหน้าตา/สี ตัดสินใจที่นี่.
+// camera = ลายเซ็นกล้องประจำบอส (ยิงตอน "ตาย" = climactic เท่านั้น เพื่อไม่ spam):
+//   'shake' (กระแทกหนัก) | 'shakeWp' (micro shake ไฟฟ้า/สัตว์) | 'freeze' (hit-stop/
+//   ดันเข้า สำหรับบอสอีเทอเรียล holy/moon/void/assassin) | 'none'.
 const BOSS_VFX = {
-  default:        { id:'default',        theme:'goldBoxing',   skillEffect:'Golden Overdrive Punch', canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ffd24a', colorSecondary:'#ff9d2e', affectedTarget:'boss'  },
-  toei_boxer:     { id:'toei_boxer',     theme:'redPressure',  skillEffect:'Pressure Flare',         canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ff3a3a', colorSecondary:'#1a0008', affectedTarget:'boss'  },
-  apologize:      { id:'apologize',      theme:'holyMask',     skillEffect:'Holy Apology Ring',      canvasEffect:'bossRuneCircle+bossAuraPulse',  colorPrimary:'#ffe28a', colorSecondary:'#fff3c0', affectedTarget:'boss'  },
-  xuang:          { id:'xuang',          theme:'ancientBrute', skillEffect:'Ancient Ground Smash',   canvasEffect:'bossShockwave+bossImpactBurst', colorPrimary:'#ff7a1e', colorSecondary:'#5a2a0a', affectedTarget:'arena' },
-  jakkadun:       { id:'jakkadun',       theme:'moonRocker',   skillEffect:'Moonlight Slash',        canvasEffect:'bossSlash+bossEnergyTrail',     colorPrimary:'#8fb4ff', colorSecondary:'#ffd24a', affectedTarget:'boss'  },
-  sornsit_spirit: { id:'sornsit_spirit', theme:'blueSpirit',   skillEffect:'Spirit Surge',           canvasEffect:'bossLightningArc+bossAuraPulse',colorPrimary:'#3fa9ff', colorSecondary:'#aef0ff', affectedTarget:'boss'  },
-  rukawa:         { id:'rukawa',         theme:'redSlash',     skillEffect:'Assassin Slash',         canvasEffect:'bossSlash+bossImpactBurst',     colorPrimary:'#ff2a3a', colorSecondary:'#7a0010', affectedTarget:'boss'  },
-  suang:          { id:'suang',          theme:'animalBoxer',  skillEffect:'Paw Combo Burst',        canvasEffect:'bossImpactBurst',               colorPrimary:'#ffcf4a', colorSecondary:'#fff0b0', affectedTarget:'boss'  },
-  morgan:         { id:'morgan',         theme:'blueStreet',   skillEffect:'Street Power Wave',      canvasEffect:'bossAuraPulse+bossShockwave',   colorPrimary:'#3ad0ff', colorSecondary:'#2a6cff', affectedTarget:'boss'  },
-  toei:           { id:'toei',           theme:'purpleEnigma', skillEffect:'Void Distortion',        canvasEffect:'bossGlitchPulse',               colorPrimary:'#b46cff', colorSecondary:'#6a18d0', affectedTarget:'boss'  },
+  default:        { id:'default',        theme:'goldBoxing',   skillEffect:'Golden Overdrive Punch', canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ffd24a', colorSecondary:'#ff9d2e', affectedTarget:'boss',  camera:'shake'   },
+  toei_boxer:     { id:'toei_boxer',     theme:'redPressure',  skillEffect:'Pressure Flare',         canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ff3a3a', colorSecondary:'#1a0008', affectedTarget:'boss',  camera:'shake'   },
+  apologize:      { id:'apologize',      theme:'holyMask',     skillEffect:'Holy Apology Ring',      canvasEffect:'bossRuneCircle+bossAuraPulse',  colorPrimary:'#ffe28a', colorSecondary:'#fff3c0', affectedTarget:'boss',  camera:'freeze'  },
+  xuang:          { id:'xuang',          theme:'ancientBrute', skillEffect:'Ancient Ground Smash',   canvasEffect:'bossShockwave+bossImpactBurst', colorPrimary:'#ff7a1e', colorSecondary:'#5a2a0a', affectedTarget:'arena', camera:'shake'   },
+  jakkadun:       { id:'jakkadun',       theme:'moonRocker',   skillEffect:'Moonlight Slash',        canvasEffect:'bossSlash+bossEnergyTrail',     colorPrimary:'#8fb4ff', colorSecondary:'#ffd24a', affectedTarget:'boss',  camera:'freeze'  },
+  sornsit_spirit: { id:'sornsit_spirit', theme:'blueSpirit',   skillEffect:'Spirit Surge',           canvasEffect:'bossLightningArc+bossAuraPulse',colorPrimary:'#3fa9ff', colorSecondary:'#aef0ff', affectedTarget:'boss',  camera:'shakeWp' },
+  rukawa:         { id:'rukawa',         theme:'redSlash',     skillEffect:'Assassin Slash',         canvasEffect:'bossSlash+bossImpactBurst',     colorPrimary:'#ff2a3a', colorSecondary:'#7a0010', affectedTarget:'boss',  camera:'freeze'  },
+  suang:          { id:'suang',          theme:'animalBoxer',  skillEffect:'Paw Combo Burst',        canvasEffect:'bossImpactBurst',               colorPrimary:'#ffcf4a', colorSecondary:'#fff0b0', affectedTarget:'boss',  camera:'shakeWp' },
+  morgan:         { id:'morgan',         theme:'blueStreet',   skillEffect:'Street Power Wave',      canvasEffect:'bossAuraPulse+bossShockwave',   colorPrimary:'#3ad0ff', colorSecondary:'#2a6cff', affectedTarget:'boss',  camera:'shake'   },
+  toei:           { id:'toei',           theme:'purpleEnigma', skillEffect:'Void Distortion',        canvasEffect:'bossGlitchPulse',               colorPrimary:'#b46cff', colorSecondary:'#6a18d0', affectedTarget:'boss',  camera:'freeze'  },
 };
 
 // thin public wrappers — แต่ละ primitive ตามสเปก (เรียกตรงได้ถ้าต้องการ)
@@ -2899,6 +2902,93 @@ function spawnBossSkillVfx(skinId, opts) {
     default:
       spawnBossImpactBurst({ ...base, count: 9, size: 58 * scale });
   }
+  // AFTERMATH — ลายเซ็นตกค้างสั้น ๆ หลังปล่อยสกิล: ออร่าเรืองจางอายุยาวกว่าสะเก็ดหลัก
+  // จึง "ค้าง" หลังการระเบิดคมจางไป (residue). เบามาก (glow+ring) เฉพาะ intensity เต็ม.
+  if (!_reduced && _intensity >= 1.0) {
+    spawnBossAuraPulse({ x: opts.x, y: opts.y, color: C2, color2: C, size: 26 * scale, dur: 0.72 });
+  }
+}
+
+// ── PUBLIC: boss SKILL CHARGE (anticipation telegraph, < 300ms) ───────────────
+// ยิงก่อน spawnBossSkillVfx ~270ms (หน่วงคอสเมติกใน game.js) ให้ผู้เล่นเห็น "การชาร์จ"
+// ก่อนท่าไม้ตายจริง — แต่ละบอสมีลายเซ็น charge เฉพาะตัว ประกอบจาก primitive เดิมล้วน
+// (ไม่มี draw kind / render loop ใหม่). ตัดทิ้งใต้ reduced-motion (release ยังเล่นปกติ).
+function spawnBossSkillCharge(skinId, opts) {
+  if (!_ensure()) return;
+  if (_intensity <= 0.0) return;
+  if (_reduced) return;
+  const meta = BOSS_VFX[skinId] || BOSS_VFX.default;
+  opts = opts || {};
+  const C = meta.colorPrimary, C2 = meta.colorSecondary;
+  const base = { x: opts.x, y: opts.y, color: C, color2: C2 };
+  const d = 0.26; // < 300ms ตามสเปก
+  switch (meta.theme) {
+    case 'holyMask':     spawnBossRuneCircle({ ...base, runes: 6, size: 38, dur: d + 0.06 }); break; // holy light gather
+    case 'moonRocker':   spawnBossEnergyTrail({ ...base, count: 2, angle: -0.5, dur: d }); break;    // moonlight gather
+    case 'blueSpirit':   spawnBossLightningArc({ ...base, count: 2, size: 32, dur: d }); break;      // electric buildup
+    case 'purpleEnigma': spawnBossGlitchPulse({ ...base, glitch: 2, size: 36, dur: d }); break;      // void gather
+    case 'ancientBrute': spawnBossAuraPulse({ ...base, color: C2, size: 44, dur: d }); break;        // ground energy
+    default:             spawnBossAuraPulse({ ...base, size: 40, dur: d });                          // wind-up glow
+  }
+}
+
+// ── PUBLIC: boss DEATH VFX (unique per boss, climactic) ──────────────────────
+// ยิงครั้งเดียวตอนล้มบอส (rare). แต่ละบอสมี "ฉากตาย" เฉพาะตัว (ทองระเบิด / สายฟ้า
+// กระจาย / แสงศักดิ์สิทธิ์ขึ้นสวรรค์ / เหวยุบเข้า / จันทร์เลือนหาย ฯลฯ) — ไม่มี fade กลาง.
+// ประกอบจาก primitive เดิมล้วน, scale ใหญ่กว่าสกิล (ตาย = ไคลแม็กซ์). pool cap คุ้มกันโหลด.
+function spawnBossDeathVfx(skinId, opts) {
+  if (!_ensure()) return;
+  if (_intensity <= 0.0) return;
+  const meta = BOSS_VFX[skinId] || BOSS_VFX.default;
+  opts = opts || {};
+  const C = meta.colorPrimary, C2 = meta.colorSecondary;
+  const base = { x: opts.x, y: opts.y, color: C, color2: C2 };
+  switch (meta.theme) {
+    case 'goldBoxing':   // gold explosion
+      spawnBossImpactBurst({ ...base, count: 14, stars: 6, size: 84, dur: 0.72 });
+      spawnBossShockwave({ ...base, size: 48, thick: 9 });
+      break;
+    case 'redPressure':  // pressure rupture (วงช็อกซ้อน)
+      spawnBossImpactBurst({ ...base, count: 13, size: 78, dur: 0.66 });
+      spawnBossShockwave({ ...base, color: C2, size: 46, thick: 10 });
+      spawnBossShockwave({ ...base, color: C, size: 28, thick: 6 });
+      break;
+    case 'holyMask':     // ascends — แสงศักดิ์สิทธิ์ลอยขึ้น
+      spawnBossRuneCircle({ ...base, runes: 10, size: 82, dur: 0.92 });
+      spawnBossAuraPulse({ ...base, size: 98, dur: 0.82 });
+      break;
+    case 'ancientBrute': // ground collapse — รอยร้าวพื้นแตกหลายเส้น
+      spawnBossShockwave({ ...base, size: 54, thick: 12, cracks: 6, groundOffset: 36 });
+      spawnBossImpactBurst({ ...base, count: 10, size: 60, dur: 0.6 });
+      break;
+    case 'moonRocker':   // moonlight fades — ฟันจันทร์ + อาร์คเลือนหาย
+      spawnBossSlash({ ...base, count: 2, len: 184, rot: -38 });
+      spawnBossEnergyTrail({ ...base, count: 6, angle: -0.4, dur: 0.74 });
+      spawnBossAuraPulse({ ...base, color: C, size: 70, dur: 0.8 });
+      break;
+    case 'blueSpirit':   // lightning disperses — สายฟ้ากระจายแล้วสลาย
+      spawnBossLightningArc({ ...base, count: 6, size: 66, dur: 0.5 });
+      spawnBossAuraPulse({ ...base, size: 88, dur: 0.7 });
+      break;
+    case 'redSlash':     // assassin finishing slash
+      spawnBossSlash({ ...base, count: 3, len: 184, spark: 10 });
+      spawnBossImpactBurst({ ...base, count: 8, size: 50, dur: 0.56 });
+      break;
+    case 'animalBoxer':  // paw flurry burst
+      spawnBossImpactBurst({ ...base, count: 12, stars: 8, size: 72, dur: 0.62 });
+      break;
+    case 'blueStreet':   // street power shockwave
+      spawnBossAuraPulse({ ...base, size: 98, dur: 0.7 });
+      spawnBossShockwave({ ...base, color: C, size: 50, thick: 9 });
+      break;
+    case 'purpleEnigma': // void collapse inward
+      spawnBossGlitchPulse({ ...base, glitch: 6, size: 94, dur: 0.72 });
+      spawnBossAuraPulse({ ...base, color: C2, size: 60, dur: 0.6 });
+      break;
+    default:
+      spawnBossImpactBurst({ ...base, count: 12, stars: 4, size: 72, dur: 0.62 });
+      spawnBossShockwave({ ...base, size: 44, thick: 8 });
+  }
 }
 
 // ── PUBLIC API ───────────────────────────────────────────────────────────────
@@ -2913,6 +3003,8 @@ const CanvasVFX = {
   vfxIntensity:  () => _intensity,    // debug / audit
   // boss skill VFX (cosmetic) — dispatcher + primitives ตามสเปก
   spawnBossSkillVfx,
+  spawnBossSkillCharge,               // anticipation telegraph (< 300ms ก่อน release)
+  spawnBossDeathVfx,                  // ฉากตายเฉพาะตัวต่อบอส (climactic)
   spawnBossImpactBurst,
   spawnBossShockwave,
   spawnBossEnergyTrail,
@@ -2933,6 +3025,7 @@ if (typeof window !== 'undefined') window.CanvasVFX = CanvasVFX;
 
 export {
   CanvasVFX, spawnCanvasVfx, spawnCardCanvasVfx, clearCanvasVfx, resizeCanvasVfx, supported,
-  spawnBossSkillVfx, spawnBossImpactBurst, spawnBossShockwave, spawnBossEnergyTrail,
+  spawnBossSkillVfx, spawnBossSkillCharge, spawnBossDeathVfx,
+  spawnBossImpactBurst, spawnBossShockwave, spawnBossEnergyTrail,
   spawnBossLightningArc, spawnBossSlash, spawnBossAuraPulse, spawnBossRuneCircle, spawnBossGlitchPulse,
 };

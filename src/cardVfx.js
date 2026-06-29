@@ -1404,6 +1404,29 @@ function targetPulse(key, color, theme) {
   }, dur));
 }
 
+// ── ACTIVE-CARD AURA REACTION (persistent presence ตอบสนองต่อสนามรบ) ─────────
+// หัวใจของ feedback pass นี้: ออร่าถาวรของการ์ดที่ใส่อยู่ต้อง "ตอบสนอง" ทุกครั้งที่
+// กลไกของมันส่งผลต่อการต่อสู้จริง — ไม่ใช่แค่ลอยนิ่งระหว่าง activate. ทำให้ผู้เล่นรู้สึก
+// ว่า "การ์ดยังมีผลต่อการต่อสู้อยู่" (จาก "ฉัน activate แล้ว" → "ฉันยังส่งผลอยู่").
+// คอสเมติกล้วน: pulse glow สั้น ๆ บน #cvAuraEl (animate เฉพาะ box-shadow/filter ไม่แตะ
+// transform ของ breath จึงไม่ชนกัน), ไม่วน, ถอดออกเอง, throttle กัน spam ตอนยิงถี่.
+let _lastAuraReact = 0;
+let _auraReactTimer = 0;
+const _AURA_REACT_THROTTLE = 120; // ms ต่อครั้ง (กัน aura กระพริบรัวตอน payoff หลายตัวพร้อมกัน)
+function _auraReact() {
+  if (_reduced) return;                         // เคารพ reduced-motion → ไม่ pulse
+  const el = _auraEl(false);
+  if (!el || !el.classList || !el.classList.contains('cv-aura')) return;
+  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  if (now - _lastAuraReact < _AURA_REACT_THROTTLE) return;
+  _lastAuraReact = now;
+  el.classList.remove('game-vfx-aura-react');
+  void el.offsetWidth;                          // force reflow → restart pulse บนการยิงถี่
+  el.classList.add('game-vfx-aura-react');
+  if (_auraReactTimer) clearTimeout(_auraReactTimer);
+  _auraReactTimer = setTimeout(() => { try { el.classList.remove('game-vfx-aura-react'); } catch (e) {} }, 560);
+}
+
 // ── STACK / CHARGE INDICATOR (pips เหนือตัวละคร) ─────────────────────────────
 // การ์ดที่มีสแต็ก/ชาร์จจริง (เช่น MINORAGE ORE RAGE 0–3) โชว์ pips บอกความคืบหน้า.
 // ค่าจริงส่งมาจาก game.js ผ่าน ctx.stack/ctx.max → layer แค่ "วาด" ความคืบหน้า
@@ -1450,6 +1473,10 @@ function setStack(id, cur, max, theme, color) {
       pip.classList.remove('pop'); void pip.offsetWidth; pip.classList.add('pop');
     }
   }
+  // anticipation: เหลืออีก 1 ก่อนถึง payoff (เช่น NOSIRIS 4/5, DETAILED 7/8) → pip row
+  // เต้นเบา ๆ บอก "อีกนิดเดียวจะปะทุ" โดยไม่ต้องอ่านเลข (lifecycle: Growing → Peak).
+  if (cur > 0 && cur < max && cur >= max - 1) el.classList.add('stack-ready');
+  else el.classList.remove('stack-ready');
   _stack = { id: id, cur: cur, max: max };
 }
 function expireStack() {
@@ -1976,6 +2003,9 @@ function triggerCardVfx(id, context, ctx) {
   if (entry.affects && context !== 'hit') {
     targetPulse(entry.affects, (ctx && ctx.color) || (entry.aura && entry.aura[1]), entry.theme);
   }
+  // 6) ออร่าถาวรของการ์ดที่ active ตอบสนองด้วย — presence ยังมีผลต่อสนามรบ (ไม่ใช่แค่
+  //    HUD ที่ขยับ). ข้าม per-hit (throttle ภายในอีกชั้น) เพื่อกัน particle/pulse spam.
+  if (context !== 'hit' && _activeAuraId === id) _auraReact();
 }
 
 // ── signature colour (สำหรับ selection-moment accent บนหน้าจอเลือกการ์ด) ──────
