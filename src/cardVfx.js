@@ -1415,6 +1415,7 @@ let _auraReactTimer = 0;
 const _AURA_REACT_THROTTLE = 120; // ms ต่อครั้ง (กัน aura กระพริบรัวตอน payoff หลายตัวพร้อมกัน)
 function _auraReact() {
   if (_reduced) return;                         // เคารพ reduced-motion → ไม่ pulse
+  if (_isFocused()) return;                      // FOCUS: ลายเซ็นกำลังเล่น → พักพัลส์ aura ย่อย (Priority 3 เงียบ)
   const el = _auraEl(false);
   if (!el || !el.classList || !el.classList.contains('cv-aura')) return;
   const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
@@ -1925,6 +1926,38 @@ function _clearWorld() {
   if (el) { el.className = ''; el.style.removeProperty('--gv'); }
 }
 
+// ── FOCUS SYSTEM (visual hierarchy — quiet Priority 3-4 during a signature) ───
+// ปรัชญา: "เอฟเฟกต์ Legendary เด่นเพราะมัน 'สังเกตเห็นได้' — ถ้าทุกอย่างเรืองแสง ก็ไม่มี
+// อะไรเรืองแสง". เมื่อเอฟเฟกต์ "ลายเซ็น" ระดับสูง (Mythic payoff / BREAK / boss skill)
+// เล่น เราหรี่ชั้นบรรยากาศ "ถาวร" (aura #cvAuraEl + world #cvWorldEl = Priority 3-4) และ
+// พักพัลส์ aura ย่อย ๆ ชั่วครู่ เพื่อให้ลายเซ็น "ได้พื้นที่สายตา" โดยไม่แข่งกัน แล้วค่อย ๆ
+// คืนสภาพแบบนุ่ม (transition opacity, ไม่ instant hide/show). คอสเมติกล้วน: แค่สลับคลาส
+// CSS + บอก canvas ให้บีบ particle budget สั้น ๆ (ของเก่ารีไทร์เร็วขึ้น → ลายเซ็นเด่น).
+let _focusUntil = 0;
+let _focusTimer = 0;
+const FOCUS_MS = 600;              // หน้าต่างหรี่ปกติ (≈ ช่วงของ payoff ส่วนใหญ่ 0.5–0.7s)
+function _now() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+function enterFocus(ms) {
+  ms = ms || FOCUS_MS;
+  const until = _now() + ms;
+  if (until > _focusUntil) {       // ขยายเฉพาะเมื่อยาวกว่าของเดิม (ลายเซ็นซ้อนกัน → ถือยาวสุด)
+    _focusUntil = until;
+    if (_focusTimer) clearTimeout(_focusTimer);
+    _focusTimer = setTimeout(_exitFocus, ms + 30);
+  }
+  // หรี่ชั้นบรรยากาศถาวรที่กำลังเปิดอยู่ (classList.add → ไม่ลบคลาส variant/tier อื่น)
+  const a = _auraEl(false);  if (a && a.classList) a.classList.add('gv-focus-dim');
+  const w = _worldEl(false); if (w && w.classList) w.classList.add('gv-focus-dim');
+  // บีบ particle budget ของ canvas ชั่วครู่ (ของเก่า/ambient รีไทร์เร็วขึ้น เปิดทางลายเซ็น)
+  try { if (typeof window !== 'undefined' && window.CanvasVFX && window.CanvasVFX.setFocus) window.CanvasVFX.setFocus(ms); } catch (e) {}
+}
+function _exitFocus() {
+  _focusUntil = 0; _focusTimer = 0;
+  const a = _auraEl(false);  if (a && a.classList) a.classList.remove('gv-focus-dim');
+  const w = _worldEl(false); if (w && w.classList) w.classList.remove('gv-focus-dim');
+}
+function _isFocused() { return _focusUntil > 0 && _now() < _focusUntil; }
+
 // run-start: ตั้ง aura ให้เฉพาะการ์ด Elite/Mythic
 function setActiveCard(id, rarity) {
   if (rarity && rarity !== 'elite' && rarity !== 'mythic') { clearCardAura(); _clearWorld(); return; }
@@ -1933,6 +1966,7 @@ function setActiveCard(id, rarity) {
   _applyWorld(id);
 }
 function clearActive() {
+  _exitFocus();
   clearCardAura(); _clearWorld(); clearStack(); clearCharge(); _auraTier = 0; _lastFire = {};
   // เคลียร์ particle ที่ค้างบน canvas layer ด้วย (จบรัน → ไม่ค้างข้ามรอบ)
   try { if (typeof window !== 'undefined' && window.CanvasVFX) window.CanvasVFX.clearCanvasVfx(); } catch (e) {}
@@ -1973,6 +2007,11 @@ function triggerCardVfx(id, context, ctx) {
     const key = id + ':' + context;
     if (_lastFire[key] && (now - _lastFire[key]) < thr) return;
     _lastFire[key] = now;
+  }
+  // 0) FOCUS: ถ้านี่คือ "ลายเซ็น" (Priority 1) → หรี่ชั้นบรรยากาศถาวรชั่วครู่เพื่อให้เด่น.
+  //    ลายเซ็น = Mythic payoff (ทุก context ที่ไม่ใช่ per-hit) หรือ BREAK/boss (gameplay-critical).
+  if (context !== 'hit' && (entry.rarity === 'mythic' || context === 'break' || context === 'boss')) {
+    enterFocus();
   }
   // 1) transient primitives (ถ้าการ์ดนี้มี mapping สำหรับ context นี้)
   if (entry.on && _layer()) {
@@ -2034,8 +2073,10 @@ const CardVFX = {
   setCharge,            // วงแหวนชาร์จ compact (เช่น LADY TRAINEE 0–15)
   clearCharge,
   setAuraTier,          // ความเข้ม aura แบบ build-up (เช่น GLOOM obsession)
+  enterFocus,           // FOCUS: หรี่ชั้นบรรยากาศถาวรชั่วครู่ตอนลายเซ็นเล่น (boss skill เรียกได้)
   VFX_MAP,
   reducedMotion: () => _reduced,
+  isFocused: () => _isFocused(),   // debug / audit
 };
 
 if (typeof window !== 'undefined') window.CardVFX = CardVFX;

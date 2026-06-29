@@ -2114,9 +2114,13 @@ function onWeakPointHit(x, y, baseDmg, customMult) {
   const mult = customMult || 4;
   const wpDmg = Math.round(baseDmg * mult);
   showWpHitFX(x, y, wpDmg);
-  document.getElementById("gameRoot").classList.remove('shake-wp'); void document.getElementById("gameRoot").offsetWidth;
-  document.getElementById("gameRoot").classList.add('shake-wp');
-  setTimeout(()=>document.getElementById("gameRoot").classList.remove('shake-wp'), 300);
+  // per-hit camera (prio 1) — yield while a climactic shake (AK47 BOMB / boss death) dominates
+  if(!cameraDominant()){
+    cameraClaim(1, 300);
+    document.getElementById("gameRoot").classList.remove('shake-wp'); void document.getElementById("gameRoot").offsetWidth;
+    document.getElementById("gameRoot").classList.add('shake-wp');
+    setTimeout(()=>document.getElementById("gameRoot").classList.remove('shake-wp'), 300);
+  }
   triggerFlash('flash-god3');
 
   // เพิ่ม counter
@@ -2190,6 +2194,8 @@ function triggerBombExplosion() {
   document.getElementById("gameRoot").classList.remove('shake');
   void bf.offsetWidth; // reflow ครั้งเดียว
   bf.className='boom';
+  // AK47 BOMB = climactic camera (prio 3) — claim dominance so per-hit shakes yield
+  cameraClaim(3, 600);
   document.getElementById("gameRoot").classList.add('shake');
   setTimeout(()=>document.getElementById("gameRoot").classList.remove('shake'),600);
 
@@ -7648,8 +7654,10 @@ function pressureHitTarget(x, y) {
   spawnBreakFX(x, y, _bp >= 0.5);
   // Throttle shake to max once per 200ms — avoids reflow spam on rapid tapping
   const _sNow = performance.now();
-  if(!PRESSURE._lastBreakShake || _sNow - PRESSURE._lastBreakShake > 200) {
+  // per-hit BREAK camera (prio 1) — yield while a climactic shake dominates (one camera language at a time)
+  if((!PRESSURE._lastBreakShake || _sNow - PRESSURE._lastBreakShake > 200) && !cameraDominant()) {
     PRESSURE._lastBreakShake = _sNow;
+    cameraClaim(1, 320);
     const _gr = $('gameRoot');
     const _useShake2 = _gr.classList.contains('shake-wp');
     _gr.classList.remove('shake-wp','shake-wp2');
@@ -8984,6 +8992,19 @@ function _triggerBossSkillVfx(lv) {
 // บอส DEATH VFX + camera identity — ยิงครั้งเดียวตอนล้มบอส (climactic, ไม่ spam).
 // คอสเมติกล้วน: ไม่แตะ balance/save/coin. กล้องประจำบอสมาจาก CanvasVFX.BOSS_VFX[id].camera
 // และ reuse ระบบ screen-shake เดิม (gate ครบทุกโหมด flash) + freeze ใหม่ (hit-stop).
+// ── CAMERA IMPULSE ARBITER — one camera language dominates at a time ─────────
+// คอสเมติกล้วน (ไม่แตะ logic/balance/save): กันไม่ให้ impulse กล้อง "อ่อน" (เช่น shake-wp
+// ตอนต่อย BREAK/WP ที่ยิงถี่) ไปแย่งจังหวะกล้อง "หนัก/climactic" ที่กำลังเล่น (AK47 BOMB,
+// boss death). prio สูงกว่าหรือเท่ากัน claim ทับได้; ที่อ่อนกว่าถูกข้ามระหว่างตัวหนัก active.
+// (ฟังก์ชัน hoist → เรียกจากจุดที่อยู่ก่อนหน้าในไฟล์ได้). PRIO: 1 = per-hit, 3 = climactic.
+let _camDomUntil = 0, _camDomPrio = 0;
+function cameraClaim(prio, dur) {
+  const now = Date.now();
+  if (now < _camDomUntil && prio < _camDomPrio) return false; // ตัวหนักกำลังเล่น → ตัวอ่อนยอม
+  _camDomUntil = now + dur; _camDomPrio = prio; return true;
+}
+function cameraDominant() { return Date.now() < _camDomUntil; }
+
 function _applyBossCamera(cam) {
   const gr = document.getElementById('gameRoot');
   if (!gr || !gr.classList) return;
@@ -8992,6 +9013,7 @@ function _applyBossCamera(cam) {
   else if (cam === 'shakeWp') { cls = 'shake-wp';       dur = 300; }
   else if (cam === 'freeze')  { cls = 'boss-cam-freeze'; dur = 260; }
   else return; // 'none' → ไม่มีกล้อง
+  if (!cameraClaim(3, dur)) return; // climactic boss camera — claim dominance (ไม่ให้ทับโดยตัวอ่อน)
   gr.classList.remove(cls); void gr.offsetWidth; gr.classList.add(cls);
   setTimeout(() => { if (gr && gr.classList) gr.classList.remove(cls); }, dur);
 }
