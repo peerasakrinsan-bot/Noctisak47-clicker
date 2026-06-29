@@ -5731,10 +5731,13 @@
    ตอนเอฟเฟกต์ "ลายเซ็น" (Mythic payoff / BREAK / boss skill) เล่น JS เติมคลาส
    .gv-focus-dim ให้ aura ถาวร (#cvAuraEl) + world (#cvWorldEl) ชั่วครู่ → ทั้งสอง
    "ถอยฉาก" ให้ลายเซ็นเด่น แล้วคืนสภาพแบบนุ่ม. ปิด animation ขณะหรี่เพื่อให้ opacity
-   ที่หรี่มีผล (keyframe เดิม animate opacity อยู่) + transition ทำให้ลื่น ไม่ instant hide. */
-#cvAuraEl, #cvWorldEl { transition: opacity .2s ease-out; }
-#cvAuraEl.gv-focus-dim  { animation: none !important; opacity: .04 !important; }
-#cvWorldEl.gv-focus-dim { animation: none !important; opacity: .12 !important; }
+   ที่หรี่มีผล (keyframe เดิม animate opacity อยู่) + transition ทำให้ลื่น ไม่ instant hide.
+   COLOR PASS: while dimmed, ambient layers also desaturate so only the signature
+   colour stays dominant; restored smoothly (opacity + filter both transition).
+   animation:none during dim lets the static opacity/filter take effect. */
+#cvAuraEl, #cvWorldEl { transition: opacity .2s ease-out, filter .2s ease-out; }
+#cvAuraEl.gv-focus-dim  { animation: none !important; opacity: .04 !important; filter: saturate(.35) !important; }
+#cvWorldEl.gv-focus-dim { animation: none !important; opacity: .12 !important; filter: saturate(.4) brightness(.92) !important; }
 @keyframes cvAuraBreath {
   0%, 100% { opacity: .13; transform: translate(-50%, -50%) scale(.96); }
   50%      { opacity: .22; transform: translate(-50%, -50%) scale(1.06); }

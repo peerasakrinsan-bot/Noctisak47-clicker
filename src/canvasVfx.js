@@ -198,11 +198,26 @@ function _rgba(hex, a) {
 // ── particle alloc / recycle (pool เพื่อเลี่ยง GC ระหว่างยิงถี่) ─────────────
 function _alloc() { return _pool.pop() || {}; }
 function _recycle(p) { if (_pool.length < MAX_PARTICLES) { p.pts = null; p.draw = ''; _pool.push(p); } }
+// ── GLOW PASS — max 2 dominant glow sources per frame ────────────────────────
+// บอสไฟ/OD/holy/jackpot ฯลฯ ต่าง push particle kind 'glow' (additive halo = แหล่ง
+// แสงเด่น). เมื่อมีโกลว์เด่นอยู่แล้ว ≥2 ดวง โกลว์ดวงที่ 3+ ที่เกิดพร้อมกัน (worst-case
+// crowding) จะถูก "ลดระดับเป็นรอง" — เล็กลง + จางลง (เน้น shape/contrast แทนความสว่าง)
+// เพื่อไม่ให้แสงซ้อนกันจนตาแยกไม่ออก. ดวงที่เด่นอยู่ (ใหม่สุด/สว่างสุด) ไม่ถูกแตะ.
+const _MAX_DOMINANT_GLOW = 2;
+function _demoteIfExtraGlow(p) {
+  if (p.kind !== 'glow') return;
+  let g = 0;
+  for (let i = 0; i < _parts.length; i++) {
+    const q = _parts[i];
+    if (q.kind === 'glow' && !q.secondary) { if (++g >= _MAX_DOMINANT_GLOW) { p.secondary = 1; p.size *= 0.55; return; } }
+  }
+}
 function _push(p) {
   // retire oldest until under the (possibly tightened) effective cap — keeps the
   // freshest burst alive while transient pileups stay mobile-safe.
   const cap = _effectiveCap();
   while (_parts.length >= cap) { _recycle(_parts.shift()); }
+  _demoteIfExtraGlow(p);
   _parts.push(p);
 }
 
@@ -211,7 +226,7 @@ function _mk(kind, x, y, life, color) {
   const p = _alloc();
   p.kind = kind; p.x = x; p.y = y; p.age = 0; p.life = life; p.color = color;
   p.vx = 0; p.vy = 0; p.size = 6; p.rot = 0; p.seed = Math.random();
-  p.pts = null; p.data = 0; p.c2 = 0;
+  p.pts = null; p.data = 0; p.c2 = 0; p.secondary = 0;
   return p;
 }
 
@@ -1636,9 +1651,12 @@ function _draw(p, dt) {
     case 'glow': {
       ctx.globalCompositeOperation = 'lighter';
       const r = p.size * (0.6 + t * 0.8);
-      const a = Math.sin(Math.min(1, t) * Math.PI);
+      // GLOW PASS: 3rd+ concurrent glow renders as a softer, tighter accent (less
+      // additive brightness, faster falloff) so only ≤2 dominant glows compete.
+      const sec = p.secondary ? 0.42 : 1;
+      const a = Math.sin(Math.min(1, t) * Math.PI) * sec;
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-      g.addColorStop(0, _rgba(p.color, a * 0.85)); g.addColorStop(0.6, _rgba(p.color, a * 0.35));
+      g.addColorStop(0, _rgba(p.color, a * 0.85)); g.addColorStop(p.secondary ? 0.45 : 0.6, _rgba(p.color, a * 0.35));
       g.addColorStop(1, _rgba(p.color, 0));
       ctx.globalAlpha = 1; ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
