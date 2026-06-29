@@ -969,6 +969,47 @@ function pGoldRush(color, x, y) {
   }
 }
 
+// ── VALKYRIZZ primitive (celestial valkyrie descent / divine blessing) ───────
+// บุคลิก "วาลคีรีแห่ง Randgris": ปีกขนนกศักดิ์สิทธิ์กางออก + หอกแสง (light lance) ทิ่ม
+// ลงจากสวรรค์ + ขนนกร่วง + (peak) วงรูนทอง. ขาว-ทอง-ม่วงเทพ (celestial). silhouette
+// "ปีก + หอก" ต่างชัดจาก NOSIRIS (holyBurst รัศมีก้าน soul/ทอง→ม่วง) และ LADY TRAINEE
+// (สปอตไลต์/charge ring). variant 'peak' = VALKYRIE SWAP จังหวะเทพลง (ใหญ่/รูนวง).
+// canvas-first + DOM fallback ครบ (reuse class เดิม).
+function pValkyrieDescend(color, variant, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('valkyrieDescend', { color: color || '#cc88ff', variant, x: p.x, y: p.y })) return;
+  const peak = (variant === 'peak');
+  const dur = _dur(peak ? 0.85 : 0.6);
+  // ปีกศักดิ์สิทธิ์ (reuse holyBurst-ish core) + หอกแสงทิ่มลง (reuse cv-slash แนวตั้ง)
+  const wing = _take('cv-holyburst');
+  wing.style.left = p.x + 'px'; wing.style.top = p.y + 'px';
+  wing.style.setProperty('--cv', color || '#cc88ff');
+  wing.style.animationDuration = dur + 's';
+  wing.innerHTML = '<i class="cv-holy-core"></i><i class="cv-holy-rays"></i>';
+  _emit(wing, dur * 1000 + 100);
+  // หอกแสงทิ่มลง (descending light spear) — reuse cv-slash ตั้งตรง
+  const spear = _take('cv-slash');
+  spear.style.left = p.x + 'px'; spear.style.top = (p.y - 6) + 'px';
+  spear.style.setProperty('--cv', '#ffe9ff');
+  spear.style.setProperty('--rot', '90deg');
+  spear.style.animationDuration = _dur(peak ? 0.5 : 0.4) + 's';
+  _emit(spear, _dur(0.5) * 1000 + 90);
+  // ขนนกร่วง (feathers) — reuse cv-spark โทนขาว-ม่วง
+  const n = _reduced ? 3 : (peak ? 9 : 5);
+  for (let i = 0; i < n; i++) {
+    const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5;
+    const dist = 34 + Math.random() * 42;
+    const e = _take('cv-spark');
+    e.style.left = p.x + 'px'; e.style.top = (p.y - 16) + 'px';
+    e.style.setProperty('--cv', (i % 2) ? (color || '#cc88ff') : '#ffe9ff');
+    e.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    e.style.setProperty('--dy', (Math.abs(Math.sin(ang)) * dist + 26) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 120);
+  }
+}
+
 // corruptGlitch — บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption; ต่างจาก scanline glitch)
 function pCorruptGlitch(color) {
   if (_toCanvas('corruptGlitch', { color: color || '#ff2233' })) return;
@@ -1006,7 +1047,7 @@ const PRIM = {
   deathKnell: pDeathKnell, soulReap: pSoulReap,
   clawRake: pClawRake, resonanceWave: pResonanceWave,
   insectSwarm: pInsectSwarm, comboLock: pComboLock, voidZero: pVoidZero, corruptGlitch: pCorruptGlitch,
-  goldRush: pGoldRush,
+  goldRush: pGoldRush, valkyrieDescend: pValkyrieDescend,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -1019,7 +1060,7 @@ const COORD_ARG = {
   collectorPull: [1, 2], debtCoinDrain: [1, 2],
   reaperScythe: [2, 3], soulReap: [2, 3],
   clawRake: [2, 3], insectSwarm: [2, 3],
-  goldRush: [1, 2],
+  goldRush: [1, 2], valkyrieDescend: [2, 3],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -1360,8 +1401,18 @@ const VFX_MAP = {
   // BEELZEBRUH — เจ้าแห่งแมลงวัน/CORRUPTION: ฝูงแมลงวันเขียวรุมบิน (buzz) + คลื่นมืดเขียวสาป
   // ตอน BREAK — บุคลิก "ฝูงแมลง" ออกจริง (ไม่ใช่ shadowBurst+spark กลาง).
   bz:  { rarity: 'mythic', theme: 'soul', affects: 'break', aura: ['drain', '#88cc00'],  on: { break: [['insectSwarm', '#88cc00', 12], ['shadowBurst', '#5a7a00', 0.5]] } },
-  // VALKYRIZZ — ปีกศักดิ์สิทธิ์ + หอก: แสง holy + ฟันสว่าง
-  vr:  { rarity: 'mythic', theme: 'idol', affects: 'break', aura: ['holy',  '#cc88ff'],  on: { break: [['holyBurst', '#d6a3ff'], ['slash', '#e0b8ff', 1]] } },
+  // VALKYRIZZ — VALKYRIE OF RANDGRIS / สลับพรเทพ (4-layer Mythic):
+  //  L1 Passive: ออร่าปีกวาลคีรี (cv-aura--valkyrie) — ปีกขนนก + วงรัศมีเทพ "หายใจ" ตลอด
+  //     ที่ active → จำใบได้ทันทีก่อนยิง.
+  //  L2 Trigger (break): BREAK สำเร็จ = วาลคีรีร่ายปีก + หอกแสง + ขนนกร่วง (signal activate).
+  //  L3 Peak (valkyrie): VALKYRIE SWAP จริง (AK47 ครบ/BREAK → สุ่มพร ELITE) = เทพลงเต็มขั้น:
+  //     วาบเทพ + ปีกใหญ่ + หอกแสงทิ่ม + วงรูนทอง + รัศมี holy ขาว→ทอง + พัลส์ม่วง.
+  //  L4 World: world:'valkyrie' → ทั้งฉากเรืองแสงสวรรค์จาง ๆ (ขอบจอ) ตลอดที่การ์ด active.
+  //  silhouette "ปีก+หอก" + จาน palette ขาว-ทอง-ม่วงเทพ → ไม่ซ้ำ Mythic ใบใด.
+  vr:  { rarity: 'mythic', theme: 'idol', affects: 'break', world: 'valkyrie', aura: ['valkyrie', '#cc88ff'], on: {
+           break:    [['valkyrieDescend', '#cc88ff'], ['pulse', '#d6a3ff']],
+           valkyrie: [['flash', '#2a1840'], ['valkyrieDescend', '#cc88ff', 'peak'], ['holyBurst', '#ffe9ff'], ['holyBurst', '#ffd96b'], ['pulse', '#cc88ff']],
+         } },
   // ATROSUS — RESONANCE อสูรเกรี้ยว (resonance wave): ไม่ใช่ไฟพุ่งแล้ว — เป็น "คลื่นเรโซแนนซ์"
   // (วงคลื่นฮาร์มอนิกขยายเป็นจังหวะซ้อน + พัลส์แดงสั่น) ตอน BREAK เปิด Resonance. ต่างชัดจาก
   // IFRIED (ไฟ) และ EDGEGA (กรงเล็บ).
@@ -1408,7 +1459,7 @@ const VFX_MAP = {
 // ใช้ child element เฉพาะ (#cvAuraEl) แทน ::before เพื่อไม่ชนกับ aura ของบอสสกิน
 // (toei-enigma-aura ใช้ทั้ง ::before และ ::after บน #fighter อยู่แล้ว).
 let _activeAuraId = null;
-const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt'];
+const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie'];
 
 function _auraEl(create) {
   const f = _fighter();
@@ -1455,14 +1506,49 @@ function clearCardAura(id) {
   _activeAuraId = null;
 }
 
+// ── PERSISTENT WORLD LAYER (Layer 4 — atmosphere ที่เปลี่ยนตลอดที่การ์ด active) ─
+// บางการ์ด Mythic ประกาศ `world` ใน VFX_MAP → ระหว่างที่การ์ดใบนั้น active เราเปิด
+// ออร่าบรรยากาศทั้งฉาก (#cvWorldEl) แบบ subtle (vignette/tint ขอบจอ ไม่บัง gameplay
+// กลางจอ) ขับด้วย CSS ล้วน (transform/opacity, ไม่มี particle loop). ปิดเองตอนจบรัน
+// และถูกลดทอน/ตัดทิ้งใต้ reduced-motion / Low VFX / Flash OFF (gate ใน CSS).
+let _worldEl_ = null;
+function _worldEl(create) {
+  if (_worldEl_ && _worldEl_.isConnected) return _worldEl_;
+  const root = _root();
+  if (!root) return null;
+  let el = document.getElementById('cvWorldEl');
+  if (!el && create) {
+    el = document.createElement('div');
+    el.id = 'cvWorldEl';
+    el.setAttribute('aria-hidden', 'true');
+    root.appendChild(el);
+  }
+  _worldEl_ = el;
+  return el;
+}
+function _applyWorld(id) {
+  const entry = VFX_MAP[id];
+  const world = entry && entry.world;
+  if (!world) { _clearWorld(); return; }
+  const el = _worldEl(true);
+  if (!el) return;
+  el.className = 'cv-world cv-world-' + world;
+  if (entry.aura && entry.aura[1]) el.style.setProperty('--gv', entry.aura[1]);
+}
+function _clearWorld() {
+  const el = _worldEl(false);
+  if (el) { el.className = ''; el.style.removeProperty('--gv'); }
+}
+
 // run-start: ตั้ง aura ให้เฉพาะการ์ด Elite/Mythic
 function setActiveCard(id, rarity) {
-  if (rarity && rarity !== 'elite' && rarity !== 'mythic') { clearCardAura(); return; }
-  if (!VFX_MAP[id]) { clearCardAura(); return; }
+  if (rarity && rarity !== 'elite' && rarity !== 'mythic') { clearCardAura(); _clearWorld(); return; }
+  if (!VFX_MAP[id]) { clearCardAura(); _clearWorld(); return; }
   setCardAura(id, true);
+  _applyWorld(id);
 }
 function clearActive() {
-  clearCardAura(); clearStack(); clearCharge(); _auraTier = 0; _lastFire = {};
+  clearCardAura(); _clearWorld(); clearStack(); clearCharge(); _auraTier = 0; _lastFire = {};
   // เคลียร์ particle ที่ค้างบน canvas layer ด้วย (จบรัน → ไม่ค้างข้ามรอบ)
   try { if (typeof window !== 'undefined' && window.CanvasVFX) window.CanvasVFX.clearCanvasVfx(); } catch (e) {}
 }

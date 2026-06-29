@@ -776,6 +776,32 @@ const BUILD = {
       _push(g);
     }
   },
+  // VALKYRIE DESCENT — ปีกขนนกศักดิ์สิทธิ์กางออก + หอกแสงทิ่มลง + ขนนกร่วง + (peak) วงรูน
+  // (VALKYRIZZ). silhouette "ปีก+หอก" celestial ขาว-ทอง-ม่วง — ต่างจาก holyBurst รัศมีก้าน.
+  valkyrieDescend(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#cc88ff';
+    const peak = o.variant === 'peak';
+    const life = _rmLife(peak ? 0.85 : 0.6);
+    // ปีกวาลคีรี (ทั้งสองข้างในอนุภาคเดียว)
+    const w = _mk('vwing', x, y, life, col); w.size = peak ? 122 : 84; _push(w);
+    // หอกแสงทิ่มลงจากเบื้องบน
+    const s = _mk('vspear', x, y, _rmLife(peak ? 0.6 : 0.46), '#ffe9ff');
+    s.size = peak ? 150 : 112; s.data = peak ? 190 : 140; _push(s);
+    // แกนแสงเทพ
+    const g = _mk('glow', x, y, _rmLife(0.5), '#ffe9ff'); g.size = peak ? 72 : 48; _push(g);
+    // ขนนกร่วง (feathers drifting down)
+    let n = _nParts(peak ? 9 : 5);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5;
+      const sp = 70 + Math.random() * 95;
+      const p = _mk('vfeather', x + (Math.random() - 0.5) * 44, y - 18, life, (i % 2) ? col : '#ffe9ff');
+      p.vx = Math.cos(ang) * sp * 0.5; p.vy = Math.abs(Math.sin(ang)) * sp * 0.4 + 26;
+      p.size = 5 + Math.random() * 5; p.rot = Math.random() * 6; p.data = (Math.random() - 0.5) * 4;
+      _push(p);
+    }
+    // peak: วงรูนทอง (rune ring)
+    if (peak) { const r = _mk('ring', x, y, _rmLife(0.72), '#ffd96b'); r.size = 34; _push(r); }
+  },
   // ไวรัสคอร์รัปต์ — บล็อกดิจิทัลกระตุก/เลื่อน (ต่างจาก scanline glitch)
   corruptGlitch(o) {
     const col = o.color || '#ff2233', life = _rmLife(o.dur || 0.4);
@@ -1034,7 +1060,7 @@ function _tick(ts) {
 const _LIFE_TRIM = {
   spark: 0.88, crack: 0.88, ring: 0.88, suit: 0.88, streak: 0.88,
   shadow: 0.86, drain: 0.87, dcoin: 0.88,
-  coin: 0.93, ccoin: 0.93, gbar: 0.92,
+  coin: 0.93, ccoin: 0.93, gbar: 0.92, vfeather: 0.9,
 };
 
 // ── R1 + R5: alpha-aware shadowBlur ──────────────────────────────────────────
@@ -1788,6 +1814,70 @@ function _draw(p, dt) {
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(12);
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.04, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
+      break;
+    }
+    case 'vwing': {
+      // ปีกวาลคีรี: ก้านขนนกกางออกจากกลาง (สองข้างสมมาตร) แล้วจาง — silhouette ปีกเทพ
+      const spread = Math.min(1, t * 1.6);
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
+      const span = p.size * (0.4 + spread * 0.95), rise = p.size * 0.5 * spread;
+      for (let side = -1; side <= 1; side += 2) {
+        for (let f = 0; f < 4; f++) {
+          const fr = f / 3;
+          const len = span * (0.5 + fr * 0.55);
+          ctx.lineWidth = 3 - fr * 1.4;
+          ctx.beginPath();
+          ctx.moveTo(side * p.size * 0.06, 0);
+          ctx.quadraticCurveTo(side * len * 0.5, -rise * 0.45, side * len, -rise - len * 0.18 * fr);
+          ctx.stroke();
+        }
+      }
+      ctx.restore(); ctx.shadowBlur = 0;
+      break;
+    }
+    case 'vspear': {
+      // หอกแสง: ทิ่มลงจากเบื้องบน (descend) → กระทบกลาง แล้วจาง. แกน gradient + หัวหอกเพชร
+      const desc = Math.min(1, t * 1.5);
+      const headY = p.y - p.data * (1 - desc);
+      const len = p.size * (0.6 + 0.4 * desc);
+      const a = t < 0.7 ? 1 : (1 - (t - 0.7) / 0.3);
+      ctx.save();
+      ctx.translate(p.x, headY);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const grad = ctx.createLinearGradient(0, -len, 0, 0);
+      grad.addColorStop(0, _rgba(p.color, 0)); grad.addColorStop(1, _rgba('#ffffff', 1));
+      ctx.strokeStyle = grad; ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
+      ctx.beginPath(); ctx.moveTo(0, -len); ctx.lineTo(0, 0); ctx.stroke();
+      ctx.fillStyle = _rgba('#ffffff', 1);
+      ctx.beginPath();
+      ctx.moveTo(0, 11); ctx.lineTo(5, 0); ctx.lineTo(0, -11); ctx.lineTo(-5, 0); ctx.closePath();
+      ctx.fill();
+      ctx.restore(); ctx.shadowBlur = 0;
+      break;
+    }
+    case 'vfeather': {
+      // ขนนกร่วง: ลอยลง + แกว่ง (sway) + หมุน + จาง. รูปขนนก (วงรีบาง + ก้าน)
+      p.x += p.vx * dt; p.vy += 40 * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      const sway = Math.sin(p.age * 4 + p.seed * 6) * 0.4;
+      const a = (t < 0.2) ? (t / 0.2) : (1 - (t - 0.2) / 0.8);
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot + sway);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath(); ctx.ellipse(0, 0, p.size * 0.4, p.size, 0, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = Math.max(0, a * 0.6);
+      ctx.strokeStyle = _rgba('#ffffff', 1); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, -p.size); ctx.lineTo(0, p.size); ctx.stroke();
+      ctx.restore();
       break;
     }
     case 'gbar': {

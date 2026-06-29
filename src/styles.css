@@ -5772,10 +5772,49 @@
   56%      { opacity: .26; transform: translate(-50%, -50%) scale(1.05); } /* obligation pulse */
   64%      { opacity: .16; transform: translate(-50%, -50%) scale(1.02); }
 }
+/* valkyrie — ออร่าปีกวาลคีรี (VALKYRIZZ): แกนขาว-ทองเทพ + ปีกขนนกม่วงจาง ๆ สองข้าง
+   "หายใจ" ช้าแบบ passive (พรเทพสถิต) — silhouette ปีก + รัศมีเทพ ต่างจาก holy (วงกลมจาง)
+   ชัดเจน. Layer-1 passive identity: เห็นแล้วรู้ทันทีว่าเป็น VALKYRIZZ ก่อนยิงเอฟเฟกต์. */
+#cvAuraEl.cv-aura--valkyrie {
+  opacity: .2; filter: blur(1.5px);
+  background:
+    radial-gradient(circle at 50% 46%, #fff7e6 0%, var(--cv-aura, #cc88ff) 38%, transparent 66%),
+    radial-gradient(60% 42% at 22% 50%, rgba(204,136,255,.5) 0%, transparent 72%),
+    radial-gradient(60% 42% at 78% 50%, rgba(204,136,255,.5) 0%, transparent 72%);
+  animation: cvAuraValkyrie 3.2s ease-in-out infinite;
+}
+@keyframes cvAuraValkyrie {
+  0%, 100% { opacity: .13; transform: translate(-50%, -50%) scale(.97); }
+  50%      { opacity: .24; transform: translate(-50%, -52%) scale(1.05); } /* wing breath / lift */
+}
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
 }
+
+/* ── PERSISTENT WORLD LAYER (#cvWorldEl) — Layer 4 atmosphere ─────────────────
+   ระหว่างที่การ์ด Mythic ที่ประกาศ world active ทั้งฉากเปลี่ยนบรรยากาศแบบ subtle
+   (vignette/tint ขอบจอ) — ไม่บัง gameplay กลางจอ, อยู่ใต้ตัวละคร (#fighter z5/HUD).
+   CSS ล้วน (opacity แกว่งช้า) ไม่มี particle loop. ลด/ตัดทิ้งใต้ reduced-motion/low-vfx/flash-off. */
+#cvWorldEl {
+  position: fixed; inset: 0; pointer-events: none; z-index: 2;
+  display: none; opacity: 0;
+}
+#cvWorldEl.cv-world { display: block; }
+/* valkyrie world — แสงสวรรค์เรืองจากเบื้องบน (ม่วงเทพ) + ทองจาง ๆ จากเบื้องล่าง */
+#cvWorldEl.cv-world-valkyrie {
+  background:
+    radial-gradient(125% 80% at 50% -12%, rgba(204,136,255,.16), transparent 56%),
+    radial-gradient(150% 100% at 50% 122%, rgba(255,217,107,.08), transparent 52%);
+  animation: cvWorldValkyrie 6s ease-in-out infinite;
+}
+@keyframes cvWorldValkyrie { 0%, 100% { opacity: .68; } 50% { opacity: 1; } }
+/* gate atmosphere ออกใต้โหมดเบา: คงไว้แบบ static จาง ๆ ไม่กระพริบ */
+@media (prefers-reduced-motion: reduce) {
+  #cvWorldEl.cv-world { animation: none !important; opacity: .5 !important; }
+}
+body.low-vfx   #cvWorldEl.cv-world,
+body.flash-off #cvWorldEl.cv-world { animation: none !important; opacity: .42 !important; }
 @keyframes cvAuraFire {
   0%, 100% { opacity: .16; transform: translate(-50%, -52%) scale(1); }
   50%      { opacity: .26; transform: translate(-50%, -56%) scale(1.05); }

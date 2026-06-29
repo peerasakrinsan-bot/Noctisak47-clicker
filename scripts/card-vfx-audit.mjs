@@ -111,7 +111,7 @@ for (const id of mapped) {
 if (!orphan) ok('no orphan VFX_MAP entries');
 
 // ── 3) every aura style known + every primitive name known ───────────────────
-const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt']);
+const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie']);
 const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinBurst',
   'breakCrack', 'odGlow', 'streak', 'drainPulse', 'comboRing', 'bossFlare', 'moonRing',
   'bolt', 'fireBurst', 'holyBurst', 'glitch',
@@ -121,7 +121,7 @@ const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinB
   'debtSeal', 'debtChain', 'ledgerGlyph', 'collectorPull', 'debtCoinDrain', 'sealBreak',
   'timeStop', 'voidRift', 'reaperScythe', 'deathKnell', 'soulReap',
   'clawRake', 'resonanceWave',
-  'insectSwarm', 'comboLock', 'voidZero', 'corruptGlitch', 'goldRush']);
+  'insectSwarm', 'comboLock', 'voidZero', 'corruptGlitch', 'goldRush', 'valkyrieDescend']);
 let badAura = 0, badPrim = 0, noEffect = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
   if (!e.aura || !AURA_STYLES.has(e.aura[0]) || typeof e.aura[1] !== 'string') {
@@ -244,6 +244,9 @@ try {
   api.trigger('ld', 'break', {});                    // BREAK voids the contract — seal shatter
   api.trigger('ld', 'debtclear', { tier: 0, stacks: 5 }); // debt collected: coin siphon + aura reset
   api.trigger('ld', 'hit', { x: 30, y: 40 });        // BERSERK chained shadow slash
+  api.setActiveCard('vr', 'mythic');                 // VALKYRIZZ — 4-layer (aura + persistent world)
+  api.trigger('vr', 'break', {});                    // L2 trigger: wing flare + light spear + feathers
+  api.trigger('vr', 'valkyrie', {});                 // L3 peak: VALKYRIE SWAP grand descent
   api.setCharge('ltn', 12, 15);                      // direct compact charge
   api.setAuraTier('gus', 3);                         // direct aura tier
   api.clearCharge();

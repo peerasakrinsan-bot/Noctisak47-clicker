@@ -5151,6 +5151,10 @@ function _csValkyrieRandgrisSwap() {
   _csDebugLog('VALKYRIZZ swap applied', newCard.id);
   _csSyncWeakPointAvailability(prevHadRsx, true);
   _showActiveCard(newCard);
+  // VALKYRIZZ VFX — Layer 3 peak: VALKYRIE SWAP grand descent (cosmetic only).
+  // ยิงทั้งทาง AK47 ครบ และ BREAK สำเร็จ (ทั้งคู่เรียกฟังก์ชันนี้) → จังหวะ signature
+  // ของการ์ดมี VFX จริงทุกครั้ง (เดิม AK47-swap ไม่มี VFX การ์ดเลย). activeCard ยังเป็น vr.
+  _cardFx('valkyrie');
   showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD',''), '#cc88ff');
 }
 
