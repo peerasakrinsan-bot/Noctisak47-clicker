@@ -802,6 +802,42 @@ const BUILD = {
     // peak: วงรูนทอง (rune ring)
     if (peak) { const r = _mk('ring', x, y, _rmLife(0.72), '#ffd96b'); r.size = 34; _push(r); }
   },
+  // GLOOM SURGE — ดวงตา GLOOM จ้อง + หนวดเงาทะยานคว้าจากด้านล่าง + (peak) ดูดกลืนเข้า
+  // (GLOOM UNDER SIDE). silhouette "ตา+หนวดเงา" ม่วงเข้ม-ดำเหว. tier ขับความสูง/จำนวน.
+  gloomSurge(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#6633aa';
+    const max = o.tier === 'max';
+    const tier = max ? 4 : Math.max(1, (o.tier | 0) || 1);
+    const life = _rmLife(max ? 0.85 : 0.6);
+    // ดวงตา GLOOM (obsession watching)
+    const eye = _mk('geye', x, y - 6, life, col);
+    eye.size = max ? 64 : (32 + tier * 8); eye.data = max ? 1 : 0; _push(eye);
+    // หนวดเงาทะยานจากด้านล่าง (count/height ตาม tier — progressive)
+    let n = _nParts(max ? 9 : (2 + tier * 2));
+    const baseY = y + (max ? 66 : 48);
+    for (let i = 0; i < n; i++) {
+      const off = (i - (n - 1) / 2) * (max ? 24 : 28);
+      const p = _mk('gtendril', x + off, baseY, life * (0.8 + Math.random() * 0.3), col);
+      p.data = (max ? 120 : 56 + tier * 22) + Math.random() * 30; // ความสูง
+      p.size = 5 + Math.random() * 4 + tier;                       // ความหนา
+      p.vx = (Math.random() - 0.5) * 22;                           // โค้งเอน
+      _push(p);
+    }
+    // แอ่งเงาเหวใต้ตัว (dark undertone pool)
+    const sh = _mk('shadow', x, y + (max ? 40 : 28), _rmLife(max ? 0.7 : 0.5), '#1a0030');
+    sh.size = max ? 52 : 34; _push(sh);
+    // peak: เวลา/วิญญาณถูกดูดกลืนเข้า (devoured inward)
+    if (max) {
+      let s = _nParts(8);
+      for (let i = 0; i < s; i++) {
+        const ang = (i / s) * Math.PI * 2, rad = 60 + Math.random() * 40;
+        const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.6), '#b388ff');
+        e.vx = -Math.cos(ang) * rad * 1.7; e.vy = -Math.sin(ang) * rad * 1.7; // ลู่เข้า (กลืน)
+        e.size = 2 + Math.random() * 2; e.data = 1; // ไม่มีโน้มถ่วง
+        _push(e);
+      }
+    }
+  },
   // ไวรัสคอร์รัปต์ — บล็อกดิจิทัลกระตุก/เลื่อน (ต่างจาก scanline glitch)
   corruptGlitch(o) {
     const col = o.color || '#ff2233', life = _rmLife(o.dur || 0.4);
@@ -1814,6 +1850,71 @@ function _draw(p, dt) {
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(12);
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.04, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
+      break;
+    }
+    case 'geye': {
+      // ดวงตา GLOOM: เปลือกตา (almond) เบิกขึ้น → ม่านตา/รูม่านตาหดจ้อง → หรี่ลง. obsession watching.
+      const open = Math.sin(Math.min(1, t) * Math.PI);
+      const a = open;
+      const w = p.size, h = p.size * (0.18 + open * 0.42);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      // เบ้าตามืด (dark sclera) — source-over ให้เป็นเงาทึบบนฉาก
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = a * 0.85;
+      ctx.fillStyle = _rgba('#0a0014', 1);
+      ctx.beginPath();
+      ctx.moveTo(-w, 0);
+      ctx.quadraticCurveTo(0, -h, w, 0);
+      ctx.quadraticCurveTo(0, h, -w, 0);
+      ctx.closePath(); ctx.fill();
+      // ขอบตาเรืองม่วง (glowing lid rim)
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
+      ctx.stroke(); ctx.shadowBlur = 0;
+      // ม่านตา/รูม่านตา (iris + constricting pupil) — จ้องเขม็ง
+      const ir = h * 0.82 * (p.data ? 1.05 : 1);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath(); ctx.arc(0, 0, ir, 0, 6.283); ctx.fill();
+      ctx.fillStyle = _rgba('#000000', 1);
+      ctx.beginPath(); ctx.arc(0, 0, ir * (0.62 - open * 0.22), 0, 6.283); ctx.fill();
+      // ประกายม่านตา (cold glint)
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = _rgba('#d8b3ff', a);
+      ctx.beginPath(); ctx.arc(-ir * 0.3, -ir * 0.3, ir * 0.16, 0, 6.283); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'gtendril': {
+      // หนวดเงาคว้า: ทะยานขึ้นจากฐาน (rise then recede) โค้งเอน + ปลายเรียว. grasping shadow.
+      const grow = Math.sin(Math.min(1, t) * Math.PI);
+      const a = grow;
+      const hgt = p.data * grow;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      // ลำหนวดเงาทึบ (source-over dark body)
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = a * 0.8;
+      ctx.strokeStyle = _rgba('#0a0014', 1);
+      ctx.lineWidth = p.size; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(p.vx, -hgt * 0.55, p.vx * 1.6, -hgt);
+      ctx.stroke();
+      // ขอบเรืองม่วง (purple rim glow)
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a * 0.6;
+      ctx.strokeStyle = _rgba(p.color, 1);
+      ctx.lineWidth = Math.max(1, p.size * 0.4);
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(p.vx, -hgt * 0.55, p.vx * 1.6, -hgt);
+      ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.restore();
       break;
     }
     case 'vwing': {

@@ -3854,6 +3854,12 @@ function _csRefreshVolatileCardEffects(nextState) {
         window._csState._gloomVfxTier = _gloomTier;
         _cardFx('gloom', { tier: _gloomTier });
       }
+      // GLOOM Layer-3 peak (cosmetic): MAX OBSESSION ครบ 20 stack ครั้งแรก = signature moment.
+      // _gloomMaxVfxFired กัน fire ซ้ำ (run-only, ไม่เซฟ, ไม่แตะ logic/บาลานซ์).
+      if(stacks >= 20 && !window._csState._gloomMaxVfxFired) {
+        window._csState._gloomMaxVfxFired = true;
+        _cardFx('gloommax', { tier: 3 });
+      }
     }, 2000);
   }
   // FALLEN WECHAT: init break flags

@@ -1010,6 +1010,38 @@ function pValkyrieDescend(color, variant, x, y) {
   }
 }
 
+// ── GLOOM UNDER SIDE primitive (creeping obsession / devouring gloom) ────────
+// บุคลิก "ความหมกมุ่นจากเบื้องล่าง / ถูกกลืนกินทีละน้อย": ดวงตา GLOOM จ้องเขม็ง (obsession)
+// + หนวดเงาทะยานคว้าจากด้านล่าง (grasping tendrils) + (peak) ดูดกลืนเข้า. ม่วงเข้ม-ดำเหว.
+// silhouette "ดวงตา + หนวดเงา" จำได้แม้เป็นเงาดำล้วน — อารมณ์ กดดัน/หวาดหวั่น. tier ('$tier'
+// 0–3 จาก obsession จริง) ขับความสูง/จำนวนหนวด (progressive). variant 'max' = MAX OBSESSION
+// (signature moment: ตาเบิกเต็ม + กลืนเวลา). canvas-first + DOM fallback ครบ.
+function pGloomSurge(color, tier, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('gloomSurge', { color: color || '#6633aa', tier, x: p.x, y: p.y })) return;
+  const max = (tier === 'max');
+  const tl = max ? 4 : Math.max(1, (tier | 0) || 1);
+  const dur = _dur(max ? 0.85 : 0.6);
+  // ดวงตา GLOOM (reuse cv-pulse เป็นวงตา fallback)
+  const eye = _take('cv-pulse');
+  eye.style.left = p.x + 'px'; eye.style.top = (p.y - 6) + 'px';
+  eye.style.setProperty('--cv', color || '#6633aa');
+  eye.style.animationDuration = dur + 's';
+  _emit(eye, dur * 1000 + 90);
+  // หนวดเงาทะยานจากด้านล่าง (reuse cv-streak โทนม่วงเข้ม) — จำนวนตาม tier
+  const n = _reduced ? 2 : (max ? 9 : (2 + tl * 2));
+  const baseY = p.y + (max ? 60 : 44);
+  for (let i = 0; i < n; i++) {
+    const off = (i - (n - 1) / 2) * (max ? 24 : 28);
+    const e = _take('cv-streak');
+    e.style.left = (p.x + off) + 'px'; e.style.top = baseY + 'px';
+    e.style.setProperty('--cv', color || '#7d44c4');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 120);
+  }
+}
+
 // corruptGlitch — บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption; ต่างจาก scanline glitch)
 function pCorruptGlitch(color) {
   if (_toCanvas('corruptGlitch', { color: color || '#ff2233' })) return;
@@ -1047,7 +1079,7 @@ const PRIM = {
   deathKnell: pDeathKnell, soulReap: pSoulReap,
   clawRake: pClawRake, resonanceWave: pResonanceWave,
   insectSwarm: pInsectSwarm, comboLock: pComboLock, voidZero: pVoidZero, corruptGlitch: pCorruptGlitch,
-  goldRush: pGoldRush, valkyrieDescend: pValkyrieDescend,
+  goldRush: pGoldRush, valkyrieDescend: pValkyrieDescend, gloomSurge: pGloomSurge,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -1060,7 +1092,7 @@ const COORD_ARG = {
   collectorPull: [1, 2], debtCoinDrain: [1, 2],
   reaperScythe: [2, 3], soulReap: [2, 3],
   clawRake: [2, 3], insectSwarm: [2, 3],
-  goldRush: [1, 2], valkyrieDescend: [2, 3],
+  goldRush: [1, 2], valkyrieDescend: [2, 3], gloomSurge: [2, 3],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -1234,6 +1266,13 @@ function setAuraTier(id, level) {
   if (!el || !el.classList) return;
   el.classList.remove('game-vfx-tier-1', 'game-vfx-tier-2', 'game-vfx-tier-3');
   if (level > 0) el.classList.add('game-vfx-tier-' + level);
+  // Layer-4 escalation: ถ้าการ์ดนี้มี persistent world layer ให้บรรยากาศทั้งฉาก "ปิดเข้ามา"
+  // ตาม tier จริงด้วย (เช่น GLOOM: ยิ่ง obsession สูง โลกยิ่งมืดบีบเข้า). คอสเมติกล้วน.
+  const w = _worldEl(false);
+  if (w && w.classList && w.classList.contains('cv-world')) {
+    w.classList.remove('gv-world-tier-1', 'gv-world-tier-2', 'gv-world-tier-3');
+    if (level > 0) w.classList.add('gv-world-tier-' + level);
+  }
 }
 
 // ── PER-CARD VFX MAPPING (Elite + Mythic) ────────────────────────────────────
@@ -1440,9 +1479,19 @@ const VFX_MAP = {
            analysis: ['spark', '#00ffee', 3],
            analysiscomplete: [['flash', '#0a5a5a'], ['glitch', '#00ffee'], ['comboRing', '#00ffee'], ['streak', '#aaffff'], ['spark', '#00ffee', 8]],
          } },
-  // GLOOM UNDER SIDE — OBSESSION (passive scaling 0–20, ไม่มี pip): aura "หนักขึ้น" ตาม tier
-  // จริง (0–3) + พัลส์เงาตอนขึ้น tier; affects=timer (obsession กินเวลา) → นาฬิกาตอบสนอง
-  gus: { rarity: 'mythic', theme: 'soul', affects: 'timer', aura: ['shadow', '#6633aa'], on: { break: [['shadowBurst', '#7d44c4', 0.6], ['shadowBurst', '#5522aa', 0.45]], gloom: ['shadowBurst', '#7d44c4', 0.5] } },
+  // GLOOM UNDER SIDE — OBSESSION (4-layer Mythic, อารมณ์ "กดดัน/หวาดหวั่น/ถูกกลืน"):
+  //  L1 Passive: ออร่า GLOOM (cv-aura--gloom) — แอ่งเงาเหวใต้ตัว + ดวงตาจ้องจาง ๆ ตลอดที่ active.
+  //  L2 Trigger (gloom = ขึ้น tier ทุก 5 stack): หนวดเงาทะยานคว้า + ดวงตาวาบ สเกลตาม '$tier'
+  //     จริง (progressive — ยิ่ง obsession สูง หนวดยิ่งสูง/เยอะ). BREAK = gloom surge + เงาแผ่.
+  //  L3 Peak (gloommax = ครบ 20 stack ครั้งแรก): MAX OBSESSION — ตาเบิกเต็ม + หนวดกลืนรอบตัว +
+  //     เวลาถูกดูดกลืนเข้า (drainPulse) + วาบมืด → ต่างจาก passive แบบสุดขั้ว (peak contrast).
+  //  L4 World: world:'gloom' → ทั้งฉากมืดบีบเข้าจากขอบ/ด้านล่าง และ "ปิดเข้ามา" ตาม tier จริง
+  //     (gv-world-tier-*) — โลกถูก obsession กลืนทีละน้อย. affects=timer → นาฬิกาตอบสนอง (กินเวลา).
+  gus: { rarity: 'mythic', theme: 'soul', affects: 'timer', world: 'gloom', aura: ['gloom', '#6633aa'], on: {
+           break:    [['gloomSurge', '#6633aa'], ['shadowBurst', '#1a0030', 0.5]],
+           gloom:    [['gloomSurge', '#7d44c4', '$tier']],
+           gloommax: [['flash', '#0a0010'], ['gloomSurge', '#9966ff', 'max'], ['drainPulse', '#6633aa'], ['shadowBurst', '#1a0030', 0.6]],
+         } },
   // DARK STAKE LORD — Cursed casino jackpot (darkJackpot): ออร่าทองมืดต้องสาป (passive),
   // BREAK = วงล้อสล็อตหมุน + วงสัญญามืด ("เดิมพัน"); JACKPOT แตก = แฟลช 777 + เหรียญ
   // ต้องสาปพุ่งหา zeny + วงช็อกแดง-ดำ + สะเก็ดดอกไพ่ ("เดิมพันจ่าย"); พลาด = พัลส์เตือน
@@ -1459,7 +1508,7 @@ const VFX_MAP = {
 // ใช้ child element เฉพาะ (#cvAuraEl) แทน ::before เพื่อไม่ชนกับ aura ของบอสสกิน
 // (toei-enigma-aura ใช้ทั้ง ::before และ ::after บน #fighter อยู่แล้ว).
 let _activeAuraId = null;
-const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie'];
+const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie', 'gloom'];
 
 function _auraEl(create) {
   const f = _fighter();
@@ -1566,6 +1615,9 @@ function _runPrim(spec, ctx) {
   // ที่เพิ่งเซ็นสัญญา) ส่งผ่าน ctx.color — ทำให้ตราสัญญาเปลี่ยนสีตามหนี้ที่เซ็นจริง.
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '$state') args[i] = (ctx && ctx.color) || '#b066dd';
+    // '$tier' sentinel → ระดับความเข้มจริงที่ส่งมา (เช่น GLOOM obsession tier 0–3) →
+    // ทำให้ primitive เติบโตตามความคืบหน้าจริง (progressive escalation, ไม่ใช่แค่ "ใหญ่ขึ้น").
+    else if (args[i] === '$tier') args[i] = (ctx && ctx.tier != null) ? ctx.tier : 1;
   }
   // ฉีดพิกัดจาก ctx เข้า args ตามตำแหน่งของแต่ละ primitive (COORD_ARG)
   if (ctx && (ctx.x !== undefined) && (ctx.y !== undefined)) {

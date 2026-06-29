@@ -111,7 +111,7 @@ for (const id of mapped) {
 if (!orphan) ok('no orphan VFX_MAP entries');
 
 // ── 3) every aura style known + every primitive name known ───────────────────
-const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie']);
+const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie', 'gloom']);
 const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinBurst',
   'breakCrack', 'odGlow', 'streak', 'drainPulse', 'comboRing', 'bossFlare', 'moonRing',
   'bolt', 'fireBurst', 'holyBurst', 'glitch',
@@ -121,7 +121,7 @@ const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinB
   'debtSeal', 'debtChain', 'ledgerGlyph', 'collectorPull', 'debtCoinDrain', 'sealBreak',
   'timeStop', 'voidRift', 'reaperScythe', 'deathKnell', 'soulReap',
   'clawRake', 'resonanceWave',
-  'insectSwarm', 'comboLock', 'voidZero', 'corruptGlitch', 'goldRush', 'valkyrieDescend']);
+  'insectSwarm', 'comboLock', 'voidZero', 'corruptGlitch', 'goldRush', 'valkyrieDescend', 'gloomSurge']);
 let badAura = 0, badPrim = 0, noEffect = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
   if (!e.aura || !AURA_STYLES.has(e.aura[0]) || typeof e.aura[1] !== 'string') {
@@ -230,8 +230,10 @@ try {
   api.trigger('dsk', 'jackpot', {});                 // 777 flash + cursed coins + suit sparks (payoff → zeny reacts)
   api.trigger('dsk', 'stakeup', {});                 // risk-reward red warning flicker (odds rising)
   // ── aura-only polish paths (GLOOM/IFRIED/LADY TRAINEE/LORD OF DEBT) ──
-  api.setActiveCard('gus', 'mythic');                // GLOOM obsession build-up
-  api.trigger('gus', 'gloom', { tier: 2 });          // aura intensity tier from real stacks
+  api.setActiveCard('gus', 'mythic');                // GLOOM — 4-layer obsession (aura + world tier)
+  api.trigger('gus', 'gloom', { tier: 2 });          // L2: tendril surge scaled by real tier ($tier)
+  api.trigger('gus', 'break', {});                   // BREAK gloom surge + shadow
+  api.trigger('gus', 'gloommax', { tier: 3 });       // L3 peak: MAX OBSESSION devour (world tier 3)
   api.setActiveCard('if', 'mythic');                 // IFRIED
   api.trigger('if', 'emberhit', {});                 // throttled ember (crit gain)
   api.trigger('if', 'inferno', {});                  // Inferno Burst payoff

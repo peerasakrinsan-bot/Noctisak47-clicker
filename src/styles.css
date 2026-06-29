@@ -5787,6 +5787,20 @@
   0%, 100% { opacity: .13; transform: translate(-50%, -50%) scale(.97); }
   50%      { opacity: .24; transform: translate(-50%, -52%) scale(1.05); } /* wing breath / lift */
 }
+/* gloom — ออร่า GLOOM UNDER SIDE (obsession): แอ่งเงาเหวม่วงเข้ม-ดำ "คืบคลานจากเบื้องล่าง"
+   หายใจช้า ๆ แบบ passive — มืด/หนักหน่วง กดดัน ต่างจาก shadow (วงกลมจางทั่วไป). ความเข้ม
+   ไต่ขึ้นด้วย .game-vfx-tier-* ตาม OBSESSION STACK จริง (ยิ่งหมกมุ่น เงายิ่งคืบ). */
+#cvAuraEl.cv-aura--gloom {
+  opacity: .22; filter: blur(2px);
+  background:
+    radial-gradient(circle at 50% 64%, var(--cv-aura, #6633aa) 0%, rgba(20,0,40,.6) 42%, transparent 72%),
+    radial-gradient(70% 50% at 50% 88%, rgba(10,0,20,.7) 0%, transparent 70%);
+  animation: cvAuraGloom 3.4s ease-in-out infinite;
+}
+@keyframes cvAuraGloom {
+  0%, 100% { opacity: .14; transform: translate(-50%, -48%) scale(.96); }
+  50%      { opacity: .26; transform: translate(-50%, -50%) scale(1.04); } /* gloom creep */
+}
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
@@ -5809,6 +5823,19 @@
   animation: cvWorldValkyrie 6s ease-in-out infinite;
 }
 @keyframes cvWorldValkyrie { 0%, 100% { opacity: .68; } 50% { opacity: 1; } }
+/* gloom world — ความมืดบีบเข้าจากขอบ + เหวเงาคืบจากด้านล่าง (OBSESSION ปิดเข้ามา).
+   ความเข้ม "ปิดเข้ามา" ตาม OBSESSION STACK จริงผ่าน gv-world-tier-* (progressive). */
+#cvWorldEl.cv-world-gloom {
+  background:
+    radial-gradient(150% 120% at 50% 50%, transparent 38%, rgba(10,0,24,.5) 100%),
+    radial-gradient(120% 70% at 50% 118%, rgba(102,51,170,.22), transparent 60%);
+  opacity: .5;
+  animation: cvWorldGloom 5s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-gloom.gv-world-tier-1 { opacity: .62; }
+#cvWorldEl.cv-world-gloom.gv-world-tier-2 { opacity: .76; }
+#cvWorldEl.cv-world-gloom.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldGloom { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.15); } }
 /* gate atmosphere ออกใต้โหมดเบา: คงไว้แบบ static จาง ๆ ไม่กระพริบ */
 @media (prefers-reduced-motion: reduce) {
   #cvWorldEl.cv-world { animation: none !important; opacity: .5 !important; }
