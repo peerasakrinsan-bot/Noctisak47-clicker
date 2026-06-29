@@ -1,5 +1,5 @@
 // NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker 2026.06.07.1
-const APP_VERSION = '2026.06.29.1';
+const APP_VERSION = '2026.06.29.2';
 const CACHE_NAME = 'noctisak47-' + APP_VERSION;
 
 // Precache = first-run / default-offline experience only. Heavy progressive

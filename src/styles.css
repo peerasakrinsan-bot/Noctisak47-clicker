@@ -7067,6 +7067,19 @@ body.flash-off #cvWorldEl.cv-world { animation: none !important; opacity: .42 !i
 /* Mythic trigger เด่นกว่า Elite เล็กน้อย — ผ่านคลาสที่ปนกันได้บน element เดียว */
 .game-vfx-trigger.game-vfx-mythic { animation-duration: .72s; }
 
+/* 2b) ACTIVE-CARD AURA REACTION — ออร่าถาวรของการ์ด "ตอบสนอง" ทุกครั้งที่กลไกส่งผล
+   ต่อสนามรบ (feedback pass: presence ยังมีผลอยู่ ไม่ใช่แค่ลอยนิ่งระหว่าง activate).
+   pulse glow สั้น ๆ ซ้อนบน breath เดิม — animate เฉพาะ box-shadow/filter (คง transform
+   ของ cvAuraBreath ไว้ จึงไม่ชนกัน), ไม่วน, ถอดออกเอง. */
+#cvAuraEl.cv-aura.game-vfx-aura-react {
+  animation: cvAuraBreath 2.6s ease-in-out infinite, cvAuraReact .54s ease-out 1;
+}
+@keyframes cvAuraReact {
+  0%   { box-shadow: 0 0 0 0 transparent; filter: brightness(1); }
+  28%  { box-shadow: 0 0 22px 5px var(--gv, #fff); filter: brightness(1.5) saturate(1.25); }
+  100% { box-shadow: 0 0 0 0 transparent; filter: brightness(1); }
+}
+
 /* 3) STACK / CHARGE pips — แถบจุดเล็กเหนือตัวละคร (#cvStackEl ลูกของ #fighter) */
 #cvStackEl {
   position: absolute; left: 50%; top: 6%; transform: translateX(-50%);
@@ -7088,6 +7101,15 @@ body.flash-off #cvWorldEl.cv-world { animation: none !important; opacity: .42 !i
   0%   { transform: scale(.6); }
   55%  { transform: scale(1.35); }
   100% { transform: scale(1); }
+}
+/* 3b) STACK ANTICIPATION — pip row "เตือนล่วงหน้า" เมื่อเหลืออีก 1 ก่อนถึง payoff
+   (เช่น NOSIRIS 4/5, DETAILED 7/8, HYDRA 2/3): เต้นเบา ๆ บอก "อีกนิดเดียวจะปะทุ"
+   โดยไม่ต้องอ่านเลข (lifecycle stage: Growing → Peak). transform เท่านั้น, ถอดออกเอง
+   เมื่อถึง max / รีเซ็ต. */
+#cvStackEl.game-vfx-stack.stack-ready { animation: cvStackReady .82s ease-in-out infinite; }
+@keyframes cvStackReady {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50%      { transform: translateX(-50%) scale(1.07); }
 }
 
 /* 4) EXPIRE / RESET — เอฟเฟกต์จบสะอาด (ใช้ตอนสแต็กถูกใช้/รีเซ็ต) */
@@ -7140,6 +7162,9 @@ body.flash-off #cvWorldEl.cv-world { animation: none !important; opacity: .42 !i
   .game-vfx-trigger { animation-duration: .2s !important; }
   .game-vfx-stack-pip.pop { animation: none !important; }
   .game-vfx-expire { animation-duration: .16s !important; }
+  /* feedback pass: ตัด aura reaction ที่ pulse + การเต้นเตือนล่วงหน้าของ pip row */
+  #cvAuraEl.cv-aura.game-vfx-aura-react { animation: none !important; }
+  #cvStackEl.game-vfx-stack.stack-ready { animation: none !important; }
 }
 
 /* ══ SOFT PWA INSTALL PROMPT ══ */
