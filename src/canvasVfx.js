@@ -838,6 +838,32 @@ const BUILD = {
       }
     }
   },
+  // MECHA CHARGE — แกนขับเคลื่อนหกเหลี่ยมเรือง + วงจรไฟฟ้าลู่เข้าชาร์จ (KILL-D01 DRIVE TOKEN)
+  mechaCharge(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#00ffee', life = _rmLife(0.5);
+    const core = _mk('mcore', x, y, life, col); core.size = 26; core.data = 0; _push(core); // data 0 = charging (grow)
+    let n = _nParts(6);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2, rad = 40 + Math.random() * 26;
+      const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.45), col);
+      e.vx = -Math.cos(ang) * rad * 1.9; e.vy = -Math.sin(ang) * rad * 1.9; // ลู่เข้า (ชาร์จ)
+      e.size = 2 + Math.random() * 1.6; e.data = 1; _push(e); // data 1 = no gravity
+    }
+  },
+  // MECHA LASER — ปืนเลเซอร์ฟาดลง + reticle ล็อกเป้า + แกนปากกระบอก (KILL-D01 DRIVE DISCHARGE)
+  mechaLaser(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#00ffee';
+    const max = o.variant === 'max';
+    const core = _mk('mcore', x, y, _rmLife(max ? 0.5 : 0.4), col); core.size = max ? 40 : 24; core.data = 1; _push(core); // data 1 = fire (shrink)
+    const beam = _mk('mbeam', x, y, _rmLife(max ? 0.6 : 0.42), col); beam.size = max ? 175 : 120; beam.data = max ? 15 : 9; _push(beam);
+    if (max && !_reduced) { const b2 = _mk('mbeam', x, y, _rmLife(0.6), '#aaffff'); b2.size = 150; b2.data = 8; b2.rot = 0.22; _push(b2); }
+    let n = _nParts(max ? 9 : 5);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.4, sp = 120 + Math.random() * 120;
+      const e = _mk('spark', x, y, _rmLife(0.45), max ? '#aaffff' : col);
+      e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp * 0.5; e.size = 2 + Math.random() * 2; e.data = 1; _push(e);
+    }
+  },
   // ไวรัสคอร์รัปต์ — บล็อกดิจิทัลกระตุก/เลื่อน (ต่างจาก scanline glitch)
   corruptGlitch(o) {
     const col = o.color || '#ff2233', life = _rmLife(o.dur || 0.4);
@@ -1850,6 +1876,53 @@ function _draw(p, dt) {
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(12);
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.04, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
+      break;
+    }
+    case 'mcore': {
+      // แกนขับเคลื่อนหกเหลี่ยม (mech drive core): หมุน + เรือง. charge(data 0)=พอง / fire(data 1)=ยุบ
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const rot = p.age * (p.data ? 6 : 3) + p.seed * 6;
+      const r = p.size * (p.data ? (1 - t * 0.4) : (0.7 + t * 0.5));
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.4; ctx.lineJoin = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const ang = i / 6 * Math.PI * 2, px = Math.cos(ang) * r, py = Math.sin(ang) * r;
+        if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+      }
+      ctx.closePath(); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = _rgba('#ffffff', a * 0.9);
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.32, 0, 6.283); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'mbeam': {
+      // ลำเลเซอร์ปืนใหญ่: ยิงพุ่ง (snap-on) → ค้าง → จาง. แกนขาวกลาง + reticle bracket ล็อกเป้า
+      const on = t < 0.15 ? t / 0.15 : (1 - (t - 0.15) / 0.85);
+      const a = Math.max(0, on);
+      const len = p.size, w = p.data;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot || 0);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a;
+      const grad = ctx.createLinearGradient(0, -len, 0, 0);
+      grad.addColorStop(0, _rgba(p.color, 0)); grad.addColorStop(0.5, _rgba(p.color, 0.85)); grad.addColorStop(1, _rgba('#ffffff', 1));
+      ctx.fillStyle = grad; ctx.fillRect(-w / 2, -len, w, len);
+      ctx.fillStyle = _rgba('#ffffff', a); ctx.fillRect(-w * 0.2, -len, w * 0.4, len);
+      // reticle ล็อกเป้า (target-lock brackets)
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      const rs = w * 1.2 + 14;
+      for (let cx = -1; cx <= 1; cx += 2) for (let cy = -1; cy <= 1; cy += 2) {
+        ctx.beginPath();
+        ctx.moveTo(cx * rs - cx * 8, cy * rs); ctx.lineTo(cx * rs, cy * rs); ctx.lineTo(cx * rs, cy * rs - cy * 8);
+        ctx.stroke();
+      }
+      ctx.restore();
       break;
     }
     case 'geye': {

@@ -1042,6 +1042,69 @@ function pGloomSurge(color, tier, x, y) {
   }
 }
 
+// ── KILL-D01 primitives (war-machine drive core / laser cannon) ──────────────
+// บุคลิก "หุ่นรบจักรกล / แกนขับเคลื่อนชาร์จพลัง / ปืนเลเซอร์ประหาร": แกนพลังงานหกเหลี่ยม
+// หมุน (drive core) + วงจรไฟฟ้าลู่เข้าชาร์จ (mechaCharge) → ลำเลเซอร์ปืนใหญ่ฟาดลง + reticle
+// ล็อกเป้า (mechaLaser). ไซแอน-ขาว เครื่องจักรเย็นชา. silhouette "หกเหลี่ยม+ลำเลเซอร์+reticle"
+// ต่างจาก DETAILED (สแกนไลน์วิเคราะห์) และ RSICK (บล็อกไวรัสแดง). canvas-first + DOM fallback.
+function pMechaCharge(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('mechaCharge', { color: color || '#00ffee', x: p.x, y: p.y })) return;
+  const dur = _dur(0.5);
+  const core = _take('cv-odglow');
+  core.style.left = p.x + 'px'; core.style.top = p.y + 'px';
+  core.style.setProperty('--cv', color || '#00ffee');
+  core.style.animationDuration = dur + 's';
+  _emit(core, dur * 1000 + 80);
+  // วงจรลู่เข้า (charging circuit sparks pulled inward)
+  const n = _reduced ? 3 : 6;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2;
+    const rad = 40 + Math.random() * 26;
+    const e = _take('cv-spark');
+    e.style.left = (p.x + Math.cos(ang) * rad) + 'px';
+    e.style.top = (p.y + Math.sin(ang) * rad) + 'px';
+    e.style.setProperty('--cv', color || '#00ffee');
+    e.style.setProperty('--dx', (-Math.cos(ang) * rad) + 'px');
+    e.style.setProperty('--dy', (-Math.sin(ang) * rad) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 100);
+  }
+}
+function pMechaLaser(color, variant, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('mechaLaser', { color: color || '#00ffee', variant, x: p.x, y: p.y })) return;
+  const max = (variant === 'max');
+  const dur = _dur(max ? 0.6 : 0.45);
+  // ลำเลเซอร์ (vertical beam — reuse cv-slash ตั้งตรง)
+  const beam = _take('cv-slash');
+  beam.style.left = p.x + 'px'; beam.style.top = p.y + 'px';
+  beam.style.setProperty('--cv', color || '#00ffee');
+  beam.style.setProperty('--rot', '90deg');
+  beam.style.animationDuration = dur + 's';
+  _emit(beam, dur * 1000 + 90);
+  // reticle ล็อกเป้า (reuse cv-pulse)
+  const ret = _take('cv-pulse');
+  ret.style.left = p.x + 'px'; ret.style.top = p.y + 'px';
+  ret.style.setProperty('--cv', color || '#00ffee');
+  ret.style.animationDuration = dur + 's';
+  _emit(ret, dur * 1000 + 90);
+  // สะเก็ดอิมแพกต์
+  const n = _reduced ? 3 : (max ? 9 : 5);
+  for (let i = 0; i < n; i++) {
+    const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.4;
+    const dist = 30 + Math.random() * 40;
+    const e = _take('cv-spark');
+    e.style.left = p.x + 'px'; e.style.top = p.y + 'px';
+    e.style.setProperty('--cv', max ? '#aaffff' : (color || '#00ffee'));
+    e.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    e.style.setProperty('--dy', (Math.sin(ang) * dist * 0.5) + 'px');
+    e.style.animationDuration = dur + 's';
+    _emit(e, dur * 1000 + i * 24 + 100);
+  }
+}
+
 // corruptGlitch — บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption; ต่างจาก scanline glitch)
 function pCorruptGlitch(color) {
   if (_toCanvas('corruptGlitch', { color: color || '#ff2233' })) return;
@@ -1080,6 +1143,7 @@ const PRIM = {
   clawRake: pClawRake, resonanceWave: pResonanceWave,
   insectSwarm: pInsectSwarm, comboLock: pComboLock, voidZero: pVoidZero, corruptGlitch: pCorruptGlitch,
   goldRush: pGoldRush, valkyrieDescend: pValkyrieDescend, gloomSurge: pGloomSurge,
+  mechaCharge: pMechaCharge, mechaLaser: pMechaLaser,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -1093,6 +1157,7 @@ const COORD_ARG = {
   reaperScythe: [2, 3], soulReap: [2, 3],
   clawRake: [2, 3], insectSwarm: [2, 3],
   goldRush: [1, 2], valkyrieDescend: [2, 3], gloomSurge: [2, 3],
+  mechaCharge: [1, 2], mechaLaser: [2, 3],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -1456,8 +1521,22 @@ const VFX_MAP = {
   // (วงคลื่นฮาร์มอนิกขยายเป็นจังหวะซ้อน + พัลส์แดงสั่น) ตอน BREAK เปิด Resonance. ต่างชัดจาก
   // IFRIED (ไฟ) และ EDGEGA (กรงเล็บ).
   at:  { rarity: 'mythic', theme: 'crit', affects: 'break', aura: ['fire',  '#ee3333'],  on: { break: [['resonanceWave', '#ee3333'], ['pulse', '#ff5544']] } },
-  // KILL-D01 — เลเซอร์หุ่นยนต์: glitch scanline + เส้นเลเซอร์ + วาบ
-  kl:  { rarity: 'mythic', theme: 'analysis', affects: 'break', aura: ['tech',  '#00ffee'],  on: { break: [['glitch', '#00ffee'], ['streak', '#aaffff'], ['flash', '#003333']] } },
+  // KILL-D01 — WAR MACHINE / DRIVE CORE (4-layer Mythic, อารมณ์ "จักรกลเย็นชา/พลังประจุล้น"):
+  //  L1 Character: ออร่าแกนขับเคลื่อนหกเหลี่ยมหมุน (cv-aura--mecha) + pip ของ DRIVE TOKEN จริง 0–8.
+  //  L2 Trigger (token = ทุก 3 คลิกใน OD): แกนพลังงานวาบ + วงจรลู่เข้าชาร์จ (mechaCharge) + pip +1;
+  //     BREAK = glitch สั้น ๆ. affects=odBar → แถบ OD ตอบสนอง (แกนกำลังประจุ).
+  //  L3 Peak (drivedischarge = 8 Token + BREAK): DRIVE DISCHARGE — ปืนเลเซอร์ใหญ่ฟาดลง 2 ลำ +
+  //     reticle ล็อกเป้า + วาบ + วงประจุ → ต่างจาก passive สุดขั้ว (peak contrast). discharge =
+  //     ปล่อย Token ตอน BREAK = ลำเลเซอร์ + reset pip.
+  //  L4 World: world:'mecha' → กริดเล็งเป้า/วงจรไซแอนจาง ๆ สแกนทั้งฉาก (หายใจ). silhouette
+  //     "หกเหลี่ยม+ลำเลเซอร์+reticle" ต่างจาก DETAILED (สแกนไลน์) และ RSICK (บล็อกไวรัสแดง).
+  kl:  { rarity: 'mythic', theme: 'analysis', affects: 'odBar', world: 'mecha',
+         stack: { gain: 'token', reset: 'discharge', max: 8 }, aura: ['mecha', '#00ffee'], on: {
+           token:          [['mechaCharge', '#00ffee']],
+           break:          [['glitch', '#00ffee'], ['flash', '#003333']],
+           discharge:      [['mechaLaser', '#00ffee']],
+           drivedischarge: [['flash', '#003a3a'], ['mechaLaser', '#aaffff', 'max'], ['mechaCharge', '#00ffee'], ['comboRing', '#00ffee']],
+         } },
   // IFRIED — Inferno Stack สะสมตอนคริ (aura-only, ไม่มี pip): ember ตอนสะสม (throttle),
   // Inferno Burst ตอนครบ 10 = ไฟพุ่งใหญ่ + วาบ; affects=enemy (ไฟลงศัตรู)
   // IFRIED ครองไฟแต่ผู้เดียว: Inferno Burst เป็น "จุดสุดยอดของไฟ" — ไฟพุ่งสองชั้น (แดง→ทอง) +
@@ -1508,7 +1587,7 @@ const VFX_MAP = {
 // ใช้ child element เฉพาะ (#cvAuraEl) แทน ::before เพื่อไม่ชนกับ aura ของบอสสกิน
 // (toei-enigma-aura ใช้ทั้ง ::before และ ::after บน #fighter อยู่แล้ว).
 let _activeAuraId = null;
-const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie', 'gloom'];
+const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie', 'gloom', 'mecha'];
 
 function _auraEl(create) {
   const f = _fighter();

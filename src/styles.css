@@ -5801,6 +5801,19 @@
   0%, 100% { opacity: .14; transform: translate(-50%, -48%) scale(.96); }
   50%      { opacity: .26; transform: translate(-50%, -50%) scale(1.04); } /* gloom creep */
 }
+/* mecha — ออร่าแกนขับเคลื่อนหกเหลี่ยม (KILL-D01): วงหกเหลี่ยมไซแอนหมุนช้า ๆ แบบจักรกล
+   (drive core) — silhouette หกเหลี่ยม/เครื่องจักร ต่างจาก tech (วงกลมเบลอ) ชัดเจน. */
+#cvAuraEl.cv-aura--mecha {
+  opacity: .2; filter: blur(.5px); border-radius: 0;
+  background: radial-gradient(circle, var(--cv-aura, #00ffee) 0%, transparent 62%);
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  animation: cvAuraMecha 4.2s linear infinite;
+}
+@keyframes cvAuraMecha {
+  0%   { opacity: .14; transform: translate(-50%, -50%) rotate(0deg) scale(.97); }
+  50%  { opacity: .24; transform: translate(-50%, -50%) rotate(180deg) scale(1.04); }
+  100% { opacity: .14; transform: translate(-50%, -50%) rotate(360deg) scale(.97); }
+}
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
@@ -5841,6 +5854,20 @@
 @keyframes cvWorldGloom {
   0%, 100% { background-position: 50% 56%, 50% 122%; filter: brightness(.94); }
   50%      { background-position: 50% 44%, 50% 110%; filter: brightness(1.12); } /* darkness creeps up */
+}
+/* mecha world — กริดเล็งเป้า/วงจรไซแอนจาง ๆ "สแกน" ทั้งฉาก (หายใจ) — targeting HUD ของจักรกล.
+   เส้นกริดบาง ๆ ไม่ทึบ ไม่บัง gameplay; drift ช้า = สแกนเป้าตลอดที่การ์ด active. */
+#cvWorldEl.cv-world-mecha {
+  background:
+    repeating-linear-gradient(0deg, rgba(0,255,238,.05) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(90deg, rgba(0,255,238,.05) 0 1px, transparent 1px 42px),
+    radial-gradient(120% 90% at 50% 50%, transparent 56%, rgba(0,40,48,.42) 100%);
+  opacity: .5;
+  animation: cvWorldMecha 5s ease-in-out infinite;
+}
+@keyframes cvWorldMecha {
+  0%, 100% { background-position: 0 0, 0 0, 50% 50%; filter: brightness(.96); }
+  50%      { background-position: 0 14px, 14px 0, 50% 50%; filter: brightness(1.1); } /* scan drift */
 }
 /* gate atmosphere ออกใต้โหมดเบา: คงไว้แบบ static จาง ๆ ไม่กระพริบ */
 @media (prefers-reduced-motion: reduce) {

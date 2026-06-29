@@ -4681,6 +4681,8 @@ function csOnClick(isGod) {
     cs._killD01OdClickCount++;
     if(cs._killD01OdClickCount % 3 === 0) {
       cs._driveTokens = Math.min(8, (cs._driveTokens || 0) + 1);
+      // KILL-D01 VFX — Drive Token gained: drive-core charge + pip (cosmetic, real count).
+      _cardFx('token', { stack: cs._driveTokens, max: 8 });
     }
   }
   // GOLDEN BRUH: +3 coin per click during Gold Rush
@@ -4840,6 +4842,8 @@ function csOnBreakStart() {
     cs.cs_breakPower = (cs.cs_breakPower || 0) + cs._killD01BreakPowerBonus;
     cs._killD01TokensUsedCount = cs._driveTokens;
     cs._driveTokens = 0;
+    // KILL-D01 VFX — tokens discharged at BREAK: laser strike + pip reset (cosmetic).
+    _cardFx('discharge', { stack: 0, max: 8 });
   }
   // DETAILED: Analysis Complete — double BREAK window
   if(cs.cs_detailed && cs._analysisComplete) {
@@ -5066,6 +5070,8 @@ function csOnBreakSuccess() {
     spawnCoinPopup(tokenCoin);
     if(cs._killD01TokensUsedCount >= 8) {
       cs._killD01ExecutionEndTime = performance.now() + 4000;
+      // KILL-D01 VFX — Layer-3 peak: DRIVE DISCHARGE laser cannon (cosmetic).
+      _cardFx('drivedischarge');
       showBigSplash('DRIVE DISCHARGE', 'DMG x1.5 — 4s', '#00ffee', false);
     }
     cs._killD01TokensUsedCount = 0;
