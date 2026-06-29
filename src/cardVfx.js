@@ -1535,7 +1535,7 @@ const VFX_MAP = {
   // "หยุดเวลา/เก็บเกี่ยวความตาย" เฉพาะตัว (ไม่ใช่ glitch/shadowBurst กลางอีกต่อไป).
   // AK47 ระหว่าง Phase (ต่อ OD timer) = เคียวกวาด + วิญญาณถูกเก็บที่จุด WP. affects=timer
   // → นาฬิกาตอบสนอง (เวลาถูกตัด).
-  th:  { rarity: 'mythic', theme: 'thanatos', affects: 'timer', aura: ['shadow', '#cc00cc'], on: {
+  th:  { rarity: 'mythic', theme: 'thanatos', affects: 'timer', world: 'thanatos', aura: ['shadow', '#cc00cc'], on: {
            thanatos: [['timeStop', '#e0b3ff'], ['voidRift', '#660066'], ['reaperScythe', '#cc44cc', 2], ['deathKnell', '#cc00cc'], ['soulReap', '#dd99ff', 8]],
            ak47:     [['reaperScythe', '#dd55dd', 1], ['soulReap', '#e0b3ff', 6]],
          } },
@@ -1545,7 +1545,7 @@ const VFX_MAP = {
   // → ครบ 5 (CONTRACT SEALED) = DEVIL BET จ่าย: ยันต์ทอง + วงช็อกเลือด-ดำ + ระเบิดทองต้องสาป
   // + ไฟนรก. SIN Stack 0–5 (สะสมตอน DEVIL BET, ไม่รีเซ็ตกลางรัน = buildup ดาเมจ) → pip ต่อ sin
   // จริง; affects=enemy (สาปดาเมจลงศัตรู).
-  bh:  { rarity: 'mythic', theme: 'demonContract', affects: 'enemy', stack: { gain: 'sinstack', max: 5 }, aura: ['infernal', '#cc0000'], on: {
+  bh:  { rarity: 'mythic', theme: 'demonContract', affects: 'enemy', world: 'demon', stack: { gain: 'sinstack', max: 5 }, aura: ['infernal', '#cc0000'], on: {
            break:    [['contractRing', '#aa0000'], ['cursedFlame', '#ff4400'], ['slash', '#ff2233', 3]],
            sinstack: [['sinEmber', '#ff5522', 6], ['demonSigil', '#cc0011']],
            sinmax:   [['demonSigil', '#ffcc33'], ['bloodShock', '#cc0011'], ['devilBetBurst', '#ffcc33'], ['cursedFlame', '#ff3300']],
@@ -1553,7 +1553,7 @@ const VFX_MAP = {
   // EDGEGA — Lv2 Burst เสือ (claw rake): ไม่ใช่ไฟพุ่งกลางแล้ว — เป็น "รอยเล็บเสือปะทุ"
   // (วาบ + กรงเล็บ 4 รอยขนานราดข้าม + สะเก็ดคม) ตอน Lv2 Burst เปิด ทุก 15 วิ. ต่างชัด
   // จาก IFRIED (ไฟ/อินเฟอร์โน) และ ATROSUS (คลื่นเรโซแนนซ์).
-  eg:  { rarity: 'mythic', theme: 'crit', affects: 'odBar', aura: ['fire',  '#ff6622'],  on: { od: [['flash', '#2a1000'], ['clawRake', '#ff7733', 4], ['spark', '#ffd08a', 6]] } },
+  eg:  { rarity: 'mythic', theme: 'crit', affects: 'odBar', world: 'tiger', aura: ['fire',  '#ff6622'],  on: { od: [['flash', '#2a1000'], ['clawRake', '#ff7733', 4], ['spark', '#ffd08a', 6]] } },
   // NOSIRIS — Soul Stack 0–5 (สะสมตอน BREAK) → JUDGMENT ตอนเต็ม 5: แสง holy ทอง + พัลส์,
   // pip ต่อ soul stack จริง (ctx.stack), เต็ม 5 = expire flourish (JUDGMENT/ปฏิเสธความตาย)
   // JUDGMENT (เต็ม 5 = ปฏิเสธความตาย) ได้ payoff เฉพาะของตัวเอง: วาบทอง + แสง holy ทอง→ม่วงคู่ +
@@ -1586,7 +1586,7 @@ const VFX_MAP = {
   // น้ำพุทองคำแท่ง (gold ingot fountain — แท่งทอง ไม่ใช่เหรียญกลม) + "$" ยักษ์ลอยขึ้น +
   // วาบทอง. ทองสุกใสล้วน — ต่างชัดจาก DARK STAKE LORD (ทองมืดคาสิโน), MISSSTRESS (ผึ้ง),
   // DRAKE (น้ำพุเหรียญ). affects=zeny → HUD โซน Zeny/score ตอบสนอง (การ์ดทำ Zeny ×9).
-  gb:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffcc00'],  on: { combo: [['flash', '#3a2e00'], ['goldRush', '#ffcc00']] } },
+  gb:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', world: 'gold', aura: ['gold',  '#ffcc00'],  on: { combo: [['flash', '#3a2e00'], ['goldRush', '#ffcc00']] } },
   // COKE ZERO — "ZERO" สุญญากาศดำ-ขาว (OD charge ×4): วาบขาว + วงสุญญากาศหดยุบเข้าหา "ศูนย์"
   // (annihilation) ตอนเข้า OD — บุคลิก "ศูนย์/ความว่าง" ออกจริง (ไม่ใช่ flash+pulse กลาง). affects=odBar
   // เพราะการ์ดเร่ง OD charge ×4 (OD คือหัวใจ).
@@ -1608,7 +1608,7 @@ const VFX_MAP = {
   // (sealBreak) ปลดหนี้; ถ้ามีหนี้ค้างจริง (debtclear) = เหรียญต้องสาปถูกสูบจ่าย + รีเซ็ตความเข้มออร่า.
   // BERSERK hit = ฟันเงาผูกโซ่ (throttle ที่ context 'hit'). affects=debt → ตัวนับ DEBT ตอบสนอง
   // ด้วยสีของพลังต้องห้ามที่เพิ่งเซ็น (ctx.color).
-  ld:  { rarity: 'mythic', theme: 'debtContract', affects: 'debt', aura: ['debt', '#9944cc'],  on: {
+  ld:  { rarity: 'mythic', theme: 'debtContract', affects: 'debt', world: 'debt', aura: ['debt', '#9944cc'],  on: {
            debt:      [['debtSeal', '$state'], ['debtChain', '#b066dd', 3], ['ledgerGlyph', '#d4a017', 4]],
            debtmax:   [['collectorPull', '#aa33ff'], ['debtChain', '#cc44ff', 5], ['ledgerGlyph', '#ff3366', 5], ['flash', '#1a0022']],
            break:     [['sealBreak', '#b066dd']],
@@ -1617,13 +1617,13 @@ const VFX_MAP = {
          } },
   // CATULLANUX — ราชาแมว COMBO LOCK: วงเล็บเป้าหมาย 4 มุมหุบเข้า "ล็อกคอมโบ" (combo lock) ตอน
   // AK47 ครบ/BREAK สำเร็จ + รอยร้าวหนัก. affects=combo → กรอบคอมโบตอบสนอง (คอมโบถูกล็อก).
-  kn:  { rarity: 'mythic', theme: 'analysis', affects: 'combo', aura: ['glow',  '#ffaa44'],  on: {
+  kn:  { rarity: 'mythic', theme: 'analysis', affects: 'combo', world: 'catking', aura: ['glow',  '#ffaa44'],  on: {
            break: [['comboLock', '#ffaa44'], ['breakCrack', '#ffbf6a', true]],
            ak47:  [['comboLock', '#ffcf8a']],
          } },
   // BEELZEBRUH — เจ้าแห่งแมลงวัน/CORRUPTION: ฝูงแมลงวันเขียวรุมบิน (buzz) + คลื่นมืดเขียวสาป
   // ตอน BREAK — บุคลิก "ฝูงแมลง" ออกจริง (ไม่ใช่ shadowBurst+spark กลาง).
-  bz:  { rarity: 'mythic', theme: 'soul', affects: 'break', aura: ['drain', '#88cc00'],  on: { break: [['insectSwarm', '#88cc00', 12], ['shadowBurst', '#5a7a00', 0.5]] } },
+  bz:  { rarity: 'mythic', theme: 'soul', affects: 'break', world: 'swarmrot', aura: ['drain', '#88cc00'],  on: { break: [['insectSwarm', '#88cc00', 12], ['shadowBurst', '#5a7a00', 0.5]] } },
   // VALKYRIZZ — VALKYRIE OF RANDGRIS / สลับพรเทพ (4-layer Mythic):
   //  L1 Passive: ออร่าปีกวาลคีรี (cv-aura--valkyrie) — ปีกขนนก + วงรัศมีเทพ "หายใจ" ตลอด
   //     ที่ active → จำใบได้ทันทีก่อนยิง.
@@ -1639,7 +1639,7 @@ const VFX_MAP = {
   // ATROSUS — RESONANCE อสูรเกรี้ยว (resonance wave): ไม่ใช่ไฟพุ่งแล้ว — เป็น "คลื่นเรโซแนนซ์"
   // (วงคลื่นฮาร์มอนิกขยายเป็นจังหวะซ้อน + พัลส์แดงสั่น) ตอน BREAK เปิด Resonance. ต่างชัดจาก
   // IFRIED (ไฟ) และ EDGEGA (กรงเล็บ).
-  at:  { rarity: 'mythic', theme: 'crit', affects: 'break', aura: ['fire',  '#ee3333'],  on: { break: [['resonanceWave', '#ee3333'], ['pulse', '#ff5544']] } },
+  at:  { rarity: 'mythic', theme: 'crit', affects: 'break', world: 'resonance', aura: ['fire',  '#ee3333'],  on: { break: [['resonanceWave', '#ee3333'], ['pulse', '#ff5544']] } },
   // KILL-D01 — WAR MACHINE / DRIVE CORE (4-layer Mythic, อารมณ์ "จักรกลเย็นชา/พลังประจุล้น"):
   //  L1 Character: ออร่าแกนขับเคลื่อนหกเหลี่ยมหมุน (cv-aura--mecha) + pip ของ DRIVE TOKEN จริง 0–8.
   //  L2 Trigger (token = ทุก 3 คลิกใน OD): แกนพลังงานวาบ + วงจรลู่เข้าชาร์จ (mechaCharge) + pip +1;
@@ -1672,11 +1672,11 @@ const VFX_MAP = {
          } },
   // RSICK-0806 — ไวรัส EXECUTION ไซเบอร์: บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption) + สะเก็ด
   // แดง + พัลส์ — ต่างจาก scanline glitch ของ KILL-D01/DETAILED/MAYA และจาก FALLEN WECHAT (crash).
-  rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff2233'],  on: { break: [['corruptGlitch', '#ff2233'], ['spark', '#ff4455', 6], ['pulse', '#ff2233']] } },
+  rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', world: 'viral', aura: ['tech',  '#ff2233'],  on: { break: [['corruptGlitch', '#ff2233'], ['spark', '#ff4455', 6], ['pulse', '#ff2233']] } },
   // FALLEN WECHAT — OVERLOADED BREAK เทวดาตก (system crash/overload): วาบมืด + glitch โหลดเกิน +
   // กระดอง BREAK แตกหนัก (overload shatter) + คลื่นมืดเทวดาตก + สายฟ้าระบบลัด — "ระบบล่ม/พลังล้น"
   // ต่างชัดจาก RSICK (viral corruption blocks).
-  fwc: { rarity: 'mythic', theme: 'break', affects: 'break', aura: ['shadow', '#ff2233'], on: { break: [['flash', '#1a0008'], ['glitch', '#ff2233'], ['breakCrack', '#ff3344', true], ['shadowBurst', '#330008', 0.5], ['bolt', '#ff5566']] } },
+  fwc: { rarity: 'mythic', theme: 'break', affects: 'break', world: 'crash', aura: ['shadow', '#ff2233'], on: { break: [['flash', '#1a0008'], ['glitch', '#ff2233'], ['breakCrack', '#ff3344', true], ['shadowBurst', '#330008', 0.5], ['bolt', '#ff5566']] } },
   // DETAILED — ANALYZED BREAK กริด/สแกนแม่นยำ: glitch + สะเก็ดกริด + วาบ; Analysis Stack 0–8
   // (สะสมตอนเก็บ WP, −2 ตอนพลาด, รีเซ็ตเมื่อ BREAK จบ) → pip ต่อ stack จริง, เต็ม 8 = ANALYSIS COMPLETE
   // ANALYSIS COMPLETE (เต็ม 8/8) ได้ payoff เฉพาะ: วาบไซแอน + glitch + วงล็อกเป้า (comboRing) +
@@ -1709,7 +1709,7 @@ const VFX_MAP = {
   // BREAK = วงล้อสล็อตหมุน + วงสัญญามืด ("เดิมพัน"); JACKPOT แตก = แฟลช 777 + เหรียญ
   // ต้องสาปพุ่งหา zeny + วงช็อกแดง-ดำ + สะเก็ดดอกไพ่ ("เดิมพันจ่าย"); พลาด = พัลส์เตือน
   // เสี่ยงแดง (odds ขึ้น). affects=zeny → เลข Zeny/score ตอบสนองจริง (ไม่ใช่แค่ไอคอนการ์ด).
-  dsk: { rarity: 'mythic', theme: 'darkJackpot', affects: 'zeny', aura: ['stake', '#d4af37'],
+  dsk: { rarity: 'mythic', theme: 'darkJackpot', affects: 'zeny', world: 'casino', aura: ['stake', '#d4af37'],
     on: {
       break:   [['slotReel', '#d4af37'], ['stakeRing', '#cc1133']],
       jackpot: [['jackpotFlash', '#ffcc00'], ['cursedCoin', '#d4af37'], ['stakeRing', '#cc1133'], ['suitSpark', '#39ff14', 6]],
