@@ -5772,14 +5772,369 @@
   56%      { opacity: .26; transform: translate(-50%, -50%) scale(1.05); } /* obligation pulse */
   64%      { opacity: .16; transform: translate(-50%, -50%) scale(1.02); }
 }
+/* valkyrie — ออร่าปีกวาลคีรี (VALKYRIZZ): แกนขาว-ทองเทพ + ปีกขนนกม่วงจาง ๆ สองข้าง
+   "หายใจ" ช้าแบบ passive (พรเทพสถิต) — silhouette ปีก + รัศมีเทพ ต่างจาก holy (วงกลมจาง)
+   ชัดเจน. Layer-1 passive identity: เห็นแล้วรู้ทันทีว่าเป็น VALKYRIZZ ก่อนยิงเอฟเฟกต์. */
+#cvAuraEl.cv-aura--valkyrie {
+  opacity: .2; filter: blur(1.5px);
+  background:
+    radial-gradient(circle at 50% 46%, #fff7e6 0%, var(--cv-aura, #cc88ff) 38%, transparent 66%),
+    radial-gradient(60% 42% at 22% 50%, rgba(204,136,255,.5) 0%, transparent 72%),
+    radial-gradient(60% 42% at 78% 50%, rgba(204,136,255,.5) 0%, transparent 72%);
+  animation: cvAuraValkyrie 3.2s ease-in-out infinite;
+}
+@keyframes cvAuraValkyrie {
+  0%, 100% { opacity: .13; transform: translate(-50%, -50%) scale(.97); }
+  50%      { opacity: .24; transform: translate(-50%, -52%) scale(1.05); } /* wing breath / lift */
+}
+/* gloom — ออร่า GLOOM UNDER SIDE (obsession): แอ่งเงาเหวม่วงเข้ม-ดำ "คืบคลานจากเบื้องล่าง"
+   หายใจช้า ๆ แบบ passive — มืด/หนักหน่วง กดดัน ต่างจาก shadow (วงกลมจางทั่วไป). ความเข้ม
+   ไต่ขึ้นด้วย .game-vfx-tier-* ตาม OBSESSION STACK จริง (ยิ่งหมกมุ่น เงายิ่งคืบ). */
+#cvAuraEl.cv-aura--gloom {
+  opacity: .22; filter: blur(2px);
+  background:
+    radial-gradient(circle at 50% 64%, var(--cv-aura, #6633aa) 0%, rgba(20,0,40,.6) 42%, transparent 72%),
+    radial-gradient(70% 50% at 50% 88%, rgba(10,0,20,.7) 0%, transparent 70%);
+  animation: cvAuraGloom 3.4s ease-in-out infinite;
+}
+@keyframes cvAuraGloom {
+  0%, 100% { opacity: .14; transform: translate(-50%, -48%) scale(.96); }
+  50%      { opacity: .26; transform: translate(-50%, -50%) scale(1.04); } /* gloom creep */
+}
+/* mecha — ออร่าแกนขับเคลื่อนหกเหลี่ยม (KILL-D01): วงหกเหลี่ยมไซแอนหมุนช้า ๆ แบบจักรกล
+   (drive core) — silhouette หกเหลี่ยม/เครื่องจักร ต่างจาก tech (วงกลมเบลอ) ชัดเจน. */
+#cvAuraEl.cv-aura--mecha {
+  opacity: .2; filter: blur(.5px); border-radius: 0;
+  background: radial-gradient(circle, var(--cv-aura, #00ffee) 0%, transparent 62%);
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  animation: cvAuraMecha 4.2s linear infinite;
+}
+@keyframes cvAuraMecha {
+  0%   { opacity: .14; transform: translate(-50%, -50%) rotate(0deg) scale(.97); }
+  50%  { opacity: .24; transform: translate(-50%, -50%) rotate(180deg) scale(1.04); }
+  100% { opacity: .14; transform: translate(-50%, -50%) rotate(360deg) scale(.97); }
+}
+/* sacred — ออร่า NOSIRIS (Egyptian soul judgment): แกนทอง + ขอบดำสุริยุปราคา หมุนช้า (soul orbit).
+   ความเข้มไต่ตาม Soul Stack จริงด้วย .game-vfx-tier-*. */
+#cvAuraEl.cv-aura--sacred {
+  opacity: .2; filter: blur(1px);
+  background:
+    radial-gradient(circle at 50% 48%, #fff3c0 0%, var(--cv-aura, #ffdd66) 34%, transparent 60%),
+    radial-gradient(circle at 50% 50%, transparent 56%, rgba(20,12,0,.6) 78%);
+  animation: cvAuraSacred 5s linear infinite;
+}
+@keyframes cvAuraSacred {
+  0%   { opacity: .15; transform: translate(-50%, -50%) rotate(0deg) scale(.98); }
+  50%  { opacity: .24; transform: translate(-50%, -50%) rotate(180deg) scale(1.04); }
+  100% { opacity: .15; transform: translate(-50%, -50%) rotate(360deg) scale(.98); }
+}
+/* void — ออร่า COKE ZERO (black hole): แกนดำยุบ + ขอบขาวบิดเบือน หมุนช้า (gravity warp). */
+#cvAuraEl.cv-aura--void {
+  opacity: .24; filter: blur(1px);
+  background:
+    radial-gradient(circle at 50% 50%, #000010 0%, rgba(0,0,20,.7) 30%, transparent 58%),
+    radial-gradient(circle at 50% 50%, transparent 52%, var(--cv-aura, #e8f4ff) 60%, transparent 66%);
+  animation: cvAuraVoid 4s linear infinite;
+}
+@keyframes cvAuraVoid {
+  0%   { opacity: .16; transform: translate(-50%, -50%) rotate(0deg) scale(1.02); }
+  50%  { opacity: .26; transform: translate(-50%, -50%) rotate(180deg) scale(.94); } /* space breathes/bends */
+  100% { opacity: .16; transform: translate(-50%, -50%) rotate(360deg) scale(1.02); }
+}
+/* analysis — ออร่า DETAILED (tactical scan): ไซแอน-เขียว + เส้นสแกนแนวนอน. ต่างจาก mecha (หกเหลี่ยม). */
+#cvAuraEl.cv-aura--analysis {
+  opacity: .2; filter: blur(.5px); border-radius: 10%;
+  background:
+    radial-gradient(circle, var(--cv-aura, #00ffcc) 0%, transparent 62%),
+    repeating-linear-gradient(0deg, rgba(57,255,170,.18) 0 1px, transparent 1px 6px);
+  animation: cvAuraAnalysis 2s linear infinite;
+}
+@keyframes cvAuraAnalysis {
+  0%   { opacity: .14; transform: translate(-50%, -50%) scale(.98); background-position: 0 0, 0 0; }
+  50%  { opacity: .22; transform: translate(-50%, -50%) scale(1.04); background-position: 0 0, 0 6px; } /* scanning */
+  100% { opacity: .14; transform: translate(-50%, -50%) scale(.98); background-position: 0 0, 0 12px; }
+}
+/* hive — ออร่า MISSSTRESS (bee queen): หกเหลี่ยมรังผึ้งทอง. ต่างจาก gold (เรียบ). */
+#cvAuraEl.cv-aura--hive {
+  opacity: .2; filter: blur(.5px);
+  background: radial-gradient(circle, var(--cv-aura, #ffd24a) 0%, rgba(255,170,20,.4) 40%, transparent 64%);
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  animation: cvAuraHive 2.8s ease-in-out infinite;
+}
+@keyframes cvAuraHive {
+  0%, 100% { opacity: .14; transform: translate(-50%, -50%) scale(.97); }
+  50%      { opacity: .25; transform: translate(-50%, -50%) scale(1.05); } /* hive pulse */
+}
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
 }
+
+/* ── PERSISTENT WORLD LAYER (#cvWorldEl) — Layer 4 atmosphere ─────────────────
+   ระหว่างที่การ์ด Mythic ที่ประกาศ world active ทั้งฉากเปลี่ยนบรรยากาศแบบ subtle
+   (vignette/tint ขอบจอ) — ไม่บัง gameplay กลางจอ, อยู่ใต้ตัวละคร (#fighter z5/HUD).
+   CSS ล้วน (opacity แกว่งช้า) ไม่มี particle loop. ลด/ตัดทิ้งใต้ reduced-motion/low-vfx/flash-off. */
+#cvWorldEl {
+  position: fixed; inset: 0; pointer-events: none; z-index: 2;
+  display: none; opacity: 0;
+}
+#cvWorldEl.cv-world { display: block; }
+/* valkyrie world — แสงสวรรค์เรืองจากเบื้องบน (ม่วงเทพ) + ทองจาง ๆ จากเบื้องล่าง */
+#cvWorldEl.cv-world-valkyrie {
+  background:
+    radial-gradient(125% 80% at 50% -12%, rgba(204,136,255,.16), transparent 56%),
+    radial-gradient(150% 100% at 50% 122%, rgba(255,217,107,.08), transparent 52%);
+  animation: cvWorldValkyrie 6s ease-in-out infinite;
+}
+@keyframes cvWorldValkyrie { 0%, 100% { opacity: .68; } 50% { opacity: 1; } }
+/* gloom world — ความมืดบีบเข้าจากขอบ + เหวเงาคืบจากด้านล่าง (OBSESSION ปิดเข้ามา).
+   ความเข้ม "ปิดเข้ามา" ตาม OBSESSION STACK จริงผ่าน gv-world-tier-* (progressive). */
+#cvWorldEl.cv-world-gloom {
+  background:
+    radial-gradient(150% 120% at 50% 50%, transparent 38%, rgba(10,0,24,.5) 100%),
+    radial-gradient(120% 70% at 50% 118%, rgba(102,51,170,.22), transparent 60%);
+  background-repeat: no-repeat;
+  background-size: 150% 150%, 160% 130%;
+  opacity: .5;
+  /* breathe + advance: เหวเงาคืบเข้า-ถอยช้า ๆ (ไม่ใช่ vignette นิ่ง) — "ความมืดกลืนสนาม" */
+  animation: cvWorldGloom 7s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-gloom.gv-world-tier-1 { opacity: .62; }
+#cvWorldEl.cv-world-gloom.gv-world-tier-2 { opacity: .76; }
+#cvWorldEl.cv-world-gloom.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldGloom {
+  0%, 100% { background-position: 50% 56%, 50% 122%; filter: brightness(.94); }
+  50%      { background-position: 50% 44%, 50% 110%; filter: brightness(1.12); } /* darkness creeps up */
+}
+/* mecha world — กริดเล็งเป้า/วงจรไซแอนจาง ๆ "สแกน" ทั้งฉาก (หายใจ) — targeting HUD ของจักรกล.
+   เส้นกริดบาง ๆ ไม่ทึบ ไม่บัง gameplay; drift ช้า = สแกนเป้าตลอดที่การ์ด active. */
+#cvWorldEl.cv-world-mecha {
+  background:
+    repeating-linear-gradient(0deg, rgba(0,255,238,.05) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(90deg, rgba(0,255,238,.05) 0 1px, transparent 1px 42px),
+    radial-gradient(120% 90% at 50% 50%, transparent 56%, rgba(0,40,48,.42) 100%);
+  opacity: .5;
+  animation: cvWorldMecha 5s ease-in-out infinite;
+}
+@keyframes cvWorldMecha {
+  0%, 100% { background-position: 0 0, 0 0, 50% 50%; filter: brightness(.96); }
+  50%      { background-position: 0 14px, 14px 0, 50% 50%; filter: brightness(1.1); } /* scan drift */
+}
+/* inferno world — ไอความร้อน + ถ่านลุกเรืองที่ขอบล่างฉาก "หายใจ" (IFRIED). ยิ่ง Inferno
+   Stack สูง โลกยิ่งร้อน (gv-world-tier-*) — environment โตตาม progression จริง. */
+#cvWorldEl.cv-world-inferno {
+  background:
+    radial-gradient(140% 80% at 50% 122%, rgba(255,68,0,.20), transparent 58%),
+    radial-gradient(120% 60% at 50% 130%, rgba(255,170,34,.14), transparent 52%);
+  opacity: .4;
+  animation: cvWorldInferno 4.5s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-inferno.gv-world-tier-1 { opacity: .58; }
+#cvWorldEl.cv-world-inferno.gv-world-tier-2 { opacity: .74; }
+#cvWorldEl.cv-world-inferno.gv-world-tier-3 { opacity: .92; }
+@keyframes cvWorldInferno {
+  0%, 100% { background-position: 50% 120%, 50% 128%; filter: brightness(.95); }
+  50%      { background-position: 50% 112%, 50% 120%; filter: brightness(1.18); } /* heat rises */
+}
+/* sacred world — แสงทองศักดิ์สิทธิ์จากเบื้องบน + สุริยุปราคาดำขอบจอ (NOSIRIS). ไต่ tier ตาม Soul Stack. */
+#cvWorldEl.cv-world-sacred {
+  background:
+    radial-gradient(130% 80% at 50% -14%, rgba(255,221,102,.16), transparent 56%),
+    radial-gradient(150% 130% at 50% 50%, transparent 52%, rgba(18,12,0,.42) 100%);
+  opacity: .42;
+  animation: cvWorldSacred 6s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-sacred.gv-world-tier-1 { opacity: .56; }
+#cvWorldEl.cv-world-sacred.gv-world-tier-2 { opacity: .72; }
+#cvWorldEl.cv-world-sacred.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldSacred {
+  0%, 100% { background-position: 50% 0%, 50% 50%; filter: brightness(.96); }
+  50%      { background-position: 50% 6%, 50% 50%; filter: brightness(1.14); } /* divine light drifts */
+}
+/* void world — ขอบจอบิดเบือน (gravity lensing) + ดาวยุบ (COKE ZERO). ไต่ tier ตาม DMG Stack. */
+#cvWorldEl.cv-world-void {
+  background:
+    radial-gradient(150% 130% at 50% 50%, transparent 44%, rgba(0,0,20,.55) 100%),
+    radial-gradient(60% 60% at 50% 50%, rgba(120,180,255,.06), transparent 60%);
+  opacity: .4;
+  animation: cvWorldVoid 5.5s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-void.gv-world-tier-1 { opacity: .56; }
+#cvWorldEl.cv-world-void.gv-world-tier-2 { opacity: .72; }
+#cvWorldEl.cv-world-void.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldVoid {
+  0%, 100% { background-size: 100% 100%, 100% 100%; filter: brightness(1); }
+  50%      { background-size: 112% 112%, 88% 88%; filter: brightness(.9); } /* space bends */
+}
+/* analysis world — เส้นสแกนกวาด + กริด data ไซแอน-เขียวจาง ๆ (DETAILED). ไต่ tier ตาม Analysis Stack. */
+#cvWorldEl.cv-world-analysis {
+  background:
+    repeating-linear-gradient(0deg, rgba(0,255,204,.045) 0 1px, transparent 1px 46px),
+    linear-gradient(0deg, rgba(57,255,170,.10), transparent 14%);
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 100%, 100% 200%;
+  opacity: .42;
+  animation: cvWorldAnalysis 3.6s linear infinite;
+}
+#cvWorldEl.cv-world-analysis.gv-world-tier-1 { opacity: .56; }
+#cvWorldEl.cv-world-analysis.gv-world-tier-2 { opacity: .72; }
+#cvWorldEl.cv-world-analysis.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldAnalysis {
+  0%   { background-position: 0 0, 0 -100%; }
+  100% { background-position: 0 0, 0 100%; } /* scan line sweeps down */
+}
+/* hive world — เกสร/น้ำผึ้งทองลอย + เงารังผึ้ง (MISSSTRESS), หายใจช้า. */
+#cvWorldEl.cv-world-hive {
+  background:
+    radial-gradient(120% 80% at 50% 116%, rgba(255,200,70,.14), transparent 56%),
+    radial-gradient(80% 60% at 50% -10%, rgba(255,170,20,.10), transparent 52%);
+  opacity: .46;
+  animation: cvWorldHive 5.5s ease-in-out infinite;
+}
+@keyframes cvWorldHive {
+  0%, 100% { background-position: 50% 116%, 50% 0%; filter: brightness(.97); }
+  50%      { background-position: 50% 110%, 50% 4%; filter: brightness(1.12); } /* pollen drifts */
+}
+
+/* ── FINAL POLISH: persistent world presence for the remaining Mythics ────────
+   ทุกใบ Mythic ทิ้ง "ร่องรอยบรรยากาศ" ในสนามอย่าง subtle (ไม่บัง gameplay) — ให้รู้สึก
+   มาตรฐานเดียวกันทั้ง 19 ใบ. CSS ล้วน, ใช้ระบบ .cv-world เดิม (gate reduced-motion/low-vfx/
+   flash-off ครอบทุกใบอยู่แล้ว). แต่ละใบสี/ทิศ/จังหวะต่างกันเพื่อไม่ให้ซ้ำกัน. */
+
+/* thanatos (THANABROS) — เหวมรณะม่วง-ดำ หายใจช้า (death/time-stop dread) */
+#cvWorldEl.cv-world-thanatos {
+  background:
+    radial-gradient(150% 130% at 50% 50%, transparent 46%, rgba(8,0,16,.5) 100%),
+    radial-gradient(70% 60% at 50% 50%, rgba(204,0,204,.10), transparent 62%);
+  opacity: .44; animation: cvWorldThanatos 6.5s ease-in-out infinite;
+}
+@keyframes cvWorldThanatos { 0%,100% { filter: brightness(.92); } 50% { filter: brightness(1.12); } }
+
+/* demon (BAPHOBET) — ไฟนรกแดง-ดำพวยจากเบื้องล่าง + ไต่ tier ตาม SIN STACK */
+#cvWorldEl.cv-world-demon {
+  background:
+    radial-gradient(140% 90% at 50% 122%, rgba(204,0,0,.20), transparent 56%),
+    radial-gradient(150% 120% at 50% 50%, transparent 54%, rgba(20,0,0,.4) 100%);
+  opacity: .42; animation: cvWorldDemon 4.6s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-demon.gv-world-tier-1 { opacity: .56; }
+#cvWorldEl.cv-world-demon.gv-world-tier-2 { opacity: .72; }
+#cvWorldEl.cv-world-demon.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldDemon {
+  0%,100% { background-position: 50% 120%, 50% 50%; filter: brightness(.95); }
+  50%     { background-position: 50% 112%, 50% 50%; filter: brightness(1.16); } /* hellfire rises */
+}
+
+/* tiger (EDGEGA) — ลายแสงเสืออำพันจากสองข้าง ลู่ไหว (ember claw) */
+#cvWorldEl.cv-world-tiger {
+  background:
+    radial-gradient(60% 120% at -8% 50%, rgba(255,102,34,.14), transparent 60%),
+    radial-gradient(60% 120% at 108% 50%, rgba(255,102,34,.14), transparent 60%);
+  opacity: .42; animation: cvWorldTiger 5s ease-in-out infinite;
+}
+@keyframes cvWorldTiger {
+  0%,100% { background-position: 0 0, 0 0; filter: brightness(.96); }
+  50%     { background-position: 3% 0, -3% 0; filter: brightness(1.14); } /* claw shimmer */
+}
+
+/* gold (GOLDEN BRUH) — ละอองทองพร่างพรายจากเบื้องบน (wealth shimmer) */
+#cvWorldEl.cv-world-gold {
+  background:
+    radial-gradient(120% 70% at 50% -12%, rgba(255,204,0,.16), transparent 56%),
+    radial-gradient(150% 120% at 50% 50%, transparent 60%, rgba(40,30,0,.26) 100%);
+  opacity: .46; animation: cvWorldGold 4s ease-in-out infinite;
+}
+@keyframes cvWorldGold { 0%,100% { filter: brightness(.95); } 50% { filter: brightness(1.2); } } /* gold sparkle */
+
+/* debt (LORD OF DEBT) — เหวหนี้ม่วงต้องสาป + ทองบัญชีล่าง + ไต่ tier ตาม DEBT STACK */
+#cvWorldEl.cv-world-debt {
+  background:
+    radial-gradient(150% 130% at 50% 50%, transparent 50%, rgba(30,0,46,.46) 100%),
+    radial-gradient(120% 70% at 50% 120%, rgba(212,160,23,.10), transparent 56%);
+  opacity: .42; animation: cvWorldDebt 6s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-debt.gv-world-tier-1 { opacity: .56; }
+#cvWorldEl.cv-world-debt.gv-world-tier-2 { opacity: .72; }
+#cvWorldEl.cv-world-debt.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldDebt { 0%,100% { filter: brightness(.94); } 50% { filter: brightness(1.1); } } /* obligation pulse */
+
+/* catking (CATULLANUX) — แสงส้ม-ทองมุมจอ นุ่ม ๆ (cat-king regal) */
+#cvWorldEl.cv-world-catking {
+  background:
+    radial-gradient(70% 70% at 0% 100%, rgba(255,170,68,.12), transparent 60%),
+    radial-gradient(70% 70% at 100% 0%, rgba(255,170,68,.12), transparent 60%);
+  opacity: .42; animation: cvWorldCatking 5.5s ease-in-out infinite;
+}
+@keyframes cvWorldCatking { 0%,100% { filter: brightness(.96); } 50% { filter: brightness(1.12); } }
+
+/* swarmrot (BEELZEBRUH) — เน่าเขียวคืบจากขอบจอ (corruption creep) */
+#cvWorldEl.cv-world-swarmrot {
+  background:
+    radial-gradient(150% 130% at 50% 50%, transparent 44%, rgba(20,40,0,.46) 100%),
+    radial-gradient(80% 60% at 50% 110%, rgba(136,204,0,.10), transparent 58%);
+  opacity: .42; animation: cvWorldSwarmrot 6s ease-in-out infinite;
+}
+@keyframes cvWorldSwarmrot {
+  0%,100% { background-size: 100% 100%, 100% 100%; filter: brightness(.95); }
+  50%     { background-size: 110% 110%, 100% 100%; filter: brightness(1.08); } /* rot creeps in */
+}
+
+/* resonance (ATROSUS) — คลื่นแดงสั่นพ้องจากศูนย์กลาง (harmonic resonance) */
+#cvWorldEl.cv-world-resonance {
+  background: radial-gradient(70% 60% at 50% 50%, rgba(238,51,51,.14), transparent 58%);
+  opacity: .4; animation: cvWorldResonance 2.4s ease-in-out infinite;
+}
+@keyframes cvWorldResonance {
+  0%,100% { background-size: 90% 90%; filter: brightness(.95); }
+  50%     { background-size: 116% 116%; filter: brightness(1.16); } /* resonant pulse */
+}
+
+/* viral (RSICK-0806) — ไวรัสแดงกระตุกที่ขอบจอ (corruption flicker) */
+#cvWorldEl.cv-world-viral {
+  background:
+    radial-gradient(150% 130% at 50% 50%, transparent 48%, rgba(40,0,4,.44) 100%),
+    repeating-linear-gradient(0deg, rgba(255,34,51,.05) 0 1px, transparent 1px 5px);
+  opacity: .42; animation: cvWorldViral .9s steps(3) infinite;
+}
+@keyframes cvWorldViral { 0% { opacity: .42; } 33% { opacity: .5; } 66% { opacity: .4; } 100% { opacity: .46; } } /* viral flicker */
+
+/* crash (FALLEN WECHAT) — ระบบล่มแดง-ดำกระตุกหนัก (system crash jitter) */
+#cvWorldEl.cv-world-crash {
+  background:
+    radial-gradient(150% 130% at 50% 50%, transparent 42%, rgba(26,0,8,.5) 100%),
+    radial-gradient(100% 50% at 50% 50%, rgba(255,34,51,.06), transparent 70%);
+  opacity: .44; animation: cvWorldCrash 1.1s steps(4) infinite;
+}
+@keyframes cvWorldCrash { 0% { opacity: .44; filter: brightness(1); } 25% { opacity: .56; filter: brightness(1.18); } 50% { opacity: .4; } 75% { opacity: .52; } 100% { opacity: .44; } } /* overload jitter */
+
+/* casino (DARK STAKE LORD) — ไฟคาสิโนทองมืด-แดง วูบช้า (cursed casino glow) */
+#cvWorldEl.cv-world-casino {
+  background:
+    radial-gradient(120% 80% at 50% 116%, rgba(212,175,55,.14), transparent 56%),
+    radial-gradient(150% 120% at 50% 50%, transparent 54%, rgba(40,0,12,.4) 100%);
+  opacity: .44; animation: cvWorldCasino 3.2s ease-in-out infinite;
+}
+@keyframes cvWorldCasino {
+  0%,100% { filter: brightness(.94); }
+  46%     { filter: brightness(1.0); }
+  54%     { filter: brightness(1.22); } /* casino flicker */
+  60%     { filter: brightness(1.02); }
+}
+/* gate atmosphere ออกใต้โหมดเบา: คงไว้แบบ static จาง ๆ ไม่กระพริบ */
+@media (prefers-reduced-motion: reduce) {
+  #cvWorldEl.cv-world { animation: none !important; opacity: .5 !important; }
+}
+body.low-vfx   #cvWorldEl.cv-world,
+body.flash-off #cvWorldEl.cv-world { animation: none !important; opacity: .42 !important; }
 @keyframes cvAuraFire {
   0%, 100% { opacity: .16; transform: translate(-50%, -52%) scale(1); }
   50%      { opacity: .26; transform: translate(-50%, -56%) scale(1.05); }
 }
+/* IFRIED lifecycle: ยิ่ง Inferno Stack สูง (tier) เปลวออร่ายิ่งเต้นเร็ว = "ใกล้ปะทุ" (rhythm
+   evolves, ไม่ใช่แค่ใหญ่ขึ้น). tier มาจาก _ifriedStacks จริงผ่าน setAuraTier. */
+#cvAuraEl.cv-aura--fire.game-vfx-tier-1 { animation-duration: 1.05s; }
+#cvAuraEl.cv-aura--fire.game-vfx-tier-2 { animation-duration: .8s; }
+#cvAuraEl.cv-aura--fire.game-vfx-tier-3 { animation-duration: .55s; }
 
 /* ── PRIMITIVE: flash (จอวาบสีเต็มกรอบ) ── */
 .cv-flash {
@@ -6687,6 +7042,16 @@
   box-shadow: 0 0 9px -2px var(--gv, #fff);
 }
 #cvChargeEl.game-vfx-charge { display: block; }
+/* charge-ready — สถานะ "พร้อมปลด peak" (เช่น IFRIED ครบ 10/15): วงแหวนเต้น + เรืองแรงขึ้น
+   → ผู้เล่นรู้ว่าใกล้สุด/พร้อมแล้วโดยไม่ต้องอ่านเลข. transform/box-shadow เท่านั้น. */
+#cvChargeEl.charge-ready {
+  box-shadow: 0 0 16px -1px var(--gv, #fff), 0 0 6px var(--gv, #fff);
+  animation: cvChargeReady .7s ease-in-out infinite;
+}
+@keyframes cvChargeReady {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50%      { transform: translateX(-50%) scale(1.22); }
+}
 
 /* 6) AURA INTENSITY TIER — passive build-up (เช่น GLOOM obsession 0–3).
    ไม่ใช่ตัวเลข/ตัวนับ — แค่ glow ของ aura หนักขึ้นตาม tier จริง. static (ไม่มี loop). */

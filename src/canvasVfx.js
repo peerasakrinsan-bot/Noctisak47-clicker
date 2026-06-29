@@ -751,6 +751,202 @@ const BUILD = {
     const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.6);
     const p = _mk('vzero', x, y, life, o.color || '#e8f4ff'); p.size = o.size || 54; _push(p);
   },
+  // MIDAS GOLD RUSH — แกนทองกิลด์ + วงช็อกทอง + น้ำพุทองคำแท่ง (ingot) + "$" ยักษ์
+  // (GOLDEN BRUH). ทองสุกใสล้วน — silhouette แท่งทอง ต่างจากเหรียญกลม/สะเก็ด.
+  goldRush(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ffcc00', life = _rmLife(o.dur || 0.82);
+    // แกนทองกิลด์ (gilded core) + วงช็อกทอง (shockwave ring)
+    const core = _mk('glow', x, y, _rmLife(0.5), '#fff0a0'); core.size = 90; _push(core);
+    const ring = _mk('ring', x, y, _rmLife(0.6), '#ffd24a'); ring.size = 30; _push(ring);
+    // น้ำพุทองคำแท่ง — พุ่งขึ้นเป็นพัด แล้วร่วงลงตามแรงโน้มถ่วง + หมุน
+    let n = _nParts(o.count || 9);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.26;
+      const sp = 200 + Math.random() * 190;
+      const p = _mk('gbar', x, y, life, col);
+      p.vx = Math.cos(ang) * sp * 0.62; p.vy = Math.sin(ang) * sp - 90;
+      p.size = 13 + Math.random() * 9; p.rot = (Math.random() - 0.5) * 2;
+      p.data = (Math.random() - 0.5) * 9; // spin speed
+      _push(p);
+    }
+    // "$" ยักษ์ลอยขึ้น (treasure mega-glyph) — reuse dglyph kind, สีทอง
+    if (!_reduced) {
+      const g = _mk('dglyph', x, y - 8, _rmLife(0.78), '#ffe680');
+      g.txt = '$'; g.size = 40; g.vy = -78; g.data = 0.03;
+      _push(g);
+    }
+  },
+  // VALKYRIE DESCENT — ปีกขนนกศักดิ์สิทธิ์กางออก + หอกแสงทิ่มลง + ขนนกร่วง + (peak) วงรูน
+  // (VALKYRIZZ). silhouette "ปีก+หอก" celestial ขาว-ทอง-ม่วง — ต่างจาก holyBurst รัศมีก้าน.
+  valkyrieDescend(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#cc88ff';
+    const peak = o.variant === 'peak';
+    const life = _rmLife(peak ? 0.85 : 0.6);
+    // ปีกวาลคีรี (ทั้งสองข้างในอนุภาคเดียว)
+    const w = _mk('vwing', x, y, life, col); w.size = peak ? 122 : 84; _push(w);
+    // หอกแสงทิ่มลงจากเบื้องบน
+    const s = _mk('vspear', x, y, _rmLife(peak ? 0.6 : 0.46), '#ffe9ff');
+    s.size = peak ? 150 : 112; s.data = peak ? 190 : 140; _push(s);
+    // แกนแสงเทพ
+    const g = _mk('glow', x, y, _rmLife(0.5), '#ffe9ff'); g.size = peak ? 72 : 48; _push(g);
+    // ขนนกร่วง (feathers drifting down)
+    let n = _nParts(peak ? 9 : 5);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5;
+      const sp = 70 + Math.random() * 95;
+      const p = _mk('vfeather', x + (Math.random() - 0.5) * 44, y - 18, life, (i % 2) ? col : '#ffe9ff');
+      p.vx = Math.cos(ang) * sp * 0.5; p.vy = Math.abs(Math.sin(ang)) * sp * 0.4 + 26;
+      p.size = 5 + Math.random() * 5; p.rot = Math.random() * 6; p.data = (Math.random() - 0.5) * 4;
+      _push(p);
+    }
+    // peak: วงรูนทอง (rune ring)
+    if (peak) { const r = _mk('ring', x, y, _rmLife(0.72), '#ffd96b'); r.size = 34; _push(r); }
+  },
+  // GLOOM SURGE — ดวงตา GLOOM จ้อง + หนวดเงาทะยานคว้าจากด้านล่าง + (peak) ดูดกลืนเข้า
+  // (GLOOM UNDER SIDE). silhouette "ตา+หนวดเงา" ม่วงเข้ม-ดำเหว. tier ขับความสูง/จำนวน.
+  gloomSurge(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#6633aa';
+    const max = o.tier === 'max';
+    const tier = max ? 4 : Math.max(1, (o.tier | 0) || 1);
+    const life = _rmLife(max ? 0.85 : 0.6);
+    // ดวงตา GLOOM (obsession watching)
+    const eye = _mk('geye', x, y - 6, life, col);
+    eye.size = max ? 64 : (32 + tier * 8); eye.data = max ? 1 : 0; _push(eye);
+    // หนวดเงาทะยานจากด้านล่าง (count/height ตาม tier — progressive)
+    let n = _nParts(max ? 9 : (2 + tier * 2));
+    const baseY = y + (max ? 66 : 48);
+    for (let i = 0; i < n; i++) {
+      const off = (i - (n - 1) / 2) * (max ? 24 : 28);
+      const p = _mk('gtendril', x + off, baseY, life * (0.8 + Math.random() * 0.3), col);
+      p.data = (max ? 120 : 56 + tier * 22) + Math.random() * 30; // ความสูง
+      p.size = 5 + Math.random() * 4 + tier;                       // ความหนา
+      p.vx = (Math.random() - 0.5) * 22;                           // โค้งเอน
+      _push(p);
+    }
+    // แอ่งเงาเหวใต้ตัว (dark undertone pool)
+    const sh = _mk('shadow', x, y + (max ? 40 : 28), _rmLife(max ? 0.7 : 0.5), '#1a0030');
+    sh.size = max ? 52 : 34; _push(sh);
+    // peak: เวลา/วิญญาณถูกดูดกลืนเข้า (devoured inward)
+    if (max) {
+      let s = _nParts(8);
+      for (let i = 0; i < s; i++) {
+        const ang = (i / s) * Math.PI * 2, rad = 60 + Math.random() * 40;
+        const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.6), '#b388ff');
+        e.vx = -Math.cos(ang) * rad * 1.7; e.vy = -Math.sin(ang) * rad * 1.7; // ลู่เข้า (กลืน)
+        e.size = 2 + Math.random() * 2; e.data = 1; // ไม่มีโน้มถ่วง
+        _push(e);
+      }
+    }
+  },
+  // MECHA CHARGE — แกนขับเคลื่อนหกเหลี่ยมเรือง + วงจรไฟฟ้าลู่เข้าชาร์จ (KILL-D01 DRIVE TOKEN)
+  mechaCharge(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#00ffee', life = _rmLife(0.5);
+    const core = _mk('mcore', x, y, life, col); core.size = 26; core.data = 0; _push(core); // data 0 = charging (grow)
+    let n = _nParts(6);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2, rad = 40 + Math.random() * 26;
+      const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.45), col);
+      e.vx = -Math.cos(ang) * rad * 1.9; e.vy = -Math.sin(ang) * rad * 1.9; // ลู่เข้า (ชาร์จ)
+      e.size = 2 + Math.random() * 1.6; e.data = 1; _push(e); // data 1 = no gravity
+    }
+  },
+  // MECHA LASER — ปืนเลเซอร์ฟาดลง + reticle ล็อกเป้า + แกนปากกระบอก (KILL-D01 DRIVE DISCHARGE)
+  mechaLaser(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#00ffee';
+    const max = o.variant === 'max';
+    const core = _mk('mcore', x, y, _rmLife(max ? 0.5 : 0.4), col); core.size = max ? 40 : 24; core.data = 1; _push(core); // data 1 = fire (shrink)
+    const beam = _mk('mbeam', x, y, _rmLife(max ? 0.6 : 0.42), col); beam.size = max ? 175 : 120; beam.data = max ? 15 : 9; _push(beam);
+    if (max && !_reduced) { const b2 = _mk('mbeam', x, y, _rmLife(0.6), '#aaffff'); b2.size = 150; b2.data = 8; b2.rot = 0.22; _push(b2); }
+    let n = _nParts(max ? 9 : 5);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.4, sp = 120 + Math.random() * 120;
+      const e = _mk('spark', x, y, _rmLife(0.45), max ? '#aaffff' : col);
+      e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp * 0.5; e.size = 2 + Math.random() * 2; e.data = 1; _push(e);
+    }
+  },
+  // NOSIRIS — วิญญาณทองหมุนเข้า (soul wisps) + แกนเรืองทอง (soul collection)
+  soulGather(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ffdd66', life = _rmLife(0.62);
+    const g = _mk('glow', x, y, _rmLife(0.5), col); g.size = 40; _push(g);
+    let n = _nParts(6);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5, rad = 52 + Math.random() * 36;
+      const p = _mk('soul', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
+      p.vx = -Math.cos(ang) * rad * 1.5; p.vy = -Math.sin(ang) * rad * 1.5; p.size = 3 + Math.random() * 2; _push(p);
+    }
+  },
+  // NOSIRIS peak — ตราหิน hieroglyph + ลำแสงพิพากษา + วิญญาณปะทุออก (JUDGMENT)
+  judgmentSeal(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ffdd66';
+    const seal = _mk('runeseal', x, y, _rmLife(0.85), col); seal.size = 70; _push(seal);
+    const g = _mk('glow', x, y, _rmLife(0.6), '#fff6d0'); g.size = 80; _push(g);
+    let n = _nParts(9);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2, sp = 120 + Math.random() * 120;
+      const p = _mk('soul', x, y, _rmLife(0.7), col);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp; p.size = 3 + Math.random() * 2.5; _push(p);
+    }
+  },
+  // COKE ZERO — หลุมดำดูดยุบ: แกน void + วงเลนส์โน้มถ่วงหดเข้า + เศษบิดลู่เข้า (+singularity ระเบิด)
+  gravityWell(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#e8f4ff';
+    const sing = o.variant === 'singularity';
+    const core = _mk('vzero', x, y, _rmLife(sing ? 0.7 : 0.55), col); core.size = sing ? 60 : 44; _push(core);
+    let rN = _nParts(sing ? 4 : 3);
+    for (let i = 0; i < rN; i++) { const g = _mk('glens', x, y, _rmLife(sing ? 0.6 : 0.5), col); g.size = 70 + i * 26; _push(g); }
+    let n = _nParts(sing ? 9 : 6);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4, rad = 70 + Math.random() * 50;
+      const p = _mk('vfrag', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.6), col);
+      p.vx = -Math.cos(ang) * rad * 1.8; p.vy = -Math.sin(ang) * rad * 1.8; p.size = 4 + Math.random() * 4;
+      p.rot = Math.random() * 6; p.data = (Math.random() - 0.5) * 8; _push(p);
+    }
+    if (sing) {
+      let s = _nParts(10);
+      for (let i = 0; i < s; i++) {
+        const ang = (i / s) * Math.PI * 2, sp = 160 + Math.random() * 130;
+        const e = _mk('spark', x, y, _rmLife(0.5), '#cfe4ff');
+        e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp; e.size = 2 + Math.random() * 2; e.data = 1; _push(e);
+      }
+    }
+  },
+  // DETAILED — ลำสแกนแนวนอนกวาด + data ticks (analysis scan)
+  scanSweep(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#00ffcc';
+    const s = _mk('dscan', x, y, _rmLife(0.5), col); s.size = 120; s.data = 70; _push(s);
+  },
+  // DETAILED peak — แผนที่วิเคราะห์ทั้งสนาม: สแกนใหญ่ + crosshair ล็อกหลายจุด + วงล็อก (ANALYSIS COMPLETE)
+  analysisMap(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#00ffcc';
+    const s = _mk('dscan', x, y, _rmLife(0.7), col); s.size = 200; s.data = 130; _push(s);
+    const c0 = _mk('dcross', x, y, _rmLife(0.7), col); c0.size = 46; _push(c0);
+    if (!_reduced) {
+      const pts = [[-70, -40], [80, -20], [0, 60]];
+      for (let i = 0; i < pts.length; i++) { const c = _mk('dcross', x + pts[i][0], y + pts[i][1], _rmLife(0.7), '#39ffaa'); c.size = 22; _push(c); }
+    }
+    const r = _mk('ring', x, y, _rmLife(0.7), col); r.size = 30; _push(r);
+  },
+  // MISSSTRESS — ฝูงผึ้งทอง (gold bees) + (command) เซลล์รังผึ้งปะทุ (queen swarm)
+  queenSwarm(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ffd24a';
+    const cmd = o.variant === 'command';
+    let n = _nParts(cmd ? 14 : 5);
+    const life = _rmLife(cmd ? 0.7 : 0.55);
+    for (let i = 0; i < n; i++) {
+      const ang = Math.random() * Math.PI * 2, rad = 10 + Math.random() * (cmd ? 52 : 34);
+      const p = _mk('swarm', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life * (0.7 + Math.random() * 0.3), col);
+      p.vx = (Math.random() - 0.5) * (cmd ? 90 : 60); p.vy = (Math.random() - 0.5) * (cmd ? 90 : 60) - 20;
+      p.size = 1.8 + Math.random() * 1.8; p.seed = Math.random() * 6.28; p.data = 2 + Math.random() * 3; _push(p);
+    }
+    if (cmd) { for (let i = 0; i < _nParts(3); i++) { const h = _mk('hexcell', x + (Math.random() - 0.5) * 60, y + (Math.random() - 0.5) * 40, _rmLife(0.6), '#ffcf4a'); h.size = 14 + Math.random() * 8; _push(h); } }
+  },
+  // MISSSTRESS — กลุ่มเซลล์รังผึ้งหกเหลี่ยมแผ่ออก (honeycomb burst)
+  honeycombBurst(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ffcf4a';
+    const offs = [[0, 0], [-26, -14], [26, -14], [-26, 16], [26, 16], [0, -30]];
+    let k = _reduced ? 2 : offs.length;
+    for (let i = 0; i < k; i++) { const h = _mk('hexcell', x + offs[i][0], y + offs[i][1], _rmLife(0.6), col); h.size = 12 + Math.random() * 6; _push(h); }
+  },
   // ไวรัสคอร์รัปต์ — บล็อกดิจิทัลกระตุก/เลื่อน (ต่างจาก scanline glitch)
   corruptGlitch(o) {
     const col = o.color || '#ff2233', life = _rmLife(o.dur || 0.4);
@@ -1009,7 +1205,7 @@ function _tick(ts) {
 const _LIFE_TRIM = {
   spark: 0.88, crack: 0.88, ring: 0.88, suit: 0.88, streak: 0.88,
   shadow: 0.86, drain: 0.87, dcoin: 0.88,
-  coin: 0.93, ccoin: 0.93,
+  coin: 0.93, ccoin: 0.93, gbar: 0.92, vfeather: 0.9,
 };
 
 // ── R1 + R5: alpha-aware shadowBlur ──────────────────────────────────────────
@@ -1763,6 +1959,324 @@ function _draw(p, dt) {
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(12);
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.04, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
+      break;
+    }
+    case 'soul': {
+      // วิญญาณทอง: orb เรือง + กากบาทอังค์ ลอยตาม v (เข้า/ออก) กระพริบ — Egyptian soul wisp
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      ctx.save(); ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const r = p.size * (0.8 + 0.4 * Math.sin(p.age * 8 + p.seed * 6));
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 2.4);
+      g.addColorStop(0, _rgba('#fff6d0', 1)); g.addColorStop(0.4, _rgba(p.color, 0.8)); g.addColorStop(1, _rgba(p.color, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 2.4, 0, 6.283); ctx.fill();
+      ctx.strokeStyle = _rgba('#fff6d0', a); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(0, r * 1.4); ctx.moveTo(-r * 0.7, 0); ctx.lineTo(r * 0.7, 0); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'runeseal': {
+      // ตราหิน hieroglyph พิพากษา: ลำแสงทองดิ่ง + วงรูนหมุน + ขีดอักขระ 12 จุด
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const r = p.size * (0.5 + t * 0.8);
+      ctx.save(); ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const pl = ctx.createLinearGradient(0, -p.size * 2, 0, p.size * 0.5);
+      pl.addColorStop(0, _rgba(p.color, 0)); pl.addColorStop(0.7, _rgba(p.color, 0.5)); pl.addColorStop(1, _rgba('#fff6d0', 0.9));
+      ctx.fillStyle = pl; ctx.fillRect(-p.size * 0.16, -p.size * 2, p.size * 0.32, p.size * 2.5);
+      ctx.rotate(p.age * 1.2);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.4;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.stroke();
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 12; i++) {
+        const ang = i / 12 * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * r * 0.86, Math.sin(ang) * r * 0.86);
+        ctx.lineTo(Math.cos(ang) * r * 1.02, Math.sin(ang) * r * 1.02);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0; ctx.globalAlpha = a * 0.6; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.7, 0, 6.283); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'glens': {
+      // เลนส์โน้มถ่วง: วงสว่างหดเข้าหาศูนย์ (gravity lensing — ต่างจาก ring ที่ขยายออก)
+      const r = p.size * (1.1 - Math.min(1, t) * 0.9);
+      const a = (t < 0.8) ? 1 : (1 - (t - 0.8) / 0.2);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.2;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
+      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1, r), 0, 6.283); ctx.stroke();
+      ctx.shadowBlur = 0;
+      break;
+    }
+    case 'vfrag': {
+      // เศษอวกาศบิด: ลู่เข้าศูนย์ (gravity) + หมุน + สี่เหลี่ยมข้าวหลามตัด
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; p.vy *= 0.96; p.rot += p.data * dt;
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 1);
+      const s = p.size;
+      ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(s * 0.5, 0); ctx.lineTo(0, s); ctx.lineTo(-s * 0.5, 0); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'dscan': {
+      // ลำสแกนแนวนอนกวาดลง + data ticks (analysis scan line)
+      const sweep = Math.min(1, t);
+      const yy = p.y - p.size * 0.5 + p.size * sweep;
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const w = p.data;
+      const grad = ctx.createLinearGradient(p.x - w, yy, p.x + w, yy);
+      grad.addColorStop(0, _rgba(p.color, 0)); grad.addColorStop(0.5, _rgba(p.color, 1)); grad.addColorStop(1, _rgba(p.color, 0));
+      ctx.strokeStyle = grad; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(p.x - w, yy); ctx.lineTo(p.x + w, yy); ctx.stroke();
+      ctx.fillStyle = _rgba('#ffffff', a);
+      for (let i = -2; i <= 2; i++) ctx.fillRect(p.x + i * w * 0.4 - 1, yy - 3, 2, 6);
+      break;
+    }
+    case 'dcross': {
+      // crosshair วิเคราะห์: กรอบเล็งหมุน→สแนปล็อก + กากบาท (target lock — ต่างจาก mbeam reticle)
+      const snap = t < 0.5 ? (1 - t / 0.5) : 0;
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const r = p.size * (0.7 + snap * 0.6);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(snap * 0.8);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
+      for (let cx = -1; cx <= 1; cx += 2) for (let cy = -1; cy <= 1; cy += 2) {
+        ctx.beginPath();
+        ctx.moveTo(cx * r - cx * r * 0.4, cy * r); ctx.lineTo(cx * r, cy * r); ctx.lineTo(cx * r, cy * r - cy * r * 0.4);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 1; ctx.globalAlpha = a * 0.7;
+      ctx.beginPath(); ctx.moveTo(-r * 0.5, 0); ctx.lineTo(r * 0.5, 0); ctx.moveTo(0, -r * 0.5); ctx.lineTo(0, r * 0.5); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      break;
+    }
+    case 'hexcell': {
+      // เซลล์รังผึ้งหกเหลี่ยม: ขยาย+เรือง+เติมจาง (honeycomb cell pop)
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const r = p.size * (0.6 + t * 0.7);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(0.52);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.2; ctx.lineJoin = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) { const ang = i / 6 * Math.PI * 2, px = Math.cos(ang) * r, py = Math.sin(ang) * r; if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+      ctx.closePath(); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.globalAlpha = a * 0.4; ctx.fillStyle = _rgba(p.color, 1); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'mcore': {
+      // แกนขับเคลื่อนหกเหลี่ยม (mech drive core): หมุน + เรือง. charge(data 0)=พอง / fire(data 1)=ยุบ
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const rot = p.age * (p.data ? 6 : 3) + p.seed * 6;
+      const r = p.size * (p.data ? (1 - t * 0.4) : (0.7 + t * 0.5));
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2.4; ctx.lineJoin = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const ang = i / 6 * Math.PI * 2, px = Math.cos(ang) * r, py = Math.sin(ang) * r;
+        if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+      }
+      ctx.closePath(); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = _rgba('#ffffff', a * 0.9);
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.32, 0, 6.283); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'mbeam': {
+      // ลำเลเซอร์ปืนใหญ่: ยิงพุ่ง (snap-on) → ค้าง → จาง. แกนขาวกลาง + reticle bracket ล็อกเป้า
+      const on = t < 0.15 ? t / 0.15 : (1 - (t - 0.15) / 0.85);
+      const a = Math.max(0, on);
+      const len = p.size, w = p.data;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot || 0);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a;
+      const grad = ctx.createLinearGradient(0, -len, 0, 0);
+      grad.addColorStop(0, _rgba(p.color, 0)); grad.addColorStop(0.5, _rgba(p.color, 0.85)); grad.addColorStop(1, _rgba('#ffffff', 1));
+      ctx.fillStyle = grad; ctx.fillRect(-w / 2, -len, w, len);
+      ctx.fillStyle = _rgba('#ffffff', a); ctx.fillRect(-w * 0.2, -len, w * 0.4, len);
+      // reticle ล็อกเป้า (target-lock brackets)
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      const rs = w * 1.2 + 14;
+      for (let cx = -1; cx <= 1; cx += 2) for (let cy = -1; cy <= 1; cy += 2) {
+        ctx.beginPath();
+        ctx.moveTo(cx * rs - cx * 8, cy * rs); ctx.lineTo(cx * rs, cy * rs); ctx.lineTo(cx * rs, cy * rs - cy * 8);
+        ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    }
+    case 'geye': {
+      // ดวงตา GLOOM: เปลือกตา (almond) เบิกขึ้น → ม่านตา/รูม่านตาหดจ้อง → หรี่ลง. obsession watching.
+      const open = Math.sin(Math.min(1, t) * Math.PI);
+      const a = open;
+      const w = p.size, h = p.size * (0.18 + open * 0.42);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      // เบ้าตามืด (dark sclera) — source-over ให้เป็นเงาทึบบนฉาก
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = a * 0.85;
+      ctx.fillStyle = _rgba('#0a0014', 1);
+      ctx.beginPath();
+      ctx.moveTo(-w, 0);
+      ctx.quadraticCurveTo(0, -h, w, 0);
+      ctx.quadraticCurveTo(0, h, -w, 0);
+      ctx.closePath(); ctx.fill();
+      // ขอบตาเรืองม่วง (glowing lid rim)
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
+      ctx.stroke(); ctx.shadowBlur = 0;
+      // ม่านตา/รูม่านตา (iris + constricting pupil) — จ้องเขม็ง
+      const ir = h * 0.82 * (p.data ? 1.05 : 1);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath(); ctx.arc(0, 0, ir, 0, 6.283); ctx.fill();
+      ctx.fillStyle = _rgba('#000000', 1);
+      ctx.beginPath(); ctx.arc(0, 0, ir * (0.62 - open * 0.22), 0, 6.283); ctx.fill();
+      // ประกายม่านตา (cold glint)
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = _rgba('#d8b3ff', a);
+      ctx.beginPath(); ctx.arc(-ir * 0.3, -ir * 0.3, ir * 0.16, 0, 6.283); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'gtendril': {
+      // หนวดเงาคว้า: ทะยานขึ้นจากฐาน (rise then recede) โค้งเอน + ปลายเรียว. grasping shadow.
+      const grow = Math.sin(Math.min(1, t) * Math.PI);
+      const a = grow;
+      const hgt = p.data * grow;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      // ลำหนวดเงาทึบ (source-over dark body)
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = a * 0.8;
+      ctx.strokeStyle = _rgba('#0a0014', 1);
+      ctx.lineWidth = p.size; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(p.vx, -hgt * 0.55, p.vx * 1.6, -hgt);
+      ctx.stroke();
+      // ขอบเรืองม่วง (purple rim glow)
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a * 0.6;
+      ctx.strokeStyle = _rgba(p.color, 1);
+      ctx.lineWidth = Math.max(1, p.size * 0.4);
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(p.vx, -hgt * 0.55, p.vx * 1.6, -hgt);
+      ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.restore();
+      break;
+    }
+    case 'vwing': {
+      // ปีกวาลคีรี: ก้านขนนกกางออกจากกลาง (สองข้างสมมาตร) แล้วจาง — silhouette ปีกเทพ
+      const spread = Math.min(1, t * 1.6);
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
+      const span = p.size * (0.4 + spread * 0.95), rise = p.size * 0.5 * spread;
+      for (let side = -1; side <= 1; side += 2) {
+        for (let f = 0; f < 4; f++) {
+          const fr = f / 3;
+          const len = span * (0.5 + fr * 0.55);
+          ctx.lineWidth = 3 - fr * 1.4;
+          ctx.beginPath();
+          ctx.moveTo(side * p.size * 0.06, 0);
+          ctx.quadraticCurveTo(side * len * 0.5, -rise * 0.45, side * len, -rise - len * 0.18 * fr);
+          ctx.stroke();
+        }
+      }
+      ctx.restore(); ctx.shadowBlur = 0;
+      break;
+    }
+    case 'vspear': {
+      // หอกแสง: ทิ่มลงจากเบื้องบน (descend) → กระทบกลาง แล้วจาง. แกน gradient + หัวหอกเพชร
+      const desc = Math.min(1, t * 1.5);
+      const headY = p.y - p.data * (1 - desc);
+      const len = p.size * (0.6 + 0.4 * desc);
+      const a = t < 0.7 ? 1 : (1 - (t - 0.7) / 0.3);
+      ctx.save();
+      ctx.translate(p.x, headY);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const grad = ctx.createLinearGradient(0, -len, 0, 0);
+      grad.addColorStop(0, _rgba(p.color, 0)); grad.addColorStop(1, _rgba('#ffffff', 1));
+      ctx.strokeStyle = grad; ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
+      ctx.beginPath(); ctx.moveTo(0, -len); ctx.lineTo(0, 0); ctx.stroke();
+      ctx.fillStyle = _rgba('#ffffff', 1);
+      ctx.beginPath();
+      ctx.moveTo(0, 11); ctx.lineTo(5, 0); ctx.lineTo(0, -11); ctx.lineTo(-5, 0); ctx.closePath();
+      ctx.fill();
+      ctx.restore(); ctx.shadowBlur = 0;
+      break;
+    }
+    case 'vfeather': {
+      // ขนนกร่วง: ลอยลง + แกว่ง (sway) + หมุน + จาง. รูปขนนก (วงรีบาง + ก้าน)
+      p.x += p.vx * dt; p.vy += 40 * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      const sway = Math.sin(p.age * 4 + p.seed * 6) * 0.4;
+      const a = (t < 0.2) ? (t / 0.2) : (1 - (t - 0.2) / 0.8);
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot + sway);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath(); ctx.ellipse(0, 0, p.size * 0.4, p.size, 0, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = Math.max(0, a * 0.6);
+      ctx.strokeStyle = _rgba('#ffffff', 1); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, -p.size); ctx.lineTo(0, p.size); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'gbar': {
+      // ทองคำแท่ง (gold ingot): พุ่งขึ้น → ร่วงตามแรงโน้มถ่วง + หมุน. รูปสี่เหลี่ยมคางหมู
+      // + ไฮไลต์ขอบบน → อ่านเป็น "แท่งทอง" ชัด (ไม่ใช่เหรียญ/สะเก็ดกลม).
+      p.vy += 760 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      const a = 1 - t * t;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const w = p.size, h = p.size * 0.52;
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.5, h * 0.5); ctx.lineTo(w * 0.5, h * 0.5);
+      ctx.lineTo(w * 0.36, -h * 0.5); ctx.lineTo(-w * 0.36, -h * 0.5);
+      ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = Math.max(0, a * 0.7);
+      ctx.fillStyle = _rgba('#fff6c0', 1);
+      ctx.fillRect(-w * 0.3, -h * 0.5, w * 0.6, h * 0.18);
+      ctx.restore();
       break;
     }
     case 'cglitch': {

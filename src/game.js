@@ -3854,6 +3854,12 @@ function _csRefreshVolatileCardEffects(nextState) {
         window._csState._gloomVfxTier = _gloomTier;
         _cardFx('gloom', { tier: _gloomTier });
       }
+      // GLOOM Layer-3 peak (cosmetic): MAX OBSESSION ครบ 20 stack ครั้งแรก = signature moment.
+      // _gloomMaxVfxFired กัน fire ซ้ำ (run-only, ไม่เซฟ, ไม่แตะ logic/บาลานซ์).
+      if(stacks >= 20 && !window._csState._gloomMaxVfxFired) {
+        window._csState._gloomMaxVfxFired = true;
+        _cardFx('gloommax', { tier: 3 });
+      }
     }, 2000);
   }
   // FALLEN WECHAT: init break flags
@@ -4571,12 +4577,15 @@ function csOnClick(isGod) {
     if(_mNow >= cs._mistressZenyIcdUntil) {
       roundCoins += 12;
       cs._mistressZenyIcdUntil = _mNow + 300;
+      _cardFx('hive'); // MISSSTRESS — bees join the hive (ICD-throttled 0.3s, cosmetic)
     }
     if(!cs._mistressOdTimeGain) cs._mistressOdTimeGain = 0;
     if(cs._mistressOdTimeGain < 4) {
       const gain = Math.min(0.35, 4 - cs._mistressOdTimeGain);
       cs._mistressOdTimeGain += gain;
       godSecondsLeft += gain;
+      // MISSSTRESS — hive-expansion charge ring from real OD-extension (0–4, cosmetic)
+      try { if(window.CardVFX && activeCard && activeCard.id === 'mt') window.CardVFX.setCharge('mt', Math.round(cs._mistressOdTimeGain), 4); } catch(e){}
     }
     updateUI();
   }
@@ -4675,6 +4684,8 @@ function csOnClick(isGod) {
     cs._killD01OdClickCount++;
     if(cs._killD01OdClickCount % 3 === 0) {
       cs._driveTokens = Math.min(8, (cs._driveTokens || 0) + 1);
+      // KILL-D01 VFX — Drive Token gained: drive-core charge + pip (cosmetic, real count).
+      _cardFx('token', { stack: cs._driveTokens, max: 8 });
     }
   }
   // GOLDEN BRUH: +3 coin per click during Gold Rush
@@ -4789,12 +4800,25 @@ function csOnOdEnd() {
   const cs = window._csState;
   cs._mistressOdTimeGain = 0;
   cs._mistressZenyIcdUntil = 0; // reset ICD so Zeny gain starts fresh next OD
+  // MISSSTRESS aftermath — OD ends: swarm returns to hive → clear hive-expansion ring (cosmetic)
+  if(cs.cs_mistress) { try { if(window.CardVFX && activeCard && activeCard.id === 'mt') window.CardVFX.clearCharge(); } catch(e){} }
   cs._odTimerClickGain = 0;
   cs._stormyOdTimeGain = 0;
   // COKE ZERO: accumulate dmg bonus +10% per OD end (max +50%)
   if(cs.cs_orchero) {
     if(!cs._orcheroDmgStack) cs._orcheroDmgStack = 0;
     if(cs._orcheroDmgStack < 0.90) cs._orcheroDmgStack = Math.min(0.90, cs._orcheroDmgStack + 0.15);
+    // COKE ZERO VFX — void buildup: aura/world bends harder per real DMG stack (0–0.90 → tier 0–3);
+    // at max, fire the one-time SINGULARITY cue (cosmetic, run-only guard).
+    try {
+      if(window.CardVFX && activeCard && activeCard.id === 'oh') {
+        window.CardVFX.setAuraTier('oh', Math.min(3, Math.round(cs._orcheroDmgStack / 0.30)));
+        if(cs._orcheroDmgStack >= 0.90 && !cs._orcheroSingularityFired) {
+          cs._orcheroSingularityFired = true;
+          _cardFx('singularity');
+        }
+      }
+    } catch(e){}
   }
   // KILL-D01: reset per-OD click counter when OD expires
   if(cs.cs_killD01) cs._killD01OdClickCount = 0;
@@ -4834,6 +4858,8 @@ function csOnBreakStart() {
     cs.cs_breakPower = (cs.cs_breakPower || 0) + cs._killD01BreakPowerBonus;
     cs._killD01TokensUsedCount = cs._driveTokens;
     cs._driveTokens = 0;
+    // KILL-D01 VFX — tokens discharged at BREAK: laser strike + pip reset (cosmetic).
+    _cardFx('discharge', { stack: 0, max: 8 });
   }
   // DETAILED: Analysis Complete — double BREAK window
   if(cs.cs_detailed && cs._analysisComplete) {
@@ -4874,6 +4900,8 @@ function csOnBreakEnd() {
     cs._analysisComplete = false;
     cs._analysisBreakActive = false;
     _cardFx('analysisreset'); // analysis-stack expire flourish on BREAK end (cosmetic)
+    // DETAILED aftermath: scan dissolves → aura/world tier back to idle (cosmetic)
+    try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') window.CardVFX.setAuraTier('dtl', 0); } catch(e){}
   }
   // FALLEN WECHAT: reset break-active flag, clear OD bar
   if(cs.cs_fallenWechat && cs._fallenWechatBreakActive) {
@@ -5032,11 +5060,12 @@ function csOnBreakSuccess() {
     cs._osirisStacks = Math.min(5, (cs._osirisStacks || 0) + 1);
     const stackBonus = cs._osirisStacks * 25;
     if(stackBonus > 0) { roundCoins += stackBonus; spawnCoinPopup(stackBonus); }
-    _cardFx('soulstack', { stack: cs._osirisStacks, max: 5 }); // NOSIRIS soul-stack pip (cosmetic)
+    // NOSIRIS soul-stack pip + aura/world tier escalation from real stack (cosmetic)
+    _cardFx('soulstack', { stack: cs._osirisStacks, max: 5, tier: Math.min(3, Math.ceil(cs._osirisStacks * 3 / 5)) });
     if(cs._osirisStacks >= 5) {
       cs._osirisJudgmentEndTime = performance.now() + 8000;
       cs._osirisStacks = 0;
-      _cardFx('judgment'); // soul-stack expire flourish (cosmetic)
+      _cardFx('judgment', { tier: 0 }); // JUDGMENT peak + soul-stack expire + aura decay (cosmetic)
       showBigSplash('JUDGMENT', 'DMG x2 + ZENY x2 — 8s', '#cc88ff', true);
     }
   }
@@ -5044,7 +5073,15 @@ function csOnBreakSuccess() {
   if(cs.cs_ifriedBreak && (cs._ifriedStacks || 0) >= 10) {
     cs._ifriedBurstEndTime = performance.now() + 5000;
     cs._ifriedStacks = 0;
+    cs._ifriedReadyFired = false;
     _cardFx('inferno'); // IFRIED — Inferno Burst payoff (cosmetic)
+    // IFRIED lifecycle VFX — Decay → Idle: ปะทุแล้ว stack รีเซ็ต → วงแหวนหาย + ออร่าสงบ (cosmetic).
+    try {
+      if(window.CardVFX && activeCard && activeCard.id === 'if') {
+        window.CardVFX.setAuraTier('if', 0);
+        window.CardVFX.clearCharge();
+      }
+    } catch(e){}
     showBigSplash('INFERNO BURST', 'DMG x2.5 + CRIT +25% — 5s', '#ff4400', false);
   }
   // RSICK-0806: Execute Stack + Execution Phase
@@ -5060,6 +5097,8 @@ function csOnBreakSuccess() {
     spawnCoinPopup(tokenCoin);
     if(cs._killD01TokensUsedCount >= 8) {
       cs._killD01ExecutionEndTime = performance.now() + 4000;
+      // KILL-D01 VFX — Layer-3 peak: DRIVE DISCHARGE laser cannon (cosmetic).
+      _cardFx('drivedischarge');
       showBigSplash('DRIVE DISCHARGE', 'DMG x1.5 — 4s', '#00ffee', false);
     }
     cs._killD01TokensUsedCount = 0;
@@ -5123,7 +5162,7 @@ function csOnWpMiss() {
     cs._analysisStacks = Math.max(0, cs._analysisStacks - 2);
     if(cs._analysisStacks < 8) cs._analysisComplete = false;
     // อัปเดต pip ให้ตรงค่าจริงตอนพลาด (ลดลง ไม่มี spark — คอสเมติกล้วน)
-    try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') window.CardVFX.setStack('dtl', cs._analysisStacks, 8); } catch(e){}
+    try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') { window.CardVFX.setStack('dtl', cs._analysisStacks, 8); window.CardVFX.setAuraTier('dtl', Math.min(3, Math.floor(cs._analysisStacks / 3))); } } catch(e){}
     combo = Math.max(1, combo - 3);
     if(typeof updateComboUI === 'function') updateComboUI();
   }
@@ -5151,6 +5190,10 @@ function _csValkyrieRandgrisSwap() {
   _csDebugLog('VALKYRIZZ swap applied', newCard.id);
   _csSyncWeakPointAvailability(prevHadRsx, true);
   _showActiveCard(newCard);
+  // VALKYRIZZ VFX — Layer 3 peak: VALKYRIE SWAP grand descent (cosmetic only).
+  // ยิงทั้งทาง AK47 ครบ และ BREAK สำเร็จ (ทั้งคู่เรียกฟังก์ชันนี้) → จังหวะ signature
+  // ของการ์ดมี VFX จริงทุกครั้ง (เดิม AK47-swap ไม่มี VFX การ์ดเลย). activeCard ยังเป็น vr.
+  _cardFx('valkyrie');
   showBigSplash('VALKYRIE SWAP', newCard.name.replace(' CARD',''), '#cc88ff');
 }
 
@@ -5240,10 +5283,13 @@ function csOnWpHit(x, y) {
   // DETAILED: increment Analysis stacks on WP collect (max 8); at 8 mark Analysis Complete
   if(cs.cs_detailed) {
     cs._analysisStacks = Math.min(8, (cs._analysisStacks || 0) + 1);
-    _cardFx('analysis', { stack: cs._analysisStacks, max: 8 }); // DETAILED analysis-stack pip (cosmetic)
+    // DETAILED analysis-stack pip + aura/world scan layers grow per real stack (cosmetic)
+    _cardFx('analysis', { stack: cs._analysisStacks, max: 8, tier: Math.min(3, Math.floor(cs._analysisStacks / 3)) });
     if(cs._analysisStacks >= 8 && !cs._analysisComplete) {
       cs._analysisComplete = true;
       _cardFx('analysiscomplete'); // DETAILED — ANALYSIS COMPLETE payoff (cosmetic)
+      // HUD sync (cosmetic): combo (affects) pulses via trigger; also sync OD bar at full map.
+      try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') window.CardVFX.targetPulse('odBar', '#00ffcc', 'analysis'); } catch(e){}
       showBigSplash('ANALYSIS COMPLETE', 'Next BREAK: WINDOW x2', '#00ffee', false);
     }
   }
@@ -8541,6 +8587,19 @@ function processHit(e, now) {
   if(isCrit && window._csState && window._csState.cs_ifriedBreak) {
     window._csState._ifriedStacks = Math.min(15, (window._csState._ifriedStacks || 0) + 1);
     _cardFx('emberhit'); // IFRIED throttled ember on Inferno-stack gain (cosmetic, ติดเฉพาะคริ + throttle)
+    // IFRIED lifecycle VFX (cosmetic, real count — bypass throttle so growth always reads):
+    // charge ring 0–15 (ready ที่ 10) + aura/world tier ตาม stack จริง → Idle→Growth→Peak-ready.
+    try {
+      if(window.CardVFX && activeCard && activeCard.id === 'if') {
+        const st = window._csState._ifriedStacks;
+        window.CardVFX.setCharge('if', st, 15, 10);
+        window.CardVFX.setAuraTier('if', Math.min(3, Math.floor(st / 5)));
+        if(st >= 10 && !window._csState._ifriedReadyFired) {
+          window._csState._ifriedReadyFired = true;
+          _cardFx('infernoready'); // crossed peak-ready threshold (cosmetic cue)
+        }
+      }
+    } catch(e){}
   }
   // ATROSUS: crit during Resonance extends window (+0.4s base, +0.6s with Mastery, max +4s total)
   if(isCrit && window._csState && window._csState.cs_atrosusBreak && window._csState._atrosusBreakEndTime && performance.now() < window._csState._atrosusBreakEndTime) {

@@ -111,7 +111,7 @@ for (const id of mapped) {
 if (!orphan) ok('no orphan VFX_MAP entries');
 
 // ── 3) every aura style known + every primitive name known ───────────────────
-const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt']);
+const AURA_STYLES = new Set(['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie', 'gloom', 'mecha', 'sacred', 'void', 'analysis', 'hive']);
 const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinBurst',
   'breakCrack', 'odGlow', 'streak', 'drainPulse', 'comboRing', 'bossFlare', 'moonRing',
   'bolt', 'fireBurst', 'holyBurst', 'glitch',
@@ -121,7 +121,9 @@ const PRIMS = new Set(['flash', 'pulse', 'slash', 'spark', 'shadowBurst', 'coinB
   'debtSeal', 'debtChain', 'ledgerGlyph', 'collectorPull', 'debtCoinDrain', 'sealBreak',
   'timeStop', 'voidRift', 'reaperScythe', 'deathKnell', 'soulReap',
   'clawRake', 'resonanceWave',
-  'insectSwarm', 'comboLock', 'voidZero', 'corruptGlitch']);
+  'insectSwarm', 'comboLock', 'voidZero', 'corruptGlitch', 'goldRush', 'valkyrieDescend', 'gloomSurge',
+  'mechaCharge', 'mechaLaser', 'soulGather', 'judgmentSeal', 'gravityWell', 'scanSweep', 'analysisMap',
+  'queenSwarm', 'honeycombBurst']);
 let badAura = 0, badPrim = 0, noEffect = 0;
 for (const [id, e] of Object.entries(VFX_MAP)) {
   if (!e.aura || !AURA_STYLES.has(e.aura[0]) || typeof e.aura[1] !== 'string') {
@@ -230,11 +232,35 @@ try {
   api.trigger('dsk', 'jackpot', {});                 // 777 flash + cursed coins + suit sparks (payoff → zeny reacts)
   api.trigger('dsk', 'stakeup', {});                 // risk-reward red warning flicker (odds rising)
   // ── aura-only polish paths (GLOOM/IFRIED/LADY TRAINEE/LORD OF DEBT) ──
-  api.setActiveCard('gus', 'mythic');                // GLOOM obsession build-up
-  api.trigger('gus', 'gloom', { tier: 2 });          // aura intensity tier from real stacks
-  api.setActiveCard('if', 'mythic');                 // IFRIED
+  api.setActiveCard('os', 'mythic');                 // NOSIRIS — 4-layer soul judgment (sacred aura + world)
+  api.trigger('os', 'soulstack', { stack: 3, max: 5, tier: 2 }); // soul gather + tier growth
+  api.trigger('os', 'judgment', { tier: 0 });        // JUDGMENT peak + decay
+  api.setActiveCard('oh', 'mythic');                 // COKE ZERO — 4-layer void (void aura + world)
+  api.trigger('oh', 'od', {});                       // gravity well collapse (OD release)
+  api.setAuraTier('oh', 3);                          // void bend tier (DMG stack)
+  api.trigger('oh', 'singularity', {});              // peak singularity
+  api.setActiveCard('dtl', 'mythic');                // DETAILED — 4-layer analysis (analysis aura + world)
+  api.trigger('dtl', 'analysis', { stack: 6, max: 8, tier: 2 }); // scan sweep + tier
+  api.trigger('dtl', 'analysiscomplete', {});        // ANALYSIS COMPLETE map peak
+  api.trigger('dtl', 'analysisreset', {});           // scan dissolves
+  api.setActiveCard('mt', 'mythic');                 // MISSSTRESS — 4-layer hive (hive aura + world)
+  api.trigger('mt', 'hive', {});                     // bees join
+  api.setCharge('mt', 3, 4);                         // hive-expansion ring
+  api.trigger('mt', 'od', {});                       // QUEEN COMMAND swarm
+  api.setActiveCard('kl', 'mythic');                 // KILL-D01 — 4-layer war machine (drive tokens 0–8)
+  api.trigger('kl', 'token', { stack: 3, max: 8 });  // L2: drive-core charge + pip
+  api.trigger('kl', 'break', {});                    // small tech break
+  api.trigger('kl', 'discharge', { stack: 0, max: 8 }); // tokens discharged: laser + pip reset
+  api.trigger('kl', 'drivedischarge', {});           // L3 peak: DRIVE DISCHARGE laser cannon
+  api.setActiveCard('gus', 'mythic');                // GLOOM — 4-layer obsession (aura + world tier)
+  api.trigger('gus', 'gloom', { tier: 2 });          // L2: tendril surge scaled by real tier ($tier)
+  api.trigger('gus', 'break', {});                   // BREAK gloom surge + shadow
+  api.trigger('gus', 'gloommax', { tier: 3 });       // L3 peak: MAX OBSESSION devour (world tier 3)
+  api.setActiveCard('if', 'mythic');                 // IFRIED — Inferno Stack lifecycle 0–15
   api.trigger('if', 'emberhit', {});                 // throttled ember (crit gain)
-  api.trigger('if', 'inferno', {});                  // Inferno Burst payoff
+  api.setCharge('if', 12, 15, 10);                   // growth ring + peak-ready (≥10) state
+  api.trigger('if', 'infernoready', {});             // crossed peak-ready threshold cue
+  api.trigger('if', 'inferno', {});                  // Inferno Burst payoff (decay → idle)
   api.setActiveCard('ltn', 'elite');                 // LADY TRAINEE compact charge ring
   api.trigger('ltn', 'odlevel', { charge: 7, chargeMax: 15 });
   api.trigger('ltn', 'spotlight', {});               // Spotlight stage-light at 10
@@ -244,6 +270,9 @@ try {
   api.trigger('ld', 'break', {});                    // BREAK voids the contract — seal shatter
   api.trigger('ld', 'debtclear', { tier: 0, stacks: 5 }); // debt collected: coin siphon + aura reset
   api.trigger('ld', 'hit', { x: 30, y: 40 });        // BERSERK chained shadow slash
+  api.setActiveCard('vr', 'mythic');                 // VALKYRIZZ — 4-layer (aura + persistent world)
+  api.trigger('vr', 'break', {});                    // L2 trigger: wing flare + light spear + feathers
+  api.trigger('vr', 'valkyrie', {});                 // L3 peak: VALKYRIE SWAP grand descent
   api.setCharge('ltn', 12, 15);                      // direct compact charge
   api.setAuraTier('gus', 3);                         // direct aura tier
   api.clearCharge();

@@ -926,6 +926,274 @@ function pVoidZero(color) {
   _emit(el, dur * 1000 + 120);
 }
 
+// ── GOLDEN BRUH primitive (MIDAS GOLD RUSH treasure eruption) ────────────────
+// บุคลิก "เจ้าแห่งทองคำ / รวยปะทุ": แกนทองกิลด์วาบ + วงช็อกทองแผ่ออก + น้ำพุทองคำแท่ง
+// (gold ingot fountain — รูปแท่งทอง ไม่ใช่เหรียญ/สะเก็ดกลม) พุ่งขึ้นแล้วร่วงลงตามแรง
+// โน้มถ่วง + เครื่องหมาย "$" ยักษ์ลอยขึ้น. ทองสุกใสล้วน (ทองสว่าง+ขาวอุ่น) — ต่างชัด
+// จาก DARK STAKE LORD (ทองมืดคาสิโน/777/ดอกไพ่), MISSSTRESS (ผึ้ง+สายฟ้า+เหรียญ),
+// DRAKE (น้ำพุเหรียญโจรสลัด). canvas-first + DOM fallback ครบ (reuse class เดิม).
+function pGoldRush(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('goldRush', { color: color || '#ffcc00', x: p.x, y: p.y })) return;
+  const dur = _dur(0.8);
+  // แกนทองกิลด์ (gilded core glow)
+  const core = _take('cv-odglow');
+  core.style.left = p.x + 'px'; core.style.top = p.y + 'px';
+  core.style.setProperty('--cv', color || '#ffd24a');
+  core.style.animationDuration = _dur(0.5) + 's';
+  _emit(core, _dur(0.5) * 1000 + 80);
+  // น้ำพุทองคำแท่ง (gold ingot fountain — reuse cv-coin เป็น fallback)
+  const n = _reduced ? 4 : 9;
+  for (let i = 0; i < n; i++) {
+    const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.26;
+    const dist = 46 + Math.random() * 52;
+    const e = _take('cv-coin');
+    e.style.left = p.x + 'px'; e.style.top = p.y + 'px';
+    e.style.setProperty('--cv', color || '#ffcc00');
+    e.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    e.style.setProperty('--dy', (Math.sin(ang) * dist - 24) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.03) + 's';
+    _emit(e, dur * 1000 + i * 40 + 120);
+  }
+  // เครื่องหมาย "$" ยักษ์ลอยขึ้น (treasure mega-glyph — reuse cv-ledgerglyph)
+  if (!_reduced) {
+    const g = _take('cv-ledgerglyph');
+    g.textContent = '$';
+    g.style.left = p.x + 'px'; g.style.top = (p.y - 8) + 'px';
+    g.style.setProperty('--cv', color || '#ffe680');
+    g.style.setProperty('--dy', '-54px');
+    g.style.fontSize = '40px';
+    g.style.animationDuration = dur + 's';
+    _emit(g, dur * 1000 + 140);
+  }
+}
+
+// ── VALKYRIZZ primitive (celestial valkyrie descent / divine blessing) ───────
+// บุคลิก "วาลคีรีแห่ง Randgris": ปีกขนนกศักดิ์สิทธิ์กางออก + หอกแสง (light lance) ทิ่ม
+// ลงจากสวรรค์ + ขนนกร่วง + (peak) วงรูนทอง. ขาว-ทอง-ม่วงเทพ (celestial). silhouette
+// "ปีก + หอก" ต่างชัดจาก NOSIRIS (holyBurst รัศมีก้าน soul/ทอง→ม่วง) และ LADY TRAINEE
+// (สปอตไลต์/charge ring). variant 'peak' = VALKYRIE SWAP จังหวะเทพลง (ใหญ่/รูนวง).
+// canvas-first + DOM fallback ครบ (reuse class เดิม).
+function pValkyrieDescend(color, variant, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('valkyrieDescend', { color: color || '#cc88ff', variant, x: p.x, y: p.y })) return;
+  const peak = (variant === 'peak');
+  const dur = _dur(peak ? 0.85 : 0.6);
+  // ปีกศักดิ์สิทธิ์ (reuse holyBurst-ish core) + หอกแสงทิ่มลง (reuse cv-slash แนวตั้ง)
+  const wing = _take('cv-holyburst');
+  wing.style.left = p.x + 'px'; wing.style.top = p.y + 'px';
+  wing.style.setProperty('--cv', color || '#cc88ff');
+  wing.style.animationDuration = dur + 's';
+  wing.innerHTML = '<i class="cv-holy-core"></i><i class="cv-holy-rays"></i>';
+  _emit(wing, dur * 1000 + 100);
+  // หอกแสงทิ่มลง (descending light spear) — reuse cv-slash ตั้งตรง
+  const spear = _take('cv-slash');
+  spear.style.left = p.x + 'px'; spear.style.top = (p.y - 6) + 'px';
+  spear.style.setProperty('--cv', '#ffe9ff');
+  spear.style.setProperty('--rot', '90deg');
+  spear.style.animationDuration = _dur(peak ? 0.5 : 0.4) + 's';
+  _emit(spear, _dur(0.5) * 1000 + 90);
+  // ขนนกร่วง (feathers) — reuse cv-spark โทนขาว-ม่วง
+  const n = _reduced ? 3 : (peak ? 9 : 5);
+  for (let i = 0; i < n; i++) {
+    const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5;
+    const dist = 34 + Math.random() * 42;
+    const e = _take('cv-spark');
+    e.style.left = p.x + 'px'; e.style.top = (p.y - 16) + 'px';
+    e.style.setProperty('--cv', (i % 2) ? (color || '#cc88ff') : '#ffe9ff');
+    e.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    e.style.setProperty('--dy', (Math.abs(Math.sin(ang)) * dist + 26) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 120);
+  }
+}
+
+// ── GLOOM UNDER SIDE primitive (creeping obsession / devouring gloom) ────────
+// บุคลิก "ความหมกมุ่นจากเบื้องล่าง / ถูกกลืนกินทีละน้อย": ดวงตา GLOOM จ้องเขม็ง (obsession)
+// + หนวดเงาทะยานคว้าจากด้านล่าง (grasping tendrils) + (peak) ดูดกลืนเข้า. ม่วงเข้ม-ดำเหว.
+// silhouette "ดวงตา + หนวดเงา" จำได้แม้เป็นเงาดำล้วน — อารมณ์ กดดัน/หวาดหวั่น. tier ('$tier'
+// 0–3 จาก obsession จริง) ขับความสูง/จำนวนหนวด (progressive). variant 'max' = MAX OBSESSION
+// (signature moment: ตาเบิกเต็ม + กลืนเวลา). canvas-first + DOM fallback ครบ.
+function pGloomSurge(color, tier, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('gloomSurge', { color: color || '#6633aa', tier, x: p.x, y: p.y })) return;
+  const max = (tier === 'max');
+  const tl = max ? 4 : Math.max(1, (tier | 0) || 1);
+  const dur = _dur(max ? 0.85 : 0.6);
+  // ดวงตา GLOOM (reuse cv-pulse เป็นวงตา fallback)
+  const eye = _take('cv-pulse');
+  eye.style.left = p.x + 'px'; eye.style.top = (p.y - 6) + 'px';
+  eye.style.setProperty('--cv', color || '#6633aa');
+  eye.style.animationDuration = dur + 's';
+  _emit(eye, dur * 1000 + 90);
+  // หนวดเงาทะยานจากด้านล่าง (reuse cv-streak โทนม่วงเข้ม) — จำนวนตาม tier
+  const n = _reduced ? 2 : (max ? 9 : (2 + tl * 2));
+  const baseY = p.y + (max ? 60 : 44);
+  for (let i = 0; i < n; i++) {
+    const off = (i - (n - 1) / 2) * (max ? 24 : 28);
+    const e = _take('cv-streak');
+    e.style.left = (p.x + off) + 'px'; e.style.top = baseY + 'px';
+    e.style.setProperty('--cv', color || '#7d44c4');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 120);
+  }
+}
+
+// ── KILL-D01 primitives (war-machine drive core / laser cannon) ──────────────
+// บุคลิก "หุ่นรบจักรกล / แกนขับเคลื่อนชาร์จพลัง / ปืนเลเซอร์ประหาร": แกนพลังงานหกเหลี่ยม
+// หมุน (drive core) + วงจรไฟฟ้าลู่เข้าชาร์จ (mechaCharge) → ลำเลเซอร์ปืนใหญ่ฟาดลง + reticle
+// ล็อกเป้า (mechaLaser). ไซแอน-ขาว เครื่องจักรเย็นชา. silhouette "หกเหลี่ยม+ลำเลเซอร์+reticle"
+// ต่างจาก DETAILED (สแกนไลน์วิเคราะห์) และ RSICK (บล็อกไวรัสแดง). canvas-first + DOM fallback.
+function pMechaCharge(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('mechaCharge', { color: color || '#00ffee', x: p.x, y: p.y })) return;
+  const dur = _dur(0.5);
+  const core = _take('cv-odglow');
+  core.style.left = p.x + 'px'; core.style.top = p.y + 'px';
+  core.style.setProperty('--cv', color || '#00ffee');
+  core.style.animationDuration = dur + 's';
+  _emit(core, dur * 1000 + 80);
+  // วงจรลู่เข้า (charging circuit sparks pulled inward)
+  const n = _reduced ? 3 : 6;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2;
+    const rad = 40 + Math.random() * 26;
+    const e = _take('cv-spark');
+    e.style.left = (p.x + Math.cos(ang) * rad) + 'px';
+    e.style.top = (p.y + Math.sin(ang) * rad) + 'px';
+    e.style.setProperty('--cv', color || '#00ffee');
+    e.style.setProperty('--dx', (-Math.cos(ang) * rad) + 'px');
+    e.style.setProperty('--dy', (-Math.sin(ang) * rad) + 'px');
+    e.style.animationDuration = dur + 's';
+    e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 100);
+  }
+}
+function pMechaLaser(color, variant, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('mechaLaser', { color: color || '#00ffee', variant, x: p.x, y: p.y })) return;
+  const max = (variant === 'max');
+  const dur = _dur(max ? 0.6 : 0.45);
+  // ลำเลเซอร์ (vertical beam — reuse cv-slash ตั้งตรง)
+  const beam = _take('cv-slash');
+  beam.style.left = p.x + 'px'; beam.style.top = p.y + 'px';
+  beam.style.setProperty('--cv', color || '#00ffee');
+  beam.style.setProperty('--rot', '90deg');
+  beam.style.animationDuration = dur + 's';
+  _emit(beam, dur * 1000 + 90);
+  // reticle ล็อกเป้า (reuse cv-pulse)
+  const ret = _take('cv-pulse');
+  ret.style.left = p.x + 'px'; ret.style.top = p.y + 'px';
+  ret.style.setProperty('--cv', color || '#00ffee');
+  ret.style.animationDuration = dur + 's';
+  _emit(ret, dur * 1000 + 90);
+  // สะเก็ดอิมแพกต์
+  const n = _reduced ? 3 : (max ? 9 : 5);
+  for (let i = 0; i < n; i++) {
+    const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.4;
+    const dist = 30 + Math.random() * 40;
+    const e = _take('cv-spark');
+    e.style.left = p.x + 'px'; e.style.top = p.y + 'px';
+    e.style.setProperty('--cv', max ? '#aaffff' : (color || '#00ffee'));
+    e.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    e.style.setProperty('--dy', (Math.sin(ang) * dist * 0.5) + 'px');
+    e.style.animationDuration = dur + 's';
+    _emit(e, dur * 1000 + i * 24 + 100);
+  }
+}
+
+// ── NOSIRIS primitives (Egyptian underworld / soul judgment) ─────────────────
+// วิญญาณทองคำหมุนเข้า (soul wisp) + ตราหิน hieroglyph พิพากษา. ทอง-ดำ-ขาววิญญาณ.
+function pSoulGather(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('soulGather', { color: color || '#ffdd66', x: p.x, y: p.y })) return;
+  const dur = _dur(0.6);
+  const n = _reduced ? 3 : 6;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2; const rad = 50 + Math.random() * 36;
+    const e = _take('cv-spark');
+    e.style.left = (p.x + Math.cos(ang) * rad) + 'px'; e.style.top = (p.y + Math.sin(ang) * rad) + 'px';
+    e.style.setProperty('--cv', color || '#ffdd66');
+    e.style.setProperty('--dx', (-Math.cos(ang) * rad) + 'px'); e.style.setProperty('--dy', (-Math.sin(ang) * rad) + 'px');
+    e.style.animationDuration = dur + 's'; e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 30 + 120);
+  }
+}
+function pJudgmentSeal(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('judgmentSeal', { color: color || '#ffdd66', x: c.x, y: c.y })) return;
+  const dur = _dur(0.85);
+  const seal = _take('cv-holyburst');
+  seal.style.left = c.x + 'px'; seal.style.top = c.y + 'px';
+  seal.style.setProperty('--cv', color || '#ffdd66');
+  seal.style.animationDuration = dur + 's';
+  seal.innerHTML = '<i class="cv-holy-core"></i><i class="cv-holy-rays"></i>';
+  _emit(seal, dur * 1000 + 120);
+}
+// ── COKE ZERO primitive (black hole / gravity collapse) ──────────────────────
+function pGravityWell(color, variant) {
+  const c = _fighterCenter();
+  if (_toCanvas('gravityWell', { color: color || '#e8f4ff', variant, x: c.x, y: c.y })) return;
+  const max = (variant === 'singularity');
+  const dur = _dur(max ? 0.8 : 0.6);
+  const el = _take('cv-vzero');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#e8f4ff');
+  el.style.animationDuration = dur + 's';
+  el.innerHTML = '<i></i>';
+  _emit(el, dur * 1000 + 120);
+}
+// ── DETAILED primitives (tactical scan / analysis lock) ──────────────────────
+function pScanSweep(color, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('scanSweep', { color: color || '#00ffcc', x: p.x, y: p.y })) return;
+  const dur = _dur(0.5);
+  const el = _take('cv-streak');
+  el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+  el.style.setProperty('--cv', color || '#00ffcc');
+  el.style.animationDuration = dur + 's';
+  _emit(el, dur * 1000 + 100);
+}
+function pAnalysisMap(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('analysisMap', { color: color || '#00ffcc', x: c.x, y: c.y })) return;
+  const dur = _dur(0.8);
+  const el = _take('cv-comboring');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#00ffcc');
+  el.style.animationDuration = dur + 's';
+  _emit(el, dur * 1000 + 120);
+}
+// ── MISSSTRESS primitives (bee queen / hive swarm) ───────────────────────────
+function pQueenSwarm(color, variant, x, y) {
+  const p = (x === undefined) ? _fighterCenter() : { x, y };
+  if (_toCanvas('queenSwarm', { color: color || '#ffd24a', variant, x: p.x, y: p.y })) return;
+  const dur = _dur(variant === 'command' ? 0.75 : 0.55);
+  const n = _reduced ? 3 : (variant === 'command' ? 12 : 5);
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5; const rad = 24 + Math.random() * 40;
+    const e = _take('cv-spark');
+    e.style.left = p.x + 'px'; e.style.top = p.y + 'px';
+    e.style.setProperty('--cv', color || '#ffd24a');
+    e.style.setProperty('--dx', Math.cos(ang) * rad + 'px'); e.style.setProperty('--dy', Math.sin(ang) * rad + 'px');
+    e.style.animationDuration = dur + 's'; e.style.animationDelay = (i * 0.02) + 's';
+    _emit(e, dur * 1000 + i * 24 + 100);
+  }
+}
+function pHoneycombBurst(color) {
+  const c = _fighterCenter();
+  if (_toCanvas('honeycombBurst', { color: color || '#ffcf4a', x: c.x, y: c.y })) return;
+  const dur = _dur(0.6);
+  const el = _take('cv-comboring');
+  el.style.left = c.x + 'px'; el.style.top = c.y + 'px';
+  el.style.setProperty('--cv', color || '#ffcf4a');
+  el.style.animationDuration = dur + 's';
+  _emit(el, dur * 1000 + 100);
+}
+
 // corruptGlitch — บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption; ต่างจาก scanline glitch)
 function pCorruptGlitch(color) {
   if (_toCanvas('corruptGlitch', { color: color || '#ff2233' })) return;
@@ -963,6 +1231,10 @@ const PRIM = {
   deathKnell: pDeathKnell, soulReap: pSoulReap,
   clawRake: pClawRake, resonanceWave: pResonanceWave,
   insectSwarm: pInsectSwarm, comboLock: pComboLock, voidZero: pVoidZero, corruptGlitch: pCorruptGlitch,
+  goldRush: pGoldRush, valkyrieDescend: pValkyrieDescend, gloomSurge: pGloomSurge,
+  mechaCharge: pMechaCharge, mechaLaser: pMechaLaser,
+  soulGather: pSoulGather, judgmentSeal: pJudgmentSeal, gravityWell: pGravityWell,
+  scanSweep: pScanSweep, analysisMap: pAnalysisMap, queenSwarm: pQueenSwarm, honeycombBurst: pHoneycombBurst,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -975,6 +1247,9 @@ const COORD_ARG = {
   collectorPull: [1, 2], debtCoinDrain: [1, 2],
   reaperScythe: [2, 3], soulReap: [2, 3],
   clawRake: [2, 3], insectSwarm: [2, 3],
+  goldRush: [1, 2], valkyrieDescend: [2, 3], gloomSurge: [2, 3],
+  mechaCharge: [1, 2], mechaLaser: [2, 3],
+  soulGather: [1, 2], scanSweep: [1, 2], queenSwarm: [2, 3],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -1115,7 +1390,9 @@ function _chargeEl(create) {
   }
   return el;
 }
-function setCharge(id, cur, max) {
+// readyAt (optional): เมื่อ cur ถึงระดับนี้ → ใส่คลาส .charge-ready (สถานะ "พร้อมปลด peak"
+// เช่น IFRIED ครบ 10/15 = Inferno พร้อมปะทุ) — ผู้เล่นรู้ว่า "ใกล้สุด/พร้อมแล้ว" โดยไม่ต้องอ่านเลข.
+function setCharge(id, cur, max, readyAt) {
   const e = VFX_MAP[id];
   if (!e) return;
   max = max || 0;
@@ -1125,7 +1402,8 @@ function setCharge(id, cur, max) {
   cur = Math.max(0, Math.min(max, cur | 0));
   const pct = Math.round((cur / max) * 100);
   const th = e.theme || '';
-  el.className = 'game-vfx-charge' + (th ? ' game-vfx-theme-' + th : '');
+  const ready = (readyAt != null && cur >= readyAt);
+  el.className = 'game-vfx-charge' + (th ? ' game-vfx-theme-' + th : '') + (ready ? ' charge-ready' : '');
   el.style.setProperty('--gv', (e.aura && e.aura[1]) || '#fff');
   el.style.setProperty('--pct', pct + '%');
   el.style.display = 'block';
@@ -1148,6 +1426,13 @@ function setAuraTier(id, level) {
   if (!el || !el.classList) return;
   el.classList.remove('game-vfx-tier-1', 'game-vfx-tier-2', 'game-vfx-tier-3');
   if (level > 0) el.classList.add('game-vfx-tier-' + level);
+  // Layer-4 escalation: ถ้าการ์ดนี้มี persistent world layer ให้บรรยากาศทั้งฉาก "ปิดเข้ามา"
+  // ตาม tier จริงด้วย (เช่น GLOOM: ยิ่ง obsession สูง โลกยิ่งมืดบีบเข้า). คอสเมติกล้วน.
+  const w = _worldEl(false);
+  if (w && w.classList && w.classList.contains('cv-world')) {
+    w.classList.remove('gv-world-tier-1', 'gv-world-tier-2', 'gv-world-tier-3');
+    if (level > 0) w.classList.add('gv-world-tier-' + level);
+  }
 }
 
 // ── PER-CARD VFX MAPPING (Elite + Mythic) ────────────────────────────────────
@@ -1250,7 +1535,7 @@ const VFX_MAP = {
   // "หยุดเวลา/เก็บเกี่ยวความตาย" เฉพาะตัว (ไม่ใช่ glitch/shadowBurst กลางอีกต่อไป).
   // AK47 ระหว่าง Phase (ต่อ OD timer) = เคียวกวาด + วิญญาณถูกเก็บที่จุด WP. affects=timer
   // → นาฬิกาตอบสนอง (เวลาถูกตัด).
-  th:  { rarity: 'mythic', theme: 'thanatos', affects: 'timer', aura: ['shadow', '#cc00cc'], on: {
+  th:  { rarity: 'mythic', theme: 'thanatos', affects: 'timer', world: 'thanatos', aura: ['shadow', '#cc00cc'], on: {
            thanatos: [['timeStop', '#e0b3ff'], ['voidRift', '#660066'], ['reaperScythe', '#cc44cc', 2], ['deathKnell', '#cc00cc'], ['soulReap', '#dd99ff', 8]],
            ak47:     [['reaperScythe', '#dd55dd', 1], ['soulReap', '#e0b3ff', 6]],
          } },
@@ -1260,7 +1545,7 @@ const VFX_MAP = {
   // → ครบ 5 (CONTRACT SEALED) = DEVIL BET จ่าย: ยันต์ทอง + วงช็อกเลือด-ดำ + ระเบิดทองต้องสาป
   // + ไฟนรก. SIN Stack 0–5 (สะสมตอน DEVIL BET, ไม่รีเซ็ตกลางรัน = buildup ดาเมจ) → pip ต่อ sin
   // จริง; affects=enemy (สาปดาเมจลงศัตรู).
-  bh:  { rarity: 'mythic', theme: 'demonContract', affects: 'enemy', stack: { gain: 'sinstack', max: 5 }, aura: ['infernal', '#cc0000'], on: {
+  bh:  { rarity: 'mythic', theme: 'demonContract', affects: 'enemy', world: 'demon', stack: { gain: 'sinstack', max: 5 }, aura: ['infernal', '#cc0000'], on: {
            break:    [['contractRing', '#aa0000'], ['cursedFlame', '#ff4400'], ['slash', '#ff2233', 3]],
            sinstack: [['sinEmber', '#ff5522', 6], ['demonSigil', '#cc0011']],
            sinmax:   [['demonSigil', '#ffcc33'], ['bloodShock', '#cc0011'], ['devilBetBurst', '#ffcc33'], ['cursedFlame', '#ff3300']],
@@ -1268,25 +1553,53 @@ const VFX_MAP = {
   // EDGEGA — Lv2 Burst เสือ (claw rake): ไม่ใช่ไฟพุ่งกลางแล้ว — เป็น "รอยเล็บเสือปะทุ"
   // (วาบ + กรงเล็บ 4 รอยขนานราดข้าม + สะเก็ดคม) ตอน Lv2 Burst เปิด ทุก 15 วิ. ต่างชัด
   // จาก IFRIED (ไฟ/อินเฟอร์โน) และ ATROSUS (คลื่นเรโซแนนซ์).
-  eg:  { rarity: 'mythic', theme: 'crit', affects: 'odBar', aura: ['fire',  '#ff6622'],  on: { od: [['flash', '#2a1000'], ['clawRake', '#ff7733', 4], ['spark', '#ffd08a', 6]] } },
+  eg:  { rarity: 'mythic', theme: 'crit', affects: 'odBar', world: 'tiger', aura: ['fire',  '#ff6622'],  on: { od: [['flash', '#2a1000'], ['clawRake', '#ff7733', 4], ['spark', '#ffd08a', 6]] } },
   // NOSIRIS — Soul Stack 0–5 (สะสมตอน BREAK) → JUDGMENT ตอนเต็ม 5: แสง holy ทอง + พัลส์,
   // pip ต่อ soul stack จริง (ctx.stack), เต็ม 5 = expire flourish (JUDGMENT/ปฏิเสธความตาย)
   // JUDGMENT (เต็ม 5 = ปฏิเสธความตาย) ได้ payoff เฉพาะของตัวเอง: วาบทอง + แสง holy ทอง→ม่วงคู่ +
   // พัลส์ม่วง + ฝนประกายทอง (ใหญ่/ต่างจาก BREAK ปกติ) พร้อม stack expire flourish (reset='judgment').
-  os:  { rarity: 'mythic', theme: 'soul', affects: 'break', stack: { gain: 'soulstack', reset: 'judgment', max: 5 }, aura: ['gold',  '#ffdd66'],  on: {
-           break:    [['holyBurst', '#ffe07a'], ['pulse', '#ffd84a']],
-           soulstack: ['spark', '#ffe07a', 4],
-           judgment: [['flash', '#fff4d0'], ['holyBurst', '#ffe07a'], ['holyBurst', '#cc88ff'], ['pulse', '#cc88ff'], ['spark', '#ffe680', 8]],
+  // NOSIRIS — SOUL STACK 0–5 / JUDGMENT (4-layer Mythic, อารมณ์ "พิพากษา/ภพหลังความตาย"):
+  //  Idle: ออร่าศักดิ์สิทธิ์ทอง-ดำ (cv-aura--sacred) สุริยุปราคา หมุนช้า. Growth: ทุก Soul Stack
+  //   (BREAK) วิญญาณทองหมุนเข้า (soulGather) + ออร่าเข้มขึ้นตาม tier จริง (0–3) + โลกศักดิ์สิทธิ์
+  //   ขึ้น (world tier) + pip. Peak (JUDGMENT ครบ 5): ตราหิน hieroglyph + วิญญาณปะทุ + ลำแสง
+  //   พิพากษาทอง→ม่วง + วาบช้า (เวลาหยุด). Aftermath: วิญญาณค่อย ๆ สลาย (stack expire flourish).
+  //  affects=timer (พิพากษา/เวลา). silhouette "วิญญาณ + ตราหิน" — อียิปต์ภพหลัง ไม่ซ้ำใบใด.
+  os:  { rarity: 'mythic', theme: 'soul', affects: 'timer', world: 'sacred', stack: { gain: 'soulstack', reset: 'judgment', max: 5 }, aura: ['sacred',  '#ffdd66'],  on: {
+           break:     [['soulGather', '#ffdd66'], ['pulse', '#ffd84a']],
+           soulstack: ['soulGather', '#ffe07a'],
+           judgment:  [['flash', '#1a1400'], ['judgmentSeal', '#ffdd66'], ['holyBurst', '#cc88ff'], ['soulGather', '#ffe680'], ['pulse', '#cc88ff']],
          } },
   // MISSSTRESS — ราชินีผึ้งสายฟ้าเหลือง (bee queen): ฝูงผึ้งทองรุมบิน + สายฟ้า + เหรียญทอง
   // (zeny ตอน OD). ฝูงผึ้งทำให้ "ราชินีผึ้ง" ออกชัด ไม่ใช่แค่สายฟ้า+เหรียญกลาง.
-  mt:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffdd00'],  on: { od: [['insectSwarm', '#ffd24a', 10], ['bolt', '#ffe21a'], ['spark', '#ffe85a', 6], ['coinBurst', '#ffe21a']] } },
-  // GOLDEN BRUH — GOLD RUSH ระเบิดทองใหญ่ (ยิงที่ context 'combo' จริง ตอน combo เต็ม)
-  gb:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', aura: ['gold',  '#ffcc00'],  on: { combo: [['flash', '#3a2e00'], ['coinBurst', '#ffcc00'], ['spark', '#ffe680', 8]] } },
+  // MISSSTRESS — BEE QUEEN / HIVE (4-layer Mythic, อารมณ์ "ราชินี/รังผึ้ง/ฝูง/ควบคุมเบ็ดเสร็จ"):
+  //  Idle: ออร่ารังผึ้งหกเหลี่ยมทอง (cv-aura--hive). Growth (ระหว่าง OD ทุกคลิก ICD 0.3s): ผึ้งทอง
+  //   เข้าฝูง (hive) + วงแหวนชาร์จ "รังขยาย" (_mistressOdTimeGain 0–4). Peak (เข้า OD = QUEEN COMMAND):
+  //   ฝูงผึ้งทองทั้งรังโจมตี (queenSwarm command) + เซลล์รังผึ้งปะทุ (honeycombBurst) + เกสร/น้ำผึ้ง.
+  //   Aftermath: ฝูงกลับรัง (OD จบ → วงแหวนหาย). affects=zeny (Zeny ระหว่าง OD). world:'hive' = เกสร
+  //   ทองลอย + เงารังผึ้ง. silhouette "ผึ้งทอง + หกเหลี่ยมรังผึ้ง" ต่างจาก BEELZEBRUH (แมลงวันเขียว).
+  mt:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', world: 'hive', aura: ['hive',  '#ffd24a'],  on: {
+           od:   [['honeycombBurst', '#ffcf4a'], ['queenSwarm', '#ffd24a', 'command'], ['coinBurst', '#ffe21a']],
+           hive: [['queenSwarm', '#ffd24a']],
+         } },
+  // GOLDEN BRUH — MIDAS GOLD RUSH (goldRush): ยิงที่ context 'combo' จริง ตอน combo เต็ม
+  // (GOLD RUSH เปิด). บุคลิก "เจ้าแห่งทองคำ/รวยปะทุ" เฉพาะตัว: แกนทองกิลด์ + วงช็อกทอง +
+  // น้ำพุทองคำแท่ง (gold ingot fountain — แท่งทอง ไม่ใช่เหรียญกลม) + "$" ยักษ์ลอยขึ้น +
+  // วาบทอง. ทองสุกใสล้วน — ต่างชัดจาก DARK STAKE LORD (ทองมืดคาสิโน), MISSSTRESS (ผึ้ง),
+  // DRAKE (น้ำพุเหรียญ). affects=zeny → HUD โซน Zeny/score ตอบสนอง (การ์ดทำ Zeny ×9).
+  gb:  { rarity: 'mythic', theme: 'zeny', affects: 'zeny', world: 'gold', aura: ['gold',  '#ffcc00'],  on: { combo: [['flash', '#3a2e00'], ['goldRush', '#ffcc00']] } },
   // COKE ZERO — "ZERO" สุญญากาศดำ-ขาว (OD charge ×4): วาบขาว + วงสุญญากาศหดยุบเข้าหา "ศูนย์"
   // (annihilation) ตอนเข้า OD — บุคลิก "ศูนย์/ความว่าง" ออกจริง (ไม่ใช่ flash+pulse กลาง). affects=odBar
   // เพราะการ์ดเร่ง OD charge ×4 (OD คือหัวใจ).
-  oh:  { rarity: 'mythic', theme: 'time', affects: 'odBar', aura: ['frost', '#e8f4ff'],  on: { od: [['flash', '#ffffff'], ['voidZero', '#e8f4ff']] } },
+  // COKE ZERO — VOID / OD STACK 0–90% (4-layer Mythic, อารมณ์ "ความว่าง/อวกาศยุบ/บิดเบือน"):
+  //  Idle: ออร่าหลุมดำ (cv-aura--void) แกนดำ+ขอบขาวบิด. Growth: ทุก OD จบ DMG Stack +15%
+  //   (max 90%) → อวกาศบิดแรงขึ้นตาม tier จริง (0–3): ออร่า+โลกบิดเบือนหนักขึ้น. Peak-ready (max):
+  //   คิว singularity. Release: เข้า OD = หลุมแรงโน้มถ่วงดูดยุบ (gravityWell) → ที่ max = SINGULARITY
+  //   ยุบเข้าจุดเดียว + ระเบิดสุญญากาศ. Aftermath: ความจริงค่อย ๆ เสถียร. affects=odBar (OD charge ×4).
+  //  silhouette "หลุมดำ + เลนส์โน้มถ่วง + เศษบิด" — ไม่ซ้ำใบใด.
+  oh:  { rarity: 'mythic', theme: 'time', affects: 'odBar', world: 'void', aura: ['void', '#e8f4ff'],  on: {
+           od:          [['flash', '#0a0a14'], ['gravityWell', '#e8f4ff']],
+           singularity: [['flash', '#ffffff'], ['gravityWell', '#cfe4ff', 'singularity']],
+         } },
   // LORD OF DEBT — DEBT CONTRACT (debtContract): ออร่าหนี้ม่วง-ทองบัญชี "หายใจ" (passive) ที่
   // ความเข้มไต่ตาม DEBT STACK จริง 0–5 → 0–3 (ภาระสะสมเห็นได้ตลอด, ตัวนับ #debtStackCounter ยัง
   // เป็นแหล่งความจริง ไม่สร้าง UI ซ้ำ). ทุกสัญญา (debt) = ตราสัญญาหนี้ประทับ (สีตามพลังต้องห้ามที่
@@ -1295,7 +1608,7 @@ const VFX_MAP = {
   // (sealBreak) ปลดหนี้; ถ้ามีหนี้ค้างจริง (debtclear) = เหรียญต้องสาปถูกสูบจ่าย + รีเซ็ตความเข้มออร่า.
   // BERSERK hit = ฟันเงาผูกโซ่ (throttle ที่ context 'hit'). affects=debt → ตัวนับ DEBT ตอบสนอง
   // ด้วยสีของพลังต้องห้ามที่เพิ่งเซ็น (ctx.color).
-  ld:  { rarity: 'mythic', theme: 'debtContract', affects: 'debt', aura: ['debt', '#9944cc'],  on: {
+  ld:  { rarity: 'mythic', theme: 'debtContract', affects: 'debt', world: 'debt', aura: ['debt', '#9944cc'],  on: {
            debt:      [['debtSeal', '$state'], ['debtChain', '#b066dd', 3], ['ledgerGlyph', '#d4a017', 4]],
            debtmax:   [['collectorPull', '#aa33ff'], ['debtChain', '#cc44ff', 5], ['ledgerGlyph', '#ff3366', 5], ['flash', '#1a0022']],
            break:     [['sealBreak', '#b066dd']],
@@ -1304,50 +1617,99 @@ const VFX_MAP = {
          } },
   // CATULLANUX — ราชาแมว COMBO LOCK: วงเล็บเป้าหมาย 4 มุมหุบเข้า "ล็อกคอมโบ" (combo lock) ตอน
   // AK47 ครบ/BREAK สำเร็จ + รอยร้าวหนัก. affects=combo → กรอบคอมโบตอบสนอง (คอมโบถูกล็อก).
-  kn:  { rarity: 'mythic', theme: 'analysis', affects: 'combo', aura: ['glow',  '#ffaa44'],  on: {
+  kn:  { rarity: 'mythic', theme: 'analysis', affects: 'combo', world: 'catking', aura: ['glow',  '#ffaa44'],  on: {
            break: [['comboLock', '#ffaa44'], ['breakCrack', '#ffbf6a', true]],
            ak47:  [['comboLock', '#ffcf8a']],
          } },
   // BEELZEBRUH — เจ้าแห่งแมลงวัน/CORRUPTION: ฝูงแมลงวันเขียวรุมบิน (buzz) + คลื่นมืดเขียวสาป
   // ตอน BREAK — บุคลิก "ฝูงแมลง" ออกจริง (ไม่ใช่ shadowBurst+spark กลาง).
-  bz:  { rarity: 'mythic', theme: 'soul', affects: 'break', aura: ['drain', '#88cc00'],  on: { break: [['insectSwarm', '#88cc00', 12], ['shadowBurst', '#5a7a00', 0.5]] } },
-  // VALKYRIZZ — ปีกศักดิ์สิทธิ์ + หอก: แสง holy + ฟันสว่าง
-  vr:  { rarity: 'mythic', theme: 'idol', affects: 'break', aura: ['holy',  '#cc88ff'],  on: { break: [['holyBurst', '#d6a3ff'], ['slash', '#e0b8ff', 1]] } },
+  bz:  { rarity: 'mythic', theme: 'soul', affects: 'break', world: 'swarmrot', aura: ['drain', '#88cc00'],  on: { break: [['insectSwarm', '#88cc00', 12], ['shadowBurst', '#5a7a00', 0.5]] } },
+  // VALKYRIZZ — VALKYRIE OF RANDGRIS / สลับพรเทพ (4-layer Mythic):
+  //  L1 Passive: ออร่าปีกวาลคีรี (cv-aura--valkyrie) — ปีกขนนก + วงรัศมีเทพ "หายใจ" ตลอด
+  //     ที่ active → จำใบได้ทันทีก่อนยิง.
+  //  L2 Trigger (break): BREAK สำเร็จ = วาลคีรีร่ายปีก + หอกแสง + ขนนกร่วง (signal activate).
+  //  L3 Peak (valkyrie): VALKYRIE SWAP จริง (AK47 ครบ/BREAK → สุ่มพร ELITE) = เทพลงเต็มขั้น:
+  //     วาบเทพ + ปีกใหญ่ + หอกแสงทิ่ม + วงรูนทอง + รัศมี holy ขาว→ทอง + พัลส์ม่วง.
+  //  L4 World: world:'valkyrie' → ทั้งฉากเรืองแสงสวรรค์จาง ๆ (ขอบจอ) ตลอดที่การ์ด active.
+  //  silhouette "ปีก+หอก" + จาน palette ขาว-ทอง-ม่วงเทพ → ไม่ซ้ำ Mythic ใบใด.
+  vr:  { rarity: 'mythic', theme: 'idol', affects: 'break', world: 'valkyrie', aura: ['valkyrie', '#cc88ff'], on: {
+           break:    [['valkyrieDescend', '#cc88ff'], ['pulse', '#d6a3ff']],
+           valkyrie: [['flash', '#2a1840'], ['valkyrieDescend', '#cc88ff', 'peak'], ['holyBurst', '#ffe9ff'], ['holyBurst', '#ffd96b'], ['pulse', '#cc88ff']],
+         } },
   // ATROSUS — RESONANCE อสูรเกรี้ยว (resonance wave): ไม่ใช่ไฟพุ่งแล้ว — เป็น "คลื่นเรโซแนนซ์"
   // (วงคลื่นฮาร์มอนิกขยายเป็นจังหวะซ้อน + พัลส์แดงสั่น) ตอน BREAK เปิด Resonance. ต่างชัดจาก
   // IFRIED (ไฟ) และ EDGEGA (กรงเล็บ).
-  at:  { rarity: 'mythic', theme: 'crit', affects: 'break', aura: ['fire',  '#ee3333'],  on: { break: [['resonanceWave', '#ee3333'], ['pulse', '#ff5544']] } },
-  // KILL-D01 — เลเซอร์หุ่นยนต์: glitch scanline + เส้นเลเซอร์ + วาบ
-  kl:  { rarity: 'mythic', theme: 'analysis', affects: 'break', aura: ['tech',  '#00ffee'],  on: { break: [['glitch', '#00ffee'], ['streak', '#aaffff'], ['flash', '#003333']] } },
-  // IFRIED — Inferno Stack สะสมตอนคริ (aura-only, ไม่มี pip): ember ตอนสะสม (throttle),
-  // Inferno Burst ตอนครบ 10 = ไฟพุ่งใหญ่ + วาบ; affects=enemy (ไฟลงศัตรู)
-  // IFRIED ครองไฟแต่ผู้เดียว: Inferno Burst เป็น "จุดสุดยอดของไฟ" — ไฟพุ่งสองชั้น (แดง→ทอง) +
-  // สะเก็ดเยอะ + คลื่นความร้อน. EDGEGA/ATROSUS เลิกใช้ fireBurst แล้ว → ไฟ = IFRIED เท่านั้น.
-  if:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', aura: ['fire',  '#ff4400'],  on: { break: [['fireBurst', '#ff4400'], ['spark', '#ff7722', 7]], emberhit: ['spark', '#ff6622', 4], inferno: [['flash', '#2a0a00'], ['fireBurst', '#ff4400'], ['fireBurst', '#ffaa22'], ['spark', '#ff8844', 10], ['pulse', '#ff6622']] } },
+  at:  { rarity: 'mythic', theme: 'crit', affects: 'break', world: 'resonance', aura: ['fire',  '#ee3333'],  on: { break: [['resonanceWave', '#ee3333'], ['pulse', '#ff5544']] } },
+  // KILL-D01 — WAR MACHINE / DRIVE CORE (4-layer Mythic, อารมณ์ "จักรกลเย็นชา/พลังประจุล้น"):
+  //  L1 Character: ออร่าแกนขับเคลื่อนหกเหลี่ยมหมุน (cv-aura--mecha) + pip ของ DRIVE TOKEN จริง 0–8.
+  //  L2 Trigger (token = ทุก 3 คลิกใน OD): แกนพลังงานวาบ + วงจรลู่เข้าชาร์จ (mechaCharge) + pip +1;
+  //     BREAK = glitch สั้น ๆ. affects=odBar → แถบ OD ตอบสนอง (แกนกำลังประจุ).
+  //  L3 Peak (drivedischarge = 8 Token + BREAK): DRIVE DISCHARGE — ปืนเลเซอร์ใหญ่ฟาดลง 2 ลำ +
+  //     reticle ล็อกเป้า + วาบ + วงประจุ → ต่างจาก passive สุดขั้ว (peak contrast). discharge =
+  //     ปล่อย Token ตอน BREAK = ลำเลเซอร์ + reset pip.
+  //  L4 World: world:'mecha' → กริดเล็งเป้า/วงจรไซแอนจาง ๆ สแกนทั้งฉาก (หายใจ). silhouette
+  //     "หกเหลี่ยม+ลำเลเซอร์+reticle" ต่างจาก DETAILED (สแกนไลน์) และ RSICK (บล็อกไวรัสแดง).
+  kl:  { rarity: 'mythic', theme: 'analysis', affects: 'odBar', world: 'mecha',
+         stack: { gain: 'token', reset: 'discharge', max: 8 }, aura: ['mecha', '#00ffee'], on: {
+           token:          [['mechaCharge', '#00ffee']],
+           break:          [['glitch', '#00ffee'], ['flash', '#003333']],
+           discharge:      [['mechaLaser', '#00ffee']],
+           drivedischarge: [['flash', '#003a3a'], ['mechaLaser', '#aaffff', 'max'], ['mechaCharge', '#00ffee'], ['comboRing', '#00ffee']],
+         } },
+  // IFRIED — INFERNO STACK 0–15 (4-layer Mythic, lifecycle อ่านออกโดยไม่ต้องดูเลข):
+  //  Idle: ออร่าไฟสงบ. Growth (คริสะสม): วงแหวนชาร์จไฟเติม 0–15 (charge ring) + ออร่าไฟ
+  //   เข้มขึ้นตาม tier จริง 0–3 (จังหวะเปลวเร็วขึ้น) + โลกร้อนขึ้น (world tier) — เห็น "กำลัง
+  //   ชาร์จ/ใกล้สุด" ชัด. Peak-ready (≥10): วงแหวนเปลี่ยนเป็นสถานะ ".charge-ready" (เต้นทอง-แดง)
+  //   + คิว infernoready — "พร้อมปะทุ". Peak (Inferno Burst, ≥10 + BREAK): ไฟพุ่งสองชั้น
+  //   แดง→ทอง + วาบ. Decay: หลังปะทุ stack รีเซ็ต → วงแหวนหาย + ออร่าสงบ → กลับ Idle.
+  //  affects=enemy (ไฟลงศัตรู). world:'inferno' = ไอความร้อน+ถ่านลุกที่ขอบล่างฉาก หายใจ + ไต่ tier.
+  //  ไฟ = IFRIED แต่ผู้เดียว (EDGEGA/ATROSUS ไม่ใช้ fireBurst).
+  if:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', world: 'inferno', aura: ['fire',  '#ff4400'],  on: {
+           break:        [['fireBurst', '#ff4400'], ['spark', '#ff7722', 7]],
+           emberhit:     ['spark', '#ff6622', 4],
+           infernoready: [['pulse', '#ffcc33'], ['fireBurst', '#ffaa22']],
+           inferno:      [['flash', '#2a0a00'], ['fireBurst', '#ff4400'], ['fireBurst', '#ffaa22'], ['spark', '#ff8844', 10], ['pulse', '#ff6622']],
+         } },
   // RSICK-0806 — ไวรัส EXECUTION ไซเบอร์: บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption) + สะเก็ด
   // แดง + พัลส์ — ต่างจาก scanline glitch ของ KILL-D01/DETAILED/MAYA และจาก FALLEN WECHAT (crash).
-  rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff2233'],  on: { break: [['corruptGlitch', '#ff2233'], ['spark', '#ff4455', 6], ['pulse', '#ff2233']] } },
+  rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', world: 'viral', aura: ['tech',  '#ff2233'],  on: { break: [['corruptGlitch', '#ff2233'], ['spark', '#ff4455', 6], ['pulse', '#ff2233']] } },
   // FALLEN WECHAT — OVERLOADED BREAK เทวดาตก (system crash/overload): วาบมืด + glitch โหลดเกิน +
   // กระดอง BREAK แตกหนัก (overload shatter) + คลื่นมืดเทวดาตก + สายฟ้าระบบลัด — "ระบบล่ม/พลังล้น"
   // ต่างชัดจาก RSICK (viral corruption blocks).
-  fwc: { rarity: 'mythic', theme: 'break', affects: 'break', aura: ['shadow', '#ff2233'], on: { break: [['flash', '#1a0008'], ['glitch', '#ff2233'], ['breakCrack', '#ff3344', true], ['shadowBurst', '#330008', 0.5], ['bolt', '#ff5566']] } },
+  fwc: { rarity: 'mythic', theme: 'break', affects: 'break', world: 'crash', aura: ['shadow', '#ff2233'], on: { break: [['flash', '#1a0008'], ['glitch', '#ff2233'], ['breakCrack', '#ff3344', true], ['shadowBurst', '#330008', 0.5], ['bolt', '#ff5566']] } },
   // DETAILED — ANALYZED BREAK กริด/สแกนแม่นยำ: glitch + สะเก็ดกริด + วาบ; Analysis Stack 0–8
   // (สะสมตอนเก็บ WP, −2 ตอนพลาด, รีเซ็ตเมื่อ BREAK จบ) → pip ต่อ stack จริง, เต็ม 8 = ANALYSIS COMPLETE
   // ANALYSIS COMPLETE (เต็ม 8/8) ได้ payoff เฉพาะ: วาบไซแอน + glitch + วงล็อกเป้า (comboRing) +
   // ลำสแกนกวาด (streak) + สะเก็ดกริด — "ล็อกเป้าสำเร็จ" ต่างจาก break ปกติ; pip ยังเต็ม 8 ระหว่างเล่นพายอฟ.
-  dtl: { rarity: 'mythic', theme: 'analysis', affects: 'break', stack: { gain: 'analysis', reset: 'analysisreset', max: 8 }, aura: ['tech',  '#00ffee'],  on: {
-           break:    [['glitch', '#00ffee'], ['spark', '#00ffee', 8], ['flash', '#003a3a']],
-           analysis: ['spark', '#00ffee', 3],
-           analysiscomplete: [['flash', '#0a5a5a'], ['glitch', '#00ffee'], ['comboRing', '#00ffee'], ['streak', '#aaffff'], ['spark', '#00ffee', 8]],
+  // DETAILED — ANALYSIS STACK 0–8 / ANALYSIS COMPLETE (4-layer Mythic, อารมณ์ "คำนวณ/แม่นยำสัมบูรณ์"):
+  //  Idle: ออร่าสแกน (cv-aura--analysis) ไซแอน-เขียว เส้นสแกน. Growth: ทุก Analysis Stack (เก็บ WP)
+  //   ลำสแกนกวาด (scanSweep) + crosshair ล็อก + pip + ออร่า/โลก tier ขึ้น (ชั้นสแกนเพิ่ม). พลาด WP =
+  //   pip ลด. Peak (COMPLETE 8/8): แผนที่วิเคราะห์ทั้งสนาม (analysisMap) crosshair หมุนล็อก + เส้น
+  //   ทำนาย + HUD (combo/OD) ซิงค์. Aftermath: สแกนสลาย (analysisreset). affects=combo (แม่นยำ→คอมโบ).
+  //  ไซแอน-เขียว data + crosshair แผนที่ — ต่างจาก KILL-D01 (mecha hex+laser) ชัดเจน.
+  dtl: { rarity: 'mythic', theme: 'analysis', affects: 'combo', world: 'analysis', stack: { gain: 'analysis', reset: 'analysisreset', max: 8 }, aura: ['analysis',  '#00ffcc'],  on: {
+           break:            [['scanSweep', '#00ffcc'], ['flash', '#003a30']],
+           analysis:         ['scanSweep', '#39ffaa'],
+           analysiscomplete: [['flash', '#0a5a40'], ['analysisMap', '#00ffcc'], ['scanSweep', '#aaffdd'], ['comboRing', '#39ffaa']],
          } },
-  // GLOOM UNDER SIDE — OBSESSION (passive scaling 0–20, ไม่มี pip): aura "หนักขึ้น" ตาม tier
-  // จริง (0–3) + พัลส์เงาตอนขึ้น tier; affects=timer (obsession กินเวลา) → นาฬิกาตอบสนอง
-  gus: { rarity: 'mythic', theme: 'soul', affects: 'timer', aura: ['shadow', '#6633aa'], on: { break: [['shadowBurst', '#7d44c4', 0.6], ['shadowBurst', '#5522aa', 0.45]], gloom: ['shadowBurst', '#7d44c4', 0.5] } },
+  // GLOOM UNDER SIDE — OBSESSION (4-layer Mythic, อารมณ์ "กดดัน/หวาดหวั่น/ถูกกลืน"):
+  //  L1 Passive: ออร่า GLOOM (cv-aura--gloom) — แอ่งเงาเหวใต้ตัว + ดวงตาจ้องจาง ๆ ตลอดที่ active.
+  //  L2 Trigger (gloom = ขึ้น tier ทุก 5 stack): หนวดเงาทะยานคว้า + ดวงตาวาบ สเกลตาม '$tier'
+  //     จริง (progressive — ยิ่ง obsession สูง หนวดยิ่งสูง/เยอะ). BREAK = gloom surge + เงาแผ่.
+  //  L3 Peak (gloommax = ครบ 20 stack ครั้งแรก): MAX OBSESSION — ตาเบิกเต็ม + หนวดกลืนรอบตัว +
+  //     เวลาถูกดูดกลืนเข้า (drainPulse) + วาบมืด → ต่างจาก passive แบบสุดขั้ว (peak contrast).
+  //  L4 World: world:'gloom' → ทั้งฉากมืดบีบเข้าจากขอบ/ด้านล่าง และ "ปิดเข้ามา" ตาม tier จริง
+  //     (gv-world-tier-*) — โลกถูก obsession กลืนทีละน้อย. affects=timer → นาฬิกาตอบสนอง (กินเวลา).
+  gus: { rarity: 'mythic', theme: 'soul', affects: 'timer', world: 'gloom', aura: ['gloom', '#6633aa'], on: {
+           break:    [['gloomSurge', '#6633aa'], ['shadowBurst', '#1a0030', 0.5]],
+           gloom:    [['gloomSurge', '#7d44c4', '$tier']],
+           gloommax: [['flash', '#0a0010'], ['gloomSurge', '#9966ff', 'max'], ['drainPulse', '#6633aa'], ['shadowBurst', '#1a0030', 0.6]],
+         } },
   // DARK STAKE LORD — Cursed casino jackpot (darkJackpot): ออร่าทองมืดต้องสาป (passive),
   // BREAK = วงล้อสล็อตหมุน + วงสัญญามืด ("เดิมพัน"); JACKPOT แตก = แฟลช 777 + เหรียญ
   // ต้องสาปพุ่งหา zeny + วงช็อกแดง-ดำ + สะเก็ดดอกไพ่ ("เดิมพันจ่าย"); พลาด = พัลส์เตือน
   // เสี่ยงแดง (odds ขึ้น). affects=zeny → เลข Zeny/score ตอบสนองจริง (ไม่ใช่แค่ไอคอนการ์ด).
-  dsk: { rarity: 'mythic', theme: 'darkJackpot', affects: 'zeny', aura: ['stake', '#d4af37'],
+  dsk: { rarity: 'mythic', theme: 'darkJackpot', affects: 'zeny', world: 'casino', aura: ['stake', '#d4af37'],
     on: {
       break:   [['slotReel', '#d4af37'], ['stakeRing', '#cc1133']],
       jackpot: [['jackpotFlash', '#ffcc00'], ['cursedCoin', '#d4af37'], ['stakeRing', '#cc1133'], ['suitSpark', '#39ff14', 6]],
@@ -1359,7 +1721,7 @@ const VFX_MAP = {
 // ใช้ child element เฉพาะ (#cvAuraEl) แทน ::before เพื่อไม่ชนกับ aura ของบอสสกิน
 // (toei-enigma-aura ใช้ทั้ง ::before และ ::after บน #fighter อยู่แล้ว).
 let _activeAuraId = null;
-const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt'];
+const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie', 'gloom', 'mecha', 'sacred', 'void', 'analysis', 'hive'];
 
 function _auraEl(create) {
   const f = _fighter();
@@ -1406,14 +1768,49 @@ function clearCardAura(id) {
   _activeAuraId = null;
 }
 
+// ── PERSISTENT WORLD LAYER (Layer 4 — atmosphere ที่เปลี่ยนตลอดที่การ์ด active) ─
+// บางการ์ด Mythic ประกาศ `world` ใน VFX_MAP → ระหว่างที่การ์ดใบนั้น active เราเปิด
+// ออร่าบรรยากาศทั้งฉาก (#cvWorldEl) แบบ subtle (vignette/tint ขอบจอ ไม่บัง gameplay
+// กลางจอ) ขับด้วย CSS ล้วน (transform/opacity, ไม่มี particle loop). ปิดเองตอนจบรัน
+// และถูกลดทอน/ตัดทิ้งใต้ reduced-motion / Low VFX / Flash OFF (gate ใน CSS).
+let _worldEl_ = null;
+function _worldEl(create) {
+  if (_worldEl_ && _worldEl_.isConnected) return _worldEl_;
+  const root = _root();
+  if (!root) return null;
+  let el = document.getElementById('cvWorldEl');
+  if (!el && create) {
+    el = document.createElement('div');
+    el.id = 'cvWorldEl';
+    el.setAttribute('aria-hidden', 'true');
+    root.appendChild(el);
+  }
+  _worldEl_ = el;
+  return el;
+}
+function _applyWorld(id) {
+  const entry = VFX_MAP[id];
+  const world = entry && entry.world;
+  if (!world) { _clearWorld(); return; }
+  const el = _worldEl(true);
+  if (!el) return;
+  el.className = 'cv-world cv-world-' + world;
+  if (entry.aura && entry.aura[1]) el.style.setProperty('--gv', entry.aura[1]);
+}
+function _clearWorld() {
+  const el = _worldEl(false);
+  if (el) { el.className = ''; el.style.removeProperty('--gv'); }
+}
+
 // run-start: ตั้ง aura ให้เฉพาะการ์ด Elite/Mythic
 function setActiveCard(id, rarity) {
-  if (rarity && rarity !== 'elite' && rarity !== 'mythic') { clearCardAura(); return; }
-  if (!VFX_MAP[id]) { clearCardAura(); return; }
+  if (rarity && rarity !== 'elite' && rarity !== 'mythic') { clearCardAura(); _clearWorld(); return; }
+  if (!VFX_MAP[id]) { clearCardAura(); _clearWorld(); return; }
   setCardAura(id, true);
+  _applyWorld(id);
 }
 function clearActive() {
-  clearCardAura(); clearStack(); clearCharge(); _auraTier = 0; _lastFire = {};
+  clearCardAura(); _clearWorld(); clearStack(); clearCharge(); _auraTier = 0; _lastFire = {};
   // เคลียร์ particle ที่ค้างบน canvas layer ด้วย (จบรัน → ไม่ค้างข้ามรอบ)
   try { if (typeof window !== 'undefined' && window.CanvasVFX) window.CanvasVFX.clearCanvasVfx(); } catch (e) {}
 }
@@ -1431,6 +1828,9 @@ function _runPrim(spec, ctx) {
   // ที่เพิ่งเซ็นสัญญา) ส่งผ่าน ctx.color — ทำให้ตราสัญญาเปลี่ยนสีตามหนี้ที่เซ็นจริง.
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '$state') args[i] = (ctx && ctx.color) || '#b066dd';
+    // '$tier' sentinel → ระดับความเข้มจริงที่ส่งมา (เช่น GLOOM obsession tier 0–3) →
+    // ทำให้ primitive เติบโตตามความคืบหน้าจริง (progressive escalation, ไม่ใช่แค่ "ใหญ่ขึ้น").
+    else if (args[i] === '$tier') args[i] = (ctx && ctx.tier != null) ? ctx.tier : 1;
   }
   // ฉีดพิกัดจาก ctx เข้า args ตามตำแหน่งของแต่ละ primitive (COORD_ARG)
   if (ctx && (ctx.x !== undefined) && (ctx.y !== undefined)) {
