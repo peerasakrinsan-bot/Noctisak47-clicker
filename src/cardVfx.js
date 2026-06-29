@@ -1298,7 +1298,9 @@ function _chargeEl(create) {
   }
   return el;
 }
-function setCharge(id, cur, max) {
+// readyAt (optional): เมื่อ cur ถึงระดับนี้ → ใส่คลาส .charge-ready (สถานะ "พร้อมปลด peak"
+// เช่น IFRIED ครบ 10/15 = Inferno พร้อมปะทุ) — ผู้เล่นรู้ว่า "ใกล้สุด/พร้อมแล้ว" โดยไม่ต้องอ่านเลข.
+function setCharge(id, cur, max, readyAt) {
   const e = VFX_MAP[id];
   if (!e) return;
   max = max || 0;
@@ -1308,7 +1310,8 @@ function setCharge(id, cur, max) {
   cur = Math.max(0, Math.min(max, cur | 0));
   const pct = Math.round((cur / max) * 100);
   const th = e.theme || '';
-  el.className = 'game-vfx-charge' + (th ? ' game-vfx-theme-' + th : '');
+  const ready = (readyAt != null && cur >= readyAt);
+  el.className = 'game-vfx-charge' + (th ? ' game-vfx-theme-' + th : '') + (ready ? ' charge-ready' : '');
   el.style.setProperty('--gv', (e.aura && e.aura[1]) || '#fff');
   el.style.setProperty('--pct', pct + '%');
   el.style.display = 'block';
@@ -1537,11 +1540,20 @@ const VFX_MAP = {
            discharge:      [['mechaLaser', '#00ffee']],
            drivedischarge: [['flash', '#003a3a'], ['mechaLaser', '#aaffff', 'max'], ['mechaCharge', '#00ffee'], ['comboRing', '#00ffee']],
          } },
-  // IFRIED — Inferno Stack สะสมตอนคริ (aura-only, ไม่มี pip): ember ตอนสะสม (throttle),
-  // Inferno Burst ตอนครบ 10 = ไฟพุ่งใหญ่ + วาบ; affects=enemy (ไฟลงศัตรู)
-  // IFRIED ครองไฟแต่ผู้เดียว: Inferno Burst เป็น "จุดสุดยอดของไฟ" — ไฟพุ่งสองชั้น (แดง→ทอง) +
-  // สะเก็ดเยอะ + คลื่นความร้อน. EDGEGA/ATROSUS เลิกใช้ fireBurst แล้ว → ไฟ = IFRIED เท่านั้น.
-  if:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', aura: ['fire',  '#ff4400'],  on: { break: [['fireBurst', '#ff4400'], ['spark', '#ff7722', 7]], emberhit: ['spark', '#ff6622', 4], inferno: [['flash', '#2a0a00'], ['fireBurst', '#ff4400'], ['fireBurst', '#ffaa22'], ['spark', '#ff8844', 10], ['pulse', '#ff6622']] } },
+  // IFRIED — INFERNO STACK 0–15 (4-layer Mythic, lifecycle อ่านออกโดยไม่ต้องดูเลข):
+  //  Idle: ออร่าไฟสงบ. Growth (คริสะสม): วงแหวนชาร์จไฟเติม 0–15 (charge ring) + ออร่าไฟ
+  //   เข้มขึ้นตาม tier จริง 0–3 (จังหวะเปลวเร็วขึ้น) + โลกร้อนขึ้น (world tier) — เห็น "กำลัง
+  //   ชาร์จ/ใกล้สุด" ชัด. Peak-ready (≥10): วงแหวนเปลี่ยนเป็นสถานะ ".charge-ready" (เต้นทอง-แดง)
+  //   + คิว infernoready — "พร้อมปะทุ". Peak (Inferno Burst, ≥10 + BREAK): ไฟพุ่งสองชั้น
+  //   แดง→ทอง + วาบ. Decay: หลังปะทุ stack รีเซ็ต → วงแหวนหาย + ออร่าสงบ → กลับ Idle.
+  //  affects=enemy (ไฟลงศัตรู). world:'inferno' = ไอความร้อน+ถ่านลุกที่ขอบล่างฉาก หายใจ + ไต่ tier.
+  //  ไฟ = IFRIED แต่ผู้เดียว (EDGEGA/ATROSUS ไม่ใช้ fireBurst).
+  if:  { rarity: 'mythic', theme: 'crit', affects: 'enemy', world: 'inferno', aura: ['fire',  '#ff4400'],  on: {
+           break:        [['fireBurst', '#ff4400'], ['spark', '#ff7722', 7]],
+           emberhit:     ['spark', '#ff6622', 4],
+           infernoready: [['pulse', '#ffcc33'], ['fireBurst', '#ffaa22']],
+           inferno:      [['flash', '#2a0a00'], ['fireBurst', '#ff4400'], ['fireBurst', '#ffaa22'], ['spark', '#ff8844', 10], ['pulse', '#ff6622']],
+         } },
   // RSICK-0806 — ไวรัส EXECUTION ไซเบอร์: บล็อกดิจิทัลคอร์รัปต์กระตุก (viral corruption) + สะเก็ด
   // แดง + พัลส์ — ต่างจาก scanline glitch ของ KILL-D01/DETAILED/MAYA และจาก FALLEN WECHAT (crash).
   rx:  { rarity: 'mythic', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff2233'],  on: { break: [['corruptGlitch', '#ff2233'], ['spark', '#ff4455', 6], ['pulse', '#ff2233']] } },

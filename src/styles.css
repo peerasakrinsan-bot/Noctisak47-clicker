@@ -5869,6 +5869,22 @@
   0%, 100% { background-position: 0 0, 0 0, 50% 50%; filter: brightness(.96); }
   50%      { background-position: 0 14px, 14px 0, 50% 50%; filter: brightness(1.1); } /* scan drift */
 }
+/* inferno world — ไอความร้อน + ถ่านลุกเรืองที่ขอบล่างฉาก "หายใจ" (IFRIED). ยิ่ง Inferno
+   Stack สูง โลกยิ่งร้อน (gv-world-tier-*) — environment โตตาม progression จริง. */
+#cvWorldEl.cv-world-inferno {
+  background:
+    radial-gradient(140% 80% at 50% 122%, rgba(255,68,0,.20), transparent 58%),
+    radial-gradient(120% 60% at 50% 130%, rgba(255,170,34,.14), transparent 52%);
+  opacity: .4;
+  animation: cvWorldInferno 4.5s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-inferno.gv-world-tier-1 { opacity: .58; }
+#cvWorldEl.cv-world-inferno.gv-world-tier-2 { opacity: .74; }
+#cvWorldEl.cv-world-inferno.gv-world-tier-3 { opacity: .92; }
+@keyframes cvWorldInferno {
+  0%, 100% { background-position: 50% 120%, 50% 128%; filter: brightness(.95); }
+  50%      { background-position: 50% 112%, 50% 120%; filter: brightness(1.18); } /* heat rises */
+}
 /* gate atmosphere ออกใต้โหมดเบา: คงไว้แบบ static จาง ๆ ไม่กระพริบ */
 @media (prefers-reduced-motion: reduce) {
   #cvWorldEl.cv-world { animation: none !important; opacity: .5 !important; }
@@ -5879,6 +5895,11 @@ body.flash-off #cvWorldEl.cv-world { animation: none !important; opacity: .42 !i
   0%, 100% { opacity: .16; transform: translate(-50%, -52%) scale(1); }
   50%      { opacity: .26; transform: translate(-50%, -56%) scale(1.05); }
 }
+/* IFRIED lifecycle: ยิ่ง Inferno Stack สูง (tier) เปลวออร่ายิ่งเต้นเร็ว = "ใกล้ปะทุ" (rhythm
+   evolves, ไม่ใช่แค่ใหญ่ขึ้น). tier มาจาก _ifriedStacks จริงผ่าน setAuraTier. */
+#cvAuraEl.cv-aura--fire.game-vfx-tier-1 { animation-duration: 1.05s; }
+#cvAuraEl.cv-aura--fire.game-vfx-tier-2 { animation-duration: .8s; }
+#cvAuraEl.cv-aura--fire.game-vfx-tier-3 { animation-duration: .55s; }
 
 /* ── PRIMITIVE: flash (จอวาบสีเต็มกรอบ) ── */
 .cv-flash {
@@ -6786,6 +6807,16 @@ body.flash-off #cvWorldEl.cv-world { animation: none !important; opacity: .42 !i
   box-shadow: 0 0 9px -2px var(--gv, #fff);
 }
 #cvChargeEl.game-vfx-charge { display: block; }
+/* charge-ready — สถานะ "พร้อมปลด peak" (เช่น IFRIED ครบ 10/15): วงแหวนเต้น + เรืองแรงขึ้น
+   → ผู้เล่นรู้ว่าใกล้สุด/พร้อมแล้วโดยไม่ต้องอ่านเลข. transform/box-shadow เท่านั้น. */
+#cvChargeEl.charge-ready {
+  box-shadow: 0 0 16px -1px var(--gv, #fff), 0 0 6px var(--gv, #fff);
+  animation: cvChargeReady .7s ease-in-out infinite;
+}
+@keyframes cvChargeReady {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50%      { transform: translateX(-50%) scale(1.22); }
+}
 
 /* 6) AURA INTENSITY TIER — passive build-up (เช่น GLOOM obsession 0–3).
    ไม่ใช่ตัวเลข/ตัวนับ — แค่ glow ของ aura หนักขึ้นตาม tier จริง. static (ไม่มี loop). */

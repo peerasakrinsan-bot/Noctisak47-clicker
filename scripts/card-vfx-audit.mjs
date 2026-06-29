@@ -240,9 +240,11 @@ try {
   api.trigger('gus', 'gloom', { tier: 2 });          // L2: tendril surge scaled by real tier ($tier)
   api.trigger('gus', 'break', {});                   // BREAK gloom surge + shadow
   api.trigger('gus', 'gloommax', { tier: 3 });       // L3 peak: MAX OBSESSION devour (world tier 3)
-  api.setActiveCard('if', 'mythic');                 // IFRIED
+  api.setActiveCard('if', 'mythic');                 // IFRIED — Inferno Stack lifecycle 0–15
   api.trigger('if', 'emberhit', {});                 // throttled ember (crit gain)
-  api.trigger('if', 'inferno', {});                  // Inferno Burst payoff
+  api.setCharge('if', 12, 15, 10);                   // growth ring + peak-ready (≥10) state
+  api.trigger('if', 'infernoready', {});             // crossed peak-ready threshold cue
+  api.trigger('if', 'inferno', {});                  // Inferno Burst payoff (decay → idle)
   api.setActiveCard('ltn', 'elite');                 // LADY TRAINEE compact charge ring
   api.trigger('ltn', 'odlevel', { charge: 7, chargeMax: 15 });
   api.trigger('ltn', 'spotlight', {});               // Spotlight stage-light at 10

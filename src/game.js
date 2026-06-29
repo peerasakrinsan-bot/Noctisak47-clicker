@@ -5054,7 +5054,15 @@ function csOnBreakSuccess() {
   if(cs.cs_ifriedBreak && (cs._ifriedStacks || 0) >= 10) {
     cs._ifriedBurstEndTime = performance.now() + 5000;
     cs._ifriedStacks = 0;
+    cs._ifriedReadyFired = false;
     _cardFx('inferno'); // IFRIED — Inferno Burst payoff (cosmetic)
+    // IFRIED lifecycle VFX — Decay → Idle: ปะทุแล้ว stack รีเซ็ต → วงแหวนหาย + ออร่าสงบ (cosmetic).
+    try {
+      if(window.CardVFX && activeCard && activeCard.id === 'if') {
+        window.CardVFX.setAuraTier('if', 0);
+        window.CardVFX.clearCharge();
+      }
+    } catch(e){}
     showBigSplash('INFERNO BURST', 'DMG x2.5 + CRIT +25% — 5s', '#ff4400', false);
   }
   // RSICK-0806: Execute Stack + Execution Phase
@@ -8557,6 +8565,19 @@ function processHit(e, now) {
   if(isCrit && window._csState && window._csState.cs_ifriedBreak) {
     window._csState._ifriedStacks = Math.min(15, (window._csState._ifriedStacks || 0) + 1);
     _cardFx('emberhit'); // IFRIED throttled ember on Inferno-stack gain (cosmetic, ติดเฉพาะคริ + throttle)
+    // IFRIED lifecycle VFX (cosmetic, real count — bypass throttle so growth always reads):
+    // charge ring 0–15 (ready ที่ 10) + aura/world tier ตาม stack จริง → Idle→Growth→Peak-ready.
+    try {
+      if(window.CardVFX && activeCard && activeCard.id === 'if') {
+        const st = window._csState._ifriedStacks;
+        window.CardVFX.setCharge('if', st, 15, 10);
+        window.CardVFX.setAuraTier('if', Math.min(3, Math.floor(st / 5)));
+        if(st >= 10 && !window._csState._ifriedReadyFired) {
+          window._csState._ifriedReadyFired = true;
+          _cardFx('infernoready'); // crossed peak-ready threshold (cosmetic cue)
+        }
+      }
+    } catch(e){}
   }
   // ATROSUS: crit during Resonance extends window (+0.4s base, +0.6s with Mastery, max +4s total)
   if(isCrit && window._csState && window._csState.cs_atrosusBreak && window._csState._atrosusBreakEndTime && performance.now() < window._csState._atrosusBreakEndTime) {
