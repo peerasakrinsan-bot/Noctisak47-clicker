@@ -9213,6 +9213,25 @@ function updateUI() {
   _el.koNum.textContent   = ko;
   _el.scoreNum.textContent = score;
   _el.coinNum.textContent  = roundCoins;
+  // ── REWARD FEEL: HUD number bounce on increase (juice, คอสเมติกล้วน) ──
+  // transform-only scale punch ผ่าน flip class (ไม่ reflow). throttle กันเด้งทุกเฟรม
+  // ตอน score ไหลรัว (score ขึ้นทุก hit). coin/ko เด้งตอนได้รางวัลจริง.
+  const _nowP = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  if (score > _scorePrev && _nowP - _scorePopT > 130) { _scorePopT = _nowP; _hudPop(_el.scoreNum, (_scorePopFlip = !_scorePopFlip)); }
+  _scorePrev = score;
+  if (roundCoins > _coinPrev && _nowP - _coinPopT > 110) { _coinPopT = _nowP; _hudPop(_el.coinNum, (_coinPopFlip = !_coinPopFlip)); }
+  _coinPrev = roundCoins;
+  if (ko > _koPrev) { _hudPop(_el.koNum, (_koPopFlip = !_koPopFlip)); }
+  _koPrev = ko;
+}
+// HUD reward bounce helper — restart transform punch โดยสลับ a/b class (ไม่มี reflow read)
+let _scorePrev = 0, _coinPrev = 0, _koPrev = 0;
+let _scorePopT = 0, _coinPopT = 0;
+let _scorePopFlip = false, _coinPopFlip = false, _koPopFlip = false;
+function _hudPop(el, flip) {
+  if (!el || !el.classList) return;
+  el.classList.remove(flip ? 'hud-pop-b' : 'hud-pop-a');
+  el.classList.add(flip ? 'hud-pop-a' : 'hud-pop-b');
 }
 function updateComboUI() {
   _el.bigCombo.textContent = combo;
@@ -9220,7 +9239,17 @@ function updateComboUI() {
   w.classList.remove('combo-hot','combo-max');
   if(combo>=30) w.classList.add('combo-hot');
   if(combo>=47) w.classList.add('combo-max');
+  // ── COMBO BOUNCE: เด้งเลขคอมโบเฉพาะตอน "เพิ่มขึ้น" (juice, transform-only, flip restart) ──
+  // เด้งที่ #comboWrap (พ่อ) ที่ไม่มี animation อยู่แล้ว → ไม่ชนกับ flash ของ .combo-max.
+  // เช็ค combo > _comboPrev กันเด้งตอน reset (combo=0) หรือ refresh เฉย ๆ.
+  if (combo > _comboPrev) {
+    _comboPopFlip = !_comboPopFlip;
+    w.classList.remove(_comboPopFlip ? 'combo-pop-b' : 'combo-pop-a');
+    w.classList.add(_comboPopFlip ? 'combo-pop-a' : 'combo-pop-b');
+  }
+  _comboPrev = combo;
 }
+let _comboPopFlip = false, _comboPrev = 0;
 function updateMultiBadge(multi) {
   const b = _el.multiBadge;
   if(multi>1){ b.classList.add('show'); _el.multiNum.textContent='x'+multi; }

@@ -2354,6 +2354,15 @@
   /* coin inline ใน topUI */
   #inlineCoin { font-size:11px; color:var(--gold); letter-spacing:1px; white-space:nowrap; }
 
+  /* ── HUD REWARD BOUNCE (juice) ── เด้งเลข SCORE/COIN/KO ตอน "เพิ่มขึ้น" จริง
+     (reward feel). koNum/coinNum เป็น inline → ต้อง inline-block ถึงจะ transform ได้;
+     scoreNum เป็น block อยู่แล้ว. restart ด้วย a/b flip (ไม่ reflow). */
+  #koNum, #coinNum { display:inline-block; transform-origin:center; }
+  #scoreNum, #koNum, #coinNum { will-change:transform; }
+  #scoreNum { transform-origin:right center; } /* block ชิดขวา → สเกลเข้าหาจอ ไม่ล้นขอบ */
+  .hud-pop-a, .hud-pop-b { animation:hudPop 0.26s cubic-bezier(.2,.85,.3,1); }
+  @keyframes hudPop { 0%{transform:scale(1);} 32%{transform:scale(1.3);} 100%{transform:scale(1);} }
+
   /* ─── PAUSE BUTTON — อยู่ใน .ui-right ─── */
   #pauseBtn {
     position:static; transform:none; z-index:auto;
@@ -2584,6 +2593,13 @@
   #comboLabel { font-size:9px; letter-spacing:3px; color:#444; margin-top:-4px; }
   .combo-hot #bigCombo { color:var(--gold); text-shadow:0 0 20px rgba(255,204,0,0.4); }
   .combo-max #bigCombo { color:var(--red); animation:flash 0.25s infinite alternate; text-shadow:0 0 30px rgba(255,0,0,0.8); }
+  /* ── COMBO BOUNCE (juice) ── เด้งทั้งกล่องคอมโบทุกครั้งที่นับเพิ่ม (transform-only,
+     คง translateY(-50%) ของ #comboWrap ไว้, a/b flip เพื่อ restart โดยไม่ reflow) */
+  #comboWrap { will-change:transform; }
+  #comboWrap.combo-pop-a, #comboWrap.combo-pop-b { animation:comboPop 0.2s cubic-bezier(.2,.85,.3,1); }
+  @keyframes comboPop {
+    0%{transform:translateY(-50%) scale(1);} 40%{transform:translateY(-50%) scale(1.14);} 100%{transform:translateY(-50%) scale(1);}
+  }
 
   /* ─── LORD OF DEATH — active card display ─── */
   /* ─── ACTIVE CARD DISPLAY (มุมซ้ายบน ระหว่างเล่น) ─── */
@@ -2944,9 +2960,11 @@
     animation:critAnim 0.7s forwards; text-shadow:0 0 20px #ff0000;
     will-change:transform,opacity;
   }
-  @keyframes floatUp    { 0%{opacity:1;transform:translateY(0)    scale(1);}   100%{opacity:0;transform:translateY(-70px) scale(0.7);} }
-  @keyframes floatUpOD  { 0%{opacity:1;transform:translateY(0)    scale(1.15);} 100%{opacity:0;transform:translateY(-90px) scale(0.75);} }
-  @keyframes floatUpAgg { 0%{opacity:1;transform:translateY(0)    scale(1.2);}  100%{opacity:0;transform:translateY(-80px) scale(0.8);} }
+  /* impact pop: เด้งสเกลตอนกระทบ (overshoot) แล้วค่อยลอยขึ้น/จางหาย — ปลายทางคงเดิม
+     (ระยะลอย/ความอ่านง่ายไม่เปลี่ยน) เพิ่มแค่ "น้ำหนักการกระแทก" ที่ต้นอนิเมชัน. */
+  @keyframes floatUp    { 0%{opacity:1;transform:translateY(0) scale(0.7);}  16%{opacity:1;transform:translateY(-6px) scale(1.12);} 100%{opacity:0;transform:translateY(-70px) scale(0.7);} }
+  @keyframes floatUpOD  { 0%{opacity:1;transform:translateY(0) scale(0.82);} 16%{opacity:1;transform:translateY(-8px) scale(1.3);}  100%{opacity:0;transform:translateY(-90px) scale(0.75);} }
+  @keyframes floatUpAgg { 0%{opacity:1;transform:translateY(0) scale(0.85);} 14%{opacity:1;transform:translateY(-8px) scale(1.42);} 100%{opacity:0;transform:translateY(-80px) scale(0.8);} }
   /* hn-alt: suffix class that makes browser treat reused nodes as a fresh animation target.
      Contains no extra rules — it's a specificity tag only, toggled by JS bit-flip. */
   .hit-num.hn-alt      { animation-name: floatUp;    }
@@ -4925,6 +4943,9 @@
     #gameRoot.shake-wp,
     #gameRoot.shake-wp2,
     #gameRoot.boss-cam-freeze { animation: none !important; }
+    /* juice bounces: คงฟีดแบ็ก (เลขยังอัปเดต/เปลี่ยนสี) แต่ตัดการเด้งสเกล */
+    #comboWrap.combo-pop-a, #comboWrap.combo-pop-b,
+    .hud-pop-a, .hud-pop-b { animation: none !important; }
     #odScreenAura { transition: opacity .18s ease !important; }
     #weakPoint { animation: none !important; }
     .wp-slot.ready { animation: none !important; }
