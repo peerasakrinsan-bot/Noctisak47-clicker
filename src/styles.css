@@ -5814,6 +5814,57 @@
   50%  { opacity: .24; transform: translate(-50%, -50%) rotate(180deg) scale(1.04); }
   100% { opacity: .14; transform: translate(-50%, -50%) rotate(360deg) scale(.97); }
 }
+/* sacred — ออร่า NOSIRIS (Egyptian soul judgment): แกนทอง + ขอบดำสุริยุปราคา หมุนช้า (soul orbit).
+   ความเข้มไต่ตาม Soul Stack จริงด้วย .game-vfx-tier-*. */
+#cvAuraEl.cv-aura--sacred {
+  opacity: .2; filter: blur(1px);
+  background:
+    radial-gradient(circle at 50% 48%, #fff3c0 0%, var(--cv-aura, #ffdd66) 34%, transparent 60%),
+    radial-gradient(circle at 50% 50%, transparent 56%, rgba(20,12,0,.6) 78%);
+  animation: cvAuraSacred 5s linear infinite;
+}
+@keyframes cvAuraSacred {
+  0%   { opacity: .15; transform: translate(-50%, -50%) rotate(0deg) scale(.98); }
+  50%  { opacity: .24; transform: translate(-50%, -50%) rotate(180deg) scale(1.04); }
+  100% { opacity: .15; transform: translate(-50%, -50%) rotate(360deg) scale(.98); }
+}
+/* void — ออร่า COKE ZERO (black hole): แกนดำยุบ + ขอบขาวบิดเบือน หมุนช้า (gravity warp). */
+#cvAuraEl.cv-aura--void {
+  opacity: .24; filter: blur(1px);
+  background:
+    radial-gradient(circle at 50% 50%, #000010 0%, rgba(0,0,20,.7) 30%, transparent 58%),
+    radial-gradient(circle at 50% 50%, transparent 52%, var(--cv-aura, #e8f4ff) 60%, transparent 66%);
+  animation: cvAuraVoid 4s linear infinite;
+}
+@keyframes cvAuraVoid {
+  0%   { opacity: .16; transform: translate(-50%, -50%) rotate(0deg) scale(1.02); }
+  50%  { opacity: .26; transform: translate(-50%, -50%) rotate(180deg) scale(.94); } /* space breathes/bends */
+  100% { opacity: .16; transform: translate(-50%, -50%) rotate(360deg) scale(1.02); }
+}
+/* analysis — ออร่า DETAILED (tactical scan): ไซแอน-เขียว + เส้นสแกนแนวนอน. ต่างจาก mecha (หกเหลี่ยม). */
+#cvAuraEl.cv-aura--analysis {
+  opacity: .2; filter: blur(.5px); border-radius: 10%;
+  background:
+    radial-gradient(circle, var(--cv-aura, #00ffcc) 0%, transparent 62%),
+    repeating-linear-gradient(0deg, rgba(57,255,170,.18) 0 1px, transparent 1px 6px);
+  animation: cvAuraAnalysis 2s linear infinite;
+}
+@keyframes cvAuraAnalysis {
+  0%   { opacity: .14; transform: translate(-50%, -50%) scale(.98); background-position: 0 0, 0 0; }
+  50%  { opacity: .22; transform: translate(-50%, -50%) scale(1.04); background-position: 0 0, 0 6px; } /* scanning */
+  100% { opacity: .14; transform: translate(-50%, -50%) scale(.98); background-position: 0 0, 0 12px; }
+}
+/* hive — ออร่า MISSSTRESS (bee queen): หกเหลี่ยมรังผึ้งทอง. ต่างจาก gold (เรียบ). */
+#cvAuraEl.cv-aura--hive {
+  opacity: .2; filter: blur(.5px);
+  background: radial-gradient(circle, var(--cv-aura, #ffd24a) 0%, rgba(255,170,20,.4) 40%, transparent 64%);
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  animation: cvAuraHive 2.8s ease-in-out infinite;
+}
+@keyframes cvAuraHive {
+  0%, 100% { opacity: .14; transform: translate(-50%, -50%) scale(.97); }
+  50%      { opacity: .25; transform: translate(-50%, -50%) scale(1.05); } /* hive pulse */
+}
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
@@ -5884,6 +5935,65 @@
 @keyframes cvWorldInferno {
   0%, 100% { background-position: 50% 120%, 50% 128%; filter: brightness(.95); }
   50%      { background-position: 50% 112%, 50% 120%; filter: brightness(1.18); } /* heat rises */
+}
+/* sacred world — แสงทองศักดิ์สิทธิ์จากเบื้องบน + สุริยุปราคาดำขอบจอ (NOSIRIS). ไต่ tier ตาม Soul Stack. */
+#cvWorldEl.cv-world-sacred {
+  background:
+    radial-gradient(130% 80% at 50% -14%, rgba(255,221,102,.16), transparent 56%),
+    radial-gradient(150% 130% at 50% 50%, transparent 52%, rgba(18,12,0,.42) 100%);
+  opacity: .42;
+  animation: cvWorldSacred 6s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-sacred.gv-world-tier-1 { opacity: .56; }
+#cvWorldEl.cv-world-sacred.gv-world-tier-2 { opacity: .72; }
+#cvWorldEl.cv-world-sacred.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldSacred {
+  0%, 100% { background-position: 50% 0%, 50% 50%; filter: brightness(.96); }
+  50%      { background-position: 50% 6%, 50% 50%; filter: brightness(1.14); } /* divine light drifts */
+}
+/* void world — ขอบจอบิดเบือน (gravity lensing) + ดาวยุบ (COKE ZERO). ไต่ tier ตาม DMG Stack. */
+#cvWorldEl.cv-world-void {
+  background:
+    radial-gradient(150% 130% at 50% 50%, transparent 44%, rgba(0,0,20,.55) 100%),
+    radial-gradient(60% 60% at 50% 50%, rgba(120,180,255,.06), transparent 60%);
+  opacity: .4;
+  animation: cvWorldVoid 5.5s ease-in-out infinite;
+}
+#cvWorldEl.cv-world-void.gv-world-tier-1 { opacity: .56; }
+#cvWorldEl.cv-world-void.gv-world-tier-2 { opacity: .72; }
+#cvWorldEl.cv-world-void.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldVoid {
+  0%, 100% { background-size: 100% 100%, 100% 100%; filter: brightness(1); }
+  50%      { background-size: 112% 112%, 88% 88%; filter: brightness(.9); } /* space bends */
+}
+/* analysis world — เส้นสแกนกวาด + กริด data ไซแอน-เขียวจาง ๆ (DETAILED). ไต่ tier ตาม Analysis Stack. */
+#cvWorldEl.cv-world-analysis {
+  background:
+    repeating-linear-gradient(0deg, rgba(0,255,204,.045) 0 1px, transparent 1px 46px),
+    linear-gradient(0deg, rgba(57,255,170,.10), transparent 14%);
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 100%, 100% 200%;
+  opacity: .42;
+  animation: cvWorldAnalysis 3.6s linear infinite;
+}
+#cvWorldEl.cv-world-analysis.gv-world-tier-1 { opacity: .56; }
+#cvWorldEl.cv-world-analysis.gv-world-tier-2 { opacity: .72; }
+#cvWorldEl.cv-world-analysis.gv-world-tier-3 { opacity: .9; }
+@keyframes cvWorldAnalysis {
+  0%   { background-position: 0 0, 0 -100%; }
+  100% { background-position: 0 0, 0 100%; } /* scan line sweeps down */
+}
+/* hive world — เกสร/น้ำผึ้งทองลอย + เงารังผึ้ง (MISSSTRESS), หายใจช้า. */
+#cvWorldEl.cv-world-hive {
+  background:
+    radial-gradient(120% 80% at 50% 116%, rgba(255,200,70,.14), transparent 56%),
+    radial-gradient(80% 60% at 50% -10%, rgba(255,170,20,.10), transparent 52%);
+  opacity: .46;
+  animation: cvWorldHive 5.5s ease-in-out infinite;
+}
+@keyframes cvWorldHive {
+  0%, 100% { background-position: 50% 116%, 50% 0%; filter: brightness(.97); }
+  50%      { background-position: 50% 110%, 50% 4%; filter: brightness(1.12); } /* pollen drifts */
 }
 /* gate atmosphere ออกใต้โหมดเบา: คงไว้แบบ static จาง ๆ ไม่กระพริบ */
 @media (prefers-reduced-motion: reduce) {

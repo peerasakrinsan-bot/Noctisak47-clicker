@@ -4577,12 +4577,15 @@ function csOnClick(isGod) {
     if(_mNow >= cs._mistressZenyIcdUntil) {
       roundCoins += 12;
       cs._mistressZenyIcdUntil = _mNow + 300;
+      _cardFx('hive'); // MISSSTRESS — bees join the hive (ICD-throttled 0.3s, cosmetic)
     }
     if(!cs._mistressOdTimeGain) cs._mistressOdTimeGain = 0;
     if(cs._mistressOdTimeGain < 4) {
       const gain = Math.min(0.35, 4 - cs._mistressOdTimeGain);
       cs._mistressOdTimeGain += gain;
       godSecondsLeft += gain;
+      // MISSSTRESS — hive-expansion charge ring from real OD-extension (0–4, cosmetic)
+      try { if(window.CardVFX && activeCard && activeCard.id === 'mt') window.CardVFX.setCharge('mt', Math.round(cs._mistressOdTimeGain), 4); } catch(e){}
     }
     updateUI();
   }
@@ -4797,12 +4800,25 @@ function csOnOdEnd() {
   const cs = window._csState;
   cs._mistressOdTimeGain = 0;
   cs._mistressZenyIcdUntil = 0; // reset ICD so Zeny gain starts fresh next OD
+  // MISSSTRESS aftermath — OD ends: swarm returns to hive → clear hive-expansion ring (cosmetic)
+  if(cs.cs_mistress) { try { if(window.CardVFX && activeCard && activeCard.id === 'mt') window.CardVFX.clearCharge(); } catch(e){} }
   cs._odTimerClickGain = 0;
   cs._stormyOdTimeGain = 0;
   // COKE ZERO: accumulate dmg bonus +10% per OD end (max +50%)
   if(cs.cs_orchero) {
     if(!cs._orcheroDmgStack) cs._orcheroDmgStack = 0;
     if(cs._orcheroDmgStack < 0.90) cs._orcheroDmgStack = Math.min(0.90, cs._orcheroDmgStack + 0.15);
+    // COKE ZERO VFX — void buildup: aura/world bends harder per real DMG stack (0–0.90 → tier 0–3);
+    // at max, fire the one-time SINGULARITY cue (cosmetic, run-only guard).
+    try {
+      if(window.CardVFX && activeCard && activeCard.id === 'oh') {
+        window.CardVFX.setAuraTier('oh', Math.min(3, Math.round(cs._orcheroDmgStack / 0.30)));
+        if(cs._orcheroDmgStack >= 0.90 && !cs._orcheroSingularityFired) {
+          cs._orcheroSingularityFired = true;
+          _cardFx('singularity');
+        }
+      }
+    } catch(e){}
   }
   // KILL-D01: reset per-OD click counter when OD expires
   if(cs.cs_killD01) cs._killD01OdClickCount = 0;
@@ -4884,6 +4900,8 @@ function csOnBreakEnd() {
     cs._analysisComplete = false;
     cs._analysisBreakActive = false;
     _cardFx('analysisreset'); // analysis-stack expire flourish on BREAK end (cosmetic)
+    // DETAILED aftermath: scan dissolves → aura/world tier back to idle (cosmetic)
+    try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') window.CardVFX.setAuraTier('dtl', 0); } catch(e){}
   }
   // FALLEN WECHAT: reset break-active flag, clear OD bar
   if(cs.cs_fallenWechat && cs._fallenWechatBreakActive) {
@@ -5042,11 +5060,12 @@ function csOnBreakSuccess() {
     cs._osirisStacks = Math.min(5, (cs._osirisStacks || 0) + 1);
     const stackBonus = cs._osirisStacks * 25;
     if(stackBonus > 0) { roundCoins += stackBonus; spawnCoinPopup(stackBonus); }
-    _cardFx('soulstack', { stack: cs._osirisStacks, max: 5 }); // NOSIRIS soul-stack pip (cosmetic)
+    // NOSIRIS soul-stack pip + aura/world tier escalation from real stack (cosmetic)
+    _cardFx('soulstack', { stack: cs._osirisStacks, max: 5, tier: Math.min(3, Math.ceil(cs._osirisStacks * 3 / 5)) });
     if(cs._osirisStacks >= 5) {
       cs._osirisJudgmentEndTime = performance.now() + 8000;
       cs._osirisStacks = 0;
-      _cardFx('judgment'); // soul-stack expire flourish (cosmetic)
+      _cardFx('judgment', { tier: 0 }); // JUDGMENT peak + soul-stack expire + aura decay (cosmetic)
       showBigSplash('JUDGMENT', 'DMG x2 + ZENY x2 — 8s', '#cc88ff', true);
     }
   }
@@ -5143,7 +5162,7 @@ function csOnWpMiss() {
     cs._analysisStacks = Math.max(0, cs._analysisStacks - 2);
     if(cs._analysisStacks < 8) cs._analysisComplete = false;
     // อัปเดต pip ให้ตรงค่าจริงตอนพลาด (ลดลง ไม่มี spark — คอสเมติกล้วน)
-    try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') window.CardVFX.setStack('dtl', cs._analysisStacks, 8); } catch(e){}
+    try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') { window.CardVFX.setStack('dtl', cs._analysisStacks, 8); window.CardVFX.setAuraTier('dtl', Math.min(3, Math.floor(cs._analysisStacks / 3))); } } catch(e){}
     combo = Math.max(1, combo - 3);
     if(typeof updateComboUI === 'function') updateComboUI();
   }
@@ -5264,10 +5283,13 @@ function csOnWpHit(x, y) {
   // DETAILED: increment Analysis stacks on WP collect (max 8); at 8 mark Analysis Complete
   if(cs.cs_detailed) {
     cs._analysisStacks = Math.min(8, (cs._analysisStacks || 0) + 1);
-    _cardFx('analysis', { stack: cs._analysisStacks, max: 8 }); // DETAILED analysis-stack pip (cosmetic)
+    // DETAILED analysis-stack pip + aura/world scan layers grow per real stack (cosmetic)
+    _cardFx('analysis', { stack: cs._analysisStacks, max: 8, tier: Math.min(3, Math.floor(cs._analysisStacks / 3)) });
     if(cs._analysisStacks >= 8 && !cs._analysisComplete) {
       cs._analysisComplete = true;
       _cardFx('analysiscomplete'); // DETAILED — ANALYSIS COMPLETE payoff (cosmetic)
+      // HUD sync (cosmetic): combo (affects) pulses via trigger; also sync OD bar at full map.
+      try { if(window.CardVFX && activeCard && activeCard.id === 'dtl') window.CardVFX.targetPulse('odBar', '#00ffcc', 'analysis'); } catch(e){}
       showBigSplash('ANALYSIS COMPLETE', 'Next BREAK: WINDOW x2', '#00ffee', false);
     }
   }
