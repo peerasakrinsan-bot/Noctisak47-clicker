@@ -959,6 +959,268 @@ const BUILD = {
     }
   },
 
+  // ══ ELITE LEGENDARY PASS — bespoke Elite signature primitives ══════════════
+  // ทุกใบ Elite มี "ท่าไม้ตาย" เฉพาะตัว (silhouette/สี/จังหวะไม่ซ้ำกัน) ที่เหนือ
+  // Premium ชัด แต่ยัง "ไม่แย่งซีน" Mythic (สั้นกว่า/ไม่มี world layer/ไม่ takeover ฉาก).
+  // event-driven, particle จำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts/_rmLife.
+
+  // DOPPELGANGER — เงากระจกแยกร่าง: ภาพสะท้อนสองร่างสปริงออกจากรอยต่อกลาง (รับพิกัด)
+  mirrorSplit(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#b388ff', life = _rmLife(o.dur || 0.42);
+    for (let s = -1; s <= 1; s += 2) {
+      const p = _mk('mtwin', x, y, life, col);
+      p.data = s; p.size = 30; p.vx = s * 150; p.seed = Math.random();
+      _push(p);
+    }
+    const sh = _mk('shadow', x, y, _rmLife(0.4), col); sh.size = 26; _push(sh);
+  },
+  // HYDRA — หัวงูพิษงอกฟาด: คอโค้งจบด้วยหัวสามเหลี่ยมพุ่งออก (count = จำนวนหัว) + พิษ
+  hydraHeads(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#44ff88';
+    let n = _nParts(o.count || 3);
+    const life = _rmLife(o.dur || 0.5);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.6 + (Math.random() - 0.5) * 0.2;
+      const p = _mk('hhead', x, y, life, col);
+      p.rot = ang; p.size = 58 + Math.random() * 18; p.data = i * 0.05; p.seed = Math.random();
+      _push(p);
+    }
+    let s = _nParts(4);
+    for (let i = 0; i < s; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 70 + Math.random() * 80;
+      const e = _mk('spark', x, y, life, '#aaffcc');
+      e.vx = Math.cos(a) * sp; e.vy = Math.sin(a) * sp; e.size = 2 + Math.random() * 1.6; e.data = 1;
+      _push(e);
+    }
+  },
+  // FREEONI — น้ำแข็งแตกกระจาย: ผลึกข้าวหลามตัดก่อตัวเป็นวงแล้วแตกออก + แกนเย็น
+  frostShatter(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#aaf0ff';
+    let n = _nParts(o.count || 7);
+    const life = _rmLife(o.dur || 0.5);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.3, rad = 28 + Math.random() * 24;
+      const p = _mk('ishard', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
+      p.rot = ang + Math.PI / 2; p.size = 9 + Math.random() * 6;
+      p.vx = Math.cos(ang) * (40 + Math.random() * 60); p.vy = Math.sin(ang) * (40 + Math.random() * 60);
+      _push(p);
+    }
+    const g = _mk('glow', x, y, _rmLife(0.4), col); g.size = 38; _push(g);
+  },
+  // TURTLE SHOGUN — กระดองตั้งการ์ด: แผ่นกระดองหกเหลี่ยมล้อมเป็นวงเกราะ + ทุบพื้นคลื่นหนัก
+  shellGuard(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#bfe07a', life = _rmLife(o.dur || 0.6);
+    const offs = [[0, -32], [28, -16], [28, 16], [0, 32], [-28, 16], [-28, -16]];
+    let k = _reduced ? 3 : offs.length;
+    for (let i = 0; i < k; i++) {
+      const h = _mk('hexcell', x + offs[i][0], y + offs[i][1], life, col);
+      h.size = 14 + Math.random() * 5; _push(h);
+    }
+    const w = _mk('bwave', x, y + 24, _rmLife(0.5), col); w.size = 26; w.data = 7; _push(w);
+    const g = _mk('glow', x, y, _rmLife(0.45), col); g.size = 40; _push(g);
+  },
+  // DRAKE — ปล้นสมบัติ "X MARKS THE SPOT": เครื่องหมาย X ทองเรือง + น้ำพุเหรียญโจรสลัด
+  plunderHaul(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ffcc33', life = _rmLife(o.dur || 0.7);
+    const mark = _mk('xmark', x, y, _rmLife(0.6), col); mark.size = 34; _push(mark);
+    const g = _mk('glow', x, y, _rmLife(0.45), '#ffe680'); g.size = 44; _push(g);
+    let n = _nParts(7);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.3, sp = 150 + Math.random() * 120;
+      const p = _mk('coin', x, y, life, col);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp - 70;
+      p.size = 5 + Math.random() * 2; p.rot = Math.random() * 6; p.data = 6 + Math.random() * 6;
+      _push(p);
+    }
+  },
+  // ABYSMELL KNIGHT — ประหารเหวมรณะ: รอยแยกมืดเปิด + ดาบหนักดิ่งฟาดลง + ดูดวิญญาณเข้า
+  abyssReap(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ff2244';
+    const v = _mk('void', x, y, _rmLife(0.5), '#2a0008'); v.size = 40; _push(v);
+    const b = _mk('vblade', x, y, _rmLife(o.dur || 0.5), col); b.size = 110; b.data = 130; _push(b);
+    const d = _mk('drain', x, y, _rmLife(0.5), col); d.size = 60; _push(d);
+    let n = _nParts(5);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2, rad = 50 + Math.random() * 30;
+      const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.5), col);
+      e.vx = -Math.cos(ang) * rad * 1.6; e.vy = -Math.sin(ang) * rad * 1.6; e.size = 2 + Math.random() * 1.8; e.data = 1;
+      _push(e);
+    }
+  },
+  // EXECUSIONER — ขวานประหารฟาดโค้ง: อาร์คขวานกว้างกวาดลง + รอยร้าวพื้น + วาบ
+  guillotine(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ff5544';
+    const a = _mk('axearc', x, y, _rmLife(o.dur || 0.46), col); a.size = 120; _push(a);
+    let n = _nParts(3);
+    for (let i = 0; i < n; i++) {
+      const ang = Math.PI * (0.2 + Math.random() * 0.6);
+      const p = _mk('crack', x, y + 30, _rmLife(0.5), col);
+      p.rot = ang; p.size = 50 + Math.random() * 30; p.data = 3; _push(p);
+    }
+    const f = _mk('flash', 0, 0, _rmLife(0.18), '#1a0000'); f.size = 0.16; _push(f);
+  },
+  // TAO FUNKA — ฟังก์ฟีเวอร์: แท่งอีควอไลเซอร์ดิสโก้เด้งตามบีต + วงจังหวะ + โน้ตสีสด (ไม่ใช่ไฟ)
+  funkBeat(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ff2e88', col2 = o.color2 || '#22e0ff';
+    let n = _reduced ? 3 : 5;
+    const life = _rmLife(o.dur || 0.55);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('eqbar', x + (i - (n - 1) / 2) * 16, y + 20, life, (i % 2) ? col2 : col);
+      p.size = 16; p.data = i; p.seed = Math.random() * 6.28; _push(p);
+    }
+    const r = _mk('ring', x, y, life, col); r.size = 28; _push(r);
+    let s = _nParts(5);
+    for (let i = 0; i < s; i++) {
+      const ang = Math.random() * Math.PI * 2, sp = 80 + Math.random() * 90;
+      const e = _mk('spark', x, y, life, (i % 2) ? col2 : col);
+      e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp - 30; e.size = 2.4 + Math.random() * 2;
+      _push(e);
+    }
+  },
+  // DRUNKULA — ดื่มเลือด: หยดเลือดหมุนวนถูกดูดเข้าหาเขี้ยว + แกนแดงเข้ม + วงดูด
+  bloodDraw(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#cc2255', life = _rmLife(o.dur || 0.6);
+    const d = _mk('drain', x, y, life, col); d.size = 64; _push(d);
+    const g = _mk('glow', x, y, _rmLife(0.45), '#7a0018'); g.size = 36; _push(g);
+    let n = _nParts(o.count || 8);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5, rad = 52 + Math.random() * 34;
+      const p = _mk('droplet', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
+      const sp = rad / life;
+      p.vx = -Math.cos(ang) * sp; p.vy = -Math.sin(ang) * sp; p.size = 4 + Math.random() * 3; p.seed = Math.random() * 6.28;
+      _push(p);
+    }
+  },
+  // INCANTATION SCAMURAI — ชักดาบตัดสัญญา: ยันต์กระดาษปลิว + ดาบซามูไรฟาดเดี่ยวคม + วาบ
+  talismanCut(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#cc66ff', life = _rmLife(o.dur || 0.55);
+    let n = _nParts(o.count || 4);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5;
+      const p = _mk('ofuda', x, y, life, col);
+      p.vx = Math.cos(ang) * (40 + Math.random() * 50); p.vy = Math.sin(ang) * (40 + Math.random() * 50) - 20;
+      p.size = 12 + Math.random() * 4; p.rot = (Math.random() - 0.5) * 1.2; p.data = (Math.random() - 0.5) * 5; p.seed = Math.random();
+      _push(p);
+    }
+    const sl = _mk('slash', x, y, _rmLife(0.34), '#f0d8ff'); sl.rot = -0.6; sl.size = 150; sl.data = 0.06; _push(sl);
+    const f = _mk('flash', 0, 0, _rmLife(0.16), col); f.size = 0.14; _push(f);
+  },
+  // STORMYNITE — พายุประจุ: สายฟ้าแตกแขนงหลายเส้นฟาดลง + แกนวาบ + วงไฟฟ้า
+  stormStrike(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#9be7ff';
+    const core = _mk('bcore', x, y, _rmLife(0.4), '#eaffff'); core.size = 44; _push(core);
+    let n = _reduced ? 1 : 3;
+    for (let i = 0; i < n; i++) {
+      const p = _mk('bolt', x + (i - 1) * 18, y, _rmLife(o.dur || 0.36), col);
+      const pts = []; const segs = 6; let px = x + (i - 1) * 18, py = y - 60;
+      for (let s = 0; s <= segs; s++) { pts.push(px, py); px += (Math.random() - 0.5) * 30; py += 120 / segs; }
+      p.pts = pts; p.size = 3; _push(p);
+    }
+    const r = _mk('ring', x, y, _rmLife(0.45), col); r.size = 26; _push(r);
+  },
+  // DORK LORD — ม่านราตรี: เงาแผ่ + ดาวระยิบร่วงลง (night veil) ไต่ความเข้มตาม tier
+  nightVeil(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#9a66cc', life = _rmLife(o.dur || 0.55);
+    const sh = _mk('shadow', x, y - 10, life, '#1a0a2a'); sh.size = 38; _push(sh);
+    let n = _nParts(o.count || 6);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('star', x + (Math.random() - 0.5) * 90, y - 30 - Math.random() * 30, life, (i % 2) ? '#d8b3ff' : col);
+      p.vx = (Math.random() - 0.5) * 20; p.vy = 60 + Math.random() * 60;
+      p.size = 4 + Math.random() * 3; p.rot = Math.random() * 6; p.data = (Math.random() - 0.5) * 4;
+      _push(p);
+    }
+  },
+  // WHIZPER — เฟสแดช: เครื่องหมายลูกศร after-image ไล่จาง (phase chevrons) — ความเร็วเฟส (รับพิกัด)
+  phaseDash(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#aaffee';
+    let n = _reduced ? 2 : 4;
+    const life = _rmLife(o.dur || 0.42);
+    for (let i = 0; i < n; i++) {
+      const p = _mk('pdash', x - i * 18, y, life, col);
+      p.size = 22 - i * 2; p.data = i * 0.05; p.vx = 200 + Math.random() * 60; p.seed = i;
+      _push(p);
+    }
+  },
+  // GHOSTPING — แล็กกระตุก: ร่างผีจางเทเลพอร์ตกระตุก + แถบปิง + เงาจาง (lag stutter)
+  lagGlitch(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#aaddff', life = _rmLife(o.dur || 0.5);
+    const gh = _mk('lagghost', x, y, life, col); gh.size = 34; gh.seed = Math.random() * 6.28; _push(gh);
+    const sh = _mk('shadow', x, y, _rmLife(0.4), col); sh.size = 24; _push(sh);
+    let n = _nParts(3);
+    for (let i = 0; i < n; i++) {
+      const top = (0.2 + Math.random() * 0.6) * _ch;
+      const p = _mk('scan', 0, top, life, col);
+      p.size = 4 + Math.random() * 10; p.vx = (Math.random() < 0.5 ? -1 : 1) * (14 + Math.random() * 24); p.data = i * 0.04;
+      _push(p);
+    }
+  },
+  // GOBLIN WEEBER — โฟกัสมังงะ: เส้นโฟกัสรวมศูนย์ (manga focus lines) + ดาวอิมแพกต์ + วาบ
+  focusManga(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#9bdc55';
+    const m = _mk('mline', x, y, _rmLife(o.dur || 0.5), col); m.size = 130; m.data = _reduced ? 8 : 16; m.seed = Math.random(); _push(m);
+    const st = _mk('star', x, y, _rmLife(0.4), '#eaffd0'); st.size = 12; st.data = 0; _push(st);
+    const f = _mk('flash', 0, 0, _rmLife(0.16), '#16240a'); f.size = 0.14; _push(f);
+  },
+  // MINORAGE — แร่ปะทุ: ก้อนแร่เจียระไนกระเด็นตามแรงโน้มถ่วง (ore chunks) + รอยร้าว + แสงอำพัน (ไม่ใช่ไฟ)
+  oreErupt(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ff7722';
+    const g = _mk('glow', x, y, _rmLife(0.4), '#ffaa44'); g.size = 36; _push(g);
+    let n = _nParts(o.count || 8);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.34, sp = 150 + Math.random() * 140;
+      const p = _mk('orechunk', x, y, _rmLife(o.dur || 0.7), col);
+      p.vx = Math.cos(ang) * sp * 0.7; p.vy = Math.sin(ang) * sp - 80;
+      p.size = 7 + Math.random() * 7; p.rot = Math.random() * 6; p.data = (Math.random() - 0.5) * 8; p.seed = Math.random();
+      _push(p);
+    }
+    let c = _nParts(3);
+    for (let i = 0; i < c; i++) {
+      const ang = Math.PI * (0.2 + Math.random() * 0.6);
+      const cr = _mk('crack', x, y + 20, _rmLife(0.5), '#d8a14e'); cr.rot = ang; cr.size = 44 + Math.random() * 24; cr.data = 2.5; _push(cr);
+    }
+  },
+  // AMOG RA — เหตุการณ์น่าสงสัย: วงวาร์ปบิดเบี้ยว + เครื่องหมาย "?" + สะเก็ดเตือนแดง (sus)
+  susWarp(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ff7722', life = _rmLife(o.dur || 0.55);
+    const v = _mk('void', x, y, life, '#3a1500'); v.size = 36; _push(v);
+    const r = _mk('ring', x, y, life, col); r.size = 28; _push(r);
+    const q = _mk('dglyph', x, y - 6, _rmLife(0.7), '#ffcc44'); q.txt = '?'; q.size = 26; q.vy = -60; q.data = 0.04; _push(q);
+    let n = _nParts(5);
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2, sp = 70 + Math.random() * 70;
+      const e = _mk('spark', x, y, life, '#ff5522');
+      e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp; e.size = 2.2 + Math.random() * 1.8;
+      _push(e);
+    }
+  },
+  // WEEBVIL DUDE — ปลุกร่างมืด: เงาปะทุ + ถ่านม่วงลอยขึ้น + ยันต์ปลุก + แกนเรือง (dark awakening)
+  darkAwaken(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#bb77dd', life = _rmLife(o.dur || 0.6);
+    const sh = _mk('shadow', x, y, life, '#160a22'); sh.size = 40; _push(sh);
+    const ru = _mk('rune', x, y, _rmLife(0.6), col); ru.size = 34; ru.data = 6; _push(ru);
+    const g = _mk('glow', x, y, _rmLife(0.45), col); g.size = 36; _push(g);
+    let n = _nParts(6);
+    for (let i = 0; i < n; i++) {
+      const e = _mk('spark', x + (Math.random() - 0.5) * 50, y + 10, life, (i % 2) ? '#cc88ee' : col);
+      e.vx = (Math.random() - 0.5) * 60; e.vy = -(120 + Math.random() * 120); e.size = 2.4 + Math.random() * 2; e.data = 1;
+      _push(e);
+    }
+  },
+  // LADY TRAINEE — สปอตไลต์ไอดอล: ลำแสงเวทีสองข้างกวาดเข้า + ประกายดาว + แกนเรืองชมพู (idol stage)
+  idolSpotlight(o) {
+    const x = _ox0(o), y = _oy0(o), col = o.color || '#ff99dd', life = _rmLife(o.dur || 0.6);
+    const sp = _mk('spotcone', x, y, life, col); sp.size = o.size || 90; _push(sp);
+    const g = _mk('glow', x, y, _rmLife(0.45), '#ffd0ee'); g.size = 40; _push(g);
+    let n = _nParts(6);
+    for (let i = 0; i < n; i++) {
+      const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5, spd = 70 + Math.random() * 70;
+      const e = _mk('star', x, y - 10, life, (i % 2) ? '#ffffff' : col);
+      e.vx = Math.cos(ang) * spd * 0.5; e.vy = Math.sin(ang) * spd * 0.4 + 20;
+      e.size = 6 + Math.random() * 4; e.rot = Math.random() * 6; e.data = (Math.random() - 0.5) * 4;
+      _push(e);
+    }
+  },
+
   // ── BOSS SKILL PRIMITIVES ──────────────────────────────────────────────────
   // "ท่าไม้ตาย" ของบอสแต่ละตัว — ยิงเฉพาะตอน skill activate (Overdrive) เท่านั้น
   // ไม่มี loop ถาวร, particle ต่อครั้งจำกัด, เคารพ reduced-motion/intensity ผ่าน _nParts.
@@ -1687,6 +1949,264 @@ function _draw(p, dt) {
       ctx.globalAlpha = (1 - t) * 0.7;
       ctx.strokeStyle = _rgba('#6a1b9a', 1); ctx.lineWidth = 1.4; // ขอบม่วง (หนี้)
       ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 6.283); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    // ── ELITE LEGENDARY PASS kinds ────────────────────────────────────────
+    case 'mtwin': {
+      // เงากระจกแยกร่าง: ครึ่งวงโค้งสะท้อนสปริงออก (p.data = ทิศ -1/+1) แล้วจาง
+      p.x += p.vx * dt; p.vx *= 0.9;
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const r = p.size * (0.7 + t * 0.7);
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.scale(p.data, 1);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a) * 0.85;
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
+      ctx.beginPath(); ctx.arc(0, 0, r, -Math.PI * 0.6, Math.PI * 0.6); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.globalAlpha = Math.max(0, a) * 0.5; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.7, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'hhead': {
+      // หัวงูพิษ: คอโค้งพุ่งออกตามมุม p.rot จบด้วยหัวสามเหลี่ยม (strike → recede)
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      const a = Math.sin(Math.min(1, lt) * Math.PI);
+      const len = p.size * a;
+      const ex = Math.cos(p.rot) * len, ey = Math.sin(p.rot) * len;
+      const nx = -Math.sin(p.rot), ny = Math.cos(p.rot), bend = (p.seed - 0.5) * 40;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(ex * 0.5 + nx * bend, ey * 0.5 + ny * bend, ex, ey); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.translate(ex, ey); ctx.rotate(p.rot);
+      ctx.fillStyle = _rgba('#eaffd0', a);
+      ctx.beginPath(); ctx.moveTo(9, 0); ctx.lineTo(-5, 5); ctx.lineTo(-5, -5); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'ishard': {
+      // ผลึกน้ำแข็ง: ข้าวหลามตัดเจียระไนกระเด็นออก + หมุน + แวววาว แล้วจาง
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.94; p.vy *= 0.94;
+      const a = (t < 0.25) ? (t / 0.25) : (1 - (t - 0.25) / 0.75);
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 0.7);
+      ctx.strokeStyle = _rgba('#ffffff', a); ctx.lineWidth = 1.2;
+      const s = p.size;
+      ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(s * 0.5, 0); ctx.lineTo(0, s); ctx.lineTo(-s * 0.5, 0); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'xmark': {
+      // X MARKS THE SPOT: เครื่องหมาย X ทอง "ตอก" ลง (snap) + เรืองทอง
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const snap = t < 0.2 ? (1.5 - t / 0.2 * 0.5) : 1;
+      const r = p.size * snap;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(0.785);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
+      ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.moveTo(0, -r); ctx.lineTo(0, r); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      break;
+    }
+    case 'vblade': {
+      // ดาบหนักดิ่งฟาดลง: ใบดาบจากเบื้องบนพุ่งลงสู่กลาง (p.data = ระยะดิ่ง) + คมวาบ
+      const desc = Math.min(1, t * 1.6);
+      const topY = p.y - p.data * (1 - desc);
+      const a = t < 0.7 ? 1 : (1 - (t - 0.7) / 0.3);
+      ctx.save();
+      ctx.translate(p.x, topY);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const grad = ctx.createLinearGradient(0, -p.size, 0, 0);
+      grad.addColorStop(0, _rgba(p.color, 0)); grad.addColorStop(0.6, _rgba(p.color, 0.9)); grad.addColorStop(1, _rgba('#ffffff', 1));
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(-5, -p.size); ctx.lineTo(5, -p.size); ctx.lineTo(3, 6); ctx.lineTo(0, 14); ctx.lineTo(-3, 6); ctx.closePath(); ctx.fill();
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
+      ctx.strokeStyle = _rgba('#fff0f0', a); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(0, -p.size); ctx.lineTo(0, 10); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      break;
+    }
+    case 'axearc': {
+      // ขวานประหารโค้ง: อาร์คหนากวาดจากบนลงล่าง + คมเรือง
+      const sweep = Math.min(1, t * 1.4);
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const start = -Math.PI * 0.95 + sweep * Math.PI * 0.9, R = p.size;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineCap = 'round'; ctx.lineWidth = 6;
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(12);
+      ctx.beginPath(); ctx.arc(0, 0, R, start, start + 0.7); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.globalAlpha = a * 0.8; ctx.lineWidth = 2; ctx.strokeStyle = _rgba('#fff0f0', 1);
+      ctx.beginPath(); ctx.arc(0, 0, R, start + 0.1, start + 0.6); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'eqbar': {
+      // แท่งอีควอไลเซอร์ดิสโก้: เด้งขึ้น-ลงตามบีต (sin) + ไล่เฉดเรือง — funk groove
+      const beat = 0.45 + 0.55 * Math.abs(Math.sin(p.age * 16 + p.seed + p.data));
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const h = 40 * beat;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      const grad = ctx.createLinearGradient(0, 0, 0, -h);
+      grad.addColorStop(0, _rgba(p.color, 0.3)); grad.addColorStop(1, _rgba(p.color, 1));
+      ctx.fillStyle = grad;
+      ctx.fillRect(-p.size * 0.3, -h, p.size * 0.6, h);
+      ctx.restore();
+      break;
+    }
+    case 'droplet': {
+      // หยดเลือดถูกดูดเข้า: เคลื่อนเข้าศูนย์ + รูปหยดน้ำ + แวว
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const wob = Math.sin(p.age * 10 + p.seed) * 2;
+      ctx.save();
+      ctx.translate(p.x + wob, p.y);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 1);
+      const s = p.size * (0.7 + (1 - t) * 0.5);
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 1.4); ctx.quadraticCurveTo(s, 0, 0, s); ctx.quadraticCurveTo(-s, 0, 0, -s * 1.4); ctx.closePath(); ctx.fill();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = _rgba('#ff8899', a * 0.7);
+      ctx.beginPath(); ctx.arc(-s * 0.25, -s * 0.2, s * 0.22, 0, 6.283); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'ofuda': {
+      // ยันต์กระดาษ: แผ่นสี่เหลี่ยมยาวปลิวหมุน (ตก) + เส้นอักขระ (talisman)
+      p.x += p.vx * dt; p.vy += 120 * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      const a = (t < 0.2) ? (t / 0.2) : (1 - (t - 0.2) / 0.8);
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = Math.max(0, a);
+      const w = p.size * 0.5, h = p.size * 1.5;
+      ctx.fillStyle = _rgba('#f4ecff', 1);
+      ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(0, -h * 0.36); ctx.lineTo(0, h * 0.36); ctx.stroke();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a * 0.5; ctx.lineWidth = 1;
+      ctx.strokeRect(-w / 2, -h / 2, w, h);
+      ctx.restore();
+      break;
+    }
+    case 'pdash': {
+      // เฟสแดช after-image: เครื่องหมายลูกศร ">" ไล่ตามกัน เคลื่อนไป+จาง (honor delay)
+      if (p.age < p.data) break;
+      const lt = (p.age - p.data) / (p.life - p.data);
+      p.x += p.vx * dt;
+      const a = (1 - lt) * 0.9;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
+      const s = p.size;
+      ctx.beginPath(); ctx.moveTo(-s, -s * 0.7); ctx.lineTo(0, 0); ctx.lineTo(-s, s * 0.7); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      break;
+    }
+    case 'lagghost': {
+      // ร่างผีแล็ก: เทเลพอร์ตกระตุก (snap ตามขั้น) + ขอบ RGB split + จาง
+      const steps = 5, step = Math.floor(p.age * 18) % steps;
+      const jx = (step - 2) * 10 + Math.sin(p.seed + step) * 6, jy = Math.cos(p.seed + step * 1.7) * 5;
+      const a = Math.sin(Math.min(1, t) * Math.PI) * 0.8;
+      const px = p.x + jx, py = p.y + jy, r = p.size * 0.6;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a) * 0.6;
+      ctx.fillStyle = _rgba('#ff3366', 1);
+      ctx.beginPath(); ctx.arc(px - 3, py, r, 0, 6.283); ctx.fill();
+      ctx.fillStyle = _rgba('#33ddff', 1);
+      ctx.beginPath(); ctx.arc(px + 3, py, r, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath(); ctx.arc(px, py, r * 0.8, 0, 6.283); ctx.fill();
+      break;
+    }
+    case 'mline': {
+      // เส้นโฟกัสมังงะ: ก้านรัศมีรวมศูนย์ ปลายในหดเข้า (snap focus) + วาบ
+      const focus = t < 0.5 ? (1 - t / 0.5) : 0;
+      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const outer = p.size, inner = p.size * (0.45 + focus * 0.5), lines = p.data | 0;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a) * 0.85;
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      for (let i = 0; i < lines; i++) {
+        const ang = (i / lines) * Math.PI * 2 + p.seed;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * outer, Math.sin(ang) * outer);
+        ctx.lineTo(Math.cos(ang) * inner, Math.sin(ang) * inner); ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    }
+    case 'orechunk': {
+      // ก้อนแร่เจียระไน: พุ่งขึ้น→ร่วงตามโน้มถ่วง + หมุน + หน้าเหลี่ยมมีแวว
+      p.vy += 760 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      const a = 1 - t * t;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = Math.max(0, a);
+      const s = p.size;
+      ctx.fillStyle = _rgba(p.color, 1);
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.5, -s * 0.3); ctx.lineTo(0, -s * 0.55); ctx.lineTo(s * 0.55, -s * 0.1);
+      ctx.lineTo(s * 0.35, s * 0.5); ctx.lineTo(-s * 0.4, s * 0.45); ctx.closePath(); ctx.fill();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a * 0.7);
+      ctx.fillStyle = _rgba('#ffe0a0', 1);
+      ctx.beginPath(); ctx.moveTo(-s * 0.1, -s * 0.4); ctx.lineTo(s * 0.2, -s * 0.15); ctx.lineTo(-s * 0.05, 0); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'spotcone': {
+      // สปอตไลต์เวที: ลำแสงสามเหลี่ยมสองข้างกวาดเข้าหากลาง (idol stage light)
+      const a = Math.sin(Math.min(1, t) * Math.PI) * 0.6;
+      const sweep = (1 - Math.min(1, t)) * 0.5;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, a);
+      for (let s = -1; s <= 1; s += 2) {
+        ctx.save(); ctx.rotate(s * (0.5 + sweep));
+        const grad = ctx.createLinearGradient(0, 0, 0, -p.size);
+        grad.addColorStop(0, _rgba(p.color, 0.5)); grad.addColorStop(1, _rgba(p.color, 0));
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-p.size * 0.22, -p.size); ctx.lineTo(p.size * 0.22, -p.size); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
       ctx.restore();
       break;
     }

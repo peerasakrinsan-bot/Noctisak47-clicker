@@ -5865,6 +5865,75 @@
   0%, 100% { opacity: .14; transform: translate(-50%, -50%) scale(.97); }
   50%      { opacity: .25; transform: translate(-50%, -50%) scale(1.05); } /* hive pulse */
 }
+/* ══ ELITE LEGENDARY PASS auras — แต่ละใบ Elite มีออร่า passive เฉพาะตัว (เหนือ
+   Premium ชัด แต่เบากว่า/ไม่ takeover แบบ Mythic). transform/opacity ล้วน. ══ */
+/* mirror — DOPPELGANGER: ออร่าสองแฉกสะท้อนกระจก (เงาคู่) */
+#cvAuraEl.cv-aura--mirror { opacity: .2; filter: blur(1.5px);
+  background:
+    radial-gradient(50% 70% at 38% 50%, var(--cv-aura, #b388ff) 0%, transparent 70%),
+    radial-gradient(50% 70% at 62% 50%, var(--cv-aura, #b388ff) 0%, transparent 70%); }
+/* venom — HYDRA: ออร่าพิษเขียวเดือดปุด */
+#cvAuraEl.cv-aura--venom { opacity: .2; filter: blur(2px);
+  background: radial-gradient(circle at 50% 54%, var(--cv-aura, #44ff88) 0%, rgba(20,60,10,.5) 46%, transparent 72%);
+  animation-duration: 2.2s; }
+/* ice — FREEONI: ออร่าผลึกน้ำแข็งเหลี่ยม ฟ้าซีด */
+#cvAuraEl.cv-aura--ice { opacity: .16; filter: blur(1px); border-radius: 14%;
+  background: radial-gradient(circle, var(--cv-aura, #66ccff) 0%, rgba(200,240,255,.4) 38%, transparent 66%);
+  clip-path: polygon(50% 0, 82% 18%, 100% 50%, 82% 82%, 50% 100%, 18% 82%, 0 50%, 18% 18%);
+  animation-duration: 3.4s; }
+/* shell — TURTLE SHOGUN: ออร่ากระดองหกเหลี่ยมโอลีฟ */
+#cvAuraEl.cv-aura--shell { opacity: .2; filter: blur(.5px);
+  background: radial-gradient(circle, var(--cv-aura, #9bbb55) 0%, rgba(60,80,20,.4) 42%, transparent 66%);
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  animation-duration: 3.0s; }
+/* plunder — DRAKE: ออร่าทองสมบัติโจรสลัด (อุ่นกว่า gold) */
+#cvAuraEl.cv-aura--plunder { opacity: .2; filter: blur(1px);
+  background:
+    radial-gradient(circle at 50% 48%, #fff0b0 0%, var(--cv-aura, #ffcc33) 36%, transparent 66%),
+    radial-gradient(circle at 50% 58%, rgba(180,90,20,.4) 40%, transparent 72%); }
+/* abyss — ABYSMELL KNIGHT: ออร่าเหวแดงเลือด-ดำ */
+#cvAuraEl.cv-aura--abyss { opacity: .22; filter: blur(3px);
+  background: radial-gradient(circle at 50% 50%, var(--cv-aura, #cc3344) 0%, rgba(20,0,8,.6) 40%, transparent 72%); }
+/* funk — TAO FUNKA: ออร่าดิสโก้ชมพู-ไซแอน คึกคัก */
+#cvAuraEl.cv-aura--funk { opacity: .2; filter: blur(1.5px);
+  background:
+    radial-gradient(circle at 42% 50%, var(--cv-aura, #ff2e88) 0%, transparent 60%),
+    radial-gradient(circle at 60% 52%, rgba(34,224,255,.5) 0%, transparent 64%);
+  animation: cvAuraFunk 1.4s ease-in-out infinite; }
+@keyframes cvAuraFunk {
+  0%, 100% { opacity: .14; transform: translate(-50%, -50%) scale(.96); }
+  50%      { opacity: .26; transform: translate(-50%, -50%) scale(1.07); }
+}
+/* blood — DRUNKULA: ออร่าเลือดแดงเข้ม (จังหวะดูด) */
+#cvAuraEl.cv-aura--blood { opacity: .2; filter: blur(2px);
+  background: radial-gradient(circle at 50% 52%, var(--cv-aura, #cc2244) 0%, rgba(60,0,12,.55) 44%, transparent 72%);
+  animation: cvAuraDrain 2.4s ease-in-out infinite; }
+/* storm — STORMYNITE: ออร่าไฟฟ้าไซแอน วูบสายฟ้า */
+#cvAuraEl.cv-aura--storm { opacity: .18; filter: blur(1px); border-radius: 18%;
+  background: radial-gradient(circle, var(--cv-aura, #66ddff) 0%, rgba(40,120,200,.4) 40%, transparent 66%);
+  animation: cvAuraStorm 1.8s ease-in-out infinite; }
+@keyframes cvAuraStorm {
+  0%, 100% { opacity: .12; transform: translate(-50%, -50%) scale(.97); }
+  44%      { opacity: .14; transform: translate(-50%, -50%) scale(1.0); }
+  50%      { opacity: .28; transform: translate(-50%, -50%) scale(1.05); } /* lightning flicker */
+  56%      { opacity: .15; transform: translate(-50%, -50%) scale(1.02); }
+}
+/* night — DORK LORD: ออร่าม่านราตรีม่วงเข้มจากเบื้องบน */
+#cvAuraEl.cv-aura--night { opacity: .22; filter: blur(3px);
+  background:
+    radial-gradient(circle at 50% 38%, var(--cv-aura, #7744aa) 0%, rgba(10,0,24,.6) 44%, transparent 74%),
+    radial-gradient(70% 50% at 50% 14%, rgba(20,10,40,.6) 0%, transparent 70%);
+  animation-duration: 3.2s; }
+/* phase — WHIZPER: ออร่าเฟส/ความเร็วเขียวมิ้นต์ (เร็ว/บาง) */
+#cvAuraEl.cv-aura--phase { opacity: .15; filter: blur(1.5px);
+  background: radial-gradient(60% 50% at 46% 50%, var(--cv-aura, #aaffee) 0%, transparent 64%);
+  animation-duration: 1.6s; }
+/* ore — MINORAGE: ออร่าแร่อำพันร้อน */
+#cvAuraEl.cv-aura--ore { opacity: .2; filter: blur(1.5px);
+  background:
+    radial-gradient(circle at 50% 54%, var(--cv-aura, #cc7733) 0%, rgba(80,40,10,.5) 44%, transparent 70%),
+    radial-gradient(circle at 50% 60%, rgba(255,170,60,.45) 30%, transparent 66%);
+  animation-duration: 2.4s; }
 @keyframes cvAuraDrain {
   0%, 100% { opacity: .22; transform: translate(-50%, -50%) scale(1.08); }
   50%      { opacity: .1;  transform: translate(-50%, -50%) scale(.9); }
