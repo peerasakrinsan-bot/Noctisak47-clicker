@@ -8180,9 +8180,16 @@ const INPUT = (() => {
 
   // ── Helpers ──
   function stddev(arr) {
-    if(arr.length < 3) return 999;
-    const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
-    return Math.sqrt(arr.map(x=>(x-mean)**2).reduce((a,b)=>a+b,0)/arr.length);
+    const n = arr.length;
+    if(n < 3) return 999;
+    // PERF: single-pass mean + variance — no .map()/.reduce() temp arrays/closures
+    // (this runs every tap once the bot rate threshold is crossed).
+    let sum = 0;
+    for(let i = 0; i < n; i++) sum += arr[i];
+    const mean = sum / n;
+    let varSum = 0;
+    for(let i = 0; i < n; i++) { const d = arr[i] - mean; varSum += d * d; }
+    return Math.sqrt(varSum / n);
   }
 
   function checkBot(now) {
@@ -8225,8 +8232,10 @@ const INPUT = (() => {
     if(botPenalty && Math.random() > BOT_PENALTY_SCALE) return;
 
     // total rate cap — drop if over TOTAL_CAP_PER_SEC
-    const recentCount = recentTimestamps.filter(t => now - t < 1000).length;
-    if(recentCount > TOTAL_CAP_PER_SEC) return;
+    // PERF: checkBot() above just trimmed recentTimestamps to the same 1000ms
+    // window (BOT_WINDOW_MS), so its length already equals the count — no need
+    // to allocate a fresh filtered array + closure on every accepted tap.
+    if(recentTimestamps.length > TOTAL_CAP_PER_SEC) return;
 
     // per-finger rate limit
     if(e.identifier !== undefined) {
@@ -8348,8 +8357,10 @@ $('tapZone').addEventListener('touchstart', e => {
   if(!audioWarmedUp) warmUpAudio();
   // จำกัด simultaneous touches ด้วย e.touches.length (touches ทั้งหมดบนจอ)
   if(e.touches.length > 3) return;
-  const touches = [...e.changedTouches].slice(0, 3);
-  touches.forEach(t => INPUT.accept(t));
+  // PERF: index the live TouchList directly — no spread/slice/forEach allocation
+  // ใน hot path (เดิม [...changedTouches].slice().forEach() = 2 array + 1 closure ต่อ touch)
+  const _n = e.changedTouches.length < 3 ? e.changedTouches.length : 3;
+  for(let i = 0; i < _n; i++) INPUT.accept(e.changedTouches[i]);
 }, { passive: false });
 
 $('tapZone').addEventListener('click', e => {
@@ -8364,8 +8375,9 @@ wpEl.addEventListener('touchstart', e => {
   e.stopPropagation();
   if(!audioWarmedUp) warmUpAudio();
   if(e.touches.length > 3) return;
-  const touches = [...e.changedTouches].slice(0, 3);
-  touches.forEach(t => INPUT.accept(t));
+  // PERF: index the live TouchList directly — no spread/slice/forEach allocation in hot path
+  const _n = e.changedTouches.length < 3 ? e.changedTouches.length : 3;
+  for(let i = 0; i < _n; i++) INPUT.accept(e.changedTouches[i]);
 }, { passive: false });
 
 wpEl.addEventListener('click', e => {
