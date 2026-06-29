@@ -5829,13 +5829,19 @@
   background:
     radial-gradient(150% 120% at 50% 50%, transparent 38%, rgba(10,0,24,.5) 100%),
     radial-gradient(120% 70% at 50% 118%, rgba(102,51,170,.22), transparent 60%);
+  background-repeat: no-repeat;
+  background-size: 150% 150%, 160% 130%;
   opacity: .5;
-  animation: cvWorldGloom 5s ease-in-out infinite;
+  /* breathe + advance: เหวเงาคืบเข้า-ถอยช้า ๆ (ไม่ใช่ vignette นิ่ง) — "ความมืดกลืนสนาม" */
+  animation: cvWorldGloom 7s ease-in-out infinite;
 }
 #cvWorldEl.cv-world-gloom.gv-world-tier-1 { opacity: .62; }
 #cvWorldEl.cv-world-gloom.gv-world-tier-2 { opacity: .76; }
 #cvWorldEl.cv-world-gloom.gv-world-tier-3 { opacity: .9; }
-@keyframes cvWorldGloom { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.15); } }
+@keyframes cvWorldGloom {
+  0%, 100% { background-position: 50% 56%, 50% 122%; filter: brightness(.94); }
+  50%      { background-position: 50% 44%, 50% 110%; filter: brightness(1.12); } /* darkness creeps up */
+}
 /* gate atmosphere ออกใต้โหมดเบา: คงไว้แบบ static จาง ๆ ไม่กระพริบ */
 @media (prefers-reduced-motion: reduce) {
   #cvWorldEl.cv-world { animation: none !important; opacity: .5 !important; }
