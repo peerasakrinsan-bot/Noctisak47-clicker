@@ -3124,6 +3124,13 @@
     0%{transform:translate(0,0);}20%{transform:translate(-4px,3px);}40%{transform:translate(4px,-3px);}
     60%{transform:translate(-3px,2px);}80%{transform:translate(2px,-1px);}100%{transform:translate(0,0);}
   }
+  /* ── BOSS DEATH CAMERA: freeze / hit-stop ── ดันเข้าเล็กน้อยแล้วค้างสั้น ๆ ก่อนคลาย
+     (ลายเซ็นกล้องของบอสอีเทอเรียล holy/moon/void/assassin). transform เท่านั้น, scale ขึ้น
+     จึงไม่เผยขอบจอ. gate ครบเหมือน shake (reduce-flash/flash-low/flash-off/reduced-motion) */
+  @keyframes bossCamFreeze {
+    0%{transform:scale(1);}14%{transform:scale(1.035);}68%{transform:scale(1.03);}100%{transform:scale(1);}
+  }
+  #gameRoot.boss-cam-freeze { animation:bossCamFreeze 0.26s ease-out; }
 
   /* ══ TAP ZONE ══ */
   #tapZone {
@@ -3678,6 +3685,7 @@
   body.reduce-flash #gameRoot.shake,
   body.reduce-flash #gameRoot.shake-wp,
   body.reduce-flash #gameRoot.shake-wp2,
+  body.reduce-flash #gameRoot.boss-cam-freeze,
   body.reduce-flash #gameRoot.pressure-impact-freeze { animation:none !important; }
   body.reduce-flash #weakPoint { animation:wpPulseSoft 1.2s ease-in-out infinite alternate; box-shadow:0 0 10px 3px rgba(255,34,51,0.35); }
   @keyframes wpPulseSoft { 0%{transform:translate(-50%,-50%) scale(1);} 100%{transform:translate(-50%,-50%) scale(1.04);} }
@@ -4744,6 +4752,7 @@
   body.flash-off #gameRoot.shake,
   body.flash-off #gameRoot.shake-wp,
   body.flash-off #gameRoot.shake-wp2,
+  body.flash-off #gameRoot.boss-cam-freeze,
   body.flash-off #gameRoot.pressure-impact-freeze {
     animation: none !important;
   }
@@ -4914,7 +4923,8 @@
   @media (prefers-reduced-motion: reduce) {
     #gameRoot.shake,
     #gameRoot.shake-wp,
-    #gameRoot.shake-wp2 { animation: none !important; }
+    #gameRoot.shake-wp2,
+    #gameRoot.boss-cam-freeze { animation: none !important; }
     #odScreenAura { transition: opacity .18s ease !important; }
     #weakPoint { animation: none !important; }
     .wp-slot.ready { animation: none !important; }

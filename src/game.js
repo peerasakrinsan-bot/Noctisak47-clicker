@@ -8924,6 +8924,7 @@ function bossKO() {
   spawnCoinPopup(bossCoins);
   showBigSplash('BOSS KO','+'+bossCoins+' COIN','#ffcc00');
   showKOFlash(true);
+  _triggerBossDeathVfx(); // ฉากตายเฉพาะตัวต่อบอส + กล้องประจำบอส (คอสเมติก)
   csOnKO();
 }
 
@@ -8940,21 +8941,61 @@ function updateOdScreenAura(level) {
 // บอสสกิล VFX — ยิงตอน Overdrive (ท่าไม้ตายของบอสที่สวมอยู่). คอสเมติกล้วน:
 // ไม่แตะ balance/save/coin — แค่ส่ง id สกินบอส + พิกัด + ระดับ OD ให้เลเยอร์ canvas
 // ตัดสินใจหน้าตา/สีเอง. no-op อัตโนมัติเมื่อ canvas ไม่รองรับ/ปิด VFX/reduced-motion.
+function _bossSkillCoords() {
+  const r = (boxer && boxer.getBoundingClientRect) ? boxer.getBoundingClientRect() : null;
+  if (r && r.width) return { x: r.left + r.width / 2, y: r.top + r.height * 0.42 };
+  return { x: undefined, y: undefined };
+}
 function _triggerBossSkillVfx(lv) {
   try {
     const CV = window.CanvasVFX;
     if (!CV || typeof CV.spawnBossSkillVfx !== 'function') return;
-    let x, y;
-    const r = (boxer && boxer.getBoundingClientRect) ? boxer.getBoundingClientRect() : null;
-    if (r && r.width) { x = r.left + r.width / 2; y = r.top + r.height * 0.42; }
-    CV.spawnBossSkillVfx(getActiveSkinId(), { x, y, level: lv });
-    // เด้งภาพบอสสั้น ๆ ให้ผู้เล่นรู้สึกว่า "สกิลของบอสตัวนี้กำลังทำงาน"
-    if (boxer && boxer.classList) {
-      boxer.classList.remove('boss-skill-pulse');
-      void boxer.offsetWidth;
-      boxer.classList.add('boss-skill-pulse');
-      setTimeout(() => { if (boxer && boxer.classList) boxer.classList.remove('boss-skill-pulse'); }, 520);
-    }
+    const skinId = getActiveSkinId();
+    const c0 = _bossSkillCoords();
+    // 1) ANTICIPATION — skill charge telegraph (< 300ms) ก่อนปล่อยท่าไม้ตาย
+    if (typeof CV.spawnBossSkillCharge === 'function') CV.spawnBossSkillCharge(skinId, { x: c0.x, y: c0.y, level: lv });
+    // 2) RELEASE — หน่วงคอสเมติก ~270ms ให้ charge นำก่อน (ไม่กระทบ logic OD ใด ๆ:
+    //    godLevel/ดาเมจ/ดูเรชัน ตั้งไปแล้วใน activateGodLevel — นี่เป็นเลเยอร์ภาพล้วน)
+    const _delay = (CV.reducedMotion && CV.reducedMotion()) ? 0 : 270;
+    const _fire = () => {
+      try {
+        const c = _bossSkillCoords(); // คำนวณพิกัดใหม่ตอนยิงจริง (บอสอาจขยับ)
+        CV.spawnBossSkillVfx(skinId, { x: c.x, y: c.y, level: lv });
+        // เด้งภาพบอสสั้น ๆ ให้ผู้เล่นรู้สึกว่า "สกิลของบอสตัวนี้กำลังทำงาน"
+        if (boxer && boxer.classList) {
+          boxer.classList.remove('boss-skill-pulse');
+          void boxer.offsetWidth;
+          boxer.classList.add('boss-skill-pulse');
+          setTimeout(() => { if (boxer && boxer.classList) boxer.classList.remove('boss-skill-pulse'); }, 520);
+        }
+      } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
+    };
+    if (_delay > 0) setTimeout(_fire, _delay); else _fire();
+  } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
+}
+
+// บอส DEATH VFX + camera identity — ยิงครั้งเดียวตอนล้มบอส (climactic, ไม่ spam).
+// คอสเมติกล้วน: ไม่แตะ balance/save/coin. กล้องประจำบอสมาจาก CanvasVFX.BOSS_VFX[id].camera
+// และ reuse ระบบ screen-shake เดิม (gate ครบทุกโหมด flash) + freeze ใหม่ (hit-stop).
+function _applyBossCamera(cam) {
+  const gr = document.getElementById('gameRoot');
+  if (!gr || !gr.classList) return;
+  let cls, dur;
+  if (cam === 'shake')        { cls = 'shake';          dur = 500; }
+  else if (cam === 'shakeWp') { cls = 'shake-wp';       dur = 300; }
+  else if (cam === 'freeze')  { cls = 'boss-cam-freeze'; dur = 260; }
+  else return; // 'none' → ไม่มีกล้อง
+  gr.classList.remove(cls); void gr.offsetWidth; gr.classList.add(cls);
+  setTimeout(() => { if (gr && gr.classList) gr.classList.remove(cls); }, dur);
+}
+function _triggerBossDeathVfx() {
+  try {
+    const CV = window.CanvasVFX;
+    const c = _bossSkillCoords();
+    const skinId = getActiveSkinId();
+    if (CV && typeof CV.spawnBossDeathVfx === 'function') CV.spawnBossDeathVfx(skinId, { x: c.x, y: c.y });
+    const meta = (CV && CV.BOSS_VFX) ? CV.BOSS_VFX[skinId] : null;
+    _applyBossCamera((meta && meta.camera) || 'shake');
   } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
 }
 
