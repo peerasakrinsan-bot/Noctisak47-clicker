@@ -7966,11 +7966,12 @@ function startTimer() {
 }
 // FIX 3: cache timer child nodes once; use textContent instead of innerHTML
 // to avoid DOM parse + child node churn 20×/sec.
-let _timerSecEl = null, _timerMsEl = null;
-let _lastTimerSec = -1, _lastTimerMs = '';
+let _timerSecEl = null, _timerMsEl = null, _timerDisplayEl = null;
+let _lastTimerSec = -1, _lastTimerMs = '', _lastTimerUrgent = -1;
 function _initTimerEls() {
   if (!_timerSecEl) { _timerSecEl = document.getElementById('timerSec'); }
   if (!_timerMsEl)  { _timerMsEl  = document.getElementById('timerMs');  }
+  if (!_timerDisplayEl) { _timerDisplayEl = document.getElementById('timerDisplay'); }
 }
 function renderTimer() {
   _initTimerEls();
@@ -7985,8 +7986,14 @@ function renderTimer() {
     _lastTimerMs = msText;
     if (_timerMsEl) _timerMsEl.textContent = msText;
   }
-  const timerDisplay = document.getElementById('timerDisplay');
-  if (timerDisplay) timerDisplay.classList.toggle('urgent', timeLeft <= 10);
+  // FIX 3b: cache #timerDisplay + only touch classList when the urgent state
+  // actually flips (renderTimer runs 20×/sec; toggle+getElementById every tick
+  // is wasted work the rest of the round).
+  const urgent = timeLeft <= 10 ? 1 : 0;
+  if (_lastTimerUrgent !== urgent) {
+    _lastTimerUrgent = urgent;
+    if (_timerDisplayEl) _timerDisplayEl.classList.toggle('urgent', urgent === 1);
+  }
 }
 function endGame(opts = {}) {
   const gameOver = !!(opts && opts.gameOver);
