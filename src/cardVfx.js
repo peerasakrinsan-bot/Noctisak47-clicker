@@ -1212,6 +1212,86 @@ function pCorruptGlitch(color) {
   _emit(el, dur * 1000 + 120);
 }
 
+// ── ELITE LEGENDARY PASS — bespoke Elite signature primitives ────────────────
+// บุคลิกจริงอยู่ในเลเยอร์ canvas (draw kind เฉพาะใบ); DOM fallback ด้านล่างนี้แค่
+// "พอเห็นฟีดแบ็ก" โดย reuse cv-* class เดิม (ไม่ต้องเพิ่ม CSS) — canvas-first เสมอ.
+function pMirrorSplit(color, x, y) {
+  if (_toCanvas('mirrorSplit', { color, x, y })) return;
+  pSlash(color || '#b388ff', 2); pShadowBurst(color || '#b388ff', 0.4);
+}
+function pHydraHeads(color, count, x, y) {
+  if (_toCanvas('hydraHeads', { color, count, x, y })) return;
+  pSlash(color || '#7dffb0', count || 3, 0.42); pSpark('#aaffcc', 4, x, y);
+}
+function pFrostShatter(color, count, x, y) {
+  if (_toCanvas('frostShatter', { color, count, x, y })) return;
+  pSpark(color || '#aaf0ff', count || 7, x, y); pPulse(color || '#aaf0ff', 0.4);
+}
+function pShellGuard(color, x, y) {
+  if (_toCanvas('shellGuard', { color, x, y })) return;
+  pComboRing(color || '#bfe07a'); pPulse(color || '#bfe07a', 0.45);
+}
+function pPlunderHaul(color, x, y) {
+  if (_toCanvas('plunderHaul', { color, x, y })) return;
+  pCoinBurst(color || '#ffcc33', x, y); pOdGlow('#ffe680', 0.45);
+}
+function pAbyssReap(color, x, y) {
+  if (_toCanvas('abyssReap', { color, x, y })) return;
+  pShadowBurst(color || '#ff2244', 0.5); pSlash(color || '#ff2244', 2); pDrainPulse(color || '#ff2244');
+}
+function pGuillotine(color, x, y) {
+  if (_toCanvas('guillotine', { color, x, y })) return;
+  pSlash(color || '#ff5544', 1); pBreakCrack(color || '#ff5544', true); pFlash('#1a0000', 0.18);
+}
+function pFunkBeat(color, x, y) {
+  if (_toCanvas('funkBeat', { color, x, y })) return;
+  pComboRing(color || '#ff2e88'); pSpark(color || '#ff2e88', 6, x, y);
+}
+function pBloodDraw(color, x, y) {
+  if (_toCanvas('bloodDraw', { color, x, y })) return;
+  pDrainPulse(color || '#cc2255'); pSpark(color || '#cc2255', 8, x, y);
+}
+function pTalismanCut(color, count, x, y) {
+  if (_toCanvas('talismanCut', { color, count, x, y })) return;
+  pSlash('#f0d8ff', 1); pSpark(color || '#cc66ff', count || 4, x, y); pFlash(color || '#cc66ff', 0.16);
+}
+function pStormStrike(color, x, y) {
+  if (_toCanvas('stormStrike', { color, x, y })) return;
+  pBolt(color || '#9be7ff', x, y); pSpark(color || '#cdf4ff', 6, x, y); pFlash('#bff0ff', 0.2);
+}
+function pNightVeil(color, count, x, y) {
+  if (_toCanvas('nightVeil', { color, count, x, y })) return;
+  pShadowBurst(color || '#9a66cc', 0.5); pSpark(color || '#9a66cc', count || 6, x, y);
+}
+function pPhaseDash(color, x, y) {
+  if (_toCanvas('phaseDash', { color, x, y })) return;
+  pStreak(color || '#aaffee', x, y); pShadowBurst(color || '#aaffee', 0.4);
+}
+function pLagGlitch(color, x, y) {
+  if (_toCanvas('lagGlitch', { color, x, y })) return;
+  pGlitch(color || '#aaddff'); pShadowBurst(color || '#aaddff', 0.4);
+}
+function pFocusManga(color, x, y) {
+  if (_toCanvas('focusManga', { color, x, y })) return;
+  pStreak(color || '#9bdc55'); pComboRing(color || '#9bdc55'); pFlash('#16240a', 0.18);
+}
+function pOreErupt(color, count, x, y) {
+  if (_toCanvas('oreErupt', { color, count, x, y })) return;
+  pCoinBurst(color || '#ff7722', x, y); pBreakCrack('#d8a14e', true);
+}
+function pSusWarp(color, x, y) {
+  if (_toCanvas('susWarp', { color, x, y })) return;
+  pShadowBurst(color || '#ff7722', 0.5); pRiskPulse('#ff5522'); pSpark('#ff5522', 5, x, y);
+}
+function pDarkAwaken(color, x, y) {
+  if (_toCanvas('darkAwaken', { color, x, y })) return;
+  pShadowBurst(color || '#bb77dd', 0.55); pPulse(color || '#bb77dd'); pSpark(color || '#bb77dd', 6, x, y);
+}
+function pIdolSpotlight(color, x, y) {
+  if (_toCanvas('idolSpotlight', { color, x, y })) return;
+  pHolyBurst(color || '#ff99dd'); pSpark(color || '#ff99dd', 6, x, y);
+}
+
 // dispatcher: ชื่อ primitive → ฟังก์ชัน (ใช้ใน VFX_MAP แบบ data-driven)
 const PRIM = {
   flash: pFlash, pulse: pPulse, slash: pSlash, spark: pSpark,
@@ -1235,6 +1315,13 @@ const PRIM = {
   mechaCharge: pMechaCharge, mechaLaser: pMechaLaser,
   soulGather: pSoulGather, judgmentSeal: pJudgmentSeal, gravityWell: pGravityWell,
   scanSweep: pScanSweep, analysisMap: pAnalysisMap, queenSwarm: pQueenSwarm, honeycombBurst: pHoneycombBurst,
+  // ── ELITE LEGENDARY PASS ──
+  mirrorSplit: pMirrorSplit, hydraHeads: pHydraHeads, frostShatter: pFrostShatter,
+  shellGuard: pShellGuard, plunderHaul: pPlunderHaul, abyssReap: pAbyssReap,
+  guillotine: pGuillotine, funkBeat: pFunkBeat, bloodDraw: pBloodDraw,
+  talismanCut: pTalismanCut, stormStrike: pStormStrike, nightVeil: pNightVeil,
+  phaseDash: pPhaseDash, lagGlitch: pLagGlitch, focusManga: pFocusManga,
+  oreErupt: pOreErupt, susWarp: pSusWarp, darkAwaken: pDarkAwaken, idolSpotlight: pIdolSpotlight,
 };
 
 // primitive ไหนรับพิกัด (x,y) → ใช้ map นี้ฉีดค่า ctx.x/ctx.y เข้า args ตำแหน่งที่ถูกต้อง
@@ -1250,6 +1337,12 @@ const COORD_ARG = {
   goldRush: [1, 2], valkyrieDescend: [2, 3], gloomSurge: [2, 3],
   mechaCharge: [1, 2], mechaLaser: [2, 3],
   soulGather: [1, 2], scanSweep: [1, 2], queenSwarm: [2, 3],
+  // ── ELITE LEGENDARY PASS (พิกัดจาก ctx.x/y เช่นจุด AK47 / hit / drake) ──
+  mirrorSplit: [1, 2], hydraHeads: [2, 3], frostShatter: [2, 3], shellGuard: [1, 2],
+  plunderHaul: [1, 2], abyssReap: [1, 2], guillotine: [1, 2], funkBeat: [1, 2],
+  bloodDraw: [1, 2], talismanCut: [2, 3], stormStrike: [1, 2], nightVeil: [2, 3],
+  phaseDash: [1, 2], lagGlitch: [1, 2], focusManga: [1, 2], oreErupt: [2, 3],
+  susWarp: [1, 2], darkAwaken: [1, 2], idolSpotlight: [1, 2],
 };
 
 // context ที่ยิงถี่ → throttle เพื่อไม่ให้ particle spam บนมือถือ (คอสเมติกล้วน):
@@ -1450,47 +1543,47 @@ function setAuraTier(id, level) {
 const VFX_MAP = {
   // ── ELITE ──
   // DOPPELGANGER — มิเรอร์ฟันคู่ + เงาตามหลัง (ยิงต่อ hit แต่ throttle ที่ context 'hit')
-  dg:  { rarity: 'elite', theme: 'soul', affects: 'enemy', aura: ['shadow', '#aa66ff'], on: { hit: [['slash', '#c9a3ff', 2], ['shadowBurst', '#aa66ff', 0.4]] } },
+  dg:  { rarity: 'elite', theme: 'soul', affects: 'enemy', aura: ['mirror', '#b388ff'], on: { hit: [['mirrorSplit', '#b388ff']] } },
   // HYDRA — หลายหัวงูพิษเขียว (Hydra Head 0–3 จาก AK47): ทุกหัวที่งอก = ฟันงูฟาด + สะเก็ดพิษ
   // + pip ต่อหัวจริง (ctx.stack), ครบ 3 + BREAK = HYDRA BURST (คลื่นพิษ + ฟันสามรอย + พิษพุ่ง),
   // reset pip ตอน burst. BREAK ปกติ = กระดองแตก.
-  hy:  { rarity: 'elite', theme: 'break', affects: 'break', stack: { gain: 'head', reset: 'burst', max: 3 }, aura: ['drain', '#44ff88'],  on: {
-           head:  [['slash', '#7dffb0', 2], ['spark', '#44ff88', 5]],
+  hy:  { rarity: 'elite', theme: 'break', affects: 'break', stack: { gain: 'head', reset: 'burst', max: 3 }, aura: ['venom', '#44ff88'],  on: {
+           head:  [['hydraHeads', '#7dffb0', 1]],
            break: [['breakCrack', '#44ff88', true]],
-           burst: [['shadowBurst', '#2a6a00', 0.6], ['slash', '#7dffb0', 3], ['spark', '#7dffb0', 9], ['drainPulse', '#44ff88']],
+           burst: [['hydraHeads', '#7dffb0', 3], ['drainPulse', '#44ff88'], ['spark', '#aaffcc', 8]],
          } },
   // FREEONI — FREE MODE น้ำแข็ง: วาบเย็น + พัลส์ฟ้า + สะเก็ดน้ำแข็งตอน BREAK, OD glow + สะเก็ดเย็นตอน AK47→OD
-  ph:  { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#66ccff'],  on: { break: [['flash', '#0a2230'], ['pulse', '#66ccff'], ['spark', '#aaf0ff', 7]], ak47: [['odGlow', '#9bdcff'], ['spark', '#cdeaff', 4]] } },
+  ph:  { rarity: 'elite', theme: 'time', affects: 'break', aura: ['ice', '#66ccff'],  on: { break: [['frostShatter', '#aaf0ff', 7]], ak47: [['frostShatter', '#cdeaff', 5]] } },
   // TURTLE SHOGUN — SHOGUN STANCE = กระดองตั้งการ์ด: วงเกราะกระดองหุบเข้า + กระดองทุบพื้น
   // (heavy shell slam) + ออร่าสแตนซ์ ตอนเปิด STANCE (จังหวะจริงของการ์ด ไม่ใช่แค่ BREAK).
   // BREAK ยังคงกระดองแตกหนักไว้ตามเดิม.
-  tg:  { rarity: 'elite', theme: 'break', affects: 'break', aura: ['glow',  '#9bbb55'],  on: {
-           break:  ['breakCrack', '#bfe07a', true],
-           stance: [['flash', '#16240a'], ['comboRing', '#bfe07a'], ['breakCrack', '#9bbb55', true], ['pulse', '#bfe07a']],
+  tg:  { rarity: 'elite', theme: 'break', affects: 'break', aura: ['shell',  '#9bbb55'],  on: {
+           break:  [['shellGuard', '#bfe07a']],
+           stance: [['shellGuard', '#bfe07a'], ['flash', '#16240a']],
          } },
   // DRAKE — DRAKE PLUNDER ("X MARKS THE SPOT"): ปล้นครั้งใหญ่ตอนแตะจุดสมบัติทอง
   // วาบ + เบิร์สต์ทอง + ฟันคู่ + สะเก็ดทองเยอะ. affects:'zeny' เพราะปล้น Zeny → HUD โซนคะแนนเด้ง
-  dk:  { rarity: 'elite', theme: 'crit', affects: 'zeny', aura: ['gold',  '#ffcc33'],  on: { drake: [['flash', '#3a2a00'], ['odGlow', '#ffcc33'], ['slash', '#ffd84a', 2], ['spark', '#ffe680', 8]] } },
+  dk:  { rarity: 'elite', theme: 'crit', affects: 'zeny', aura: ['plunder',  '#ffcc33'],  on: { drake: [['plunderHaul', '#ffcc33']] } },
   // ABYSMELL KNIGHT — execute มืด: วาบดำ + ฟันแดงคู่ + คลื่นมืดดูดเข้า + ดูดวิญญาณ (drainPulse) ตอนประหาร
-  ak:  { rarity: 'elite', theme: 'soul', affects: 'enemy', aura: ['shadow', '#cc3344'], on: { execute: [['flash', '#2a0008'], ['slash', '#ff2244', 2], ['shadowBurst', '#440011', 0.55], ['drainPulse', '#cc3344']] } },
+  ak:  { rarity: 'elite', theme: 'soul', affects: 'enemy', aura: ['abyss', '#cc3344'], on: { execute: [['abyssReap', '#ff2244'], ['flash', '#2a0008']] } },
   // TAO FUNKA — FUNK FEVER จังหวะฟังก์: วาบ + วงจังหวะฟังก์ (comboRing) + พัลส์ + สะเก็ดสีสด ตอน BREAK
   // (ย้ายออกจาก fireBurst แล้ว — ไฟเป็นของ IFRIED; ฟังก์ = จังหวะ/บีต ไม่ใช่ไฟกลาง).
-  tk:  { rarity: 'elite', theme: 'crit', affects: 'break', aura: ['fire',  '#ff3322'],  on: { break: [['flash', '#2a0010'], ['comboRing', '#ff4466'], ['pulse', '#ff6633'], ['spark', '#ff88aa', 6]] } },
+  tk:  { rarity: 'elite', theme: 'crit', affects: 'break', aura: ['funk',  '#ff2e88'],  on: { break: [['funkBeat', '#ff2e88']] } },
   // DRUNKULA — BLOOD DRINK: พัลส์ดูดเลือด + สะเก็ดแดง
-  dc:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['drain', '#cc2244'],  on: { break: [['drainPulse', '#cc2255'], ['spark', '#ff3366', 5]] } },
+  dc:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['blood', '#cc2244'],  on: { break: [['bloodDraw', '#cc2255']] } },
   // INCANTATION SCAMURAI — SCAMURAI CONTRACT (combo ≥35): ยันต์สัญญาวาบ + วงสัญญา + ดาบซามูไรฟัน
   // + วาบ ตอนเปิดสัญญา (reuse ยันต์/วงสัญญาจาก BAPHOBET โทนม่วง). BREAK = รอยร้าวม่วง + ฟันดาบ.
   ic:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['glow',  '#cc66ff'],  on: {
-           contract: [['demonSigil', '#cc66ff'], ['contractRing', '#aa55ee'], ['slash', '#e0b8ff', 2], ['flash', '#1a0a2a']],
-           break:    [['breakCrack', '#d49bff'], ['slash', '#e0b8ff', 1]],
+           contract: [['talismanCut', '#cc66ff', 5], ['flash', '#1a0a2a']],
+           break:    [['talismanCut', '#d49bff', 3]],
          } },
   // STORMYNITE — STORM CHARGE: สายฟ้าฟาด + วาบ + สะเก็ดไฟฟ้า
-  sk:  { rarity: 'elite', theme: 'crit', affects: 'odBar', aura: ['tech',  '#66ddff'],  on: { od: [['flash', '#bff0ff'], ['bolt', '#9be7ff'], ['spark', '#cdf4ff', 6]] } },
+  sk:  { rarity: 'elite', theme: 'crit', affects: 'odBar', aura: ['storm',  '#66ddff'],  on: { od: [['stormStrike', '#9be7ff']] } },
   // DORK LORD — NIGHT STACK (passive scaling 0–5): aura เงา "หนักขึ้น" ตาม tier จริง (0–3)
   // + พัลส์เงาตอนขึ้น tier (ค่ำคืนสะสมพลัง, เห็นได้ตลอดระหว่างเล่น); รอยร้าวมืดตอน BREAK ตามเดิม.
-  dl:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['shadow', '#7744aa'], on: {
-           break:      ['breakCrack', '#9a66cc'],
-           nightstack: ['shadowBurst', '#9a66cc', 0.5],
+  dl:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['night', '#7744aa'], on: {
+           break:      [['breakCrack', '#9a66cc'], ['nightVeil', '#9a66cc', 6]],
+           nightstack: [['nightVeil', '#9a66cc', 4]],
          } },
   // MOONLIGHT FEVER — โหมดฟีเวอร์แสงจันทร์: ออร่าจันทราหายใจ (passive) → จังหวะพัลส์ +
   // จันทร์เสี้ยวกวาด (trigger) → สุริยุปราคา + คลื่นฟีเวอร์ + ประกายเงินดูดเข้า (burst).
@@ -1500,33 +1593,34 @@ const VFX_MAP = {
            break: [['moonPulse', '#bcd0ff'], ['crescentArc', '#8fe9ff', 2]],
            ak47:  [['crescentArc', '#bcd0ff', 2], ['lunarSpark', '#eef3ff', 8]],
          } },
-  // MINORAGE — ORE RAGE (ขุดแร่/เกรี้ยว): aura เรืองส้มจาง ๆ; เก็บแร่ = สะเก็ดเหมือง + pip,
-  // ใช้แร่ตอน BREAK = หินแตก (reset stack), ครบ 3 (RAGE RUSH) = พัลส์แดง-ส้ม + ไฟ + สะเก็ดแรงขึ้น
-  mi:  { rarity: 'elite', theme: 'break', affects: 'break', stack: { gain: 'oregain', reset: 'break', max: 3 }, aura: ['glow', '#cc7733'], on: {
-           oregain: ['spark', '#ffb733', 5],
-           break:   [['breakCrack', '#d8a14e', true], ['spark', '#ffaa44', 6]],
-           rage:    [['pulse', '#ff3322'], ['fireBurst', '#ff5522'], ['spark', '#ff8844', 7]],
+  // MINORAGE — ORE RAGE (ขุดแร่/เกรี้ยว): ออร่าแร่อำพันร้อน; เก็บแร่ = สะเก็ดเหมือง + pip,
+  // ใช้แร่ตอน BREAK = แร่ปะทุ (oreErupt: ก้อนแร่เจียระไนกระเด็น, reset stack), ครบ 3 (RAGE RUSH) =
+  // แร่ปะทุแรงขึ้น + พัลส์แดง-ส้ม. signature "แร่ปะทุ" ไม่ใช้ไฟ (ไฟเป็นของ IFRIED ผู้เดียว).
+  mi:  { rarity: 'elite', theme: 'break', affects: 'break', stack: { gain: 'oregain', reset: 'break', max: 3 }, aura: ['ore', '#cc7733'], on: {
+           oregain: [['spark', '#ffb733', 5]],
+           break:   [['oreErupt', '#ff7722', 6], ['breakCrack', '#d8a14e', true]],
+           rage:    [['oreErupt', '#ff5522', 9], ['pulse', '#ff3322']],
          } },
   // EXECUSIONER — EXECUTION MODE ฟันขวานประหาร: วาบดำ + รอยฟันหนัก + รอยร้าวหนัก + คลื่นมืด (chop impact)
-  ex:  { rarity: 'elite', theme: 'crit', affects: 'break', aura: ['shadow', '#cc3333'], on: { break: [['flash', '#1a0000'], ['slash', '#ff5544', 1], ['breakCrack', '#ff7755', true], ['shadowBurst', '#330000', 0.5]] } },
+  ex:  { rarity: 'elite', theme: 'crit', affects: 'break', aura: ['shadow', '#cc3333'], on: { break: [['guillotine', '#ff5544']] } },
   // WHIZPER — GHOST PROTOCOL: เส้นความเร็วที่จุด AK47 + เงาจาง (ghost fade)
-  wh:  { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#aaffee'],  on: { ak47: [['streak', '#aaffee'], ['shadowBurst', '#cceeff', 0.45]] } },
+  wh:  { rarity: 'elite', theme: 'time', affects: 'break', aura: ['phase', '#aaffee'],  on: { ak47: [['phaseDash', '#aaffee']] } },
   // GOBLIN WEEBER — WEEB FOCUS ตอน combo เต็ม (47): เส้นโฟกัสมังงะ (streak) ลู่เข้า + วงโฟกัส + วาบ
-  gl:  { rarity: 'elite', theme: 'analysis', affects: 'combo', aura: ['glow',  '#88cc44'],  on: { combo: [['streak', '#9bdc55'], ['comboRing', '#9bdc55'], ['flash', '#16240a']] } },
+  gl:  { rarity: 'elite', theme: 'analysis', affects: 'combo', aura: ['glow',  '#88cc44'],  on: { combo: [['focusManga', '#9bdc55']] } },
   // AMOG RA — SUS EVENT สุ่มผล (น่าสงสัยส้ม-แดง): คลื่นมืดส้ม + พัลส์เตือนเสี่ยงแดง (riskPulse) +
   // สะเก็ด — โทน "เดิมพัน/น่าสงสัย" ตามกลไกสุ่ม 70/30 ของการ์ด.
-  ar:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['fire',  '#ff7722'],  on: { break: [['shadowBurst', '#ff8833', 0.5], ['riskPulse', '#ff5522'], ['spark', '#ffaa44', 6]] } },
+  ar:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['fire',  '#ff7722'],  on: { break: [['susWarp', '#ff7722']] } },
   // MAYA PROBLEM — bug/glitch + บอส: scanline glitch + พัลส์ตอน BREAK, boss flare ตอนล้มบอส
-  mp:  { rarity: 'elite', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff44aa'],  on: { break: [['glitch', '#ff44aa'], ['pulse', '#ff55bb']], boss: ['bossFlare', '#ff44aa'] } },
+  mp:  { rarity: 'elite', theme: 'analysis', affects: 'enemy', aura: ['tech',  '#ff44aa'],  on: { break: [['glitch', '#ff44aa'], ['pulse', '#ff55bb'], ['spark', '#ff88cc', 5]], boss: [['bossFlare', '#ff44aa'], ['glitch', '#ff44aa']] } },
   // WEEBVIL DUDE — OTAKU AWAKENING (ปลุกร่างมืด): วาบม่วงมืด + คลื่นมืดปลุกร่าง + พัลส์ + สะเก็ดม่วง
-  ed:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['shadow', '#aa66cc'], on: { break: [['flash', '#160a22'], ['shadowBurst', '#bb77dd', 0.55], ['pulse', '#cc88ee'], ['spark', '#cc88ee', 6]] } },
+  ed:  { rarity: 'elite', theme: 'soul', affects: 'break', aura: ['shadow', '#aa66cc'], on: { break: [['darkAwaken', '#bb77dd']] } },
   // GHOSTPING — ผี/ปิง/แล็ก: glitch แล็ก (ping/lag) + พัลส์ผีจาง + คลื่นจาง ตอน BREAK — ฟีล "ผีดีเลย์"
-  ghp: { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#aaddff'],  on: { break: [['glitch', '#aaddff'], ['pulse', '#aaddff'], ['shadowBurst', '#cce8ff', 0.4]] } },
+  ghp: { rarity: 'elite', theme: 'time', affects: 'break', aura: ['frost', '#aaddff'],  on: { break: [['lagGlitch', '#aaddff']] } },
   // DEVILINGO — ปีศาจ + โลภ + โฟกัสบอส: เหรียญแดง + เส้นความเร็วตอน AK47, boss flare + ไฟตอนล้มบอส
-  dvl: { rarity: 'elite', theme: 'zeny', affects: 'zeny', aura: ['fire',  '#ff3322'],  on: { ak47: [['coinBurst', '#ff6644'], ['streak', '#ff5533']], boss: [['bossFlare', '#ff2233'], ['fireBurst', '#ff4422']] } },
+  dvl: { rarity: 'elite', theme: 'zeny', affects: 'zeny', aura: ['fire',  '#ff3322'],  on: { ak47: [['coinBurst', '#ff6644'], ['streak', '#ff5533']], boss: [['demonSigil', '#ff2233'], ['bossFlare', '#ff2233'], ['coinBurst', '#ff5533']] } },
   // LADY TRAINEE — Spotlight ฝึกซ้อม (stack 0–15, ไม่มี pip): วงแหวนชาร์จ compact ตาม count
   // จริง (charge ring) ตอน OD Level Up, แสง holy ตอนเข้า OD, stage-light ตอนครบ Spotlight (10)
-  ltn: { rarity: 'elite', theme: 'idol', affects: 'odBar', aura: ['holy',  '#ff99dd'],  on: { od: [['holyBurst', '#ff99dd'], ['comboRing', '#ffaae0']], odlevel: ['spark', '#ffaae0', 4], spotlight: [['holyBurst', '#ff99dd'], ['flash', '#2a1024']] } },
+  ltn: { rarity: 'elite', theme: 'idol', affects: 'odBar', aura: ['holy',  '#ff99dd'],  on: { od: [['idolSpotlight', '#ff99dd'], ['comboRing', '#ffaae0']], odlevel: [['spark', '#ffaae0', 4]], spotlight: [['idolSpotlight', '#ff99dd'], ['flash', '#2a1024']] } },
 
   // ── MYTHIC ──
   // THANABROS — THANATOS PHASE / มือมรณะตัดเวลา (thanatos): ออร่าเงามรณะ (passive) →
@@ -1721,7 +1815,9 @@ const VFX_MAP = {
 // ใช้ child element เฉพาะ (#cvAuraEl) แทน ::before เพื่อไม่ชนกับ aura ของบอสสกิน
 // (toei-enigma-aura ใช้ทั้ง ::before และ ::after บน #fighter อยู่แล้ว).
 let _activeAuraId = null;
-const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie', 'gloom', 'mecha', 'sacred', 'void', 'analysis', 'hive'];
+const _AURA_STYLES = ['glow', 'pulse', 'drain', 'holy', 'shadow', 'gold', 'frost', 'fire', 'tech', 'moon', 'stake', 'infernal', 'debt', 'valkyrie', 'gloom', 'mecha', 'sacred', 'void', 'analysis', 'hive',
+  // ── ELITE LEGENDARY PASS auras ──
+  'mirror', 'venom', 'ice', 'shell', 'plunder', 'abyss', 'funk', 'blood', 'storm', 'night', 'ore', 'phase'];
 
 function _auraEl(create) {
   const f = _fighter();
