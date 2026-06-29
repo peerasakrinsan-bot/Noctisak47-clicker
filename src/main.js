@@ -50,6 +50,13 @@ inject();
 // live RUNNING-vs-DEPLOYED comparison. Remove once cache/deploy issue is closed.
 import './debugOverlay.js';
 
+// ── TEMP: performance profiling HUD (on-device frame diagnostics) ───────────
+// Gated off by default (?perf=1 / localStorage noctisPerf=1 / localhost). Shows
+// FPS/avg/worst-frame, particle count + dynamic budget, draws/frame, DOM nodes,
+// and JS heap. Observes only — never touches game state/save/balance. Remove by
+// deleting src/perfOverlay.js + this import (it is the only reference).
+import './perfOverlay.js';
+
 // ── INTERACTION HARDENING ──────────────────────────────────────────────────
 // Prevent drag-ghost images on game assets (desktop + Android).
 document.addEventListener('dragstart', (e) => {

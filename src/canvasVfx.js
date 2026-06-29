@@ -85,6 +85,7 @@ let _hidden = false;
 const _parts = [];
 const _pool = [];
 let _raf = 0, _last = 0;
+let _drawnLast = 0;             // debug-only: particles drawn in the most recent frame
 
 // ── feature probe (เรียกครั้งเดียว, cache ผล) ───────────────────────────────
 function supported() {
@@ -1456,6 +1457,7 @@ function _tick(ts) {
     _parts[n++] = p;
   }
   _parts.length = n;
+  _drawnLast = n;                                    // debug-only: particles drawn this frame
   if (n > 0) _raf = requestAnimationFrame(_tick);   // ยังมีของ → วาดต่อ
   else _last = 0;                                     // ว่าง → หยุด (ประหยัดแบต)
 }
@@ -3016,9 +3018,12 @@ const CanvasVFX = {
   BOSS_VFX,                           // metadata map (debug / audit)
   // debug-only introspection (ไม่ใช่ส่วนหนึ่งของ logic เกม)
   _count: () => _parts.length,
+  _draws: () => _drawnLast,           // particles drawn in the most recent frame
   _running: () => !!_raf,
   _cap: () => _effectiveCap(),        // current dynamic particle budget
   _heavy: () => _burstTimes.length >= HEAVY_BURST_COUNT,
+  _fps: () => _smoothFps,             // EMA FPS sampled inside the canvas rAF
+  _dpr: () => _dpr,
 };
 
 if (typeof window !== 'undefined') window.CanvasVFX = CanvasVFX;
