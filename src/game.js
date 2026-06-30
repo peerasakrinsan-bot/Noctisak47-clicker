@@ -8553,9 +8553,12 @@ function _flushTickVisuals() {
   const _t = performance.now();
   const _w = _tv.lastIsGun ? 2 : _tv.weight;  // OD taps keep their full big-moment path
 
-  // impact ring + sparks are weight-driven: LIGHT taps get only tiny dust (no ring),
-  // MEDIUM/HEAVY earn the ring. The frequency governor still caps ring spam as a safety.
-  const _ringNow = _w >= 1 && (_t - _fxGate.ring >= FX_GATE.ring);
+  // impact ring is reserved for CRIT only (weight 2) / OD's big-moment path. Normal
+  // combat — including combo-milestone taps — spawns NO ring: impact is read via boss
+  // recoil + rim light + tiny dust + damage number + animation timing. The frequency
+  // governor still caps ring spam as a safety. (Major events — BREAK / Boss Skills /
+  // Devil Tax / Mythic — own their large rings elsewhere.)
+  const _ringNow = _w >= 2 && (_t - _fxGate.ring >= FX_GATE.ring);
   if(_ringNow) _fxGate.ring = _t;
   spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false, !_ringNow, _w);
 
@@ -8925,7 +8928,9 @@ function processHit(e, now) {
       _cs._aknightReadyCooldownUntil = _now + 12000;
       // FIX: use bossHP+1 instead of magic number — same instant-kill result, future-proof
       const _execFinishDmg = isBoss ? (bossHP + 1) : (hp + 1);
-      applyDamage(_execFinishDmg, e, false);
+      // EXECUTE is a discrete major event (own EXECUTE splash) — weight 2 keeps the subtle
+      // accent ring, unlike normal-combat taps which carry no ring.
+      applyDamage(_execFinishDmg, e, false, 2);
       return;
     }
   }
@@ -9086,7 +9091,7 @@ function applyDamage(dmg,e,isCrit,fxWeight) {
   const pos=getPos(e);
   // Discrete special hits. Weak-Point collect passes 0 (LIGHT) so its bespoke cyan
   // burst (showWpHitFX) owns the read with no competing warm ring; boss execute-finish
-  // defaults to MEDIUM to keep a ring + warm spark.
+  // passes 2 (a major event) to keep the subtle accent ring. Normal combat never rings.
   spawnFX(pos.x,pos.y,godLevel>0,false,false, fxWeight==null?1:fxWeight);
   // showHitNum handles crit label internally via pooled _critNodes
   showHitNum(pos.x,pos.y,dmg,godLevel>0,isCrit);
@@ -9833,11 +9838,14 @@ function spawnFX(x,y,isGun,isBomb,skipRing,weight){
   // Direct callers (AK47 bomb, etc.) omit it → ring fires as before.
   // ── NORMAL TAP — CONTEXT-DRIVEN impact language (deterministic weight) ──
   // weight 0 LIGHT  : 1 tiny warm dust, no ring         (normal tap — extremely clean)
-  // weight 1 MEDIUM : 2 debris + 1 warm spark + soft ring   (combo milestone)
-  // weight 2 HEAVY  : 3 debris + bigger (still < BREAK) ring (CRITICAL — read mostly via
-  //                   the larger ring + brighter rim + stronger recoil, not spark spam)
-  // Avg particle count is LOW: most taps are 1 dust; the ring/sparks only appear when
-  // gameplay (crit / combo milestone) earns them. Procedural jitter keeps taps alive.
+  // weight 1 MEDIUM : 2 debris + 1 warm spark, NO ring  (combo milestone — read via the
+  //                   warm spark + full recoil + boss rim, never a circle)
+  // weight 2 HEAVY  : 3 debris + a very subtle secondary ring (CRITICAL — read mostly via
+  //                   brighter rim + stronger recoil + damage number; the ring only accents)
+  // NO normal-combat hit draws an impact ring: the warm circle used to become the
+  // brightest/largest thing on screen during sustained tapping and broke the visual
+  // hierarchy (Boss → Weak Point → Damage Number). Only CRIT keeps a restrained accent
+  // ring; large rings stay reserved for BREAK / Boss Skills / Devil Tax / Mythic.
   if(!isGun && !isBomb){
     const w = weight|0;
     const frag=document.createDocumentFragment();
@@ -9855,16 +9863,15 @@ function spawnFX(x,y,isGun,isBomb,skipRing,weight){
       frag.appendChild(p);
       setTimeout(()=>{ p.remove(); _retParticle(p); },300);
     }
-    if(!skipRing && w>=1){
+    if(!skipRing && w>=2){
+      // CRIT ONLY — a very subtle secondary accent (≈34% smaller + dimmer than before).
+      // It supports the crit read carried by the brighter rim + stronger recoil + damage
+      // number; it must never be the primary visual. Still far under BREAK / boss-skill rings.
       const ring=_getRing();
-      // MEDIUM = soft rim; HEAVY = a bigger, slightly brighter rim ("that hit was bigger")
-      // — both still much smaller/dimmer than the BREAK / boss-skill rings.
-      ring.className = w===2 ? 'impact soft hv' : 'impact soft';
-      const rc = w===2 ? 'rgba(255,190,140,0.6)' : 'rgba(255,178,128,0.5)';
-      const ra = w===2 ? 'impactSoftHv 0.16s' : 'impactSoft 0.13s';
-      ring.style.cssText=`left:${x}px;top:${y}px;border-color:${rc};animation:${ra} forwards;`;
+      ring.className = 'impact soft hv';
+      ring.style.cssText=`left:${x}px;top:${y}px;border-color:rgba(255,196,150,0.42);animation:impactSoftHv 0.16s forwards;`;
       frag.appendChild(ring);
-      setTimeout(()=>{ ring.remove(); _retRing(ring); }, w===2?180:150);
+      setTimeout(()=>{ ring.remove(); _retRing(ring); }, 180);
     }
     fx.appendChild(frag);
     return;

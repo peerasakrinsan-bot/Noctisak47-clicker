@@ -3138,30 +3138,26 @@
     0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
     100%{opacity:0; transform:translate(-50%,-50%) scale(4);}
   }
-  /* ── NORMAL-TAP "soft" ring ──────────────────────────────────────────────
-     Art-direction hierarchy: the normal-tap ring must SUPPORT the hit, never
-     become the hit. Smaller (20→max ~51px ≈ −36% vs the old 80px), thinner
-     (1.5px stroke), shorter-lived (130ms) than the full .impact ring, which is
-     reserved for crit / BREAK / OD / boss-skill big moments. Border-color (warm,
-     low-alpha) is set inline by spawnFX. */
+  /* ── "soft" ring base ─────────────────────────────────────────────────────
+     Normal combat NO LONGER draws any soft ring (the warm circle used to become
+     the brightest/largest element during sustained tapping and broke the
+     Boss → Weak Point → Damage Number hierarchy). This rule now only supplies the
+     thin-stroke base for the CRIT accent below; nothing spawns `impact soft` alone. */
   .impact.soft {
     border-width:1.5px;
-    animation:impactSoft 0.13s forwards;
   }
-  @keyframes impactSoft {
-    0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
-    100%{opacity:0; transform:translate(-50%,-50%) scale(2.55);}
-  }
-  /* CRITICAL ring: present but restrained (~12% smaller than before, max ~56px) — the
-     crit READ is carried by boss recoil + rim light + damage number, the ring only
-     supports. Still well under the BREAK / boss-skill rings (80px+). */
+  /* CRITICAL accent ring: a SECONDARY accent only — reduced ≈34% in reach (max
+     scale 2.8→1.85, ~56px→~37px), thinner stroke (1.5px), and lower starting
+     opacity (0.65) so it never reads as the primary visual. The crit READ is
+     carried by the brighter rim + stronger recoil + damage number; this only
+     supports. Still far under the BREAK / boss-skill / Devil Tax / Mythic rings. */
   .impact.soft.hv {
-    border-width:2px;
+    border-width:1.5px;
     animation:impactSoftHv 0.16s forwards;
   }
   @keyframes impactSoftHv {
-    0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
-    100%{opacity:0; transform:translate(-50%,-50%) scale(2.8);}
+    0%  {opacity:0.65; transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0;    transform:translate(-50%,-50%) scale(1.85);}
   }
   .particle {
     position:absolute; border-radius:50%;
