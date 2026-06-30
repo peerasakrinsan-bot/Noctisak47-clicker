@@ -2123,7 +2123,8 @@ function onWeakPointHit(x, y, baseDmg, customMult) {
     document.getElementById("gameRoot").classList.add('shake-wp');
     setTimeout(()=>document.getElementById("gameRoot").classList.remove('shake-wp'), 300);
   }
-  triggerFlash('flash-god3');
+  // FLASH RULE: a weak-point collect is NOT a major event → no full-screen flash.
+  // Readability comes from the distinct cyan burst + camera shake + gold number.
 
   // เพิ่ม counter
   wpCollected++;
@@ -2397,17 +2398,28 @@ function showWpHitFX(x, y, dmg) {
   el.className = 'wp-hit-text';
   root.appendChild(el);
   setTimeout(() => { el.className=''; root.contains(el) && root.removeChild(el); _wpHitPool.length < 3 && _wpHitPool.push(el); }, 870);
-  // Quality over quantity (art-direction hierarchy): 3 refined sparks (was 10) —
-  // one gold "value" spark + two warm-red, with a shorter throw and life so they
-  // read as distinct sparks instead of merging into a yellow cloud over the boss.
+  // WEAK-POINT VISUAL LANGUAGE — instantly distinct from normal red combat, so the
+  // player reads "I hit the weak point" without text. Identity = COLOR + DIRECTION,
+  // not particle count (same lean 3-fragment budget):
+  //  • a CYAN ring (vs the warm/red normal rings) — different color = different event
+  //  • a focused upward "pierce" cone of cyan-white shards + 1 gold value spark,
+  //    instead of a radial puff → reads as a clean directional break, not a normal hit
   const _wpFrag=document.createDocumentFragment();
-  const _wpBase=Math.random()*Math.PI*2;
+  // distinct cyan ring (reuses the heavy soft-ring shape + pool — no new node type)
+  const _wpRing=_getRing();
+  _wpRing.className='impact soft hv';
+  _wpRing.style.cssText=`left:${x}px;top:${y}px;border-color:rgba(90,225,255,0.78);animation:impactSoftHv 0.16s forwards;`;
+  _wpFrag.appendChild(_wpRing);
+  setTimeout(()=>{ _wpRing.remove(); _retRing(_wpRing); },180);
+  // directional fragments — a tight upward cone (−90° ± spread), not a 360° burst
+  const _wpDir=-Math.PI/2;
   for(let i=0;i<3;i++){
     const p=_getParticle();
-    const angle=_wpBase + i*(Math.PI*2/3) + (Math.random()-0.5)*0.5;
-    const dist=34+Math.random()*40;      // tighter throw → less screen coverage
-    const sz=5+Math.random()*2;          // 1–2 readable sparks, not 8 tiny stars
-    p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${i===0?'#ffcc00':'#ff5533'};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation:particle ${0.2+Math.random()*0.12}s forwards;`;
+    const angle=_wpDir + (i-1)*0.48 + (Math.random()-0.5)*0.22; // focused, not radial
+    const dist=46+Math.random()*42;
+    const sz=4+Math.random()*2;
+    const col=i===1?'#ffcc00':'#bdf3ff';  // center gold (value) flanked by cyan-white shards
+    p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${col};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation:particle ${0.22+Math.random()*0.12}s forwards;`;
     _wpFrag.appendChild(p);
     setTimeout(()=>{ p.remove(); _retParticle(p); },360);
   }
@@ -8498,19 +8510,15 @@ const _tv = {
   weight:     0,   // strongest normal-hit weight this tick: 0 light · 1 medium · 2 heavy
 };
 
-// ── NORMAL-HIT WEIGHT RHYTHM ──
-// Most taps are LIGHT punctuation; rings/sparks/flashes are reserved for the rare
-// MEDIUM/HEAVY beats so combat reads with rhythm instead of one repeated impact.
-// Anti-streak: a strong hit is always followed by a light one (no medium,medium /
-// heavy,heavy) → natural "light light medium light heavy light" cadence.
-let _lastNormalWeight = 0;
-function _rollHitWeight() {
-  if (_lastNormalWeight > 0) { _lastNormalWeight = 0; return 0; } // forced light after any strong beat
-  const r = Math.random();
-  const w = r < 0.70 ? 0 : r < 0.95 ? 1 : 2;   // ~70% light · ~25% medium · ~5% heavy
-  _lastNormalWeight = w;
-  return w;
-}
+// ── CONTEXT-DRIVEN IMPACT WEIGHT (deterministic — no RNG) ──
+// Impact strength is decided ONLY by gameplay context so players can always read
+// WHY a hit looked stronger (skill, not randomness). The escalation a normal tap
+// can reach, strongest→weakest: Overdrive state > Critical > Combo milestone >
+// normal tap. (BREAK / Boss-Skill / Devil-Tax / Mythic / Weak-Point own their own
+// bespoke FX elsewhere and always read above this.)
+// _lastMilestoneCombo: the last combo value that already fired a milestone beat, so
+// the beat fires once per crossing and never spams while parked at the 47 cap.
+let _lastMilestoneCombo = 0;
 
 // ── FREQUENCY GOVERNOR ──
 // Min-interval (ms) per strong effect. During sustained fast tapping each one
@@ -8559,10 +8567,11 @@ function _flushTickVisuals() {
   if(_tv.doRecoil && _t - _fxGate.recoil >= FX_GATE.recoil) {
     _fxGate.recoil = _t;
     boxer.classList.add(_tv.recoilCls);
-    setTimeout(()=>boxer.classList.remove('recoil','recoil-soft','recoil-god'), 90);
+    setTimeout(()=>boxer.classList.remove('recoil','recoil-soft','recoil-crit','recoil-god'), 90);
   }
 
-  // flash — throttled; only HEAVY normal beats / crit / OD carry a flash (class is '' otherwise)
+  // flash — throttled; ONLY Overdrive sets a flash class now (normal/crit/combo = '' →
+  // skipped). Normal combat never full-screen flashes (FLASH RULE).
   if(_tv.doFlash && _tv.flashCls && _t - _fxGate.flash >= FX_GATE.flash) {
     _fxGate.flash = _t;
     triggerFlash(_tv.flashCls);
@@ -8936,7 +8945,7 @@ function processHit(e, now) {
     // THANATOS: WP dmg x2.5 (OD +1s during Thanatos Phase handled in csOnWpHit)
     const thanatosMult = (window._csState && window._csState.cs_thanatos) ? 2.5 : 1;
     const wpDmg = _sanitizeDamage(onWeakPointHit(pos.x, pos.y, baseDmg*multi, wpMult * thanatosMult), 'weakPoint');
-    applyDamage(wpDmg, e, false);
+    applyDamage(wpDmg, e, false, 0); // LIGHT warm FX — the distinct cyan WP burst owns the read
     score += 20;
     csOnWpHit(pos.x, pos.y);
   } else {
@@ -9014,17 +9023,32 @@ function processHit(e, now) {
   updateMultiBadge(multi);
 
   // ── Collect visual params → accumulate for tick flush (1 render per tick) ──
-  // HIT-WEIGHT RHYTHM (premium-feel): normal taps are split into LIGHT/MEDIUM/HEAVY
-  // so consecutive hits don't look identical and the eye stays on the boss.
-  //  • LIGHT (~70%): tiny dust + tiny recoil + number. No ring, no flash, no rim.
-  //  • MEDIUM (~25%): small ring + 1 warm spark + full recoil + boss-hit rim.
-  //  • HEAVY (~5%): bigger ring + several sparks + soft warm flash + full recoil + rim.
-  //  • CRIT → heavy weight (already styled crit); OD taps keep their big-moment path.
-  // Crit/OD/BREAK/Boss-skill/Mythic stay clearly above all three so they still pop.
-  const _weight = (godLevel>0 || isCrit) ? 2 : _rollHitWeight();
-  const _rc   = godLevel>0 ? 'recoil-god' : (_weight===0 ? 'recoil-soft' : 'recoil');
-  const _fcls = godLevel===3?'flash-god3':godLevel===2?'flash-god2':godLevel===1?'flash-god'
-              : isCrit ? 'flash-crit' : (_weight===2 ? 'flash-crit' : '');
+  // CONTEXT-DRIVEN IMPACT WEIGHT (deterministic): the visual weight of this tap is
+  // decided purely by gameplay so the player reads WHY it's bigger — never RNG.
+  //  • 0 LIGHT  — normal tap: tiny warm dust + tiny recoil + damage number ONLY
+  //               (no ring, no flash, no rim, no large sparks). Extremely clean.
+  //  • 1 MEDIUM — combo milestone (every 10, + the 47 cap): soft ring + 1 warm spark
+  //               + full recoil + boss rim. A readable "you're building combo" beat.
+  //  • 2 HEAVY  — CRITICAL: brighter rim + larger ring + stronger recoil (NO flash).
+  //  • Overdrive active keeps its existing big-moment path.
+  // Weak-Point hits render LIGHT here on purpose — their distinct cyan burst
+  // (showWpHitFX) owns the read so a WP never looks like a normal tap.
+  // combo milestone — fire once per crossing (combo already updated above), never at
+  // the parked 47 cap. Cosmetic only; does not touch combo/economy/card logic.
+  if (combo <= 1) _lastMilestoneCombo = 0;
+  const _comboMilestone = !isWpHit && godLevel===0 && !isCrit
+        && combo > 0 && (combo % 10 === 0 || combo === 47) && combo !== _lastMilestoneCombo;
+  if (_comboMilestone) _lastMilestoneCombo = combo;
+
+  const _weight = isWpHit ? 0
+                : godLevel>0 ? 2
+                : isCrit ? 2
+                : _comboMilestone ? 1
+                : 0;
+  // FLASH RULE: normal combat NEVER full-screen flashes. Only Overdrive (a major
+  // active state) keeps its flash; crit / combo / normal carry no flash class.
+  const _rc   = godLevel>0 ? 'recoil-god' : isCrit ? 'recoil-crit' : (_weight>=1 ? 'recoil' : 'recoil-soft');
+  const _fcls = godLevel===3?'flash-god3':godLevel===2?'flash-god2':godLevel===1?'flash-god':'';
   const _bhc  = godLevel>0 ? 'boss-hit-god' : isCrit ? 'boss-hit-crit' : (_weight>=1 ? 'boss-hit' : '');
   const _skin2 = getActiveSkin();
   const _hitImgs2 = _skin2.files.hits;
@@ -9062,11 +9086,12 @@ function applyBossDamage(amount, source) {
   // updateUI() intentionally removed — rendering handled by tick loop
 }
 
-function applyDamage(dmg,e,isCrit) {
+function applyDamage(dmg,e,isCrit,fxWeight) {
   const pos=getPos(e);
-  // Discrete special hits (boss execute-finish, weak-point collect) — not the rapid
-  // tap loop, so give them a fixed MEDIUM weight to keep their ring + warm spark.
-  spawnFX(pos.x,pos.y,godLevel>0,false,false,1);
+  // Discrete special hits. Weak-Point collect passes 0 (LIGHT) so its bespoke cyan
+  // burst (showWpHitFX) owns the read with no competing warm ring; boss execute-finish
+  // defaults to MEDIUM to keep a ring + warm spark.
+  spawnFX(pos.x,pos.y,godLevel>0,false,false, fxWeight==null?1:fxWeight);
   // showHitNum handles crit label internally via pooled _critNodes
   showHitNum(pos.x,pos.y,dmg,godLevel>0,isCrit);
 
@@ -9810,16 +9835,17 @@ function spawnFX(x,y,isGun,isBomb,skipRing,weight){
   // skipRing: frequency governor may suppress the impact ring on a throttled tick
   // while debris still spawns (ring should not appear every hit during fast tapping).
   // Direct callers (AK47 bomb, etc.) omit it → ring fires as before.
-  // ── NORMAL TAP — WEIGHT-DRIVEN impact language (rhythm, not repetition) ──
-  // weight 0 LIGHT  : 1 tiny warm dust, no ring        (~70% of taps)
-  // weight 1 MEDIUM : 2 debris + 1 warm spark + soft ring
-  // weight 2 HEAVY  : 4 sparks + bigger (still < BREAK) ring
-  // Avg particle count DROPS vs the old flat "always 2 debris" (~1.4 → lower with the
-  // anti-streak light bias). Procedural jitter keeps no two taps identical.
+  // ── NORMAL TAP — CONTEXT-DRIVEN impact language (deterministic weight) ──
+  // weight 0 LIGHT  : 1 tiny warm dust, no ring         (normal tap — extremely clean)
+  // weight 1 MEDIUM : 2 debris + 1 warm spark + soft ring   (combo milestone)
+  // weight 2 HEAVY  : 3 debris + bigger (still < BREAK) ring (CRITICAL — read mostly via
+  //                   the larger ring + brighter rim + stronger recoil, not spark spam)
+  // Avg particle count is LOW: most taps are 1 dust; the ring/sparks only appear when
+  // gameplay (crit / combo milestone) earns them. Procedural jitter keeps taps alive.
   if(!isGun && !isBomb){
     const w = weight|0;
     const frag=document.createDocumentFragment();
-    const debris = w===2 ? 4 : w===1 ? 2 : 1;       // budget spent on the rare heavy beats
+    const debris = w===2 ? 3 : w===1 ? 2 : 1;       // budget spent only on earned beats
     const baseAng=Math.random()*Math.PI*2;
     for(let i=0;i<debris;i++){
       const p=_getParticle();

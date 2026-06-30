@@ -2908,12 +2908,15 @@
 
   .recoil { animation:recoilAnim 0.12s ease-out; }
   .recoil-god { animation:recoilGun 0.08s ease-out; }
-  /* LIGHT hit (~70% of taps): a barely-there nudge — the boss stays planted so the
-     rare MEDIUM/HEAVY recoils read as "that one was bigger". */
+  /* Normal tap: a barely-there nudge — the boss stays planted so the earned MEDIUM
+     (combo) / CRIT recoils read as "that one was bigger" by gameplay reason. */
   .recoil-soft { animation:recoilSoft 0.10s ease-out; }
+  /* CRITICAL: stronger, snappier recoil (no flash) — the deterministic "you crit" tell. */
+  .recoil-crit { animation:recoilCrit 0.13s ease-out; }
   @keyframes recoilAnim { 30%{transform:translateY(-8px) rotate(-1.5deg);} }
   @keyframes recoilGun  { 30%{transform:translateY(-5px);} }
   @keyframes recoilSoft { 30%{transform:translateY(-3px);} }
+  @keyframes recoilCrit { 30%{transform:translateY(-12px) rotate(-2deg);} }
 
   /* ─── BOSS HIT FEEDBACK ─── */
   .boss-hit {
