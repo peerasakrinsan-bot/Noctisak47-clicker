@@ -1850,6 +1850,8 @@ function initState() {
   godLevel = 0; canEnterGod = true; godHitCount = 0;
   bossTapCount = 0; lastTapTime = 0;
   ko = 0; score = 0; maxCombo = 0; annihilationCount = 0; roundCoins = 0;
+  // BAPHOBET DEVIL TAX: clear any cinematic state from a prior run
+  _baphTaxActive = false; window._baphTaxDrain = null;
   waveKO = 0; timeLeft = 60;
   window._bossesDefeated = 0;
   wpCollected = 0;
@@ -2231,7 +2233,17 @@ function triggerBombExplosion() {
   const wpBonus = wpCompletions <= 5
     ? wpBonusTable[wpCompletions - 1]
     : 25; // ครั้งที่ 6+ ได้ 25 ต่อครั้ง
-  const totalBombCoins = bombCoins + Math.round(wpBonus * (1.25 + (_sc.coinMult||0)));
+  let totalBombCoins = bombCoins + Math.round(wpBonus * (1.25 + (_sc.coinMult||0)));
+
+  // ── BAPHOBET — SOUL CONTRACT: BLOOD MONEY (chain-scaled, no recursion) ──
+  // Payout scales off the uninterrupted AK47 chain length only (NOT the bank),
+  // so it floods hard but never snowballs into itself. Per-BOMB hard cap.
+  const _bapCs = window._csState;
+  if(_bapCs && _bapCs.cs_baphomet) {
+    _bapCs._baphChain = (_bapCs._baphChain || 0) + 1;
+    const _bloodMult = BAPH_CHAIN_BASE + _bapCs._baphChain * BAPH_CHAIN_STEP;
+    totalBombCoins = Math.min(BAPH_BOMB_CAP, Math.round(totalBombCoins * _bloodMult));
+  }
 
   roundCoins += totalBombCoins;
   // LORD OF DEBT: HUNTER state — AK47 reward +25%
@@ -2268,6 +2280,18 @@ function triggerBombExplosion() {
   }
 
   updateUI();
+
+  // ── BAPHOBET — SOUL CONTRACT: hidden pity → 💀 DEVIL TAX ──
+  // Blood Money owed since the last tax drives an invisible, quadratically-rising
+  // collection chance. Decoupled from the chain on purpose (skill is not punished):
+  // the chain scales income, _unpaidBlood scales the Devil's hunger.
+  if(_bapCs && _bapCs.cs_baphomet) {
+    _bapCs._unpaidBlood = (_bapCs._unpaidBlood || 0) + totalBombCoins;
+    const _taxGoal = BAPH_TAX_GOAL_BASE + (ko || 0) * BAPH_TAX_GOAL_KO;
+    const _bloodNorm = Math.min(1, _bapCs._unpaidBlood / _taxGoal);
+    _baphometWhisper(_bloodNorm);
+    if(!_baphTaxActive && Math.random() < (_bloodNorm * _bloodNorm)) _baphometDevilTax();
+  }
 
   // FREEONI: AK47 complete → OD +35% (if inactive) OR OD timer +2s (if active)
   if(window._csState && window._csState.cs_freeoni) {
@@ -2593,10 +2617,10 @@ const CARD_POOL = [
     apply(s){ s.cs_thanatos = true; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
-    effect:'ทุกคลิก: <strong>TRIPLE STRIKE</strong> (ฮิตหลัก 100% + เงา 40%x2, คริตเงาต่ำลง) <br>BREAK สำเร็จ: เรียก AK47 ทันที 3 จุด + <strong>DEVIL BET</strong>', tradeoff:'<strong>OD ถูกสาป:</strong> ไม่รับ OD gain ทุกแหล่ง',
-    shortDescription:'ไพ่ปีศาจสายออลอิน: Triple Strike + Devil Bet หลัง BREAK',
-    fullDescription:'[TRIPLE STRIKE]\nทุกคลิก = ฮิตหลัก 1 + ฮิตเงา 2 (40%/ฮิต)\n\n[BREAK สำเร็จ]\nเรียก AK47 ทันที 3 จุด\nแล้วสุ่ม DEVIL BET:\n\n• 70% — SIN STACK\nDMG +8% ต่อ Stack (สูงสุด 5)\n\n• 30% — CURSED\nเสียเวลา 1 วิ + AK47 เพิ่ม 1 จุด',
-    balanceNote:'MYTHIC REWORK - ยังโหดและโลภ แต่ล็อกลูป recursion/overflow เพื่อกันพังระบบ',
+    effect:'<strong>SOUL CONTRACT</strong> — AK47 ไม่มีคูลดาวน์ ยิงรัวไม่หยุด<br>ทุก AK47 BOMB: <strong>BLOOD MONEY</strong> — Zeny พุ่งตามสายโซ่ AK47 (ยิ่งต่อเนื่อง ยิ่งรวย)<br>คลิก = TRIPLE STRIKE', tradeoff:'<strong>💀 DEVIL TAX:</strong> ยิ่งรวย ปีศาจยิ่งมาเก็บ — สุ่มริบ Zeny 40–60% ของรอบ • OD ใช้ไม่ได้',
+    shortDescription:'ไพ่ปีศาจสายเงิน: AK47 ไม่มีคูลดาวน์ + เงินไหลเป็นน้ำ แต่ปีศาจจะมาเก็บส่วย',
+    fullDescription:'[AK47 — ไม่มีคูลดาวน์]\nWeak Point เกิดใหม่ทันที ยิงรัวต่อเนื่อง\n\n[BLOOD MONEY]\nทุก AK47 BOMB จ่าย Zeny ตามความยาวสายโซ่ AK47\n(ยิ่งต่อเนื่องไม่พลาด ยิ่งจ่ายหนัก)\nพลาด WP = สายโซ่ขาด\n\n[💀 DEVIL TAX]\nยิ่งสะสม Blood Money มาก ปีศาจยิ่งมาเก็บ\nสุ่มริบ 40–60% ของ Zeny ในรอบ แล้ววนรอบใหม่\n\n[TRADEOFF]\nคลิก TRIPLE STRIKE แต่ OD ชาร์จไม่ได้',
+    balanceNote:'MYTHIC REWORK - SOUL CONTRACT: AK47 frenzy + chain-scaled Blood Money + hidden-pity DEVIL TAX (cinematic). ลบ Sin Stack เดิมออก',
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
@@ -4467,8 +4491,6 @@ function csApplyDmgMod(baseDmg, isGod) {
   // Goblin Leader: combo >= 30 dmg +20%
   if(cs.cs_goblinLeader && combo >= 25) d *= 1.20;
   if(cs.cs_freeoni && cs._freeoniOdDmgStack) d *= (1 + cs._freeoniOdDmgStack);
-  // Baphomet: accumulated dmg bonus from AK47 completions
-  if(cs.cs_baphomet && cs._baphometSinStack) d *= (1 + cs._baphometSinStack);
   // Orc Hero: accumulated dmg bonus from OD completions
   if(cs.cs_orchero && cs._orcheroDmgStack) d *= (1 + cs._orcheroDmgStack);
   // Ktullanux handled in WP bomb section
@@ -4922,6 +4944,187 @@ function csOnBreakEnd() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// BAPHOBET — "SOUL CONTRACT": chain-scaled Blood Money + cinematic 💀 DEVIL TAX
+//   • Money scales off the AK47 chain (_baphChain) — see triggerBombExplosion.
+//   • DEVIL TAX pity scales off Blood Money owed (_unpaidBlood) — decoupled, so
+//     a long clean chain is never punished; only being rich draws the Devil.
+//   • The tax is a ≤0.45s cinematic theft that NEVER pauses gameplay: AK47,
+//     weak points, boss and damage all keep running under a cosmetic overlay.
+//   • Reuses: demonContract VFX (CardVFX), the coin-popup DOM, the SFX pool,
+//     cameraClaim/shake, showBigSplash — no new render loop, no duplicate pools.
+// ═══════════════════════════════════════════════════════════════════════════
+const BAPH_CHAIN_BASE   = 4;       // BLOOD MONEY base multiplier (chain 0)
+const BAPH_CHAIN_STEP   = 1.5;     // +mult per uninterrupted AK47 BOMB
+const BAPH_BOMB_CAP     = 30000;   // per-BOMB Zeny ceiling (anti-runaway)
+const BAPH_TAX_GOAL_BASE= 80000;   // Blood-money-owed pity goal (run-depth scaled)
+const BAPH_TAX_GOAL_KO  = 4000;
+const BAPH_TAX_MIN      = 0.40;    // Devil's share floor
+const BAPH_TAX_MAX      = 0.60;    // Devil's share ceiling
+// Cosmetic only — never affect tax amount / pity / chain. No back-to-back repeat.
+const BAPH_PERSONAS = [
+  { tone:'collector', weight:30, line:'ถึงเวลาเก็บส่วนแบ่งของข้า', pull:'slow',    shake:0.85 },
+  { tone:'greedy',    weight:22, line:'ทั้งหมดนั่นแหละ ของข้า',   pull:'fast',    shake:1.30 },
+  { tone:'gentleman', weight:18, line:'ขอบคุณที่อุดหนุน',         pull:'medium',  shake:0.90 },
+  { tone:'patient',   weight:18, line:'เจ้าก็รู้ว่าวันนี้ต้องมาถึง', pull:'delayed', shake:1.05 },
+  { tone:'matured',   weight:12, line:'สัญญาครบกำหนดแล้ว',        pull:'medium',  shake:1.00 },
+];
+const BAPH_WHISPERS = {
+  low:  ['เพลิดเพลินกับความมั่งคั่งเถอะ…','สัญญายังไม่ได้ชำระ'],
+  mid:  ['ปีศาจกำลังจับตาดู…','หนี้ของเจ้ากำลังโต…'],
+  high: ['ยังก่อน…','ใกล้แล้ว…'],
+};
+let _baphLastPersona = null;
+let _baphTaxActive   = false;
+const _baphCoinPool  = []; // reusable "stolen coin" sprite nodes
+
+function _baphReduced() {
+  try { if(typeof gameSettings === 'object' && gameSettings && gameSettings.flashEffect === 'off') return true; } catch(e){}
+  try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch(e){ return false; }
+}
+function _baphPickPersona() {
+  const pool = BAPH_PERSONAS.filter(p => p.tone !== _baphLastPersona);
+  let tot = 0; for(const p of pool) tot += p.weight;
+  let r = Math.random() * tot;
+  for(const p of pool) { r -= p.weight; if(r <= 0) { _baphLastPersona = p.tone; return p; } }
+  _baphLastPersona = pool[0].tone; return pool[0];
+}
+// Cosmetic dread whispers — escalate with Blood Money owed (the real tax driver).
+function _baphometWhisper(bloodNorm) {
+  if(!gameRunning || gamePaused || _baphReduced()) return;
+  const now = performance.now();
+  if(now < (window._baphWhisperUntil || 0)) return;
+  if(Math.random() >= 0.12) return;
+  window._baphWhisperUntil = now + 4000;
+  const tier = bloodNorm > 0.66 ? 'high' : bloodNorm > 0.33 ? 'mid' : 'low';
+  const pool = BAPH_WHISPERS[tier];
+  const txt  = pool[Math.floor(Math.random() * pool.length)];
+  try {
+    const root = document.getElementById('gameRoot'); if(!root) return;
+    let el = document.getElementById('baphWhisper');
+    if(!el) {
+      el = document.createElement('div');
+      el.id = 'baphWhisper';
+      el.className = 'baph-whisper';
+      root.appendChild(el);
+    }
+    el.textContent = txt;
+    el.style.opacity = '0';
+    el.style.transition = 'none';
+    void el.offsetWidth;
+    el.style.transition = 'opacity .55s ease';
+    requestAnimationFrame(() => { el.style.opacity = '0.82'; });
+    setTimeout(() => { el.style.opacity = '0'; }, 1500);
+  } catch(e){}
+}
+// Make/reuse a small stolen-coin sprite at a fixed screen position.
+function _baphMakeCoin(x, y) {
+  const el = _baphCoinPool.pop() || document.createElement('div');
+  el.className = 'baph-stolen-coin';
+  el.style.cssText = 'position:fixed;left:0;top:0;transform:translate(' + x + 'px,' + y + 'px);opacity:1;transition:none;';
+  document.getElementById('gameRoot').appendChild(el);
+  return el;
+}
+// Fly any money node toward the Devil (cx,cy); compositor-only transform/opacity.
+function _baphFlyCoin(el, cx, cy, dur, pooled) {
+  let ox = 0, oy = 0;
+  try { const r = el.getBoundingClientRect(); ox = r.left + r.width/2; oy = r.top + r.height/2; } catch(e){}
+  const dx = cx - ox, dy = cy - oy;
+  requestAnimationFrame(() => {
+    el.style.transition = 'transform ' + dur + 'ms cubic-bezier(.45,0,.85,.55), opacity ' + dur + 'ms ease-in';
+    if(pooled) el.style.transform = 'translate(' + cx + 'px,' + cy + 'px) scale(.25)';
+    else       el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.3)';
+    el.style.opacity = '0';
+  });
+  setTimeout(() => {
+    try {
+      if(pooled) {
+        el.style.cssText = ''; el.className = '';
+        if(el.parentNode) el.parentNode.removeChild(el);
+        if(_baphCoinPool.length < 10) _baphCoinPool.push(el);
+      }
+    } catch(e){}
+  }, dur + 40);
+}
+// Vacuum the visible money into the Devil — reuse real coin-popups first; only
+// top up with a tiny number of stolen-coin sprites if the screen is near-empty.
+function _baphCoinVacuum(cx, cy, dur) {
+  try {
+    const root = document.getElementById('gameRoot'); if(!root) return;
+    const coins = Array.from(root.querySelectorAll('.coin-popup'));
+    for(const c of coins) _baphFlyCoin(c, cx, cy, dur, false);
+    const TARGET = _baphReduced() ? 3 : 7;
+    for(let i = coins.length; i < TARGET; i++) {
+      const sx = vvW() * (0.12 + Math.random() * 0.76);
+      const sy = vvH() * (0.18 + Math.random() * 0.5);
+      _baphFlyCoin(_baphMakeCoin(sx, sy), cx, cy, dur, true);
+    }
+  } catch(e){}
+}
+// 💀 DEVIL TAX — the cinematic theft. Snapshot now, deduct on impact, never pause.
+function _baphometDevilTax() {
+  if(_baphTaxActive) return;
+  const cs = window._csState;
+  if(!cs || !cs.cs_baphomet || !gameRunning) return;
+  const startBank = Math.max(0, roundCoins);
+  const taxPct = BAPH_TAX_MIN + Math.random() * (BAPH_TAX_MAX - BAPH_TAX_MIN);
+  const tax = Math.round(startBank * taxPct);
+  if(tax <= 0) { cs._unpaidBlood = 0; return; }
+  _baphTaxActive = true;
+  const persona = _baphPickPersona();
+  const reduced = _baphReduced();
+  // per-event variation (within persona) so no two taxes feel copy-pasted
+  const durBase = persona.pull === 'fast' ? 280 : persona.pull === 'slow' ? 440 : persona.pull === 'delayed' ? 420 : 350;
+  const dur   = Math.round(Math.max(250, Math.min(450, durBase + (Math.random()*40 - 20))));
+  const delay = persona.pull === 'delayed' ? Math.round(90 + Math.random()*70) : Math.round(Math.random()*40);
+  const cx = vvW() / 2, cy = vvH() * 0.42;
+
+  // dark contract veil (one reusable node) — cosmetic, pointer-events:none
+  let veil = null;
+  try {
+    const root = document.getElementById('gameRoot');
+    if(root && !reduced) {
+      veil = document.getElementById('baphTaxVeil');
+      if(!veil) { veil = document.createElement('div'); veil.id = 'baphTaxVeil'; veil.className = 'baph-tax-veil'; root.appendChild(veil); }
+      veil.style.transition = 'none'; veil.style.opacity = '0'; void veil.offsetWidth;
+      veil.style.transition = 'opacity .12s ease'; veil.style.opacity = '1';
+    }
+  } catch(e){}
+  // the Devil's slam: shake (scaled per persona, honor reduced) + boom camera
+  try {
+    if(typeof cameraClaim === 'function') cameraClaim(3, dur + 160);
+    if(!reduced) {
+      const gr = document.getElementById('gameRoot');
+      if(gr) { gr.classList.remove('shake'); void gr.offsetWidth; gr.classList.add('shake'); setTimeout(() => gr.classList.remove('shake'), dur + 120); }
+    }
+  } catch(e){}
+
+  setTimeout(() => {
+    // devil burst at center — reuse demonContract canvas primitives (cosmetic)
+    try { if(window.CardVFX) window.CardVFX.trigger('bh', 'sinmax', { x: cx, y: cy }); } catch(e){}
+    // persona "voice"/slam — reuse the existing SFX pool (guaranteed assets)
+    try { if(typeof _playSfx === 'function') _playSfx('wk' + (1 + Math.floor(Math.random()*5)), Math.min(0.85, 0.5 * persona.shake), true); } catch(e){}
+    // physically vacuum the money toward the Devil
+    _baphCoinVacuum(cx, cy, dur);
+    // HUD count-down in sync with the vacuum (display only; bank untouched yet)
+    const t0 = performance.now();
+    (function drain() {
+      if(!gameRunning) { window._baphTaxDrain = null; _baphTaxActive = false; return; }
+      const k = Math.min(1, (performance.now() - t0) / dur);
+      window._baphTaxDrain = Math.round(startBank - tax * k);
+      if(k < 1) { requestAnimationFrame(drain); return; }
+      // IMPACT — coins reach the Devil: the money actually leaves the bank now.
+      roundCoins = Math.max(0, roundCoins - tax);
+      cs._unpaidBlood = 0;
+      window._baphTaxDrain = null;
+      showBigSplash('💀 DEVIL TAX', persona.line + '  −' + tax + ' ZENY', '#cc0011', true);
+      try { if(window.CardVFX) window.CardVFX.trigger('bh', 'break', { x: cx, y: cy }); } catch(e){}
+      try { if(veil) { veil.style.transition = 'opacity .18s ease'; veil.style.opacity = '0'; } } catch(e){}
+      _baphTaxActive = false;
+    })();
+  }, delay);
+}
+
 function csOnBreakSuccess() {
   if(!window._csState || !gameRunning) return;
   const cs = window._csState;
@@ -5033,24 +5236,11 @@ function csOnBreakSuccess() {
         cs._baphometSpawnChainLock = false;
       }
     };
+    // SOUL CONTRACT: BREAK fuels the frenzy — burst-spawn AK47 weak points (no cooldown).
+    // (anti-loop gate only on the burst itself; the per-WP no-cooldown respawn lives elsewhere)
     if(!cs._baphometAk47CdUntil || _nowB >= cs._baphometAk47CdUntil) {
       cs._baphometAk47CdUntil = _nowB + 1500;
       _spawnOne(); setTimeout(_spawnOne, 90); setTimeout(_spawnOne, 180);
-    }
-    if(Math.random() < 0.70) {
-      const _prevSin = cs._baphometSinStacks || 0;
-      cs._baphometSinStacks = Math.min(5, _prevSin + 1);
-      cs._baphometSinStack = (cs._baphometSinStacks || 0) * 0.08;
-      // BAPHOBET sin-stack pip + tier-scaled infernal aura (cosmetic; real counter only).
-      // tier 1 (sin 1–2 low ember) → 2 (3–4 stronger) → 3 (5 dangerous gold/red).
-      _cardFx('sinstack', { stack: cs._baphometSinStacks, max: 5, tier: Math.min(3, Math.ceil(cs._baphometSinStacks / 2)) });
-      // CONTRACT SEALED — DEVIL BET pays off once on reaching 5 (cosmetic burst only).
-      if(_prevSin < 5 && cs._baphometSinStacks === 5) _cardFx('sinmax');
-      showBigSplash('DEVIL BET', 'SIN +' + (cs._baphometSinStacks||0) + '/5', '#cc0000', false);
-    } else {
-      timeLeft = Math.max(1, timeLeft - 1);
-      _spawnOne();
-      showBigSplash('DEVIL BET', 'TIME -1s • AK47 CURSE', '#ff3300', false);
     }
   }
   // THANABROS: OD fills instantly + start Thanatos Phase 5s
@@ -5177,6 +5367,9 @@ function csOnWpMiss() {
     combo = Math.max(1, combo - 5);
     if(typeof updateComboUI === 'function') updateComboUI();
   }
+  // BAPHOBET — SOUL CONTRACT: a missed weak point breaks the AK47 money chain.
+  // (Blood Money scaling resets; the Devil's debt — _unpaidBlood — is untouched.)
+  if(cs.cs_baphomet) cs._baphChain = 0;
 }
 
 // ── helper: on OD start ──
@@ -9241,7 +9434,9 @@ function updateUI() {
   }
   _el.koNum.textContent   = ko;
   _el.scoreNum.textContent = score;
-  _el.coinNum.textContent  = roundCoins;
+  // BAPHOBET DEVIL TAX: while the coins are being vacuumed, show the rapid drain
+  // (display-only override; roundCoins itself is deducted on impact).
+  _el.coinNum.textContent  = (window._baphTaxDrain != null) ? window._baphTaxDrain : roundCoins;
   // ── REWARD FEEL: HUD number bounce on increase (juice, คอสเมติกล้วน) ──
   // transform-only scale punch ผ่าน flip class (ไม่ reflow). throttle กันเด้งทุกเฟรม
   // ตอน score ไหลรัว (score ขึ้นทุก hit). coin/ko เด้งตอนได้รางวัลจริง.

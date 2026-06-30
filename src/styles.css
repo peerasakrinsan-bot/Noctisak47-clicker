@@ -7086,6 +7086,30 @@ body.flash-off #cvWorldEl.cv-world { animation: none !important; opacity: .42 !i
 .game-vfx-theme-debtContract { --gv-theme: #9944cc; }  /* LORD OF DEBT — ม่วงหนี้ต้องสาป-ทองบัญชี-ดำเหว */
 .game-vfx-theme-thanatos { --gv-theme: #cc00cc; }      /* THANABROS — ม่วงมรณะ-ดำเหว-ขาวสเปกตรัล */
 
+/* ── BAPHOBET — SOUL CONTRACT 💀 DEVIL TAX cinematic (cosmetic, compositor-only) ──
+   One reusable veil + reusable stolen-coin sprites + one whisper node. No loops,
+   no backdrop-filter — transform/opacity only, GPU-friendly. */
+.baph-tax-veil {
+  position: absolute; inset: 0; z-index: 15; pointer-events: none; opacity: 0;
+  background: radial-gradient(120% 90% at 50% 42%, rgba(120,0,8,0.10) 0%, rgba(40,0,4,0.55) 55%, rgba(8,0,2,0.82) 100%);
+  will-change: opacity; contain: layout paint;
+}
+.baph-stolen-coin {
+  position: fixed; width: 16px; height: 16px; border-radius: 50%; z-index: 17; pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, #ffe27a 0%, #ffcc33 45%, #b8121f 100%);
+  box-shadow: 0 0 8px rgba(255,160,40,0.85), 0 0 3px rgba(180,18,31,0.9);
+  will-change: transform, opacity;
+}
+.baph-whisper {
+  position: absolute; left: 50%; top: 30%; transform: translateX(-50%); z-index: 16; pointer-events: none;
+  font-family: 'Oswald', sans-serif; font-size: clamp(12px, 3.4vw, 18px); letter-spacing: 0.04em;
+  color: #ff5566; text-shadow: 0 0 10px rgba(204,0,17,0.8), 0 1px 2px #000; opacity: 0; white-space: nowrap;
+  will-change: opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .baph-tax-veil, .baph-stolen-coin, .baph-whisper { display: none !important; }
+}
+
 /* 1) PASSIVE-ACTIVE indicator — แปะบน aura ตัวละคร (#cvAuraEl) เพิ่มจาก cv-aura.
    ไม่เพิ่มภาระ: เป็นเพียง hook คลาส (texture/จังหวะหลักยังมาจาก cv-aura--*).
    rarity เพิ่มความเข้มของ ring เล็กน้อยให้ Mythic รู้สึก "หายาก/ดราม่า" กว่า Elite. */

@@ -189,7 +189,7 @@ Legend — **Cat** = primary power category (see §3). **VFX** = has `VFX_MAP` e
 | ID | Name | Cat | Core mechanic | Limit / tradeoff | Flags | VFX ctx |
 |----|------|-----|---------------|------------------|-------|---------|
 | th | THANABROS | special | AK47 DMG×2.5; BREAK → Thanatos Phase 5s + OD full | combo reset every 10s | cs_thanatos | thanatos, ak47 |
-| bh | BAPHOBET | multi-hit | click → TRIPLE STRIKE; BREAK → 3× AK47 + DEVIL BET | **OD cursed: no OD gain** | cs_baphomet | break |
+| bh | BAPHOBET | money/special | **SOUL CONTRACT**: AK47 no-cooldown frenzy; every AK47 BOMB → **BLOOD MONEY** (Zeny × chain `4 + chain×1.5`, cap 30k; chain resets on WP miss); click TRIPLE STRIKE | **💀 DEVIL TAX**: hidden pity (`bloodNorm²`, owed-Zeny / `80k+KO×4k`) → cinematic theft of **40–60% run Zeny**; **OD cursed** | cs_baphomet | break, sinmax |
 | eg | EDGEGA | OD/special | OD Lv1 permanent; every 15s → Lv2 Burst 5s | locked at Lv1 | cs_eddga | od |
 | os | NOSIRIS | break/special | BREAK → Soul Stack (≤5); 5 → JUDGMENT 8s; death-deny once | once/round | cs_osiris | break |
 | mt | MISSSTRESS | OD/coin | OD click → +12 zeny (ICD 0.3s) & OD +0.35s (cap +4s) & Crit +10% | OD-only, capped | cs_mistress | od |
