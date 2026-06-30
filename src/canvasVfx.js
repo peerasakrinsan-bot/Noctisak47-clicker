@@ -221,14 +221,39 @@ function _push(p) {
   _parts.push(p);
 }
 
+// ── composition: per-particle ONSET DELAY ────────────────────────────────────
+// The single mechanism behind the composition pass. Every particle carries a
+// `delay` (seconds) before which it is invisible and frozen at its spawn point;
+// at onset it snaps in and lives its full `life`. Layers of one signature are
+// thus offset in time (Anticipation→Snap→Peak→Expansion→Settle→Residual) WITHOUT
+// spawning anything extra. `_spawnDelay` is a base delay applied to every
+// particle a builder makes during one spawn call (set by spawnCanvasVfx); a
+// builder may then ADD per-layer offsets on top (e.g. `spear.delay += 0.06`).
+let _spawnDelay = 0;
+
 // base particle factory — ตั้งค่า field ร่วมไว้ ส่วน builder เติมที่เหลือ
 function _mk(kind, x, y, life, color) {
   const p = _alloc();
   p.kind = kind; p.x = x; p.y = y; p.age = 0; p.life = life; p.color = color;
   p.vx = 0; p.vy = 0; p.size = 6; p.rot = 0; p.seed = Math.random();
-  p.pts = null; p.data = 0; p.c2 = 0; p.secondary = 0;
+  p.pts = null; p.data = 0; p.c2 = 0; p.secondary = 0; p.drag = 0; p.delay = _spawnDelay; p.flow = 0;
   return p;
 }
+
+// ── motion-language flow codes (per-family motion on the shared 'spark' kind) ──
+// The same spark primitive serves fire embers, void absorption, charge intake,
+// etc. — without this they all drift identically. `p.flow` selects a cheap
+// vector-field flavor in the spark draw so each family MOVES like itself.
+const FLOW_FIRE = 1;   // buoyant accelerating rise + dancing flicker (heat)
+const FLOW_VOID = 2;   // curl velocity → spiral inward + compress (swallowing)
+
+// ── naturalization helpers (cosmetic motion/timing curves; no extra particles) ─
+// easeOut: shockwaves/expansions shoot out fast then settle — replaces the
+// procedural constant-speed look with a decelerating one. Cheap (one mul/sub).
+function _easeOut(t) { const u = 1 - t; return 1 - u * u; }
+// jitterLife: break the synchronized-death tell — debris should not all expire on
+// the same frame. Returns a per-particle life spread around the burst's base life.
+function _jl(base) { return base * (0.66 + Math.random() * 0.62); }
 
 function _rmLife(base) { return _reduced ? Math.min(base, 0.2) : base; }
 
@@ -257,11 +282,14 @@ const BUILD = {
     let n = _nParts(o.count || 6);
     const x = _ox0(o), y = _oy0(o), life = _rmLife(o.dur || 0.36);
     for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.5;
-      const sp = 90 + Math.random() * 150;
-      const p = _mk('spark', x, y, life, o.color || '#ffffff');
+      // weighted-random angle: even slot + wide jitter breaks the perfect-ring
+      // tell (debris never scatters at equal spacing); occasional fast flier.
+      const ang = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 1.15;
+      const fast = Math.random() < 0.22;
+      const sp = (fast ? 200 : 80) + Math.random() * (fast ? 130 : 130);
+      const p = _mk('spark', x, y, _jl(life), o.color || '#ffffff');
       p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp;
-      p.size = 2.5 + Math.random() * 2.5;
+      p.size = 2.2 + Math.random() * 3; p.drag = 1; // air drag → ease-out deceleration
       _push(p);
     }
   },
@@ -304,7 +332,7 @@ const BUILD = {
     for (let i = 0; i < n; i++) {
       const p = _mk('spark', x, y, life, col);
       p.vx = (Math.random() - 0.5) * 90; p.vy = -(120 + Math.random() * 130);
-      p.size = 2.5 + Math.random() * 2; p.data = 1; // ember = drift up, no gravity flip
+      p.size = 2.5 + Math.random() * 2; p.data = 1; p.flow = FLOW_FIRE; // ember = drift up, no gravity flip
       _push(p);
     }
   },
@@ -326,9 +354,11 @@ const BUILD = {
     let n = _nParts(heavy ? 7 : 5);
     const life = _rmLife(o.dur || 0.42), col = o.color || '#ffffff';
     for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
-      const p = _mk('crack', x, y, life, col);
-      p.rot = ang; p.size = (heavy ? 70 : 50) + Math.random() * 30;
+      // uneven angular spread + per-crack life/length spread → an irregular
+      // fracture star, not n equal spokes dying on the same frame.
+      const ang = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.95;
+      const p = _mk('crack', x, y, _jl(life), col);
+      p.rot = ang; p.size = (heavy ? 60 : 42) + Math.random() * (heavy ? 46 : 38);
       p.data = heavy ? 3 : 2; // line width
       _push(p);
     }
@@ -557,7 +587,7 @@ const BUILD = {
       const p = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
       const sp = rad / life;                 // ถึงศูนย์กลางราว ๆ ตอนจบ
       p.vx = -Math.cos(ang) * sp; p.vy = -Math.sin(ang) * sp;
-      p.size = 2 + Math.random() * 2; p.data = 1; // ember = ไม่โดนโน้มถ่วง
+      p.size = 2 + Math.random() * 2; p.data = 1; p.flow = FLOW_VOID; // ember = ไม่โดนโน้มถ่วง (spiral inward)
       _push(p);
     }
   },
@@ -567,10 +597,10 @@ const BUILD = {
     const core = _mk('bcore', x, y, life, col); core.size = o.size || 56; _push(core);
     let n = _nParts(8);
     for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2;
-      const sp = 120 + Math.random() * 120;
-      const p = _mk('spark', x, y, life, col);
-      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp; p.size = 2.5 + Math.random() * 2;
+      const ang = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.7;
+      const sp = 120 + Math.random() * 130;
+      const p = _mk('spark', x, y, _jl(life), col);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp; p.size = 2.4 + Math.random() * 2.4; p.drag = 1;
       _push(p);
     }
   },
@@ -582,7 +612,7 @@ const BUILD = {
     for (let i = 0; i < n; i++) {
       const p = _mk('spark', x, y, life, col);
       p.vx = (Math.random() - 0.5) * 100; p.vy = -(130 + Math.random() * 130);
-      p.size = 2.5 + Math.random() * 2; p.data = 1; // ember = ลอยขึ้น ไม่ตก
+      p.size = 2.5 + Math.random() * 2; p.data = 1; p.flow = FLOW_FIRE; // ember = ลอยขึ้น ไม่ตก
       _push(p);
     }
   },
@@ -642,7 +672,7 @@ const BUILD = {
       const p = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
       const sp = rad / life;                 // ถึงศูนย์กลางราว ๆ ตอนจบ
       p.vx = -Math.cos(ang) * sp; p.vy = -Math.sin(ang) * sp;
-      p.size = 2 + Math.random() * 2; p.data = 1; // ember = ไม่โดนโน้มถ่วง, ถูกดูดเข้า
+      p.size = 2 + Math.random() * 2; p.data = 1; p.flow = FLOW_VOID; // ember = ไม่โดนโน้มถ่วง, ถูกดูดเข้า (spiral inward)
       _push(p);
     }
   },
@@ -794,9 +824,9 @@ const BUILD = {
   goldRush(o) {
     const x = _ox0(o), y = _oy0(o), col = o.color || '#ffcc00', life = _rmLife(o.dur || 0.82);
     // แกนทองกิลด์ (gilded core) + วงช็อกทอง (shockwave ring)
-    const core = _mk('glow', x, y, _rmLife(0.5), '#fff0a0'); core.size = 90; _push(core);
-    const ring = _mk('ring', x, y, _rmLife(0.6), '#ffd24a'); ring.size = 30; _push(ring);
-    // น้ำพุทองคำแท่ง — พุ่งขึ้นเป็นพัด แล้วร่วงลงตามแรงโน้มถ่วง + หมุน
+    const core = _mk('glow', x, y, _rmLife(0.5), '#fff0a0'); core.size = 90; _push(core);          // gilded flash
+    const ring = _mk('ring', x, y, _rmLife(0.6), '#ffd24a'); ring.size = 30; ring.delay += 0.05; _push(ring); // shock ring follows
+    // น้ำพุทองคำแท่ง — พุ่งขึ้นเป็นพัด แล้วร่วงลงตามแรงโน้มถ่วง + หมุน (erupts just after the flash, staggered)
     let n = _nParts(o.count || 9);
     for (let i = 0; i < n; i++) {
       const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.26;
@@ -805,12 +835,13 @@ const BUILD = {
       p.vx = Math.cos(ang) * sp * 0.62; p.vy = Math.sin(ang) * sp - 90;
       p.size = 13 + Math.random() * 9; p.rot = (Math.random() - 0.5) * 2;
       p.data = (Math.random() - 0.5) * 9; // spin speed
+      p.delay += 0.03 + Math.random() * 0.05;
       _push(p);
     }
-    // "$" ยักษ์ลอยขึ้น (treasure mega-glyph) — reuse dglyph kind, สีทอง
+    // "$" ยักษ์ลอยขึ้น (treasure mega-glyph — rises last) — reuse dglyph kind, สีทอง
     if (!_reduced) {
       const g = _mk('dglyph', x, y - 8, _rmLife(0.78), '#ffe680');
-      g.txt = '$'; g.size = 40; g.vy = -78; g.data = 0.03;
+      g.txt = '$'; g.size = 40; g.vy = -78; g.data = 0.03; g.delay += 0.08;
       _push(g);
     }
   },
@@ -822,12 +853,12 @@ const BUILD = {
     const life = _rmLife(peak ? 0.85 : 0.6);
     // ปีกวาลคีรี (ทั้งสองข้างในอนุภาคเดียว)
     const w = _mk('vwing', x, y, life, col); w.size = peak ? 122 : 84; _push(w);
-    // หอกแสงทิ่มลงจากเบื้องบน
+    // หอกแสงทิ่มลงจากเบื้องบน — drives down after the wings open (snap)
     const s = _mk('vspear', x, y, _rmLife(peak ? 0.6 : 0.46), '#ffe9ff');
-    s.size = peak ? 150 : 112; s.data = peak ? 190 : 140; _push(s);
-    // แกนแสงเทพ
-    const g = _mk('glow', x, y, _rmLife(0.5), '#ffe9ff'); g.size = peak ? 72 : 48; _push(g);
-    // ขนนกร่วง (feathers drifting down)
+    s.size = peak ? 150 : 112; s.data = peak ? 190 : 140; s.delay += 0.06; _push(s);
+    // แกนแสงเทพ (descent light)
+    const g = _mk('glow', x, y, _rmLife(0.5), '#ffe9ff'); g.size = peak ? 72 : 48; g.delay += 0.03; _push(g);
+    // ขนนกร่วง (feathers drifting down — residual, staggered)
     let n = _nParts(peak ? 9 : 5);
     for (let i = 0; i < n; i++) {
       const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.5;
@@ -835,10 +866,11 @@ const BUILD = {
       const p = _mk('vfeather', x + (Math.random() - 0.5) * 44, y - 18, life, (i % 2) ? col : '#ffe9ff');
       p.vx = Math.cos(ang) * sp * 0.5; p.vy = Math.abs(Math.sin(ang)) * sp * 0.4 + 26;
       p.size = 5 + Math.random() * 5; p.rot = Math.random() * 6; p.data = (Math.random() - 0.5) * 4;
+      p.delay += 0.1 + Math.random() * 0.07;
       _push(p);
     }
-    // peak: วงรูนทอง (rune ring)
-    if (peak) { const r = _mk('ring', x, y, _rmLife(0.72), '#ffd96b'); r.size = 34; _push(r); }
+    // peak: วงรูนทอง (rune ring — last, residual)
+    if (peak) { const r = _mk('ring', x, y, _rmLife(0.72), '#ffd96b'); r.size = 34; r.delay += 0.14; _push(r); }
   },
   // GLOOM SURGE — ดวงตา GLOOM จ้อง + หนวดเงาทะยานคว้าจากด้านล่าง + (peak) ดูดกลืนเข้า
   // (GLOOM UNDER SIDE). silhouette "ตา+หนวดเงา" ม่วงเข้ม-ดำเหว. tier ขับความสูง/จำนวน.
@@ -859,11 +891,12 @@ const BUILD = {
       p.data = (max ? 120 : 56 + tier * 22) + Math.random() * 30; // ความสูง
       p.size = 5 + Math.random() * 4 + tier;                       // ความหนา
       p.vx = (Math.random() - 0.5) * 22;                           // โค้งเอน
+      p.delay += i * 0.03 + Math.random() * 0.02;                  // tendrils rise in sequence, not as one wall
       _push(p);
     }
-    // แอ่งเงาเหวใต้ตัว (dark undertone pool)
+    // แอ่งเงาเหวใต้ตัว (dark undertone pool — settles under the eye first)
     const sh = _mk('shadow', x, y + (max ? 40 : 28), _rmLife(max ? 0.7 : 0.5), '#1a0030');
-    sh.size = max ? 52 : 34; _push(sh);
+    sh.size = max ? 52 : 34; sh.delay += 0.02; _push(sh);
     // peak: เวลา/วิญญาณถูกดูดกลืนเข้า (devoured inward)
     if (max) {
       let s = _nParts(8);
@@ -871,7 +904,8 @@ const BUILD = {
         const ang = (i / s) * Math.PI * 2, rad = 60 + Math.random() * 40;
         const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.6), '#b388ff');
         e.vx = -Math.cos(ang) * rad * 1.7; e.vy = -Math.sin(ang) * rad * 1.7; // ลู่เข้า (กลืน)
-        e.size = 2 + Math.random() * 2; e.data = 1; // ไม่มีโน้มถ่วง
+        e.size = 2 + Math.random() * 2; e.data = 1; e.flow = FLOW_VOID; // ไม่มีโน้มถ่วง (spiral-absorb)
+        e.delay += 0.1 + Math.random() * 0.05;       // devour pulls inward after the tendrils have risen
         _push(e);
       }
     }
@@ -885,21 +919,22 @@ const BUILD = {
       const ang = (i / n) * Math.PI * 2, rad = 40 + Math.random() * 26;
       const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.45), col);
       e.vx = -Math.cos(ang) * rad * 1.9; e.vy = -Math.sin(ang) * rad * 1.9; // ลู่เข้า (ชาร์จ)
-      e.size = 2 + Math.random() * 1.6; e.data = 1; _push(e); // data 1 = no gravity
+      e.size = 2 + Math.random() * 1.6; e.data = 1; e.flow = FLOW_VOID; _push(e); // circuitry spirals into the core
     }
   },
   // MECHA LASER — ปืนเลเซอร์ฟาดลง + reticle ล็อกเป้า + แกนปากกระบอก (KILL-D01 DRIVE DISCHARGE)
   mechaLaser(o) {
     const x = _ox0(o), y = _oy0(o), col = o.color || '#00ffee';
     const max = o.variant === 'max';
-    const core = _mk('mcore', x, y, _rmLife(max ? 0.5 : 0.4), col); core.size = max ? 40 : 24; core.data = 1; _push(core); // data 1 = fire (shrink)
-    const beam = _mk('mbeam', x, y, _rmLife(max ? 0.6 : 0.42), col); beam.size = max ? 175 : 120; beam.data = max ? 15 : 9; _push(beam);
-    if (max && !_reduced) { const b2 = _mk('mbeam', x, y, _rmLife(0.6), '#aaffff'); b2.size = 150; b2.data = 8; b2.rot = 0.22; _push(b2); }
+    const core = _mk('mcore', x, y, _rmLife(max ? 0.5 : 0.4), col); core.size = max ? 40 : 24; core.data = 1; _push(core); // muzzle charges first
+    const beam = _mk('mbeam', x, y, _rmLife(max ? 0.6 : 0.42), col); beam.size = max ? 175 : 120; beam.data = max ? 15 : 9; beam.delay += 0.05; _push(beam); // then discharges
+    if (max && !_reduced) { const b2 = _mk('mbeam', x, y, _rmLife(0.6), '#aaffff'); b2.size = 150; b2.data = 8; b2.rot = 0.22; b2.delay += 0.05; _push(b2); }
     let n = _nParts(max ? 9 : 5);
     for (let i = 0; i < n; i++) {
       const ang = -Math.PI / 2 + (i - (n - 1) / 2) * 0.4, sp = 120 + Math.random() * 120;
       const e = _mk('spark', x, y, _rmLife(0.45), max ? '#aaffff' : col);
-      e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp * 0.5; e.size = 2 + Math.random() * 2; e.data = 1; _push(e);
+      e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp * 0.5; e.size = 2 + Math.random() * 2; e.data = 1;
+      e.delay += 0.05 + Math.random() * 0.03; _push(e); // muzzle spray with the beam
     }
   },
   // NOSIRIS — วิญญาณทองหมุนเข้า (soul wisps) + แกนเรืองทอง (soul collection)
@@ -916,13 +951,14 @@ const BUILD = {
   // NOSIRIS peak — ตราหิน hieroglyph + ลำแสงพิพากษา + วิญญาณปะทุออก (JUDGMENT)
   judgmentSeal(o) {
     const x = _ox0(o), y = _oy0(o), col = o.color || '#ffdd66';
-    const seal = _mk('runeseal', x, y, _rmLife(0.85), col); seal.size = 70; _push(seal);
-    const g = _mk('glow', x, y, _rmLife(0.6), '#fff6d0'); g.size = 80; _push(g);
+    const g = _mk('glow', x, y, _rmLife(0.6), '#fff6d0'); g.size = 80; _push(g);          // judgment light flashes first
+    const seal = _mk('runeseal', x, y, _rmLife(0.85), col); seal.size = 70; seal.delay += 0.05; _push(seal); // then the seal inscribes
     let n = _nParts(9);
     for (let i = 0; i < n; i++) {
       const ang = (i / n) * Math.PI * 2, sp = 120 + Math.random() * 120;
       const p = _mk('soul', x, y, _rmLife(0.7), col);
-      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp; p.size = 3 + Math.random() * 2.5; _push(p);
+      p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp; p.size = 3 + Math.random() * 2.5;
+      p.delay += 0.1 + Math.random() * 0.05; _push(p);                                     // souls erupt last
     }
   },
   // COKE ZERO — หลุมดำดูดยุบ: แกน void + วงเลนส์โน้มถ่วงหดเข้า + เศษบิดลู่เข้า (+singularity ระเบิด)
@@ -931,20 +967,21 @@ const BUILD = {
     const sing = o.variant === 'singularity';
     const core = _mk('vzero', x, y, _rmLife(sing ? 0.7 : 0.55), col); core.size = sing ? 60 : 44; _push(core);
     let rN = _nParts(sing ? 4 : 3);
-    for (let i = 0; i < rN; i++) { const g = _mk('glens', x, y, _rmLife(sing ? 0.6 : 0.5), col); g.size = 70 + i * 26; _push(g); }
+    for (let i = 0; i < rN; i++) { const g = _mk('glens', x, y, _rmLife(sing ? 0.6 : 0.5), col); g.size = 70 + i * 26; g.delay += i * 0.04; _push(g); } // lensing rings collapse inward in sequence
     let n = _nParts(sing ? 9 : 6);
     for (let i = 0; i < n; i++) {
       const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4, rad = 70 + Math.random() * 50;
       const p = _mk('vfrag', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.6), col);
       p.vx = -Math.cos(ang) * rad * 1.8; p.vy = -Math.sin(ang) * rad * 1.8; p.size = 4 + Math.random() * 4;
-      p.rot = Math.random() * 6; p.data = (Math.random() - 0.5) * 8; _push(p);
+      p.rot = Math.random() * 6; p.data = (Math.random() - 0.5) * 8; p.delay += 0.04 + Math.random() * 0.05; _push(p); // debris sucked in after the well opens
     }
     if (sing) {
       let s = _nParts(10);
       for (let i = 0; i < s; i++) {
         const ang = (i / s) * Math.PI * 2, sp = 160 + Math.random() * 130;
         const e = _mk('spark', x, y, _rmLife(0.5), '#cfe4ff');
-        e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp; e.size = 2 + Math.random() * 2; e.data = 1; _push(e);
+        e.vx = Math.cos(ang) * sp; e.vy = Math.sin(ang) * sp; e.size = 2 + Math.random() * 2; e.data = 1;
+        e.delay += 0.1 + Math.random() * 0.04; _push(e); // singularity detonates outward last
       }
     }
   },
@@ -956,13 +993,13 @@ const BUILD = {
   // DETAILED peak — แผนที่วิเคราะห์ทั้งสนาม: สแกนใหญ่ + crosshair ล็อกหลายจุด + วงล็อก (ANALYSIS COMPLETE)
   analysisMap(o) {
     const x = _ox0(o), y = _oy0(o), col = o.color || '#00ffcc';
-    const s = _mk('dscan', x, y, _rmLife(0.7), col); s.size = 200; s.data = 130; _push(s);
-    const c0 = _mk('dcross', x, y, _rmLife(0.7), col); c0.size = 46; _push(c0);
+    const s = _mk('dscan', x, y, _rmLife(0.7), col); s.size = 200; s.data = 130; _push(s);  // scan sweeps first
+    const c0 = _mk('dcross', x, y, _rmLife(0.7), col); c0.size = 46; c0.delay += 0.08; _push(c0); // primary lock after scan
     if (!_reduced) {
       const pts = [[-70, -40], [80, -20], [0, 60]];
-      for (let i = 0; i < pts.length; i++) { const c = _mk('dcross', x + pts[i][0], y + pts[i][1], _rmLife(0.7), '#39ffaa'); c.size = 22; _push(c); }
+      for (let i = 0; i < pts.length; i++) { const c = _mk('dcross', x + pts[i][0], y + pts[i][1], _rmLife(0.7), '#39ffaa'); c.size = 22; c.delay += 0.1 + i * 0.05; _push(c); } // secondary locks snap in one by one
     }
-    const r = _mk('ring', x, y, _rmLife(0.7), col); r.size = 30; _push(r);
+    const r = _mk('ring', x, y, _rmLife(0.7), col); r.size = 30; r.delay += 0.16; _push(r); // confirm pulse last
   },
   // MISSSTRESS — ฝูงผึ้งทอง (gold bees) + (command) เซลล์รังผึ้งปะทุ (queen swarm)
   queenSwarm(o) {
@@ -983,7 +1020,7 @@ const BUILD = {
     const x = _ox0(o), y = _oy0(o), col = o.color || '#ffcf4a';
     const offs = [[0, 0], [-26, -14], [26, -14], [-26, 16], [26, 16], [0, -30]];
     let k = _reduced ? 2 : offs.length;
-    for (let i = 0; i < k; i++) { const h = _mk('hexcell', x + offs[i][0], y + offs[i][1], _rmLife(0.6), col); h.size = 12 + Math.random() * 6; _push(h); }
+    for (let i = 0; i < k; i++) { const h = _mk('hexcell', x + offs[i][0], y + offs[i][1], _rmLife(0.6), col); h.size = 12 + Math.random() * 6; h.delay += i * 0.035; _push(h); } // cells crystallize outward from center
   },
   // ไวรัสคอร์รัปต์ — บล็อกดิจิทัลกระตุก/เลื่อน (ต่างจาก scanline glitch)
   corruptGlitch(o) {
@@ -1074,28 +1111,28 @@ const BUILD = {
   // ABYSMELL KNIGHT — ประหารเหวมรณะ: รอยแยกมืดเปิด + ดาบหนักดิ่งฟาดลง + ดูดวิญญาณเข้า
   abyssReap(o) {
     const x = _ox0(o), y = _oy0(o), col = o.color || '#ff2244';
-    const v = _mk('void', x, y, _rmLife(0.5), '#2a0008'); v.size = 40; _push(v);
-    const b = _mk('vblade', x, y, _rmLife(o.dur || 0.5), col); b.size = 110; b.data = 130; _push(b);
-    const d = _mk('drain', x, y, _rmLife(0.5), col); d.size = 60; _push(d);
+    const v = _mk('void', x, y, _rmLife(0.5), '#2a0008'); v.size = 40; _push(v);                  // rift opens
+    const d = _mk('drain', x, y, _rmLife(0.5), col); d.size = 60; d.delay += 0.04; _push(d);       // pull forms
+    const b = _mk('vblade', x, y, _rmLife(o.dur || 0.5), col); b.size = 110; b.data = 130; b.delay += 0.08; _push(b); // blade drops through (snap)
     let n = _nParts(5);
     for (let i = 0; i < n; i++) {
       const ang = (i / n) * Math.PI * 2, rad = 50 + Math.random() * 30;
       const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.5), col);
-      e.vx = -Math.cos(ang) * rad * 1.6; e.vy = -Math.sin(ang) * rad * 1.6; e.size = 2 + Math.random() * 1.8; e.data = 1;
-      _push(e);
+      e.vx = -Math.cos(ang) * rad * 1.6; e.vy = -Math.sin(ang) * rad * 1.6; e.size = 2 + Math.random() * 1.8; e.data = 1; e.flow = FLOW_VOID;
+      e.delay += 0.12 + Math.random() * 0.04; _push(e);   // souls spiral into the rift last
     }
   },
   // EXECUSIONER — ขวานประหารฟาดโค้ง: อาร์คขวานกว้างกวาดลง + รอยร้าวพื้น + วาบ
   guillotine(o) {
     const x = _ox0(o), y = _oy0(o), col = o.color || '#ff5544';
-    const a = _mk('axearc', x, y, _rmLife(o.dur || 0.46), col); a.size = 120; _push(a);
+    const a = _mk('axearc', x, y, _rmLife(o.dur || 0.46), col); a.size = 120; _push(a);   // axe sweeps down
     let n = _nParts(3);
     for (let i = 0; i < n; i++) {
       const ang = Math.PI * (0.2 + Math.random() * 0.6);
       const p = _mk('crack', x, y + 30, _rmLife(0.5), col);
-      p.rot = ang; p.size = 50 + Math.random() * 30; p.data = 3; _push(p);
+      p.rot = ang; p.size = 50 + Math.random() * 30; p.data = 3; p.delay += 0.1 + Math.random() * 0.04; _push(p); // ground splits when the blade lands
     }
-    const f = _mk('flash', 0, 0, _rmLife(0.18), '#1a0000'); f.size = 0.16; _push(f);
+    const f = _mk('flash', 0, 0, _rmLife(0.18), '#1a0000'); f.size = 0.16; f.delay += 0.1; _push(f); // impact darkness on the landing frame
   },
   // TAO FUNKA — ฟังก์ฟีเวอร์: แท่งอีควอไลเซอร์ดิสโก้เด้งตามบีต + วงจังหวะ + โน้ตสีสด (ไม่ใช่ไฟ)
   funkBeat(o) {
@@ -1140,31 +1177,32 @@ const BUILD = {
       p.size = 12 + Math.random() * 4; p.rot = (Math.random() - 0.5) * 1.2; p.data = (Math.random() - 0.5) * 5; p.seed = Math.random();
       _push(p);
     }
-    const sl = _mk('slash', x, y, _rmLife(0.34), '#f0d8ff'); sl.rot = -0.6; sl.size = 150; sl.data = 0.06; _push(sl);
-    const f = _mk('flash', 0, 0, _rmLife(0.16), col); f.size = 0.14; _push(f);
+    const sl = _mk('slash', x, y, _rmLife(0.34), '#f0d8ff'); sl.rot = -0.6; sl.size = 150; sl.data = 0.06; sl.delay += 0.06; _push(sl); // the cut follows the thrown ofuda
+    const f = _mk('flash', 0, 0, _rmLife(0.16), col); f.size = 0.14; f.delay += 0.06; _push(f);
   },
   // STORMYNITE — พายุประจุ: สายฟ้าแตกแขนงหลายเส้นฟาดลง + แกนวาบ + วงไฟฟ้า
   stormStrike(o) {
     const x = _ox0(o), y = _oy0(o), col = o.color || '#9be7ff';
-    const core = _mk('bcore', x, y, _rmLife(0.4), '#eaffff'); core.size = 44; _push(core);
+    const core = _mk('bcore', x, y, _rmLife(0.4), '#eaffff'); core.size = 44; _push(core);   // flash gathers
     let n = _reduced ? 1 : 3;
     for (let i = 0; i < n; i++) {
       const p = _mk('bolt', x + (i - 1) * 18, y, _rmLife(o.dur || 0.36), col);
       const pts = []; const segs = 6; let px = x + (i - 1) * 18, py = y - 60;
       for (let s = 0; s <= segs; s++) { pts.push(px, py); px += (Math.random() - 0.5) * 30; py += 120 / segs; }
-      p.pts = pts; p.size = 3; _push(p);
+      p.pts = pts; p.size = 3; p.delay += 0.03 + Math.random() * 0.04; _push(p); // bolts crack down out of sync
     }
-    const r = _mk('ring', x, y, _rmLife(0.45), col); r.size = 26; _push(r);
+    const r = _mk('ring', x, y, _rmLife(0.45), col); r.size = 26; r.delay += 0.07; _push(r); // discharge ring last
   },
   // DORK LORD — ม่านราตรี: เงาแผ่ + ดาวระยิบร่วงลง (night veil) ไต่ความเข้มตาม tier
   nightVeil(o) {
     const x = _ox0(o), y = _oy0(o), col = o.color || '#9a66cc', life = _rmLife(o.dur || 0.55);
-    const sh = _mk('shadow', x, y - 10, life, '#1a0a2a'); sh.size = 38; _push(sh);
+    const sh = _mk('shadow', x, y - 10, life, '#1a0a2a'); sh.size = 38; _push(sh);   // veil falls first
     let n = _nParts(o.count || 6);
     for (let i = 0; i < n; i++) {
       const p = _mk('star', x + (Math.random() - 0.5) * 90, y - 30 - Math.random() * 30, life, (i % 2) ? '#d8b3ff' : col);
       p.vx = (Math.random() - 0.5) * 20; p.vy = 60 + Math.random() * 60;
       p.size = 4 + Math.random() * 3; p.rot = Math.random() * 6; p.data = (Math.random() - 0.5) * 4;
+      p.delay += i * 0.04 + Math.random() * 0.04;   // stars twinkle down scattered in time, not as a sheet
       _push(p);
     }
   },
@@ -1271,10 +1309,12 @@ const BUILD = {
     let n = _nParts(o.count || 9);
     for (let i = 0; i < n; i++) {
       const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
-      const sp = 140 + Math.random() * 170;
-      const p = _mk('spark', x, y, _rmLife(dur), col);
+      const fast = Math.random() < 0.25;
+      const sp = (fast ? 230 : 130) + Math.random() * 170;
+      const p = _mk('spark', x, y, _jl(_rmLife(dur)), col);
       p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp;
-      p.size = 2.5 + Math.random() * 2.5; p.data = 1; // ไม่มีโน้มถ่วง (หมัดกระจายรัศมี)
+      p.size = 2.3 + Math.random() * 3; p.data = 1; p.drag = 1; // radial punch, drag → ease-out
+      p.delay += Math.random() * 0.05;          // debris thrown out just after the core flash (crackle)
       _push(p);
     }
     if (o.stars && !_reduced) {
@@ -1284,6 +1324,7 @@ const BUILD = {
         const st = _mk('star', x, y, _rmLife(dur), col2);
         st.vx = Math.cos(ang) * sp; st.vy = Math.sin(ang) * sp - 40;
         st.size = 7 + Math.random() * 5; st.rot = Math.random() * 6; st.data = 5 + Math.random() * 5;
+        st.delay += 0.05 + Math.random() * 0.06; // stars arc up last (residual sparkle)
         _push(st);
       }
     }
@@ -1293,7 +1334,8 @@ const BUILD = {
     const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.6, col = o.color || '#ff7a1e';
     const w = _mk('bwave', x, y, _rmLife(dur), col); w.size = o.size || 36; w.data = o.thick || 7; _push(w);
     if (!_reduced && _intensity > 0.4) {
-      const w2 = _mk('bwave', x, y, _rmLife(dur * 0.82), col); w2.size = (o.size || 36) * 0.6; w2.data = (o.thick || 7) * 0.6; _push(w2);
+      const w2 = _mk('bwave', x, y, _rmLife(dur * 0.82), col); w2.size = (o.size || 36) * 0.6; w2.data = (o.thick || 7) * 0.6;
+      w2.delay += 0.06; _push(w2);          // trailing wave follows the lead front (expansion, not a clone)
     }
     if (o.cracks) {
       let n = _nParts(o.cracks), gy = y + (o.groundOffset || 0);
@@ -1301,6 +1343,7 @@ const BUILD = {
         const ang = Math.PI * (0.12 + Math.random() * 0.76); // พัดลงล่าง
         const p = _mk('crack', x, gy, _rmLife(dur), col);
         p.rot = ang; p.size = 48 + Math.random() * 42; p.data = 3;
+        p.delay += 0.05 + Math.random() * 0.06; // ground fractures after the wave reaches it
         _push(p);
       }
     }
@@ -1333,7 +1376,7 @@ const BUILD = {
         pts.push(x + (ex - x) * tt + (Math.random() - 0.5) * 18,
                  y + (ey - y) * tt + (Math.random() - 0.5) * 18);
       }
-      p.pts = pts; p.size = 2.5; _push(p);
+      p.pts = pts; p.size = 2.5; p.delay += Math.random() * 0.05; _push(p); // bolts strike out of sync (flicker)
     }
   },
   // ฟันดาบ: รอยเฉือนไขว้ + สะเก็ดจุดตัด (สายมีดเร็ว)
@@ -1349,9 +1392,10 @@ const BUILD = {
     if (!_reduced && o.spark) {
       let s = _nParts(o.spark);
       for (let i = 0; i < s; i++) {
-        const ang = Math.random() * Math.PI * 2, sp = 100 + Math.random() * 120;
-        const sk = _mk('spark', x, y, _rmLife(dur * 1.1), col);
-        sk.vx = Math.cos(ang) * sp; sk.vy = Math.sin(ang) * sp; sk.size = 2 + Math.random() * 2; sk.data = 1;
+        const ang = Math.random() * Math.PI * 2, sp = 100 + Math.random() * 140;
+        const sk = _mk('spark', x, y, _jl(_rmLife(dur * 1.1)), col);
+        sk.vx = Math.cos(ang) * sp; sk.vy = Math.sin(ang) * sp; sk.size = 2 + Math.random() * 2.3; sk.data = 1; sk.drag = 1;
+        sk.delay += 0.03 + Math.random() * 0.04; // sparks spray after the blade passes
         _push(sk);
       }
     }
@@ -1360,15 +1404,15 @@ const BUILD = {
   bossAuraPulse(o) {
     const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.6;
     const col = o.color || '#3ad0ff', col2 = o.color2 || '#2a6cff';
-    const g = _mk('glow', x, y, _rmLife(dur), col); g.size = o.size || 80; _push(g);
-    const r = _mk('ring', x, y, _rmLife(dur), col2); r.size = 30; _push(r);
-    if (!_reduced && _intensity > 0.4) { const r2 = _mk('ring', x, y, _rmLife(dur * 0.85), col); r2.size = 20; r2.data = 1; _push(r2); }
+    const g = _mk('glow', x, y, _rmLife(dur), col); g.size = o.size || 80; _push(g); // light pulse first
+    const r = _mk('ring', x, y, _rmLife(dur), col2); r.size = 30; r.delay += 0.05; _push(r);
+    if (!_reduced && _intensity > 0.4) { const r2 = _mk('ring', x, y, _rmLife(dur * 0.85), col); r2.size = 20; r2.data = 1; r2.delay += 0.09; _push(r2); }
   },
   // วงเวทย์: วงสองชั้นหมุน + ก้านรูน + แกนเรือง (สายศักดิ์สิทธิ์)
   bossRuneCircle(o) {
     const x = _ox0(o), y = _oy0(o), dur = o.dur || 0.8, col = o.color || '#ffe28a';
-    const ru = _mk('rune', x, y, _rmLife(dur), col); ru.size = o.size || 64; ru.data = o.runes || 8; _push(ru);
-    const g = _mk('glow', x, y, _rmLife(dur * 0.7), o.color2 || '#fff3c0'); g.size = (o.size || 64) * 0.7; _push(g);
+    const ru = _mk('rune', x, y, _rmLife(dur), col); ru.size = o.size || 64; ru.data = o.runes || 8; ru.delay += 0.05; _push(ru);
+    const g = _mk('glow', x, y, _rmLife(dur * 0.7), o.color2 || '#fff3c0'); g.size = (o.size || 64) * 0.7; _push(g); // holy light gathers, then the seal inscribes
   },
   // พัลส์มืด/บิดเบือน: void ยุบเข้า + วงแหวน + แถบ glitch (สายปริศนา)
   bossGlitchPulse(o) {
@@ -1418,7 +1462,8 @@ function spawnCanvasVfx(type, options) {
   if (!b) return;                    // unknown primitive → safe no-op
   const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   _noteBurst(now);                   // feed heavy-combat detection (dynamic budget)
-  try { b(options || {}); } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
+  _spawnDelay = (options && options.delay) || 0;   // composition: base onset offset for this layer
+  try { b(options || {}); } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ } finally { _spawnDelay = 0; }
   _start();
 }
 
@@ -1489,7 +1534,8 @@ function _tick(ts) {
     // are trimmed; sin-fade, delayed-stagger, and gradient-fill kinds keep full
     // life (trimming those early WOULD be visible), so this never regresses.
     const trim = _LIFE_TRIM[p.kind];
-    if (p.age >= (trim ? p.life * trim : p.life)) { _recycle(p); continue; }
+    const ttl = (trim ? p.life * trim : p.life) + (p.delay || 0); // composition: live full life past onset
+    if (p.age >= ttl) { _recycle(p); continue; }
     _draw(p, dt);
     _parts[n++] = p;
   }
@@ -1526,7 +1572,10 @@ function _sb(base) {
 
 // ── per-kind update + draw ───────────────────────────────────────────────────
 function _draw(p, dt) {
-  const t = p.age / p.life;          // 0→1 progress
+  // composition onset delay: frozen + invisible until its layer's start time,
+  // then snaps in and runs its full life (t re-based past the delay).
+  if (p.delay && p.age < p.delay) return;
+  const t = (p.age - p.delay) / p.life;   // 0→1 progress (p.delay defaults 0)
   const ctx = _ctx;
   switch (p.kind) {
     case 'flash': {
@@ -1537,13 +1586,35 @@ function _draw(p, dt) {
       break;
     }
     case 'spark': {
+      // air drag (opt-in): radial debris decelerates — fast start, slow finish,
+      // the core of natural motion. Inward-pull/ember sparks (drag 0) untouched.
+      if (p.drag) { const fr = p.vx * 3.1 * dt, fg = p.vy * 3.1 * dt; p.vx -= fr; p.vy -= fg; }
       if (!p.data) p.vy += 320 * dt;   // ember (data=1) ไม่ต้องโดนโน้มถ่วง
-      p.x += p.vx * dt; p.y += p.vy * dt;
+      // ── motion-language flow (per-family vector field, ~2 trig ops) ─────────
+      let fflick = 1;
+      if (p.flow === FLOW_FIRE) {            // FIRE: heat lifts + the flame dances + flickers
+        p.vy -= 150 * dt;                    // buoyancy accelerates the rise
+        p.vx += Math.sin(p.age * 21 + p.seed * 6.283) * 34 * dt; // dancing curl
+        fflick = 0.78 + 0.22 * Math.sin(p.age * 33 + p.seed * 10);
+      } else if (p.flow === FLOW_VOID) {     // VOID: curl velocity → spiral inward + compress
+        const w = (0.7 + p.seed * 0.6) * 6 * dt;
+        const c = Math.cos(w), s = Math.sin(w);
+        const nvx = p.vx * c - p.vy * s, nvy = p.vx * s + p.vy * c;
+        const comp = 1 + 0.9 * dt;           // accelerate as it's swallowed
+        p.vx = nvx * comp; p.vy = nvy * comp;
+      }
+      // micro-turbulence: a touch of air-current sway so no spark flies a dead-
+      // straight line (per-particle phase from seed). Sub-pixel, no travel change.
+      const tb = (Math.sin(p.age * 10 + p.seed * 6.283)) * 9 * dt;
+      p.x += p.vx * dt + tb; p.y += p.vy * dt + tb * 0.4;
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 1 - t;
+      // depth cue: dimmer sparks read as further-back debris, brighter ones as
+      // foreground — gives the burst a plane of depth without more particles.
+      ctx.globalAlpha = (1 - t) * (0.7 + p.seed * 0.3) * fflick;
       ctx.fillStyle = _rgba(p.color, 1);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * (1 - t * 0.5), 0, 6.283);
+      // per-particle shrink rate (seed) — some sparks gutter out, some hold.
+      ctx.arc(p.x, p.y, p.size * (1 - t * (0.35 + p.seed * 0.5)), 0, 6.283);
       ctx.fill();
       break;
     }
@@ -1565,7 +1636,10 @@ function _draw(p, dt) {
       break;
     }
     case 'coin': {
-      p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      // gravity + mild horizontal air drag → the fountain arcs settle inward
+      // instead of flying off in straight lines (lighter than ore/ingots).
+      p.vy += 900 * dt; p.vx -= p.vx * 1.3 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.globalCompositeOperation = 'lighter';
@@ -1579,7 +1653,7 @@ function _draw(p, dt) {
     }
     case 'shadow': {
       ctx.globalCompositeOperation = 'source-over';
-      const r = p.size * (0.3 + t * 3);
+      const r = p.size * (0.3 + _easeOut(t) * 3);   // bloom out fast, settle
       const a = (1 - t) * 0.85;
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
       g.addColorStop(0, _rgba(p.color, a)); g.addColorStop(0.7, _rgba(p.color, a * 0.5));
@@ -1589,47 +1663,66 @@ function _draw(p, dt) {
       break;
     }
     case 'fire': {
-      p.y -= 70 * dt;
+      // FIRE motion language: heat accelerates the rise, the flame licks side to
+      // side, and brightness flickers — a living flame instead of a rising blob.
+      p.y -= (70 + t * 95) * dt;
+      p.x += Math.sin(p.age * 13 + p.seed * 6.283) * 24 * dt;
+      const flick = 0.86 + 0.14 * Math.sin(p.age * 30 + p.seed * 9);
       ctx.globalCompositeOperation = 'lighter';
-      const r = p.size * (1 - t * 0.6);
+      const r = p.size * (1 - t * 0.6) * (0.92 + 0.1 * Math.sin(p.age * 24 + p.seed * 7)); // flame-tongue size flicker
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-      g.addColorStop(0, _rgba('#ffee88', (1 - t) * 0.9));
-      g.addColorStop(0.5, _rgba(p.color, (1 - t) * 0.7));
+      g.addColorStop(0, _rgba('#ffee88', (1 - t) * 0.9 * flick));
+      g.addColorStop(0.5, _rgba(p.color, (1 - t) * 0.7 * flick));
       g.addColorStop(1, _rgba(p.color, 0));
       ctx.globalAlpha = 1; ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
       break;
     }
     case 'bolt': {
-      const a = t < 0.25 ? 1 : (1 - (t - 0.25) / 0.75);
+      // LIGHTNING motion language: an electric flicker (the arc stutters, never a
+      // steady glow) + a live lateral jitter on the interior vertices each frame
+      // so the channel writhes. Endpoints stay anchored. A few cheap ops on a
+      // rare, short-lived primitive — bolts are 1–3 at a time.
+      const flick = (Math.sin(p.age * 95 + p.seed * 12) > -0.35) ? 1 : 0.45;
+      const a = (t < 0.25 ? 1 : (1 - (t - 0.25) / 0.75)) * flick;
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.strokeStyle = _rgba(p.color, 1);
       ctx.lineWidth = p.size; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
       ctx.beginPath();
-      const pts = p.pts;
+      const pts = p.pts, last = pts.length - 2;
       ctx.moveTo(pts[0], pts[1]);
-      for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+      for (let i = 2; i < pts.length; i += 2) {
+        const jit = (i < last) ? Math.sin(p.age * 72 + i * 2.3 + p.seed * 6.283) * 3.4 : 0;
+        ctx.lineTo(pts[i] + jit, pts[i + 1]);
+      }
       ctx.stroke(); ctx.shadowBlur = 0;
       break;
     }
     case 'crack': {
-      const len = p.size * Math.min(1, t * 3);
+      // ease-out length (the fracture snaps outward then arrests) + a multi-jog
+      // jagged path (seed-driven) so it reads as a real splintering crack, not a
+      // single soft kink. +2 lineTo only — no new particle, no blur.
+      const len = p.size * _easeOut(Math.min(1, t * 3));
       const a = 1 - t;
+      const j = (p.seed - 0.5) * 4;      // per-crack jaggedness sign + scale
       ctx.save();
       ctx.translate(p.x, p.y); ctx.rotate(p.rot);
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
-      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = p.data; ctx.lineCap = 'round';
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = p.data; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.beginPath(); ctx.moveTo(0, 0);
-      ctx.lineTo(len * 0.6, len * 0.12 * (p.seed - 0.5) * 4); // เยื้องเล็กน้อยให้ดูแตก
+      ctx.lineTo(len * 0.32, len * 0.10 * j);
+      ctx.lineTo(len * 0.62, len * -0.07 * j);
+      ctx.lineTo(len * 0.84, len * 0.05 * j);
       ctx.lineTo(len, 0); ctx.stroke();
       ctx.restore();
       break;
     }
     case 'streak': {
       if (p.age < p.data) break;
+      p.vx -= p.vx * 1.6 * dt;   // whoosh decelerates (ease-out) instead of constant glide
       p.x += p.vx * dt;
       const a = 1 - t;
       ctx.globalCompositeOperation = 'lighter';
@@ -1663,12 +1756,16 @@ function _draw(p, dt) {
       break;
     }
     case 'ring': {
-      const r = p.size * (0.4 + t * 3) * (p.data ? 0.8 : 1);
+      // ease-out expansion (shoots out, decelerates) + faint eccentricity so the
+      // shockwave never reads as a math-perfect circle + lineWidth taper as it
+      // grows (energy thins). Same draw cost (ellipse == arc).
+      const r = p.size * (0.4 + _easeOut(t) * 3) * (p.data ? 0.8 : 1);
+      const ec = 1 + (p.seed - 0.5) * 0.1;
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = (1 - t);
-      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 3;
+      ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = 3 * (1 - t * 0.45);
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(10);
-      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * ec, p.seed * 6.283, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
       break;
     }
@@ -1870,7 +1967,8 @@ function _draw(p, dt) {
     }
     case 'ccoin': {
       // เหรียญต้องสาป: หมุนพุ่งขึ้นหา HUD + ขอบเขียวนีออน
-      p.vy += 760 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
+      p.vy += 760 * dt; p.vx -= p.vx * 1.3 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.data * dt;
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.globalCompositeOperation = 'lighter';
@@ -2254,10 +2352,11 @@ function _draw(p, dt) {
     }
     // ── boss-skill kinds ──────────────────────────────────────────────────
     case 'bcore': {
-      // แกนอิมแพกต์สว่าง — พองเร็วแล้วยุบ
+      // แกนอิมแพกต์สว่าง — light pulse: snap-bright then decay (illuminates the
+      // burst at the moment of impact) + ease-out expansion. No extra particles.
       ctx.globalCompositeOperation = 'lighter';
-      const r = p.size * (0.3 + t * 1.1);
-      const a = Math.sin(Math.min(1, t) * Math.PI);
+      const r = p.size * (0.4 + _easeOut(t) * 1.0);
+      const a = t < 0.16 ? (t / 0.16) : Math.max(0, 1 - (t - 0.16) / 0.84);
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
       g.addColorStop(0, _rgba('#ffffff', a));
       g.addColorStop(0.4, _rgba(p.color, a * 0.8));
@@ -2268,13 +2367,16 @@ function _draw(p, dt) {
     }
     case 'bwave': {
       // คลื่นกระแทกวงหนา — รัศมีโต ความหนาเรียวลง
-      const r = p.size * (0.3 + t * 4);
+      // ease-out radius (a real blast wave decelerates as it spreads) + faint
+      // eccentricity so the impact ring isn't a perfect circle. Same draw cost.
+      const r = p.size * (0.3 + _easeOut(t) * 4);
+      const ec = 1 + (p.seed - 0.5) * 0.08;
       const lw = Math.max(0.5, p.data * (1 - t));
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = (1 - t) * 0.9;
       ctx.strokeStyle = _rgba(p.color, 1); ctx.lineWidth = lw;
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(6);
-      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * ec, p.seed * 6.283, 0, 6.283); ctx.stroke();
       ctx.shadowBlur = 0;
       break;
     }
@@ -2579,7 +2681,11 @@ function _draw(p, dt) {
       break;
     }
     case 'vfrag': {
-      // เศษอวกาศบิด: ลู่เข้าศูนย์ (gravity) + หมุน + สี่เหลี่ยมข้าวหลามตัด
+      // เศษอวกาศบิด: VOID motion — curl the velocity so debris SPIRALS into the
+      // singularity (warping inward) rather than sliding straight to the core.
+      const vw = 4.2 * dt, vc = Math.cos(vw), vs = Math.sin(vw);
+      const nvx = p.vx * vc - p.vy * vs, nvy = p.vx * vs + p.vy * vc;
+      p.vx = nvx; p.vy = nvy;
       p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; p.vy *= 0.96; p.rot += p.data * dt;
       const a = Math.sin(Math.min(1, t) * Math.PI);
       ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
@@ -2908,40 +3014,42 @@ function spawnBossSkillVfx(skinId, opts) {
   const C = meta.colorPrimary, C2 = meta.colorSecondary;
   const base = { x: opts.x, y: opts.y, color: C, color2: C2 };
   switch (meta.theme) {
+    // each theme: lead primitive snaps on frame 0, the secondary layer follows
+    // (~50–70ms) so the skill reads as a sequence, not a simultaneous pop.
     case 'goldBoxing':
       spawnBossImpactBurst({ ...base, count: 10, stars: lv >= 2 ? 4 : 2, size: 64 * scale });
-      spawnBossShockwave({ ...base, size: 38 * scale, thick: 8 });
+      spawnBossShockwave({ ...base, size: 38 * scale, thick: 8, delay: 0.05 });
       break;
     case 'redPressure':
       spawnBossImpactBurst({ ...base, count: 9, size: 60 * scale });
-      spawnBossShockwave({ ...base, color: C2, size: 34 * scale, thick: 9 });
+      spawnBossShockwave({ ...base, color: C2, size: 34 * scale, thick: 9, delay: 0.05 });
       break;
     case 'holyMask':
       spawnBossRuneCircle({ ...base, runes: 8, size: 66 * scale });
-      spawnBossAuraPulse({ ...base, size: 78 * scale });
+      spawnBossAuraPulse({ ...base, size: 78 * scale, delay: 0.08 });
       break;
     case 'ancientBrute':
       spawnBossShockwave({ ...base, size: 40 * scale, thick: 10, cracks: lv >= 2 ? 5 : 3, groundOffset: 30 });
-      spawnBossImpactBurst({ ...base, count: 7, size: 50 * scale });
+      spawnBossImpactBurst({ ...base, count: 7, size: 50 * scale, delay: 0.05 });
       break;
     case 'moonRocker':
       spawnBossSlash({ ...base, count: 2, len: 160 * scale, rot: -38 });
-      spawnBossEnergyTrail({ ...base, count: lv >= 2 ? 5 : 4, angle: -0.4 });
+      spawnBossEnergyTrail({ ...base, count: lv >= 2 ? 5 : 4, angle: -0.4, delay: 0.05 });
       break;
     case 'blueSpirit':
       spawnBossLightningArc({ ...base, count: lv >= 2 ? 4 : 3, size: 56 * scale });
-      spawnBossAuraPulse({ ...base, size: 74 * scale });
+      spawnBossAuraPulse({ ...base, size: 74 * scale, delay: 0.06 });
       break;
     case 'redSlash':
       spawnBossSlash({ ...base, count: 2, len: 150 * scale, spark: 6 });
-      spawnBossImpactBurst({ ...base, count: 6, size: 44 * scale });
+      spawnBossImpactBurst({ ...base, count: 6, size: 44 * scale, delay: 0.05 });
       break;
     case 'animalBoxer':
       spawnBossImpactBurst({ ...base, count: 8, stars: lv >= 2 ? 5 : 3, size: 56 * scale });
       break;
     case 'blueStreet':
       spawnBossAuraPulse({ ...base, size: 82 * scale });
-      spawnBossShockwave({ ...base, color: C, size: 34 * scale, thick: 7 });
+      spawnBossShockwave({ ...base, color: C, size: 34 * scale, thick: 7, delay: 0.06 });
       break;
     case 'purpleEnigma':
       spawnBossGlitchPulse({ ...base, glitch: lv >= 2 ? 4 : 3, size: 70 * scale });
@@ -2952,7 +3060,7 @@ function spawnBossSkillVfx(skinId, opts) {
   // AFTERMATH — ลายเซ็นตกค้างสั้น ๆ หลังปล่อยสกิล: ออร่าเรืองจางอายุยาวกว่าสะเก็ดหลัก
   // จึง "ค้าง" หลังการระเบิดคมจางไป (residue). เบามาก (glow+ring) เฉพาะ intensity เต็ม.
   if (!_reduced && _intensity >= 1.0) {
-    spawnBossAuraPulse({ x: opts.x, y: opts.y, color: C2, color2: C, size: 26 * scale, dur: 0.72 });
+    spawnBossAuraPulse({ x: opts.x, y: opts.y, color: C2, color2: C, size: 26 * scale, dur: 0.72, delay: 0.12 });
   }
 }
 
@@ -2991,50 +3099,52 @@ function spawnBossDeathVfx(skinId, opts) {
   const C = meta.colorPrimary, C2 = meta.colorSecondary;
   const base = { x: opts.x, y: opts.y, color: C, color2: C2 };
   switch (meta.theme) {
+    // death = climax: layers cascade (snap → expansion → residual) instead of
+    // detonating on one frame, so the kill reads cinematic.
     case 'goldBoxing':   // gold explosion
       spawnBossImpactBurst({ ...base, count: 14, stars: 6, size: 84, dur: 0.72 });
-      spawnBossShockwave({ ...base, size: 48, thick: 9 });
+      spawnBossShockwave({ ...base, size: 48, thick: 9, delay: 0.06 });
       break;
     case 'redPressure':  // pressure rupture (วงช็อกซ้อน)
       spawnBossImpactBurst({ ...base, count: 13, size: 78, dur: 0.66 });
-      spawnBossShockwave({ ...base, color: C2, size: 46, thick: 10 });
-      spawnBossShockwave({ ...base, color: C, size: 28, thick: 6 });
+      spawnBossShockwave({ ...base, color: C2, size: 46, thick: 10, delay: 0.06 });
+      spawnBossShockwave({ ...base, color: C, size: 28, thick: 6, delay: 0.13 });
       break;
     case 'holyMask':     // ascends — แสงศักดิ์สิทธิ์ลอยขึ้น
       spawnBossRuneCircle({ ...base, runes: 10, size: 82, dur: 0.92 });
-      spawnBossAuraPulse({ ...base, size: 98, dur: 0.82 });
+      spawnBossAuraPulse({ ...base, size: 98, dur: 0.82, delay: 0.1 });
       break;
     case 'ancientBrute': // ground collapse — รอยร้าวพื้นแตกหลายเส้น
       spawnBossShockwave({ ...base, size: 54, thick: 12, cracks: 6, groundOffset: 36 });
-      spawnBossImpactBurst({ ...base, count: 10, size: 60, dur: 0.6 });
+      spawnBossImpactBurst({ ...base, count: 10, size: 60, dur: 0.6, delay: 0.07 });
       break;
     case 'moonRocker':   // moonlight fades — ฟันจันทร์ + อาร์คเลือนหาย
       spawnBossSlash({ ...base, count: 2, len: 184, rot: -38 });
-      spawnBossEnergyTrail({ ...base, count: 6, angle: -0.4, dur: 0.74 });
-      spawnBossAuraPulse({ ...base, color: C, size: 70, dur: 0.8 });
+      spawnBossEnergyTrail({ ...base, count: 6, angle: -0.4, dur: 0.74, delay: 0.06 });
+      spawnBossAuraPulse({ ...base, color: C, size: 70, dur: 0.8, delay: 0.14 });
       break;
     case 'blueSpirit':   // lightning disperses — สายฟ้ากระจายแล้วสลาย
       spawnBossLightningArc({ ...base, count: 6, size: 66, dur: 0.5 });
-      spawnBossAuraPulse({ ...base, size: 88, dur: 0.7 });
+      spawnBossAuraPulse({ ...base, size: 88, dur: 0.7, delay: 0.08 });
       break;
     case 'redSlash':     // assassin finishing slash
       spawnBossSlash({ ...base, count: 3, len: 184, spark: 10 });
-      spawnBossImpactBurst({ ...base, count: 8, size: 50, dur: 0.56 });
+      spawnBossImpactBurst({ ...base, count: 8, size: 50, dur: 0.56, delay: 0.06 });
       break;
     case 'animalBoxer':  // paw flurry burst
       spawnBossImpactBurst({ ...base, count: 12, stars: 8, size: 72, dur: 0.62 });
       break;
     case 'blueStreet':   // street power shockwave
       spawnBossAuraPulse({ ...base, size: 98, dur: 0.7 });
-      spawnBossShockwave({ ...base, color: C, size: 50, thick: 9 });
+      spawnBossShockwave({ ...base, color: C, size: 50, thick: 9, delay: 0.07 });
       break;
     case 'purpleEnigma': // void collapse inward
       spawnBossGlitchPulse({ ...base, glitch: 6, size: 94, dur: 0.72 });
-      spawnBossAuraPulse({ ...base, color: C2, size: 60, dur: 0.6 });
+      spawnBossAuraPulse({ ...base, color: C2, size: 60, dur: 0.6, delay: 0.1 });
       break;
     default:
       spawnBossImpactBurst({ ...base, count: 12, stars: 4, size: 72, dur: 0.62 });
-      spawnBossShockwave({ ...base, size: 44, thick: 8 });
+      spawnBossShockwave({ ...base, size: 44, thick: 8, delay: 0.06 });
   }
 }
 
