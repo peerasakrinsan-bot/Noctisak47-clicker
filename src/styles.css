@@ -2908,8 +2908,12 @@
 
   .recoil { animation:recoilAnim 0.12s ease-out; }
   .recoil-god { animation:recoilGun 0.08s ease-out; }
+  /* LIGHT hit (~70% of taps): a barely-there nudge — the boss stays planted so the
+     rare MEDIUM/HEAVY recoils read as "that one was bigger". */
+  .recoil-soft { animation:recoilSoft 0.10s ease-out; }
   @keyframes recoilAnim { 30%{transform:translateY(-8px) rotate(-1.5deg);} }
   @keyframes recoilGun  { 30%{transform:translateY(-5px);} }
+  @keyframes recoilSoft { 30%{transform:translateY(-3px);} }
 
   /* ─── BOSS HIT FEEDBACK ─── */
   .boss-hit {
@@ -3144,6 +3148,16 @@
   @keyframes impactSoft {
     0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
     100%{opacity:0; transform:translate(-50%,-50%) scale(2.55);}
+  }
+  /* HEAVY beat (~5%): a bigger, slightly brighter rim so the eye registers weight —
+     still well under the BREAK / boss-skill rings (max ~64px vs the 80px .impact). */
+  .impact.soft.hv {
+    border-width:2px;
+    animation:impactSoftHv 0.16s forwards;
+  }
+  @keyframes impactSoftHv {
+    0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0; transform:translate(-50%,-50%) scale(3.2);}
   }
   .particle {
     position:absolute; border-radius:50%;

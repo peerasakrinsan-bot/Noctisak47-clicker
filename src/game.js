@@ -8002,7 +8002,7 @@ function pressurePlayFailBacklash(point) {
   const _bPos=[];
   for(let i=0;i<2;i++) _bPos.push([cx+(Math.random()-.5)*110, cy+(Math.random()-.5)*90]);
   let _bi=0;
-  (function _burst(){ for(;_bi<2;_bi++) spawnFX(_bPos[_bi][0],_bPos[_bi][1],false,_bi<1); })();
+  (function _burst(){ for(;_bi<2;_bi++) spawnFX(_bPos[_bi][0],_bPos[_bi][1],false,_bi<1,false,2); })();
   if(gameSettings.sfxOn) { playPunch(); playAK(); }
   pressureHeartbeat(190);
   setTimeout(()=>{ root.classList.remove('pressure-fail-backlash','shake-wp','shake-wp2'); PRESSURE._explosionRunning = false; }, 400);
@@ -8495,7 +8495,22 @@ const _tv = {
   nextImg:    null,
   idleImg:    null,
   hitDur:     250,
+  weight:     0,   // strongest normal-hit weight this tick: 0 light · 1 medium · 2 heavy
 };
+
+// ── NORMAL-HIT WEIGHT RHYTHM ──
+// Most taps are LIGHT punctuation; rings/sparks/flashes are reserved for the rare
+// MEDIUM/HEAVY beats so combat reads with rhythm instead of one repeated impact.
+// Anti-streak: a strong hit is always followed by a light one (no medium,medium /
+// heavy,heavy) → natural "light light medium light heavy light" cadence.
+let _lastNormalWeight = 0;
+function _rollHitWeight() {
+  if (_lastNormalWeight > 0) { _lastNormalWeight = 0; return 0; } // forced light after any strong beat
+  const r = Math.random();
+  const w = r < 0.70 ? 0 : r < 0.95 ? 1 : 2;   // ~70% light · ~25% medium · ~5% heavy
+  _lastNormalWeight = w;
+  return w;
+}
 
 // ── FREQUENCY GOVERNOR ──
 // Min-interval (ms) per strong effect. During sustained fast tapping each one
@@ -8507,14 +8522,21 @@ const _tv = {
 const FX_GATE  = { ring: 120, recoil: 95, bossHit: 120, flash: 160 };
 const _fxGate  = { ring: 0,   recoil: 0,  bossHit: 0,   flash: 0   };
 
-function _tickVisualAccum(x, y, dmg, isGun, isCrit, recoilCls, flashCls, bossHitCls, nextImg, idleImg, hitDur) {
+function _tickVisualAccum(x, y, dmg, isGun, isCrit, recoilCls, flashCls, bossHitCls, nextImg, idleImg, hitDur, weight) {
+  const w = weight|0;
+  if (_tv.hitCount === 0) _tv.weight = -1;
   _tv.hitCount++;
+  // boxer sprite-swap fires every hit (responsive input); the strongest beat in the
+  // tick owns the weight + matching recoil/flash/rim classes + spawn position so the
+  // ring/sparks never mismatch the recoil (matters only for multi-touch ticks).
+  _tv.doBoxerImg = true; _tv.nextImg = nextImg; _tv.idleImg = idleImg; _tv.hitDur = hitDur;
+  if (w < _tv.weight) return;
+  _tv.weight = w;
   _tv.lastX = x; _tv.lastY = y;
   _tv.lastIsGun = isGun; _tv.lastIsCrit = isCrit; _tv.lastDmg = dmg;
   _tv.doRecoil  = true; _tv.recoilCls = recoilCls;
   _tv.doFlash   = true; _tv.flashCls  = flashCls;
   _tv.doBossHit = true; _tv.bossHitCls = bossHitCls;
-  _tv.doBoxerImg = true; _tv.nextImg = nextImg; _tv.idleImg = idleImg; _tv.hitDur = hitDur;
 }
 
 function _flushTickVisuals() {
@@ -8525,27 +8547,29 @@ function _flushTickVisuals() {
   // governor (FX_GATE) — ตอนแตะรัว effect แรงจะ "หายใจ" แทนที่จะยิงทุกแตะ, แต่ debris
   // กับการสลับรูปบอสยังยิงทุก hit เพื่อให้ feedback ตอบสนองทันที.
   const _t = performance.now();
+  const _w = _tv.lastIsGun ? 2 : _tv.weight;  // OD taps keep their full big-moment path
 
-  // impact ring breathes; debris (particles) still fire every hit.
-  const _ringNow = _t - _fxGate.ring >= FX_GATE.ring;
+  // impact ring + sparks are weight-driven: LIGHT taps get only tiny dust (no ring),
+  // MEDIUM/HEAVY earn the ring. The frequency governor still caps ring spam as a safety.
+  const _ringNow = _w >= 1 && (_t - _fxGate.ring >= FX_GATE.ring);
   if(_ringNow) _fxGate.ring = _t;
-  spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false, !_ringNow);
+  spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false, !_ringNow, _w);
 
-  // recoil — throttled (heavy recoil should not happen every hit)
+  // recoil — throttled; LIGHT uses the soft (tiny) recoil, MEDIUM/HEAVY the full one
   if(_tv.doRecoil && _t - _fxGate.recoil >= FX_GATE.recoil) {
     _fxGate.recoil = _t;
     boxer.classList.add(_tv.recoilCls);
-    setTimeout(()=>boxer.classList.remove('recoil','recoil-god'), 90);
+    setTimeout(()=>boxer.classList.remove('recoil','recoil-soft','recoil-god'), 90);
   }
 
-  // flash — throttled + only when a class is set (P0 normal tap = no flash)
+  // flash — throttled; only HEAVY normal beats / crit / OD carry a flash (class is '' otherwise)
   if(_tv.doFlash && _tv.flashCls && _t - _fxGate.flash >= FX_GATE.flash) {
     _fxGate.flash = _t;
     triggerFlash(_tv.flashCls);
   }
 
-  // boss hit flash — throttled (strong flashes breathe)
-  if(_tv.doBossHit && _t - _fxGate.bossHit >= FX_GATE.bossHit) {
+  // boss hit rim — throttled; LIGHT taps skip it entirely (silhouette stays clean)
+  if(_tv.doBossHit && _tv.bossHitCls && _t - _fxGate.bossHit >= FX_GATE.bossHit) {
     _fxGate.bossHit = _t;
     boxer.classList.remove('boss-hit','boss-hit-crit','boss-hit-god');
     requestAnimationFrame(()=>{ boxer.classList.add(_tv.bossHitCls); });
@@ -8990,16 +9014,18 @@ function processHit(e, now) {
   updateMultiBadge(multi);
 
   // ── Collect visual params → accumulate for tick flush (1 render per tick) ──
-  // HIT-FEEDBACK HIERARCHY (readability-first): P0 normal < P1 crit < OD/BREAK.
-  //  • P0 normal tap: NO full-screen flash — silhouette stays visible; impact is
-  //    carried by the boss recoil + localized boss-hit rim + impact ring + number.
-  //  • P1 crit (non-OD): a soft warm flash + brighter rim — "noticeably stronger"
-  //    without the pure-white full-screen blowout.
-  //  • OD taps keep their existing big-moment flashes untouched (big stays big).
-  const _rc   = godLevel>0 ? 'recoil-god' : 'recoil';
+  // HIT-WEIGHT RHYTHM (premium-feel): normal taps are split into LIGHT/MEDIUM/HEAVY
+  // so consecutive hits don't look identical and the eye stays on the boss.
+  //  • LIGHT (~70%): tiny dust + tiny recoil + number. No ring, no flash, no rim.
+  //  • MEDIUM (~25%): small ring + 1 warm spark + full recoil + boss-hit rim.
+  //  • HEAVY (~5%): bigger ring + several sparks + soft warm flash + full recoil + rim.
+  //  • CRIT → heavy weight (already styled crit); OD taps keep their big-moment path.
+  // Crit/OD/BREAK/Boss-skill/Mythic stay clearly above all three so they still pop.
+  const _weight = (godLevel>0 || isCrit) ? 2 : _rollHitWeight();
+  const _rc   = godLevel>0 ? 'recoil-god' : (_weight===0 ? 'recoil-soft' : 'recoil');
   const _fcls = godLevel===3?'flash-god3':godLevel===2?'flash-god2':godLevel===1?'flash-god'
-              : isCrit ? 'flash-crit' : '';
-  const _bhc  = godLevel>0 ? 'boss-hit-god' : (isCrit ? 'boss-hit-crit' : 'boss-hit');
+              : isCrit ? 'flash-crit' : (_weight===2 ? 'flash-crit' : '');
+  const _bhc  = godLevel>0 ? 'boss-hit-god' : isCrit ? 'boss-hit-crit' : (_weight>=1 ? 'boss-hit' : '');
   const _skin2 = getActiveSkin();
   const _hitImgs2 = _skin2.files.hits;
   let _ii; do{_ii=Math.floor(Math.random()*_hitImgs2.length);}while(_ii===lastIndex&&_hitImgs2.length>1);
@@ -9011,7 +9037,8 @@ function processHit(e, now) {
     _rc, _fcls, _bhc,
     _imgObjCache[_hitImgs2[_ii]] || _hitImgs2[_ii],
     _imgObjCache[_skin2.files.idle],
-    _hitDur2
+    _hitDur2,
+    _weight
   );
 
   if(godLevel>0) playAK(); else playPunch();
@@ -9037,7 +9064,9 @@ function applyBossDamage(amount, source) {
 
 function applyDamage(dmg,e,isCrit) {
   const pos=getPos(e);
-  spawnFX(pos.x,pos.y,godLevel>0);
+  // Discrete special hits (boss execute-finish, weak-point collect) — not the rapid
+  // tap loop, so give them a fixed MEDIUM weight to keep their ring + warm spark.
+  spawnFX(pos.x,pos.y,godLevel>0,false,false,1);
   // showHitNum handles crit label internally via pooled _critNodes
   showHitNum(pos.x,pos.y,dmg,godLevel>0,isCrit);
 
@@ -9777,37 +9806,43 @@ function _getBreakImpact(heavy){
 }
 function _retBreakImpact(el){ el.style.animation='none'; el.className='break-impact'; _biPool.push(el); }
 
-function spawnFX(x,y,isGun,isBomb,skipRing){
+function spawnFX(x,y,isGun,isBomb,skipRing,weight){
   // skipRing: frequency governor may suppress the impact ring on a throttled tick
   // while debris still spawns (ring should not appear every hit during fast tapping).
   // Direct callers (AK47 bomb, etc.) omit it → ring fires as before.
-  // ── NORMAL TAP — weight-first, low-density impact ──
-  // Three depth planes from only 2 debris + 1 ring (was 3 debris + ring):
-  //   foreground ring (the read) ▸ near debris ▸ far debris that fades first.
-  // Procedural jitter (angle / distance / size / lifetime) makes no two taps feel
-  // identical without adding objects. No white pixels (warm rim + red debris).
+  // ── NORMAL TAP — WEIGHT-DRIVEN impact language (rhythm, not repetition) ──
+  // weight 0 LIGHT  : 1 tiny warm dust, no ring        (~70% of taps)
+  // weight 1 MEDIUM : 2 debris + 1 warm spark + soft ring
+  // weight 2 HEAVY  : 4 sparks + bigger (still < BREAK) ring
+  // Avg particle count DROPS vs the old flat "always 2 debris" (~1.4 → lower with the
+  // anti-streak light bias). Procedural jitter keeps no two taps identical.
   if(!isGun && !isBomb){
+    const w = weight|0;
     const frag=document.createDocumentFragment();
+    const debris = w===2 ? 4 : w===1 ? 2 : 1;       // budget spent on the rare heavy beats
     const baseAng=Math.random()*Math.PI*2;
-    for(let i=0;i<2;i++){
+    for(let i=0;i<debris;i++){
       const p=_getParticle();
-      const ang=baseAng + (i?Math.PI:0) + (Math.random()-0.5)*0.7;
-      const dist=(i?28:44)+Math.random()*22;        // near plane (i=0) travels farther
-      const sz=(i?4:6)+Math.random()*1.5;           // near = bigger, far = smaller → depth
-      const life=(i?0.17:0.24)+Math.random()*0.05;  // far debris (i=1) disappears first
-      p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:#ff3344;--dx:${Math.cos(ang)*dist}px;--dy:${Math.sin(ang)*dist}px;animation:particle ${life}s forwards;`;
+      const ang=baseAng + i*(Math.PI*2/debris) + (Math.random()-0.5)*0.7;
+      const dist=(20 + w*9)+Math.random()*22;        // heavier hits throw a little farther
+      const sz=(w===0?3:4)+Math.random()*1.5;        // light = tiny dust; heavier = bigger
+      const life=(0.15 + w*0.03)+Math.random()*0.05; // most debris fades fast (calmer screen)
+      // one warm "spark" on medium/heavy reads as energy; the rest stay red debris.
+      const col=(w>=1 && i===0) ? '#ffb070' : '#ff3344';
+      p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${col};--dx:${Math.cos(ang)*dist}px;--dy:${Math.sin(ang)*dist}px;animation:particle ${life}s forwards;`;
       frag.appendChild(p);
       setTimeout(()=>{ p.remove(); _retParticle(p); },300);
     }
-    if(!skipRing){
+    if(!skipRing && w>=1){
       const ring=_getRing();
-      ring.classList.add('soft');
-      // Subtle warm rim that SUPPORTS the hit — smaller / thinner / dimmer / shorter
-      // than the big-moment ring so the eye stays on the boss, not the FX. Warmer &
-      // ~40% lower alpha than before (was rgba(255,206,168,0.85)); reduces yellow dominance.
-      ring.style.cssText=`left:${x}px;top:${y}px;border-color:rgba(255,178,128,0.5);animation:impactSoft 0.13s forwards;`;
+      // MEDIUM = soft rim; HEAVY = a bigger, slightly brighter rim ("that hit was bigger")
+      // — both still much smaller/dimmer than the BREAK / boss-skill rings.
+      ring.className = w===2 ? 'impact soft hv' : 'impact soft';
+      const rc = w===2 ? 'rgba(255,190,140,0.6)' : 'rgba(255,178,128,0.5)';
+      const ra = w===2 ? 'impactSoftHv 0.16s' : 'impactSoft 0.13s';
+      ring.style.cssText=`left:${x}px;top:${y}px;border-color:${rc};animation:${ra} forwards;`;
       frag.appendChild(ring);
-      setTimeout(()=>{ ring.remove(); _retRing(ring); },150);
+      setTimeout(()=>{ ring.remove(); _retRing(ring); }, w===2?180:150);
     }
     fx.appendChild(frag);
     return;
