@@ -8505,10 +8505,11 @@ function _tickVisualAccum(x, y, dmg, isGun, isCrit, recoilCls, flashCls, bossHit
 function _flushTickVisuals() {
   if(_tv.hitCount === 0) return;
 
-  // หมายเหตุ: particle FX (spawnFX) และเลขดาเมจ (showHitNum) ถูกยิงแล้ว
-  // ต่อ hit ภายใน processHit/applyDamage โดยใช้ตำแหน่ง+ค่าดาเมจที่ถูกต้อง
-  // (showHitNum มี aggregation window ของตัวเองอยู่แล้ว) — ไม่ยิงซ้ำที่นี่
-  // เพื่อลด DOM churn ต่อ tick และตัดการนับเลขเกิน (เดิม flush ส่ง bossHP มาเป็นดาเมจ)
+  // หมายเหตุ: เลขดาเมจ (showHitNum) ถูกยิงต่อ hit ใน processHit (มี aggregation window
+  // ของตัวเอง). ส่วน impact FX (particles+ring) ย้ายมายิง "ครั้งเดียวต่อ tick" ตรงนี้
+  // โดยใช้ตำแหน่ง hit ล่าสุด — รวม burst ที่ทับกันในเฟรมเดียวให้เหลือ impact เดียว
+  // (ลด visual density ตอนแตะรัว/หลายนิ้ว โดยไม่เพิ่ม object).
+  spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false);
 
   // recoil — set once, remove once
   if(_tv.doRecoil) {
@@ -8911,8 +8912,10 @@ function processHit(e, now) {
     let _totalDmg = _sanitizeDamage(Math.round(dmg * _odHits * _methHits), 'normalTapTotal');
 
     // ── One damage application, one number, one flash ──
+    // Impact FX (particles+ring) is NOT spawned per-hit anymore — it's merged into
+    // a single spawn per tick in _flushTickVisuals (density: rapid/multi-touch taps
+    // inside one 33ms tick collapse to one weighty impact instead of N overlapping).
     const pos2 = pos; // pos already computed above
-    spawnFX(pos2.x, pos2.y, godLevel > 0);
     // showHitNum handles crit label internally via pooled _critNodes
     showHitNum(pos2.x, pos2.y, _totalDmg, godLevel > 0, isCrit);
     applyBossDamage(_totalDmg, 'tap');
@@ -9748,6 +9751,33 @@ function _getBreakImpact(heavy){
 function _retBreakImpact(el){ el.style.animation='none'; el.className='break-impact'; _biPool.push(el); }
 
 function spawnFX(x,y,isGun,isBomb){
+  // ── NORMAL TAP — weight-first, low-density impact ──
+  // Three depth planes from only 2 debris + 1 ring (was 3 debris + ring):
+  //   foreground ring (the read) ▸ near debris ▸ far debris that fades first.
+  // Procedural jitter (angle / distance / size / lifetime) makes no two taps feel
+  // identical without adding objects. No white pixels (warm rim + red debris).
+  if(!isGun && !isBomb){
+    const frag=document.createDocumentFragment();
+    const baseAng=Math.random()*Math.PI*2;
+    for(let i=0;i<2;i++){
+      const p=_getParticle();
+      const ang=baseAng + (i?Math.PI:0) + (Math.random()-0.5)*0.7;
+      const dist=(i?28:44)+Math.random()*22;        // near plane (i=0) travels farther
+      const sz=(i?4:6)+Math.random()*1.5;           // near = bigger, far = smaller → depth
+      const life=(i?0.17:0.24)+Math.random()*0.05;  // far debris (i=1) disappears first
+      p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:#ff3344;--dx:${Math.cos(ang)*dist}px;--dy:${Math.sin(ang)*dist}px;animation:particle ${life}s forwards;`;
+      frag.appendChild(p);
+      setTimeout(()=>{ p.remove(); _retParticle(p); },300);
+    }
+    const ring=_getRing();
+    // Warm low-alpha rim — the single dominant "read" (large silhouette, thin outline).
+    ring.style.cssText=`left:${x}px;top:${y}px;border-color:rgba(255,206,168,0.85);animation:impact 0.22s forwards;`;
+    frag.appendChild(ring);
+    fx.appendChild(frag);
+    setTimeout(()=>{ ring.remove(); _retRing(ring); },220);
+    return;
+  }
+  // ── GUN (OD) / BOMB (AK47) — big moments, unchanged ──
   const count=isBomb?3:isGun?5:3; // ลด particle count — เพียงพอสายตาเห็น ไม่ทำ DOM หนัก
   const color=isGun?getGodColor():'#ff3344';
   const frag=document.createDocumentFragment();
@@ -9758,7 +9788,6 @@ function spawnFX(x,y,isGun,isBomb){
     setTimeout(()=>{ p.remove(); _retParticle(p); },320);
   }
   const ring=_getRing();
-  // Normal tap: warm low-alpha rim instead of pure white (readability — no second white flash).
   ring.style.cssText=`left:${x}px;top:${y}px;border-color:${isGun?getGodColor():'rgba(255,206,168,0.85)'};animation:impact 0.22s forwards;`;
   frag.appendChild(ring);
   fx.appendChild(frag);
