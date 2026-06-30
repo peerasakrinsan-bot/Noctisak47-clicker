@@ -2617,10 +2617,10 @@ const CARD_POOL = [
     apply(s){ s.cs_thanatos = true; }
   },
   { id:'bh',   name:'BAPHOBET CARD',      img:'cards/baphobet.png',    rarity:'mythic',
-    effect:'<strong>SOUL CONTRACT</strong> — AK47 ไม่มีคูลดาวน์ ยิงรัวไม่หยุด<br>ทุก AK47 BOMB: <strong>BLOOD MONEY</strong> — Zeny พุ่งตามสายโซ่ AK47 (ยิ่งต่อเนื่อง ยิ่งรวย)<br>คลิก = TRIPLE STRIKE', tradeoff:'<strong>💀 DEVIL TAX:</strong> ยิ่งรวย ปีศาจยิ่งมาเก็บ — สุ่มริบ Zeny 40–60% ของรอบ • OD ใช้ไม่ได้',
+    effect:'<strong>SOUL CONTRACT</strong> — AK47 ไม่มีคูลดาวน์ ยิงรัวไม่หยุด<br>ทุก AK47 BOMB: <strong>BLOOD MONEY</strong> — Zeny พุ่งตามสายโซ่ AK47 (ยิ่งต่อเนื่อง ยิ่งรวย)', tradeoff:'<strong>💀 DEVIL TAX:</strong> ยิ่งรวย ปีศาจยิ่งมาเก็บ — สุ่มริบ Zeny 40–60% ของรอบ',
     shortDescription:'ไพ่ปีศาจสายเงิน: AK47 ไม่มีคูลดาวน์ + เงินไหลเป็นน้ำ แต่ปีศาจจะมาเก็บส่วย',
-    fullDescription:'[AK47 — ไม่มีคูลดาวน์]\nWeak Point เกิดใหม่ทันที ยิงรัวต่อเนื่อง\n\n[BLOOD MONEY]\nทุก AK47 BOMB จ่าย Zeny ตามความยาวสายโซ่ AK47\n(ยิ่งต่อเนื่องไม่พลาด ยิ่งจ่ายหนัก)\nพลาด WP = สายโซ่ขาด\n\n[💀 DEVIL TAX]\nยิ่งสะสม Blood Money มาก ปีศาจยิ่งมาเก็บ\nสุ่มริบ 40–60% ของ Zeny ในรอบ แล้ววนรอบใหม่\n\n[TRADEOFF]\nคลิก TRIPLE STRIKE แต่ OD ชาร์จไม่ได้',
-    balanceNote:'MYTHIC REWORK - SOUL CONTRACT: AK47 frenzy + chain-scaled Blood Money + hidden-pity DEVIL TAX (cinematic). ลบ Sin Stack เดิมออก',
+    fullDescription:'[AK47 — ไม่มีคูลดาวน์]\nWeak Point เกิดใหม่ทันที ยิงรัวต่อเนื่อง\n\n[BLOOD MONEY]\nทุก AK47 BOMB จ่าย Zeny ตามความยาวสายโซ่ AK47\n(ยิ่งต่อเนื่องไม่พลาด ยิ่งจ่ายหนัก)\nพลาด WP = สายโซ่ขาด\n\n[💀 DEVIL TAX]\nยิ่งสะสม Blood Money มาก ปีศาจยิ่งมาเก็บ\nสุ่มริบ 40–60% ของ Zeny ในรอบ แล้ววนรอบใหม่',
+    balanceNote:'MYTHIC FINAL - SOUL CONTRACT: 3 identities only (no-cooldown AK47 + Blood Money + DEVIL TAX). ลบ Sin Stack / Triple Strike / OD Curse เดิมออกหมด',
     apply(s){ s.cs_baphomet = true; }
   },
   { id:'eg',      name:'EDGEGA CARD',         img:'cards/edgega.png',       rarity:'mythic',
@@ -4765,7 +4765,7 @@ function csOnClick(isGod) {
   cs._taoComboDecayFast = (cs.cs_taoFunka && cs._taoFunkFeverEndTime && performance.now() < cs._taoFunkFeverEndTime) ? 0.25 : 0;
   // LORD OF DEBT: OVERLOAD state — extra OD charge per click
   if(cs.cs_lordofdeath && cs._lod_odGainBonus && godLevel === 0
-     && !cs.cs_baphomet && !cs.cs_goldenbug && !cs.cs_rsx0806) {
+     && !cs.cs_goldenbug && !cs.cs_rsx0806) {
     const cur = parseFloat(_el.godFill.style.width) || 0;
     _el.godFill.style.width = Math.min(100, cur + cs._lod_odGainBonus * 100) + '%';
     if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod) activateGodLevel(1);
@@ -4791,7 +4791,7 @@ function csOnKO() {
   // MINORAGE — ORE RAGE: Ore Crack ไม่รีเซ็ตตอน KO (สะสมข้ามศัตรูภายในรอบ
   // แล้วระเบิดตอน BREAK) — เคลียร์เฉพาะตอนเริ่ม/จบรอบผ่าน _csState ใหม่
   // Nightmare: +2% OD charge per KO
-  if(cs.cs_koOdCharge && !cs.cs_baphomet && !cs.cs_goldenbug) {
+  if(cs.cs_koOdCharge && !cs.cs_goldenbug) {
     const cur = parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width = Math.min(100, cur + cs.cs_koOdCharge*100) + '%';
     if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
@@ -4814,7 +4814,7 @@ function csOnKO() {
   if(cs.cs_demonPungus) {
     if(!cs._demonPungusKO) cs._demonPungusKO = 0;
     cs._demonPungusKO++;
-    if(cs._demonPungusKO % 5 === 0 && !cs.cs_baphomet && !cs.cs_goldenbug) {
+    if(cs._demonPungusKO % 5 === 0 && !cs.cs_goldenbug) {
       const cur = parseFloat(_el.godFill.style.width)||0;
       _el.godFill.style.width = Math.min(100, cur + 8) + '%';
       if(parseFloat(_el.godFill.style.width)>=100 && canEnterGod && godLevel===0) activateGodLevel(1);
@@ -5179,7 +5179,7 @@ function csOnBreakSuccess() {
       cs._whizperGhostCdUntil = _nowGhost + 10000;
       cs._whizperGhostEndTime = _nowGhost + 4000;
       cs._whizperComboPauseUntil = _nowGhost + 1200;
-      if(!cs.cs_baphomet && !cs.cs_goldenbug && !cs.cs_rsx0806) {
+      if(!cs.cs_goldenbug && !cs.cs_rsx0806) {
         const cur = parseFloat(_el.godFill.style.width) || 0;
         _el.godFill.style.width = Math.min(100, cur + 6) + '%';
         if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
@@ -5220,7 +5220,7 @@ function csOnBreakSuccess() {
       cs._taoFunkCdUntil = now + 10000;
     }
   }
-  // BAPHOBET: BREAK -> instant AK47 burst + DEVIL BET (anti-loop guarded)
+  // BAPHOBET — SOUL CONTRACT: BREAK feeds the frenzy (instant AK47 burst, anti-loop guarded)
   if(cs.cs_baphomet) {
     const _nowB = performance.now();
     const _spawnOne = () => {
@@ -5451,7 +5451,7 @@ function csOnWpHit(x, y) {
       const bar = _el.godFill;
       const cur = parseFloat(bar.style.width)||0;
       bar.style.width = Math.min(100, cur + cs.cs_wpOdCharge*100) + '%';
-      if(parseFloat(bar.style.width)>=100 && canEnterGod && !cs.cs_baphomet && !cs.cs_goldenbug) {
+      if(parseFloat(bar.style.width)>=100 && canEnterGod && !cs.cs_goldenbug) {
         activateGodLevel(1);
       }
     }
@@ -5465,7 +5465,7 @@ function csOnWpHit(x, y) {
     setTimeout(showWeakPoint, 300);
   }
   // RIZZWORD: +3% OD charge per WP collect (max 10 triggers per 8s)
-  if(cs.cs_rizzword && godLevel === 0 && !cs.cs_baphomet && !cs.cs_goldenbug && !cs.cs_rsx0806) {
+  if(cs.cs_rizzword && godLevel === 0 && !cs.cs_goldenbug && !cs.cs_rsx0806) {
     const _now = performance.now();
     if(!cs._rizzwordWindowStart || _now - cs._rizzwordWindowStart >= 8000) {
       cs._rizzwordWindowStart = _now;
@@ -5546,7 +5546,7 @@ function drakePlunder(x, y){
   roundCoins += plunderCoins;
   spawnCoinPopup(plunderCoins);
   // ── small OD chip (skip if a card disables OD charging) ──
-  if(!cs.cs_baphomet && !cs.cs_goldenbug){
+  if(!cs.cs_goldenbug){
     const cur = parseFloat(_el.godFill.style.width) || 0;
     _el.godFill.style.width = Math.min(100, cur + DRAKE_PLUNDER_OD) + '%';
     if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod) activateGodLevel(1);
@@ -8655,13 +8655,13 @@ function processHit(e, now) {
   }
   // ELDER WILLOW: OD charge x1.5 when combo >= 25
   if(window._csState && window._csState.cs_elderWillow_active && godLevel === 0
-     && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
+     && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     const cur = parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width = Math.min(100, cur + (combo/47*100)*0.5) + '%';
   }
   // METALLER / THIEF BUG: flat OD charge bonus per click — METALOL gated to combo >= 10
   if(window._csState && window._csState.cs_odChargeBonus && godLevel === 0
-     && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
+     && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     // cs_metalolComboGate: only apply when combo >= 10 (METALOL nerf — prevents low-combo OD spam)
     const _metalolGated = window._csState.cs_metalolComboGate && combo < 10;
     if(!_metalolGated) {
@@ -8683,7 +8683,7 @@ function processHit(e, now) {
   }
   // SAVAGE / TAO GUNKA / GOBLIN LEADER: OD charge penalty (reduce charge rate)
   if(window._csState && window._csState.cs_odChargePenalty && godLevel === 0
-     && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
+     && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     const base = combo/47*100;
     const penalty = base * window._csState.cs_odChargePenalty;
     const cur = parseFloat(_el.godFill.style.width)||0;
@@ -8691,17 +8691,17 @@ function processHit(e, now) {
   }
   // LADY TRAINEE: Spotlight Mode at 10 stacks → +10% OD charge per click
   if(window._csState && window._csState.cs_ladyTrainee && window._csState._ladyTraineeSpotlight
-     && godLevel === 0 && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
+     && godLevel === 0 && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     const cur = parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width = Math.min(100, cur + 10) + '%';
     if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod) activateGodLevel(1);
   }
-  // BAPHOMET / GOLDEN BUG / RSX-0806: no OD charge
-  if(window._csState && (window._csState.cs_baphomet || window._csState.cs_goldenbug || window._csState.cs_rsx0806)) {
+  // GOLDEN BUG / RSX-0806: no OD charge
+  if(window._csState && (window._csState.cs_goldenbug || window._csState.cs_rsx0806)) {
     _el.godFill.style.width = '0%';
   }
   if(combo===47&&godLevel===0&&canEnterGod){
-    if(!window._csState || (!window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806))
+    if(!window._csState || (!window._csState.cs_goldenbug && !window._csState.cs_rsx0806))
       activateGodLevel(1);
   }
   // GOLDEN BRUH: Gold Rush at max combo (replaces OD)
@@ -8720,7 +8720,7 @@ function processHit(e, now) {
   // MOONLIGHT FLOWER / VITATA / ELDER WILLOW / METALLER / THIEF BUG: ถ้า bar เต็ม 100% ก่อน combo 47 → trigger OD ทันที
   if(godLevel===0 && canEnterGod && window._csState
      && (window._csState.cs_moonlightflower || window._csState.cs_vitata || window._csState.cs_elderWillow_active || window._csState.cs_odChargeBonus)
-     && !window._csState.cs_baphomet && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
+     && !window._csState.cs_goldenbug && !window._csState.cs_rsx0806) {
     if(parseFloat(_el.godFill.style.width) >= 100) activateGodLevel(1);
   }
 
@@ -8820,7 +8820,7 @@ function processHit(e, now) {
     }
   }
   // ORC WARRIOR: crit → OD charge
-  if(isCrit && window._csState && window._csState.cs_critOdCharge && !window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
+  if(isCrit && window._csState && window._csState.cs_critOdCharge && !window._csState.cs_goldenbug) {
     const cur=parseFloat(_el.godFill.style.width)||0;
     _el.godFill.style.width=Math.min(100,cur+window._csState.cs_critOdCharge*100)+'%';
     if(parseFloat(_el.godFill.style.width)>=100&&canEnterGod&&godLevel===0) activateGodLevel(1);
@@ -8832,7 +8832,7 @@ function processHit(e, now) {
       window._csState._drunkulaIcdUntil = _nowDrink + 800;
       roundCoins += 8;
       spawnCoinPopup(8);
-      if(!window._csState.cs_baphomet && !window._csState.cs_goldenbug) {
+      if(!window._csState.cs_goldenbug) {
         const cur = parseFloat(_el.godFill.style.width)||0;
         _el.godFill.style.width = Math.min(100, cur + 3) + '%';
         if(parseFloat(_el.godFill.style.width) >= 100 && canEnterGod && godLevel === 0) activateGodLevel(1);
@@ -8852,8 +8852,6 @@ function processHit(e, now) {
 
   // moon shard
   const doubleHit=_sc.dblChance&&Math.random()<_sc.dblChance;
-  // BAPHOMET: triple hit always
-  const baphTriple = window._csState && window._csState.cs_baphomet;
 
   // call card on-click hook
   csOnClick(godLevel>0);
@@ -8905,22 +8903,12 @@ function processHit(e, now) {
     // Lv1 = 1 hit, Lv2 = 2 hits, Lv3 = 3 hits. Never applies to BREAK/WP/AK47.
     const _odHits = godLevel >= 3 ? 3 : godLevel >= 2 ? 2 : 1;
 
-    // ── Hit count: Meth Shard + Baphomet (normal tap only) ──
-    // doubleHit/baphTriple were computed above. These multiply on top of OD hits.
-    const _methHits = baphTriple ? 1 : (doubleHit && _sc.isTriple) ? 3 : doubleHit ? 2 : 1;
+    // ── Hit count: Meth Shard (normal tap only) ──
+    // doubleHit computed above. Multiplies on top of OD hits.
+    const _methHits = (doubleHit && _sc.isTriple) ? 3 : doubleHit ? 2 : 1;
 
     // ── Total damage: base × (OD hits × Meth hits) ──
     let _totalDmg = _sanitizeDamage(Math.round(dmg * _odHits * _methHits), 'normalTapTotal');
-    if(baphTriple){
-      const _baseMain = Math.round(dmg * _odHits);
-      const _secCritChance = Math.max(0, Math.min(1, (_critChance || 0) * 0.45));
-      const _sec1Crit = Math.random() < _secCritChance;
-      const _sec2Crit = Math.random() < _secCritChance;
-      const _secBase = Math.max(1, Math.round(_baseMain * 0.40));
-      const _sec1 = Math.round(_secBase * (_sec1Crit ? (_sc.critMult || 2) : 1));
-      const _sec2 = Math.round(_secBase * (_sec2Crit ? (_sc.critMult || 2) : 1));
-      _totalDmg = _sanitizeDamage(_baseMain + _sec1 + _sec2, 'baphTripleTotal');
-    }
 
     // ── One damage application, one number, one flash ──
     const pos2 = pos; // pos already computed above
