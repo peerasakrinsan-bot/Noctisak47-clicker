@@ -236,9 +236,16 @@ function _mk(kind, x, y, life, color) {
   const p = _alloc();
   p.kind = kind; p.x = x; p.y = y; p.age = 0; p.life = life; p.color = color;
   p.vx = 0; p.vy = 0; p.size = 6; p.rot = 0; p.seed = Math.random();
-  p.pts = null; p.data = 0; p.c2 = 0; p.secondary = 0; p.drag = 0; p.delay = _spawnDelay;
+  p.pts = null; p.data = 0; p.c2 = 0; p.secondary = 0; p.drag = 0; p.delay = _spawnDelay; p.flow = 0;
   return p;
 }
+
+// ── motion-language flow codes (per-family motion on the shared 'spark' kind) ──
+// The same spark primitive serves fire embers, void absorption, charge intake,
+// etc. — without this they all drift identically. `p.flow` selects a cheap
+// vector-field flavor in the spark draw so each family MOVES like itself.
+const FLOW_FIRE = 1;   // buoyant accelerating rise + dancing flicker (heat)
+const FLOW_VOID = 2;   // curl velocity → spiral inward + compress (swallowing)
 
 // ── naturalization helpers (cosmetic motion/timing curves; no extra particles) ─
 // easeOut: shockwaves/expansions shoot out fast then settle — replaces the
@@ -325,7 +332,7 @@ const BUILD = {
     for (let i = 0; i < n; i++) {
       const p = _mk('spark', x, y, life, col);
       p.vx = (Math.random() - 0.5) * 90; p.vy = -(120 + Math.random() * 130);
-      p.size = 2.5 + Math.random() * 2; p.data = 1; // ember = drift up, no gravity flip
+      p.size = 2.5 + Math.random() * 2; p.data = 1; p.flow = FLOW_FIRE; // ember = drift up, no gravity flip
       _push(p);
     }
   },
@@ -580,7 +587,7 @@ const BUILD = {
       const p = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
       const sp = rad / life;                 // ถึงศูนย์กลางราว ๆ ตอนจบ
       p.vx = -Math.cos(ang) * sp; p.vy = -Math.sin(ang) * sp;
-      p.size = 2 + Math.random() * 2; p.data = 1; // ember = ไม่โดนโน้มถ่วง
+      p.size = 2 + Math.random() * 2; p.data = 1; p.flow = FLOW_VOID; // ember = ไม่โดนโน้มถ่วง (spiral inward)
       _push(p);
     }
   },
@@ -605,7 +612,7 @@ const BUILD = {
     for (let i = 0; i < n; i++) {
       const p = _mk('spark', x, y, life, col);
       p.vx = (Math.random() - 0.5) * 100; p.vy = -(130 + Math.random() * 130);
-      p.size = 2.5 + Math.random() * 2; p.data = 1; // ember = ลอยขึ้น ไม่ตก
+      p.size = 2.5 + Math.random() * 2; p.data = 1; p.flow = FLOW_FIRE; // ember = ลอยขึ้น ไม่ตก
       _push(p);
     }
   },
@@ -665,7 +672,7 @@ const BUILD = {
       const p = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, life, col);
       const sp = rad / life;                 // ถึงศูนย์กลางราว ๆ ตอนจบ
       p.vx = -Math.cos(ang) * sp; p.vy = -Math.sin(ang) * sp;
-      p.size = 2 + Math.random() * 2; p.data = 1; // ember = ไม่โดนโน้มถ่วง, ถูกดูดเข้า
+      p.size = 2 + Math.random() * 2; p.data = 1; p.flow = FLOW_VOID; // ember = ไม่โดนโน้มถ่วง, ถูกดูดเข้า (spiral inward)
       _push(p);
     }
   },
@@ -897,7 +904,7 @@ const BUILD = {
         const ang = (i / s) * Math.PI * 2, rad = 60 + Math.random() * 40;
         const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.6), '#b388ff');
         e.vx = -Math.cos(ang) * rad * 1.7; e.vy = -Math.sin(ang) * rad * 1.7; // ลู่เข้า (กลืน)
-        e.size = 2 + Math.random() * 2; e.data = 1; // ไม่มีโน้มถ่วง
+        e.size = 2 + Math.random() * 2; e.data = 1; e.flow = FLOW_VOID; // ไม่มีโน้มถ่วง (spiral-absorb)
         e.delay += 0.1 + Math.random() * 0.05;       // devour pulls inward after the tendrils have risen
         _push(e);
       }
@@ -912,7 +919,7 @@ const BUILD = {
       const ang = (i / n) * Math.PI * 2, rad = 40 + Math.random() * 26;
       const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.45), col);
       e.vx = -Math.cos(ang) * rad * 1.9; e.vy = -Math.sin(ang) * rad * 1.9; // ลู่เข้า (ชาร์จ)
-      e.size = 2 + Math.random() * 1.6; e.data = 1; _push(e); // data 1 = no gravity
+      e.size = 2 + Math.random() * 1.6; e.data = 1; e.flow = FLOW_VOID; _push(e); // circuitry spirals into the core
     }
   },
   // MECHA LASER — ปืนเลเซอร์ฟาดลง + reticle ล็อกเป้า + แกนปากกระบอก (KILL-D01 DRIVE DISCHARGE)
@@ -1111,8 +1118,8 @@ const BUILD = {
     for (let i = 0; i < n; i++) {
       const ang = (i / n) * Math.PI * 2, rad = 50 + Math.random() * 30;
       const e = _mk('spark', x + Math.cos(ang) * rad, y + Math.sin(ang) * rad, _rmLife(0.5), col);
-      e.vx = -Math.cos(ang) * rad * 1.6; e.vy = -Math.sin(ang) * rad * 1.6; e.size = 2 + Math.random() * 1.8; e.data = 1;
-      e.delay += 0.12 + Math.random() * 0.04; _push(e);   // souls dragged in last
+      e.vx = -Math.cos(ang) * rad * 1.6; e.vy = -Math.sin(ang) * rad * 1.6; e.size = 2 + Math.random() * 1.8; e.data = 1; e.flow = FLOW_VOID;
+      e.delay += 0.12 + Math.random() * 0.04; _push(e);   // souls spiral into the rift last
     }
   },
   // EXECUSIONER — ขวานประหารฟาดโค้ง: อาร์คขวานกว้างกวาดลง + รอยร้าวพื้น + วาบ
@@ -1583,6 +1590,19 @@ function _draw(p, dt) {
       // the core of natural motion. Inward-pull/ember sparks (drag 0) untouched.
       if (p.drag) { const fr = p.vx * 3.1 * dt, fg = p.vy * 3.1 * dt; p.vx -= fr; p.vy -= fg; }
       if (!p.data) p.vy += 320 * dt;   // ember (data=1) ไม่ต้องโดนโน้มถ่วง
+      // ── motion-language flow (per-family vector field, ~2 trig ops) ─────────
+      let fflick = 1;
+      if (p.flow === FLOW_FIRE) {            // FIRE: heat lifts + the flame dances + flickers
+        p.vy -= 150 * dt;                    // buoyancy accelerates the rise
+        p.vx += Math.sin(p.age * 21 + p.seed * 6.283) * 34 * dt; // dancing curl
+        fflick = 0.78 + 0.22 * Math.sin(p.age * 33 + p.seed * 10);
+      } else if (p.flow === FLOW_VOID) {     // VOID: curl velocity → spiral inward + compress
+        const w = (0.7 + p.seed * 0.6) * 6 * dt;
+        const c = Math.cos(w), s = Math.sin(w);
+        const nvx = p.vx * c - p.vy * s, nvy = p.vx * s + p.vy * c;
+        const comp = 1 + 0.9 * dt;           // accelerate as it's swallowed
+        p.vx = nvx * comp; p.vy = nvy * comp;
+      }
       // micro-turbulence: a touch of air-current sway so no spark flies a dead-
       // straight line (per-particle phase from seed). Sub-pixel, no travel change.
       const tb = (Math.sin(p.age * 10 + p.seed * 6.283)) * 9 * dt;
@@ -1590,7 +1610,7 @@ function _draw(p, dt) {
       ctx.globalCompositeOperation = 'lighter';
       // depth cue: dimmer sparks read as further-back debris, brighter ones as
       // foreground — gives the burst a plane of depth without more particles.
-      ctx.globalAlpha = (1 - t) * (0.7 + p.seed * 0.3);
+      ctx.globalAlpha = (1 - t) * (0.7 + p.seed * 0.3) * fflick;
       ctx.fillStyle = _rgba(p.color, 1);
       ctx.beginPath();
       // per-particle shrink rate (seed) — some sparks gutter out, some hold.
@@ -1643,28 +1663,40 @@ function _draw(p, dt) {
       break;
     }
     case 'fire': {
-      p.y -= 70 * dt;
+      // FIRE motion language: heat accelerates the rise, the flame licks side to
+      // side, and brightness flickers — a living flame instead of a rising blob.
+      p.y -= (70 + t * 95) * dt;
+      p.x += Math.sin(p.age * 13 + p.seed * 6.283) * 24 * dt;
+      const flick = 0.86 + 0.14 * Math.sin(p.age * 30 + p.seed * 9);
       ctx.globalCompositeOperation = 'lighter';
-      const r = p.size * (1 - t * 0.6);
+      const r = p.size * (1 - t * 0.6) * (0.92 + 0.1 * Math.sin(p.age * 24 + p.seed * 7)); // flame-tongue size flicker
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-      g.addColorStop(0, _rgba('#ffee88', (1 - t) * 0.9));
-      g.addColorStop(0.5, _rgba(p.color, (1 - t) * 0.7));
+      g.addColorStop(0, _rgba('#ffee88', (1 - t) * 0.9 * flick));
+      g.addColorStop(0.5, _rgba(p.color, (1 - t) * 0.7 * flick));
       g.addColorStop(1, _rgba(p.color, 0));
       ctx.globalAlpha = 1; ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
       break;
     }
     case 'bolt': {
-      const a = t < 0.25 ? 1 : (1 - (t - 0.25) / 0.75);
+      // LIGHTNING motion language: an electric flicker (the arc stutters, never a
+      // steady glow) + a live lateral jitter on the interior vertices each frame
+      // so the channel writhes. Endpoints stay anchored. A few cheap ops on a
+      // rare, short-lived primitive — bolts are 1–3 at a time.
+      const flick = (Math.sin(p.age * 95 + p.seed * 12) > -0.35) ? 1 : 0.45;
+      const a = (t < 0.25 ? 1 : (1 - (t - 0.25) / 0.75)) * flick;
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.max(0, a);
       ctx.strokeStyle = _rgba(p.color, 1);
       ctx.lineWidth = p.size; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.shadowColor = _rgba(p.color, 1); ctx.shadowBlur = _sb(8);
       ctx.beginPath();
-      const pts = p.pts;
+      const pts = p.pts, last = pts.length - 2;
       ctx.moveTo(pts[0], pts[1]);
-      for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+      for (let i = 2; i < pts.length; i += 2) {
+        const jit = (i < last) ? Math.sin(p.age * 72 + i * 2.3 + p.seed * 6.283) * 3.4 : 0;
+        ctx.lineTo(pts[i] + jit, pts[i + 1]);
+      }
       ctx.stroke(); ctx.shadowBlur = 0;
       break;
     }
@@ -2649,7 +2681,11 @@ function _draw(p, dt) {
       break;
     }
     case 'vfrag': {
-      // เศษอวกาศบิด: ลู่เข้าศูนย์ (gravity) + หมุน + สี่เหลี่ยมข้าวหลามตัด
+      // เศษอวกาศบิด: VOID motion — curl the velocity so debris SPIRALS into the
+      // singularity (warping inward) rather than sliding straight to the core.
+      const vw = 4.2 * dt, vc = Math.cos(vw), vs = Math.sin(vw);
+      const nvx = p.vx * vc - p.vy * vs, nvy = p.vx * vs + p.vy * vc;
+      p.vx = nvx; p.vy = nvy;
       p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; p.vy *= 0.96; p.rot += p.data * dt;
       const a = Math.sin(Math.min(1, t) * Math.PI);
       ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
