@@ -8516,14 +8516,14 @@ function _flushTickVisuals() {
     setTimeout(()=>boxer.classList.remove('recoil','recoil-god'), 90);
   }
 
-  // flash — once per tick
-  if(_tv.doFlash) triggerFlash(_tv.flashCls);
+  // flash — once per tick (empty class on a P0 normal tap = no full-screen flash)
+  if(_tv.doFlash && _tv.flashCls) triggerFlash(_tv.flashCls);
 
   // boss hit flash — once per tick
   if(_tv.doBossHit) {
-    boxer.classList.remove('boss-hit','boss-hit-god');
+    boxer.classList.remove('boss-hit','boss-hit-crit','boss-hit-god');
     requestAnimationFrame(()=>{ boxer.classList.add(_tv.bossHitCls); });
-    setTimeout(()=>boxer.classList.remove('boss-hit','boss-hit-god'), _tv.hitDur > 200 ? 200 : 150);
+    setTimeout(()=>boxer.classList.remove('boss-hit','boss-hit-crit','boss-hit-god'), _tv.hitDur > 200 ? 200 : 150);
     _pulseBossSkinAura();
   }
 
@@ -8962,9 +8962,16 @@ function processHit(e, now) {
   updateMultiBadge(multi);
 
   // ── Collect visual params → accumulate for tick flush (1 render per tick) ──
+  // HIT-FEEDBACK HIERARCHY (readability-first): P0 normal < P1 crit < OD/BREAK.
+  //  • P0 normal tap: NO full-screen flash — silhouette stays visible; impact is
+  //    carried by the boss recoil + localized boss-hit rim + impact ring + number.
+  //  • P1 crit (non-OD): a soft warm flash + brighter rim — "noticeably stronger"
+  //    without the pure-white full-screen blowout.
+  //  • OD taps keep their existing big-moment flashes untouched (big stays big).
   const _rc   = godLevel>0 ? 'recoil-god' : 'recoil';
-  const _fcls = godLevel===3?'flash-god3':godLevel===2?'flash-god2':godLevel===1?'flash-god':'flash-punch';
-  const _bhc  = godLevel>0 ? 'boss-hit-god' : 'boss-hit';
+  const _fcls = godLevel===3?'flash-god3':godLevel===2?'flash-god2':godLevel===1?'flash-god'
+              : isCrit ? 'flash-crit' : '';
+  const _bhc  = godLevel>0 ? 'boss-hit-god' : (isCrit ? 'boss-hit-crit' : 'boss-hit');
   const _skin2 = getActiveSkin();
   const _hitImgs2 = _skin2.files.hits;
   let _ii; do{_ii=Math.floor(Math.random()*_hitImgs2.length);}while(_ii===lastIndex&&_hitImgs2.length>1);
@@ -9751,7 +9758,8 @@ function spawnFX(x,y,isGun,isBomb){
     setTimeout(()=>{ p.remove(); _retParticle(p); },320);
   }
   const ring=_getRing();
-  ring.style.cssText=`left:${x}px;top:${y}px;border-color:${isGun?getGodColor():'white'};animation:impact 0.22s forwards;`;
+  // Normal tap: warm low-alpha rim instead of pure white (readability — no second white flash).
+  ring.style.cssText=`left:${x}px;top:${y}px;border-color:${isGun?getGodColor():'rgba(255,206,168,0.85)'};animation:impact 0.22s forwards;`;
   frag.appendChild(ring);
   fx.appendChild(frag);
   setTimeout(()=>{ ring.remove(); _retRing(ring); },220);

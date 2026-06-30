@@ -2915,14 +2915,27 @@
   .boss-hit {
     animation: bossHitAnim 0.12s ease-out forwards;
   }
+  .boss-hit-crit {
+    animation: bossHitCritAnim 0.14s ease-out forwards;
+  }
   .boss-hit-god {
     animation: bossHitGodAnim 0.15s ease-out forwards;
   }
   /* ไม่มี class = reset animation โดย browser อัตโนมัติเมื่อ add class ใหม่
      เพราะใช้ setTimeout remove ก่อน add ใหม่ทันที ไม่ต้องการ reflow */
+  /* P0 normal hit: directional red rim, silhouette PRESERVED (brightness 1.42 /
+     saturate 0.92) — was a brightness 2.5 / saturate 0.2 white blowout that erased
+     the boss on every tap. Darker, localized lighting instead of a wash. */
   @keyframes bossHitAnim {
     0%  { filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)) brightness(1) saturate(1); }
-    30% { filter:drop-shadow(0 0 30px rgba(255,50,50,0.9)) brightness(2.5) saturate(0.2); }
+    30% { filter:drop-shadow(0 0 18px rgba(255,60,60,0.85)) brightness(1.42) saturate(0.92); }
+    100%{ filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)) brightness(1) saturate(1); }
+  }
+  /* P1 crit: noticeably stronger — warm gold rim + brighter punch, but still
+     silhouette-safe (no full desaturate-to-white). Clearly reads above a normal hit. */
+  @keyframes bossHitCritAnim {
+    0%  { filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)) brightness(1) saturate(1); }
+    28% { filter:drop-shadow(0 0 30px rgba(255,180,40,0.95)) brightness(1.95) saturate(1.12); }
     100%{ filter:drop-shadow(0 10px 40px rgba(0,0,0,0.8)) brightness(1) saturate(1); }
   }
   @keyframes bossHitGodAnim {
@@ -3089,11 +3102,14 @@
     filter:saturate(1.32);
   }
   .flash-punch { animation:sfPunch 0.12s forwards; }
+  .flash-crit  { animation:sfCrit  0.16s forwards; }
   .flash-god   { animation:sfGod   0.18s forwards; }
   .flash-god2  { animation:sfGod2  0.2s  forwards; }
   .flash-god3  { animation:sfGod3  0.25s forwards; }
   .flash-boss  { animation:sfBoss  0.15s forwards; }
   @keyframes sfPunch { 0%{opacity:0.12;background:white;} 100%{opacity:0;} }
+  /* P1 crit flash: warm radial glow (reads localized, not a full-screen white wash). */
+  @keyframes sfCrit  { 0%{opacity:0.16;background:radial-gradient(circle at center, rgba(255,196,72,0.9) 0%, rgba(255,140,40,0) 68%);} 100%{opacity:0;} }
   @keyframes sfGod   { 0%{opacity:0.15;background:cyan;} 100%{opacity:0;} }
   @keyframes sfGod2  { 0%{opacity:0.3;background:#4488ff;} 100%{opacity:0;} }
   @keyframes sfGod3  { 0%{opacity:0.35;background:#ff2233;} 100%{opacity:0;} }
@@ -3691,6 +3707,7 @@
     text-shadow:0 0 8px rgba(255,34,51,0.28);
   }
   body.reduce-flash .flash-punch,
+  body.reduce-flash .flash-crit,
   body.reduce-flash .flash-god,
   body.reduce-flash .flash-god2,
   body.reduce-flash .flash-god3,
@@ -4669,6 +4686,7 @@
   /* Short soft flicker — visible but not strobe. Slightly longer than reduce-flash sfSoft
      so it reads as "something happened" without eye strain. */
   body.flash-low .flash-punch,
+  body.flash-low .flash-crit,
   body.flash-low .flash-god,
   body.flash-low .flash-god2,
   body.flash-low .flash-god3,
@@ -4756,6 +4774,7 @@
 
   /* Full-screen flash layers: completely invisible */
   body.flash-off .flash-punch,
+  body.flash-off .flash-crit,
   body.flash-off .flash-god,
   body.flash-off .flash-god2,
   body.flash-off .flash-god3,
