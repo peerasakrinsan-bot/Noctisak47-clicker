@@ -8492,6 +8492,16 @@ const _tv = {
   hitDur:     250,
 };
 
+// ── FREQUENCY GOVERNOR ──
+// Min-interval (ms) per strong effect. During sustained fast tapping each one
+// "breathes" at most ~Hz cap instead of firing every single tap; debris + the
+// boxer sprite-swap still fire every hit so input stays responsive. Casual
+// tapping (<~8/s, gap > interval) is unaffected; any idle gap restores every
+// effect to full on the next hit (all intervals < 300ms → full recovery ~300ms).
+// This reduces FREQUENCY, never strength — strong moments stay strong, just rarer.
+const FX_GATE  = { ring: 120, recoil: 95, bossHit: 120, flash: 160 };
+const _fxGate  = { ring: 0,   recoil: 0,  bossHit: 0,   flash: 0   };
+
 function _tickVisualAccum(x, y, dmg, isGun, isCrit, recoilCls, flashCls, bossHitCls, nextImg, idleImg, hitDur) {
   _tv.hitCount++;
   _tv.lastX = x; _tv.lastY = y;
@@ -8506,22 +8516,32 @@ function _flushTickVisuals() {
   if(_tv.hitCount === 0) return;
 
   // หมายเหตุ: เลขดาเมจ (showHitNum) ถูกยิงต่อ hit ใน processHit (มี aggregation window
-  // ของตัวเอง). ส่วน impact FX (particles+ring) ย้ายมายิง "ครั้งเดียวต่อ tick" ตรงนี้
-  // โดยใช้ตำแหน่ง hit ล่าสุด — รวม burst ที่ทับกันในเฟรมเดียวให้เหลือ impact เดียว
-  // (ลด visual density ตอนแตะรัว/หลายนิ้ว โดยไม่เพิ่ม object).
-  spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false);
+  // ของตัวเอง). ส่วน impact FX ย้ายมายิง "ครั้งเดียวต่อ tick" ตรงนี้ และผ่าน frequency
+  // governor (FX_GATE) — ตอนแตะรัว effect แรงจะ "หายใจ" แทนที่จะยิงทุกแตะ, แต่ debris
+  // กับการสลับรูปบอสยังยิงทุก hit เพื่อให้ feedback ตอบสนองทันที.
+  const _t = performance.now();
 
-  // recoil — set once, remove once
-  if(_tv.doRecoil) {
+  // impact ring breathes; debris (particles) still fire every hit.
+  const _ringNow = _t - _fxGate.ring >= FX_GATE.ring;
+  if(_ringNow) _fxGate.ring = _t;
+  spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false, !_ringNow);
+
+  // recoil — throttled (heavy recoil should not happen every hit)
+  if(_tv.doRecoil && _t - _fxGate.recoil >= FX_GATE.recoil) {
+    _fxGate.recoil = _t;
     boxer.classList.add(_tv.recoilCls);
     setTimeout(()=>boxer.classList.remove('recoil','recoil-god'), 90);
   }
 
-  // flash — once per tick (empty class on a P0 normal tap = no full-screen flash)
-  if(_tv.doFlash && _tv.flashCls) triggerFlash(_tv.flashCls);
+  // flash — throttled + only when a class is set (P0 normal tap = no flash)
+  if(_tv.doFlash && _tv.flashCls && _t - _fxGate.flash >= FX_GATE.flash) {
+    _fxGate.flash = _t;
+    triggerFlash(_tv.flashCls);
+  }
 
-  // boss hit flash — once per tick
-  if(_tv.doBossHit) {
+  // boss hit flash — throttled (strong flashes breathe)
+  if(_tv.doBossHit && _t - _fxGate.bossHit >= FX_GATE.bossHit) {
+    _fxGate.bossHit = _t;
     boxer.classList.remove('boss-hit','boss-hit-crit','boss-hit-god');
     requestAnimationFrame(()=>{ boxer.classList.add(_tv.bossHitCls); });
     setTimeout(()=>boxer.classList.remove('boss-hit','boss-hit-crit','boss-hit-god'), _tv.hitDur > 200 ? 200 : 150);
@@ -9488,7 +9508,9 @@ function updateMultiBadge(multi) {
 
 const HIT_NUM_POOL_SIZE = 36;   // total nodes pre-created
 const HIT_NUM_ACTIVE_CAP = 20;  // max nodes visible at once (hard cap)
-const HIT_NUM_AGG_WINDOW = 90;  // ms — hits within this window aggregate visually
+const HIT_NUM_AGG_WINDOW = 140; // ms — hits within this window aggregate visually
+                                // (widened 90→140: merges more aggressively during
+                                //  sustained tapping — one rising number, not a stream)
 const HIT_NUM_REDUCE_CAP = 10;  // max visible nodes in reduce-flash mode
 
 // Pre-create pool nodes (once, at parse time — no createElement during gameplay)
@@ -9750,7 +9772,10 @@ function _getBreakImpact(heavy){
 }
 function _retBreakImpact(el){ el.style.animation='none'; el.className='break-impact'; _biPool.push(el); }
 
-function spawnFX(x,y,isGun,isBomb){
+function spawnFX(x,y,isGun,isBomb,skipRing){
+  // skipRing: frequency governor may suppress the impact ring on a throttled tick
+  // while debris still spawns (ring should not appear every hit during fast tapping).
+  // Direct callers (AK47 bomb, etc.) omit it → ring fires as before.
   // ── NORMAL TAP — weight-first, low-density impact ──
   // Three depth planes from only 2 debris + 1 ring (was 3 debris + ring):
   //   foreground ring (the read) ▸ near debris ▸ far debris that fades first.
@@ -9769,12 +9794,14 @@ function spawnFX(x,y,isGun,isBomb){
       frag.appendChild(p);
       setTimeout(()=>{ p.remove(); _retParticle(p); },300);
     }
-    const ring=_getRing();
-    // Warm low-alpha rim — the single dominant "read" (large silhouette, thin outline).
-    ring.style.cssText=`left:${x}px;top:${y}px;border-color:rgba(255,206,168,0.85);animation:impact 0.22s forwards;`;
-    frag.appendChild(ring);
+    if(!skipRing){
+      const ring=_getRing();
+      // Warm low-alpha rim — the single dominant "read" (large silhouette, thin outline).
+      ring.style.cssText=`left:${x}px;top:${y}px;border-color:rgba(255,206,168,0.85);animation:impact 0.22s forwards;`;
+      frag.appendChild(ring);
+      setTimeout(()=>{ ring.remove(); _retRing(ring); },220);
+    }
     fx.appendChild(frag);
-    setTimeout(()=>{ ring.remove(); _retRing(ring); },220);
     return;
   }
   // ── GUN (OD) / BOMB (AK47) — big moments, unchanged ──
@@ -9787,11 +9814,13 @@ function spawnFX(x,y,isGun,isBomb){
     frag.appendChild(p);
     setTimeout(()=>{ p.remove(); _retParticle(p); },320);
   }
-  const ring=_getRing();
-  ring.style.cssText=`left:${x}px;top:${y}px;border-color:${isGun?getGodColor():'rgba(255,206,168,0.85)'};animation:impact 0.22s forwards;`;
-  frag.appendChild(ring);
+  if(!skipRing){
+    const ring=_getRing();
+    ring.style.cssText=`left:${x}px;top:${y}px;border-color:${isGun?getGodColor():'rgba(255,206,168,0.85)'};animation:impact 0.22s forwards;`;
+    frag.appendChild(ring);
+    setTimeout(()=>{ ring.remove(); _retRing(ring); },220);
+  }
   fx.appendChild(frag);
-  setTimeout(()=>{ ring.remove(); _retRing(ring); },220);
 }
 
 function spawnBreakFX(x,y,heavy){
