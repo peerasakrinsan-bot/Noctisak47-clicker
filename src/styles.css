@@ -3152,15 +3152,16 @@
     0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
     100%{opacity:0; transform:translate(-50%,-50%) scale(2.55);}
   }
-  /* HEAVY beat (~5%): a bigger, slightly brighter rim so the eye registers weight —
-     still well under the BREAK / boss-skill rings (max ~64px vs the 80px .impact). */
+  /* CRITICAL ring: present but restrained (~12% smaller than before, max ~56px) — the
+     crit READ is carried by boss recoil + rim light + damage number, the ring only
+     supports. Still well under the BREAK / boss-skill rings (80px+). */
   .impact.soft.hv {
     border-width:2px;
     animation:impactSoftHv 0.16s forwards;
   }
   @keyframes impactSoftHv {
     0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
-    100%{opacity:0; transform:translate(-50%,-50%) scale(3.2);}
+    100%{opacity:0; transform:translate(-50%,-50%) scale(2.8);}
   }
   .particle {
     position:absolute; border-radius:50%;

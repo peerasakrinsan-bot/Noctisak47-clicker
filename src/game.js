@@ -2398,28 +2398,20 @@ function showWpHitFX(x, y, dmg) {
   el.className = 'wp-hit-text';
   root.appendChild(el);
   setTimeout(() => { el.className=''; root.contains(el) && root.removeChild(el); _wpHitPool.length < 3 && _wpHitPool.push(el); }, 870);
-  // WEAK-POINT VISUAL LANGUAGE — instantly distinct from normal red combat, so the
-  // player reads "I hit the weak point" without text. Identity = COLOR + DIRECTION,
-  // not particle count (same lean 3-fragment budget):
-  //  • a CYAN ring (vs the warm/red normal rings) — different color = different event
-  //  • a focused upward "pierce" cone of cyan-white shards + 1 gold value spark,
-  //    instead of a radial puff → reads as a clean directional break, not a normal hit
+  // WEAK-POINT VISUAL LANGUAGE — reads "I hit the weak point" without text, and can
+  // never be confused with a Crit (Crit = a circular ring; WP = directional pierce).
   const _wpFrag=document.createDocumentFragment();
-  // distinct cyan ring (reuses the heavy soft-ring shape + pool — no new node type)
-  const _wpRing=_getRing();
-  _wpRing.className='impact soft hv';
-  _wpRing.style.cssText=`left:${x}px;top:${y}px;border-color:rgba(90,225,255,0.78);animation:impactSoftHv 0.16s forwards;`;
-  _wpFrag.appendChild(_wpRing);
-  setTimeout(()=>{ _wpRing.remove(); _retRing(_wpRing); },180);
-  // directional fragments — a tight upward cone (−90° ± spread), not a 360° burst
-  const _wpDir=-Math.PI/2;
+  // PIERCE / SHATTER, never a circle (circles = normal/crit). Pool only — NO ring node
+  // (fewer nodes than before): one thin cyan ENERGY STREAK punching up + two cyan-white
+  // forward SHARDS. Pure cyan = "weak point"; the big gold number carries the value.
+  const _wpDir=-Math.PI/2; // up
   for(let i=0;i<3;i++){
     const p=_getParticle();
-    const angle=_wpDir + (i-1)*0.48 + (Math.random()-0.5)*0.22; // focused, not radial
-    const dist=46+Math.random()*42;
-    const sz=4+Math.random()*2;
-    const col=i===1?'#ffcc00':'#bdf3ff';  // center gold (value) flanked by cyan-white shards
-    p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${col};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation:particle ${0.22+Math.random()*0.12}s forwards;`;
+    const streak=(i===0);                               // i0 = pierce streak; i1/i2 = shards
+    const angle=_wpDir + (streak?0:(i===1?-0.5:0.5)) + (Math.random()-0.5)*0.18;
+    const dist=(streak?64:42)+Math.random()*34;         // streak travels farther (pierce)
+    const w=streak?3:4, h=streak?13:4;                  // streak = thin tall line; shard = small
+    p.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${streak?'#7fe9ff':'#bdf3ff'};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation:particle ${(streak?0.26:0.22)+Math.random()*0.1}s forwards;`;
     _wpFrag.appendChild(p);
     setTimeout(()=>{ p.remove(); _retParticle(p); },360);
   }
@@ -8518,6 +8510,10 @@ const _tv = {
 // bespoke FX elsewhere and always read above this.)
 // _lastMilestoneCombo: the last combo value that already fired a milestone beat, so
 // the beat fires once per crossing and never spams while parked at the 47 cap.
+// _COMBO_MILESTONES: sparse, achievement-feel thresholds (not every 10). NOTE: combo
+// hard-caps at 47 (gameplay), so the ideal 50/100/250… log progression is unreachable —
+// clamped to the reachable {10, 25, 47}, where 47 = MAX COMBO (a genuine achievement).
+const _COMBO_MILESTONES = [10, 25, 47];
 let _lastMilestoneCombo = 0;
 
 // ── FREQUENCY GOVERNOR ──
@@ -9037,7 +9033,7 @@ function processHit(e, now) {
   // the parked 47 cap. Cosmetic only; does not touch combo/economy/card logic.
   if (combo <= 1) _lastMilestoneCombo = 0;
   const _comboMilestone = !isWpHit && godLevel===0 && !isCrit
-        && combo > 0 && (combo % 10 === 0 || combo === 47) && combo !== _lastMilestoneCombo;
+        && combo !== _lastMilestoneCombo && _COMBO_MILESTONES.indexOf(combo) !== -1;
   if (_comboMilestone) _lastMilestoneCombo = combo;
 
   const _weight = isWpHit ? 0
