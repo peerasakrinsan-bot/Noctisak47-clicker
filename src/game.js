@@ -2397,14 +2397,19 @@ function showWpHitFX(x, y, dmg) {
   el.className = 'wp-hit-text';
   root.appendChild(el);
   setTimeout(() => { el.className=''; root.contains(el) && root.removeChild(el); _wpHitPool.length < 3 && _wpHitPool.push(el); }, 870);
-  // Use pool + fragment — 10 particles (was 18), avoids DOM thrashing on mobile
+  // Quality over quantity (art-direction hierarchy): 3 refined sparks (was 10) —
+  // one gold "value" spark + two warm-red, with a shorter throw and life so they
+  // read as distinct sparks instead of merging into a yellow cloud over the boss.
   const _wpFrag=document.createDocumentFragment();
-  for(let i=0;i<10;i++){
+  const _wpBase=Math.random()*Math.PI*2;
+  for(let i=0;i<3;i++){
     const p=_getParticle();
-    const angle=(i/10)*Math.PI*2, dist=50+Math.random()*80;
-    p.style.cssText=`left:${x}px;top:${y}px;width:6px;height:6px;background:${i%2===0?'#ffcc00':'#ff2233'};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation:particle ${0.3+Math.random()*0.2}s forwards;`;
+    const angle=_wpBase + i*(Math.PI*2/3) + (Math.random()-0.5)*0.5;
+    const dist=34+Math.random()*40;      // tighter throw → less screen coverage
+    const sz=5+Math.random()*2;          // 1–2 readable sparks, not 8 tiny stars
+    p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${i===0?'#ffcc00':'#ff5533'};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation:particle ${0.2+Math.random()*0.12}s forwards;`;
     _wpFrag.appendChild(p);
-    setTimeout(()=>{ p.remove(); _retParticle(p); },500);
+    setTimeout(()=>{ p.remove(); _retParticle(p); },360);
   }
   fx.appendChild(_wpFrag);
 }
@@ -9796,10 +9801,13 @@ function spawnFX(x,y,isGun,isBomb,skipRing){
     }
     if(!skipRing){
       const ring=_getRing();
-      // Warm low-alpha rim — the single dominant "read" (large silhouette, thin outline).
-      ring.style.cssText=`left:${x}px;top:${y}px;border-color:rgba(255,206,168,0.85);animation:impact 0.22s forwards;`;
+      ring.classList.add('soft');
+      // Subtle warm rim that SUPPORTS the hit — smaller / thinner / dimmer / shorter
+      // than the big-moment ring so the eye stays on the boss, not the FX. Warmer &
+      // ~40% lower alpha than before (was rgba(255,206,168,0.85)); reduces yellow dominance.
+      ring.style.cssText=`left:${x}px;top:${y}px;border-color:rgba(255,178,128,0.5);animation:impactSoft 0.13s forwards;`;
       frag.appendChild(ring);
-      setTimeout(()=>{ ring.remove(); _retRing(ring); },220);
+      setTimeout(()=>{ ring.remove(); _retRing(ring); },150);
     }
     fx.appendChild(frag);
     return;
