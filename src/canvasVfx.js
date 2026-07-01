@@ -3100,16 +3100,19 @@ function spawnBossDeathVfx(skinId, opts) {
   if (!_ensure()) return;
   if (_intensity <= 0.0) return;
   const meta = BOSS_VFX[skinId] || BOSS_VFX.default;
+  // goldBoxing (default NOCTISAK47): boss-KO VFX fully removed by design. This path
+  // fired on EVERY boss KO (frequent, esp. during Overdrive) with a fixed-size
+  // spawnBossShockwave (Ø~410 double gold ring) — recurring at a near-constant radius,
+  // which read as a "persistent" giant yellow target ring around the boss. Return before
+  // any spawn. Cosmetic-only; KO gameplay/coins/score/save untouched.
+  if (meta.theme === 'goldBoxing') return;
   opts = opts || {};
   const C = meta.colorPrimary, C2 = meta.colorSecondary;
   const base = { x: opts.x, y: opts.y, color: C, color2: C2 };
   switch (meta.theme) {
     // death = climax: layers cascade (snap → expansion → residual) instead of
     // detonating on one frame, so the kill reads cinematic.
-    case 'goldBoxing':   // gold explosion
-      spawnBossImpactBurst({ ...base, count: 14, stars: 6, size: 84, dur: 0.72 });
-      spawnBossShockwave({ ...base, size: 48, thick: 9, delay: 0.06 });
-      break;
+    // NOTE: 'goldBoxing' (default) is intentionally absent — it returns early above.
     case 'redPressure':  // pressure rupture (วงช็อกซ้อน)
       spawnBossImpactBurst({ ...base, count: 13, size: 78, dur: 0.66 });
       spawnBossShockwave({ ...base, color: C2, size: 46, thick: 10, delay: 0.06 });
