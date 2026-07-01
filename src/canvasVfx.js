@@ -2974,7 +2974,7 @@ function _draw(p, dt) {
 //   'shake' (กระแทกหนัก) | 'shakeWp' (micro shake ไฟฟ้า/สัตว์) | 'freeze' (hit-stop/
 //   ดันเข้า สำหรับบอสอีเทอเรียล holy/moon/void/assassin) | 'none'.
 const BOSS_VFX = {
-  default:        { id:'default',        theme:'goldBoxing',   skillEffect:'Golden Overdrive Punch', canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ffd24a', colorSecondary:'#ff9d2e', affectedTarget:'boss',  camera:'shake'   },
+  default:        { id:'default',        theme:'goldBoxing',   skillEffect:'none (OD VFX removed)',  canvasEffect:'none',                          colorPrimary:'#ffd24a', colorSecondary:'#ff9d2e', affectedTarget:'boss',  camera:'shake'   },
   toei_boxer:     { id:'toei_boxer',     theme:'redPressure',  skillEffect:'Pressure Flare',         canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ff3a3a', colorSecondary:'#1a0008', affectedTarget:'boss',  camera:'shake'   },
   apologize:      { id:'apologize',      theme:'holyMask',     skillEffect:'Holy Apology Ring',      canvasEffect:'bossRuneCircle+bossAuraPulse',  colorPrimary:'#ffe28a', colorSecondary:'#fff3c0', affectedTarget:'boss',  camera:'freeze'  },
   xuang:          { id:'xuang',          theme:'ancientBrute', skillEffect:'Ancient Ground Smash',   canvasEffect:'bossShockwave+bossImpactBurst', colorPrimary:'#ff7a1e', colorSecondary:'#5a2a0a', affectedTarget:'arena', camera:'shake'   },
@@ -3002,12 +3002,17 @@ function spawnBossGlitchPulse(o)   { spawnCanvasVfx('bossGlitchPulse', o);  }
 function spawnBossSkillVfx(skinId, opts) {
   if (!_ensure()) return;            // unsupported / no host → no-op
   if (_intensity <= 0.0) return;     // 'off' mode → ข้ามทั้งหมด
+  const meta = BOSS_VFX[skinId] || BOSS_VFX.default;
+  // goldBoxing (default NOCTISAK47): Overdrive-activation VFX fully removed by design.
+  // No burst / stars / rings / aura / FOCUS dim — OD activation produces zero yellow
+  // boss VFX for the default skin. Return BEFORE the FOCUS dim so no atmospheric layer
+  // is dimmed for an effect that never plays. Cosmetic-only; gameplay/OD logic untouched.
+  if (meta.theme === 'goldBoxing') return;
   // FOCUS: boss skill = ลายเซ็น Priority 1 → หรี่ชั้นบรรยากาศถาวร (aura/world) + บีบ budget
   // ชั่วครู่ (≈ ช่วง skill 0.6–0.9s) ให้ skill เด่น. ผ่าน CardVFX (DOM dim) ถ้ามี, ไม่งั้น local.
   let _dimmed = false;
   try { if (typeof window !== 'undefined' && window.CardVFX && window.CardVFX.enterFocus) { window.CardVFX.enterFocus(700); _dimmed = true; } } catch (e) {}
   if (!_dimmed) setFocus(700);
-  const meta = BOSS_VFX[skinId] || BOSS_VFX.default;
   opts = opts || {};
   const lv = Math.max(1, Math.min(3, opts.level || 1));
   const scale = 1 + (lv - 1) * 0.18; // OD สูง → ใหญ่ขึ้น (มากสุด ~1.36x)
@@ -3016,10 +3021,8 @@ function spawnBossSkillVfx(skinId, opts) {
   switch (meta.theme) {
     // each theme: lead primitive snaps on frame 0, the secondary layer follows
     // (~50–70ms) so the skill reads as a sequence, not a simultaneous pop.
-    case 'goldBoxing':
-      spawnBossImpactBurst({ ...base, count: 10, stars: lv >= 2 ? 4 : 2, size: 64 * scale });
-      spawnBossShockwave({ ...base, size: 38 * scale, thick: 8, delay: 0.05 });
-      break;
+    // NOTE: 'goldBoxing' (default) is intentionally absent — it returns early above
+    // (no Overdrive VFX for the default skin).
     case 'redPressure':
       spawnBossImpactBurst({ ...base, count: 9, size: 60 * scale });
       spawnBossShockwave({ ...base, color: C2, size: 34 * scale, thick: 9, delay: 0.05 });
@@ -3059,6 +3062,7 @@ function spawnBossSkillVfx(skinId, opts) {
   }
   // AFTERMATH — ลายเซ็นตกค้างสั้น ๆ หลังปล่อยสกิล: ออร่าเรืองจางอายุยาวกว่าสะเก็ดหลัก
   // จึง "ค้าง" หลังการระเบิดคมจางไป (residue). เบามาก (glow+ring) เฉพาะ intensity เต็ม.
+  // (goldBoxing ไม่ถึงจุดนี้ — return ไปตั้งแต่ต้นฟังก์ชัน จึงไม่มี residue สำหรับสกินเริ่มต้น.)
   if (!_reduced && _intensity >= 1.0) {
     spawnBossAuraPulse({ x: opts.x, y: opts.y, color: C2, color2: C, size: 26 * scale, dur: 0.72, delay: 0.12 });
   }
@@ -3083,6 +3087,7 @@ function spawnBossSkillCharge(skinId, opts) {
     case 'blueSpirit':   spawnBossLightningArc({ ...base, count: 2, size: 32, dur: d }); break;      // electric buildup
     case 'purpleEnigma': spawnBossGlitchPulse({ ...base, glitch: 2, size: 36, dur: d }); break;      // void gather
     case 'ancientBrute': spawnBossAuraPulse({ ...base, color: C2, size: 44, dur: d }); break;        // ground energy
+    case 'goldBoxing':   break;                                                                      // default skin: no charge telegraph (Overdrive VFX fully removed)
     default:             spawnBossAuraPulse({ ...base, size: 40, dur: d });                          // wind-up glow
   }
 }
