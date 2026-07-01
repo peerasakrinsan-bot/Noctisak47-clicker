@@ -2974,7 +2974,7 @@ function _draw(p, dt) {
 //   'shake' (กระแทกหนัก) | 'shakeWp' (micro shake ไฟฟ้า/สัตว์) | 'freeze' (hit-stop/
 //   ดันเข้า สำหรับบอสอีเทอเรียล holy/moon/void/assassin) | 'none'.
 const BOSS_VFX = {
-  default:        { id:'default',        theme:'goldBoxing',   skillEffect:'Golden Overdrive Punch', canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ffd24a', colorSecondary:'#ff9d2e', affectedTarget:'boss',  camera:'shake'   },
+  default:        { id:'default',        theme:'goldBoxing',   skillEffect:'Golden Overdrive Punch', canvasEffect:'bossImpactBurst',               colorPrimary:'#ffd24a', colorSecondary:'#ff9d2e', affectedTarget:'boss',  camera:'shake'   },
   toei_boxer:     { id:'toei_boxer',     theme:'redPressure',  skillEffect:'Pressure Flare',         canvasEffect:'bossImpactBurst+bossShockwave', colorPrimary:'#ff3a3a', colorSecondary:'#1a0008', affectedTarget:'boss',  camera:'shake'   },
   apologize:      { id:'apologize',      theme:'holyMask',     skillEffect:'Holy Apology Ring',      canvasEffect:'bossRuneCircle+bossAuraPulse',  colorPrimary:'#ffe28a', colorSecondary:'#fff3c0', affectedTarget:'boss',  camera:'freeze'  },
   xuang:          { id:'xuang',          theme:'ancientBrute', skillEffect:'Ancient Ground Smash',   canvasEffect:'bossShockwave+bossImpactBurst', colorPrimary:'#ff7a1e', colorSecondary:'#5a2a0a', affectedTarget:'arena', camera:'shake'   },
@@ -3017,8 +3017,12 @@ function spawnBossSkillVfx(skinId, opts) {
     // each theme: lead primitive snaps on frame 0, the secondary layer follows
     // (~50–70ms) so the skill reads as a sequence, not a simultaneous pop.
     case 'goldBoxing':
+      // Golden Overdrive Punch — compact, BOSS-LOCAL gold burst only (bright core +
+      // radial sparks + a couple of stars). The giant expanding double SHOCKWAVE ring
+      // (spawnBossShockwave: two bwave rings up to ~450px Ø) was removed here — at OD
+      // it read as a huge "target reticle" pinned around the boss, not a punch. Purely
+      // cosmetic: no save/damage/economy/gameplay touched; other boss themes unchanged.
       spawnBossImpactBurst({ ...base, count: 10, stars: lv >= 2 ? 4 : 2, size: 64 * scale });
-      spawnBossShockwave({ ...base, size: 38 * scale, thick: 8, delay: 0.05 });
       break;
     case 'redPressure':
       spawnBossImpactBurst({ ...base, count: 9, size: 60 * scale });
@@ -3059,7 +3063,9 @@ function spawnBossSkillVfx(skinId, opts) {
   }
   // AFTERMATH — ลายเซ็นตกค้างสั้น ๆ หลังปล่อยสกิล: ออร่าเรืองจางอายุยาวกว่าสะเก็ดหลัก
   // จึง "ค้าง" หลังการระเบิดคมจางไป (residue). เบามาก (glow+ring) เฉพาะ intensity เต็ม.
-  if (!_reduced && _intensity >= 1.0) {
+  // ข้าม goldBoxing: ท่าเริ่มต้น (NOCTISAK47) ถูกออกแบบใหม่ให้ "ไม่มีวงแหวน" — residue ring
+  // จะกลายเป็นวงเป้าเล็ก ๆ ค้างรอบบอสอีก จึงงดสำหรับธีมนี้ (คอสเมติกล้วน, ธีมอื่นคงเดิม).
+  if (!_reduced && _intensity >= 1.0 && meta.theme !== 'goldBoxing') {
     spawnBossAuraPulse({ x: opts.x, y: opts.y, color: C2, color2: C, size: 26 * scale, dur: 0.72, delay: 0.12 });
   }
 }
@@ -3083,6 +3089,7 @@ function spawnBossSkillCharge(skinId, opts) {
     case 'blueSpirit':   spawnBossLightningArc({ ...base, count: 2, size: 32, dur: d }); break;      // electric buildup
     case 'purpleEnigma': spawnBossGlitchPulse({ ...base, glitch: 2, size: 36, dur: d }); break;      // void gather
     case 'ancientBrute': spawnBossAuraPulse({ ...base, color: C2, size: 44, dur: d }); break;        // ground energy
+    case 'goldBoxing':   spawnBossImpactBurst({ ...base, count: 3, size: 24, dur: d }); break;       // ring-free gold wind-up (core crackle, no reticle ring)
     default:             spawnBossAuraPulse({ ...base, size: 40, dur: d });                          // wind-up glow
   }
 }
