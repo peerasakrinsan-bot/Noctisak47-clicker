@@ -3138,27 +3138,11 @@
     0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
     100%{opacity:0; transform:translate(-50%,-50%) scale(4);}
   }
-  /* ── "soft" ring base ─────────────────────────────────────────────────────
-     Normal combat NO LONGER draws any soft ring (the warm circle used to become
-     the brightest/largest element during sustained tapping and broke the
-     Boss → Weak Point → Damage Number hierarchy). This rule now only supplies the
-     thin-stroke base for the CRIT accent below; nothing spawns `impact soft` alone. */
-  .impact.soft {
-    border-width:1.5px;
-  }
-  /* CRITICAL accent ring: a SECONDARY accent only — reduced ≈34% in reach (max
-     scale 2.8→1.85, ~56px→~37px), thinner stroke (1.5px), and lower starting
-     opacity (0.65) so it never reads as the primary visual. The crit READ is
-     carried by the brighter rim + stronger recoil + damage number; this only
-     supports. Still far under the BREAK / boss-skill / Devil Tax / Mythic rings. */
-  .impact.soft.hv {
-    border-width:1.5px;
-    animation:impactSoftHv 0.16s forwards;
-  }
-  @keyframes impactSoftHv {
-    0%  {opacity:0.65; transform:translate(-50%,-50%) scale(1);}
-    100%{opacity:0;    transform:translate(-50%,-50%) scale(1.85);}
-  }
+  /* NOTE: normal combat draws NO impact ring at all now — not on normal hits, not on
+     combo milestones, and not on crits (crit's only extra signal is the boss rim light).
+     The old `.impact.soft` / `.impact.soft.hv` accent rings + their keyframes were removed
+     as dead CSS. The base `.impact` ring above stays ONLY for Overdrive's big-moment gun
+     path; large rings otherwise belong to BREAK / Boss Skills / Devil Tax / Mythic. */
   .particle {
     position:absolute; border-radius:50%;
     transform:translate(-50%,-50%);
