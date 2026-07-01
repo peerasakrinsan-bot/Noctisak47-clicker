@@ -8524,8 +8524,8 @@ const _COMBO_MILESTONES = [10, 25, 47];
 // tapping (<~8/s, gap > interval) is unaffected; any idle gap restores every
 // effect to full on the next hit (all intervals < 300ms → full recovery ~300ms).
 // This reduces FREQUENCY, never strength — strong moments stay strong, just rarer.
-const FX_GATE  = { ring: 120, recoil: 95, bossHit: 120, flash: 160 };
-const _fxGate  = { ring: 0,   recoil: 0,  bossHit: 0,   flash: 0   };
+const FX_GATE  = { recoil: 95, bossHit: 120, flash: 160 };
+const _fxGate  = { recoil: 0,  bossHit: 0,   flash: 0   };
 
 function _tickVisualAccum(x, y, dmg, isGun, isCrit, recoilCls, flashCls, bossHitCls, nextImg, idleImg, hitDur, weight, isWp) {
   const w = weight|0;
@@ -8555,15 +8555,13 @@ function _flushTickVisuals() {
   const _t = performance.now();
   const _w = _tv.lastIsGun ? 2 : _tv.weight;  // OD taps keep their full big-moment path
 
-  // impact ring is reserved for OD's big-moment gun path only. Normal combat (normal,
-  // crit, combo milestone) spawns NO ring at all: impact is read via boss movement +
-  // damage number + one tiny dust; crit adds only the boss rim light. (Major events —
-  // BREAK / Boss Skills / Devil Tax / Mythic — own their large rings elsewhere.)
-  const _ringNow = _tv.lastIsGun && (_t - _fxGate.ring >= FX_GATE.ring);
-  if(_ringNow) _fxGate.ring = _t;
+  // No per-hit impact ring in ANY normal combat — including Overdrive. The OD "gun"
+  // path no longer spawns a yellow/gold ring; impact is read via boss recoil + rim
+  // light + damage number + one tiny dust. (Major events — AK47 Bomb / BREAK / Boss
+  // Skills / Devil Tax / Mythic — own their large rings elsewhere.)
   // Weak-Point ticks skip the battlefield debris entirely — the bespoke cyan pierce
   // (showWpHitFX) already fired and must own the read with no competing spark cloud.
-  if(!_tv.isWp) spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false, !_ringNow, _w);
+  if(!_tv.isWp) spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false, true, _w);
 
   // recoil — throttled; LIGHT uses the soft (tiny) recoil, MEDIUM/HEAVY the full one
   if(_tv.doRecoil && _t - _fxGate.recoil >= FX_GATE.recoil) {
@@ -9861,7 +9859,13 @@ function spawnFX(x,y,isGun,isBomb,skipRing,weight){
     frag.appendChild(p);
     setTimeout(()=>{ p.remove(); _retParticle(p); },320);
   }
-  if(!skipRing){
+  // Impact ring is reserved for the AK47 BOMB climax only (isBomb). The OD "gun" path
+  // (normal taps during Overdrive) NO LONGER spawns any ring — no yellow/gold impact
+  // ring, halo, pulse or shockwave. During Overdrive, hit feedback is read via boss
+  // recoil + rim light + damage number + tiny dust only; large rings stay reserved for
+  // AK47 Bomb / BREAK / Boss Skills / Devil Tax / Mythic. (Non-OD combat never reached
+  // here — it early-returns above.)
+  if(!skipRing && isBomb){
     const ring=_getRing();
     ring.style.cssText=`left:${x}px;top:${y}px;border-color:${isGun?getGodColor():'rgba(255,206,168,0.85)'};animation:impact 0.22s forwards;`;
     frag.appendChild(ring);
