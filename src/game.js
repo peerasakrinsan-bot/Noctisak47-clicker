@@ -2389,10 +2389,10 @@ function showWpMissPenalty() {
 function showWpHitFX(x, y, dmg) {
   const root = _hnRoot || document.getElementById('gameRoot');
   if (!root) return;
-  // ตัวเลขใหญ่สีทอง — pooled node
+  // ตัวเลขใหญ่สีฟ้า (cyan) — Weak Point owns cyan: no yellow, no warm glow. pooled node
   const el = _getWpHitEl();
   el.className = '';
-  el.innerHTML = `<div style="font-size:clamp(36px,12vw,60px);color:#ffcc00;text-shadow:0 0 20px #ff8800,0 0 40px #ff4400;">${dmg}</div><div style="font-size:13px;letter-spacing:3px;color:#ff4444;margin-top:-4px;">AK47 COLLECT!</div>`;
+  el.innerHTML = `<div style="font-size:clamp(36px,12vw,60px);color:#8ff0ff;text-shadow:0 0 18px #16c8ff,0 0 36px #0aa6e6;">${dmg}</div><div style="font-size:13px;letter-spacing:3px;color:#7fe9ff;margin-top:-4px;">AK47 COLLECT!</div>`;
   el.style.left = (x-60)+'px';
   el.style.top  = (y-40)+'px';
   el.className = 'wp-hit-text';
@@ -2403,7 +2403,7 @@ function showWpHitFX(x, y, dmg) {
   const _wpFrag=document.createDocumentFragment();
   // PIERCE / SHATTER, never a circle (circles = normal/crit). Pool only — NO ring node
   // (fewer nodes than before): one thin cyan ENERGY STREAK punching up + two cyan-white
-  // forward SHARDS. Pure cyan = "weak point"; the big gold number carries the value.
+  // forward SHARDS. Pure cyan = "weak point"; the big cyan number carries the value.
   const _wpDir=-Math.PI/2; // up
   for(let i=0;i<3;i++){
     const p=_getParticle();
@@ -8499,7 +8499,9 @@ const _tv = {
   nextImg:    null,
   idleImg:    null,
   hitDur:     250,
-  weight:     0,   // strongest normal-hit weight this tick: 0 light · 1 medium · 2 heavy
+  weight:     0,   // strongest normal-hit weight this tick: 0 light · 2 heavy (crit)
+  isWp:       false, // winning hit this tick is a Weak-Point collect → skip red debris
+                     // (its bespoke cyan pierce owns the read; no competing spark cloud)
 };
 
 // ── CONTEXT-DRIVEN IMPACT WEIGHT (deterministic — no RNG) ──
@@ -8508,13 +8510,12 @@ const _tv = {
 // can reach, strongest→weakest: Overdrive state > Critical > Combo milestone >
 // normal tap. (BREAK / Boss-Skill / Devil-Tax / Mythic / Weak-Point own their own
 // bespoke FX elsewhere and always read above this.)
-// _lastMilestoneCombo: the last combo value that already fired a milestone beat, so
-// the beat fires once per crossing and never spams while parked at the 47 cap.
 // _COMBO_MILESTONES: sparse, achievement-feel thresholds (not every 10). NOTE: combo
 // hard-caps at 47 (gameplay), so the ideal 50/100/250… log progression is unreachable —
 // clamped to the reachable {10, 25, 47}, where 47 = MAX COMBO (a genuine achievement).
+// A milestone is now a HUD-ONLY beat (a combo-number bump in updateComboUI) — it spawns
+// NO battlefield VFX, so the arena stays quiet between the loud moments.
 const _COMBO_MILESTONES = [10, 25, 47];
-let _lastMilestoneCombo = 0;
 
 // ── FREQUENCY GOVERNOR ──
 // Min-interval (ms) per strong effect. During sustained fast tapping each one
@@ -8526,18 +8527,19 @@ let _lastMilestoneCombo = 0;
 const FX_GATE  = { ring: 120, recoil: 95, bossHit: 120, flash: 160 };
 const _fxGate  = { ring: 0,   recoil: 0,  bossHit: 0,   flash: 0   };
 
-function _tickVisualAccum(x, y, dmg, isGun, isCrit, recoilCls, flashCls, bossHitCls, nextImg, idleImg, hitDur, weight) {
+function _tickVisualAccum(x, y, dmg, isGun, isCrit, recoilCls, flashCls, bossHitCls, nextImg, idleImg, hitDur, weight, isWp) {
   const w = weight|0;
   if (_tv.hitCount === 0) _tv.weight = -1;
   _tv.hitCount++;
   // boxer sprite-swap fires every hit (responsive input); the strongest beat in the
-  // tick owns the weight + matching recoil/flash/rim classes + spawn position so the
-  // ring/sparks never mismatch the recoil (matters only for multi-touch ticks).
+  // tick owns the weight + matching recoil/rim class + spawn position so the recoil/rim
+  // never mismatch (matters only for multi-touch ticks).
   _tv.doBoxerImg = true; _tv.nextImg = nextImg; _tv.idleImg = idleImg; _tv.hitDur = hitDur;
   if (w < _tv.weight) return;
   _tv.weight = w;
   _tv.lastX = x; _tv.lastY = y;
   _tv.lastIsGun = isGun; _tv.lastIsCrit = isCrit; _tv.lastDmg = dmg;
+  _tv.isWp = !!isWp;
   _tv.doRecoil  = true; _tv.recoilCls = recoilCls;
   _tv.doFlash   = true; _tv.flashCls  = flashCls;
   _tv.doBossHit = true; _tv.bossHitCls = bossHitCls;
@@ -8553,11 +8555,15 @@ function _flushTickVisuals() {
   const _t = performance.now();
   const _w = _tv.lastIsGun ? 2 : _tv.weight;  // OD taps keep their full big-moment path
 
-  // impact ring + sparks are weight-driven: LIGHT taps get only tiny dust (no ring),
-  // MEDIUM/HEAVY earn the ring. The frequency governor still caps ring spam as a safety.
-  const _ringNow = _w >= 1 && (_t - _fxGate.ring >= FX_GATE.ring);
+  // impact ring is reserved for OD's big-moment gun path only. Normal combat (normal,
+  // crit, combo milestone) spawns NO ring at all: impact is read via boss movement +
+  // damage number + one tiny dust; crit adds only the boss rim light. (Major events —
+  // BREAK / Boss Skills / Devil Tax / Mythic — own their large rings elsewhere.)
+  const _ringNow = _tv.lastIsGun && (_t - _fxGate.ring >= FX_GATE.ring);
   if(_ringNow) _fxGate.ring = _t;
-  spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false, !_ringNow, _w);
+  // Weak-Point ticks skip the battlefield debris entirely — the bespoke cyan pierce
+  // (showWpHitFX) already fired and must own the read with no competing spark cloud.
+  if(!_tv.isWp) spawnFX(_tv.lastX, _tv.lastY, _tv.lastIsGun, false, !_ringNow, _w);
 
   // recoil — throttled; LIGHT uses the soft (tiny) recoil, MEDIUM/HEAVY the full one
   if(_tv.doRecoil && _t - _fxGate.recoil >= FX_GATE.recoil) {
@@ -8593,6 +8599,7 @@ function _flushTickVisuals() {
 
   // reset accumulator
   _tv.hitCount = 0;
+  _tv.isWp = false;
   _tv.doRecoil = _tv.doFlash = _tv.doBossHit = _tv.doBoxerImg = false;
 }
 
@@ -8925,7 +8932,9 @@ function processHit(e, now) {
       _cs._aknightReadyCooldownUntil = _now + 12000;
       // FIX: use bossHP+1 instead of magic number — same instant-kill result, future-proof
       const _execFinishDmg = isBoss ? (bossHP + 1) : (hp + 1);
-      applyDamage(_execFinishDmg, e, false);
+      // EXECUTE is a discrete major event (own EXECUTE splash) — weight 2 keeps the subtle
+      // accent ring, unlike normal-combat taps which carry no ring.
+      applyDamage(_execFinishDmg, e, false, 2);
       return;
     }
   }
@@ -8941,7 +8950,7 @@ function processHit(e, now) {
     // THANATOS: WP dmg x2.5 (OD +1s during Thanatos Phase handled in csOnWpHit)
     const thanatosMult = (window._csState && window._csState.cs_thanatos) ? 2.5 : 1;
     const wpDmg = _sanitizeDamage(onWeakPointHit(pos.x, pos.y, baseDmg*multi, wpMult * thanatosMult), 'weakPoint');
-    applyDamage(wpDmg, e, false, 0); // LIGHT warm FX — the distinct cyan WP burst owns the read
+    applyDamage(wpDmg, e, false, -1); // -1 = cyan pierce owns the read (no red dust / dup number)
     score += 20;
     csOnWpHit(pos.x, pos.y);
   } else {
@@ -9019,33 +9028,24 @@ function processHit(e, now) {
   updateMultiBadge(multi);
 
   // ── Collect visual params → accumulate for tick flush (1 render per tick) ──
-  // CONTEXT-DRIVEN IMPACT WEIGHT (deterministic): the visual weight of this tap is
-  // decided purely by gameplay so the player reads WHY it's bigger — never RNG.
-  //  • 0 LIGHT  — normal tap: tiny warm dust + tiny recoil + damage number ONLY
-  //               (no ring, no flash, no rim, no large sparks). Extremely clean.
-  //  • 1 MEDIUM — combo milestone (every 10, + the 47 cap): soft ring + 1 warm spark
-  //               + full recoil + boss rim. A readable "you're building combo" beat.
-  //  • 2 HEAVY  — CRITICAL: brighter rim + larger ring + stronger recoil (NO flash).
-  //  • Overdrive active keeps its existing big-moment path.
-  // Weak-Point hits render LIGHT here on purpose — their distinct cyan burst
-  // (showWpHitFX) owns the read so a WP never looks like a normal tap.
-  // combo milestone — fire once per crossing (combo already updated above), never at
-  // the parked 47 cap. Cosmetic only; does not touch combo/economy/card logic.
-  if (combo <= 1) _lastMilestoneCombo = 0;
-  const _comboMilestone = !isWpHit && godLevel===0 && !isCrit
-        && combo !== _lastMilestoneCombo && _COMBO_MILESTONES.indexOf(combo) !== -1;
-  if (_comboMilestone) _lastMilestoneCombo = combo;
-
-  const _weight = isWpHit ? 0
-                : godLevel>0 ? 2
-                : isCrit ? 2
-                : _comboMilestone ? 1
-                : 0;
-  // FLASH RULE: normal combat NEVER full-screen flashes. Only Overdrive (a major
-  // active state) keeps its flash; crit / combo / normal carry no flash class.
-  const _rc   = godLevel>0 ? 'recoil-god' : isCrit ? 'recoil-crit' : (_weight>=1 ? 'recoil' : 'recoil-soft');
+  // MINIMAL-REACTION IMPACT MODEL (deterministic — never RNG). Most hits are quiet;
+  // silence is what makes the loud moments land.
+  //  • NORMAL hit  → boss movement (recoil-soft) + damage number + one tiny dust. NOTHING
+  //                  else: no glow, no rim, no ring, no flash, no sparkle, no HUD reaction.
+  //  • CRIT        → all of the above, plus exactly ONE extra signal: the boss rim light
+  //                  (boss-hit-crit). No ring, no flash, no spark cloud, no HUD bounce.
+  //  • Overdrive   → keeps its own big-moment path (recoil-god / flash / gun FX).
+  // Weak-Point hits render LIGHT here — their bespoke cyan pierce (showWpHitFX) owns the
+  // read. Combo milestones are HUD-ONLY (a combo bump in updateComboUI) and add ZERO
+  // battlefield VFX — the arena stays quiet so the boss/number/weak-point own attention.
+  // Weak-Point taps stay LIGHT and rim-less on the battlefield — their cyan pierce owns
+  // the read; a WP must never borrow the normal/crit red dust or the boss rim.
+  const _weight = isWpHit ? 0 : godLevel>0 ? 2 : isCrit ? 2 : 0;
+  // FLASH RULE: normal combat NEVER full-screen flashes. Only Overdrive keeps its flash.
+  const _rc   = isWpHit ? 'recoil-soft' : godLevel>0 ? 'recoil-god' : isCrit ? 'recoil-crit' : 'recoil-soft';
   const _fcls = godLevel===3?'flash-god3':godLevel===2?'flash-god2':godLevel===1?'flash-god':'';
-  const _bhc  = godLevel>0 ? 'boss-hit-god' : isCrit ? 'boss-hit-crit' : (_weight>=1 ? 'boss-hit' : '');
+  // Crit's single extra signal — the boss rim light. Normal / combo / WP hits get NO rim.
+  const _bhc  = isWpHit ? '' : godLevel>0 ? 'boss-hit-god' : isCrit ? 'boss-hit-crit' : '';
   const _skin2 = getActiveSkin();
   const _hitImgs2 = _skin2.files.hits;
   let _ii; do{_ii=Math.floor(Math.random()*_hitImgs2.length);}while(_ii===lastIndex&&_hitImgs2.length>1);
@@ -9058,7 +9058,7 @@ function processHit(e, now) {
     _imgObjCache[_hitImgs2[_ii]] || _hitImgs2[_ii],
     _imgObjCache[_skin2.files.idle],
     _hitDur2,
-    _weight
+    _weight, isWpHit
   );
 
   if(godLevel>0) playAK(); else playPunch();
@@ -9084,12 +9084,15 @@ function applyBossDamage(amount, source) {
 
 function applyDamage(dmg,e,isCrit,fxWeight) {
   const pos=getPos(e);
-  // Discrete special hits. Weak-Point collect passes 0 (LIGHT) so its bespoke cyan
-  // burst (showWpHitFX) owns the read with no competing warm ring; boss execute-finish
-  // defaults to MEDIUM to keep a ring + warm spark.
-  spawnFX(pos.x,pos.y,godLevel>0,false,false, fxWeight==null?1:fxWeight);
-  // showHitNum handles crit label internally via pooled _critNodes
-  showHitNum(pos.x,pos.y,dmg,godLevel>0,isCrit);
+  const _fw = fxWeight==null ? 1 : fxWeight;
+  // Weak-Point collect passes -1: its bespoke cyan pierce + AK47 popup (showWpHitFX)
+  // own the read, so we spawn NO generic red dust and NO duplicate damage number here.
+  // Other discrete hits keep the normal one-dust + damage number.
+  if(_fw >= 0){
+    spawnFX(pos.x,pos.y,godLevel>0,false,false,_fw);
+    // showHitNum handles crit label internally via pooled _critNodes
+    showHitNum(pos.x,pos.y,dmg,godLevel>0,isCrit);
+  }
 
   // Route through centralized damage function — updates hpFill on every hit
   applyBossDamage(dmg, 'tap');
@@ -9510,21 +9513,19 @@ function updateUI() {
   // BAPHOBET DEVIL TAX: while the coins are being vacuumed, show the rapid drain
   // (display-only override; roundCoins itself is deducted on impact).
   _el.coinNum.textContent  = (window._baphTaxDrain != null) ? window._baphTaxDrain : roundCoins;
-  // ── REWARD FEEL: HUD number bounce on increase (juice, คอสเมติกล้วน) ──
-  // transform-only scale punch ผ่าน flip class (ไม่ reflow). throttle กันเด้งทุกเฟรม
-  // ตอน score ไหลรัว (score ขึ้นทุก hit). coin/ko เด้งตอนได้รางวัลจริง.
-  const _nowP = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-  if (score > _scorePrev && _nowP - _scorePopT > 130) { _scorePopT = _nowP; _hudPop(_el.scoreNum, (_scorePopFlip = !_scorePopFlip)); }
-  _scorePrev = score;
-  if (roundCoins > _coinPrev && _nowP - _coinPopT > 110) { _coinPopT = _nowP; _hudPop(_el.coinNum, (_coinPopFlip = !_coinPopFlip)); }
-  _coinPrev = roundCoins;
+  // ── HUD RESTRAINT: the score and coin numbers NO LONGER bounce. ──
+  // Score flowed up every hit → a constant per-frame HUD punch that made the screen
+  // never rest; coin gains already have their own flying +C popups. Both scale-punches
+  // are removed so the HUD stays quiet during sustained combat. Only the KO counter
+  // keeps a discrete bump — a genuine "you killed something" beat, not per-frame noise.
+  // (Big reward moments — BREAK / Boss KO / Devil Tax / Legendary / Gold Rush — carry
+  // their own splashes/popups elsewhere.)
   if (ko > _koPrev) { _hudPop(_el.koNum, (_koPopFlip = !_koPopFlip)); }
   _koPrev = ko;
 }
 // HUD reward bounce helper — restart transform punch โดยสลับ a/b class (ไม่มี reflow read)
-let _scorePrev = 0, _coinPrev = 0, _koPrev = 0;
-let _scorePopT = 0, _coinPopT = 0;
-let _scorePopFlip = false, _coinPopFlip = false, _koPopFlip = false;
+let _koPrev = 0;
+let _koPopFlip = false;
 function _hudPop(el, flip) {
   if (!el || !el.classList) return;
   el.classList.remove(flip ? 'hud-pop-b' : 'hud-pop-a');
@@ -9536,10 +9537,11 @@ function updateComboUI() {
   w.classList.remove('combo-hot','combo-max');
   if(combo>=30) w.classList.add('combo-hot');
   if(combo>=47) w.classList.add('combo-max');
-  // ── COMBO BOUNCE: เด้งเลขคอมโบเฉพาะตอน "เพิ่มขึ้น" (juice, transform-only, flip restart) ──
-  // เด้งที่ #comboWrap (พ่อ) ที่ไม่มี animation อยู่แล้ว → ไม่ชนกับ flash ของ .combo-max.
-  // เช็ค combo > _comboPrev กันเด้งตอน reset (combo=0) หรือ refresh เฉย ๆ.
-  if (combo > _comboPrev) {
+  // ── COMBO BOUNCE: HUD-only milestone beat (transform-only, flip restart) ──
+  // The combo number no longer bounces every hit (that made the HUD never rest during
+  // sustained tapping). It punches ONLY when combo crosses a milestone {10, 25, 47} —
+  // a rare, earned beat. Text still updates every hit; only the scale-punch is gated.
+  if (combo > _comboPrev && _COMBO_MILESTONES.indexOf(combo) !== -1) {
     _comboPopFlip = !_comboPopFlip;
     w.classList.remove(_comboPopFlip ? 'combo-pop-b' : 'combo-pop-a');
     w.classList.add(_comboPopFlip ? 'combo-pop-a' : 'combo-pop-b');
@@ -9831,42 +9833,22 @@ function spawnFX(x,y,isGun,isBomb,skipRing,weight){
   // skipRing: frequency governor may suppress the impact ring on a throttled tick
   // while debris still spawns (ring should not appear every hit during fast tapping).
   // Direct callers (AK47 bomb, etc.) omit it → ring fires as before.
-  // ── NORMAL TAP — CONTEXT-DRIVEN impact language (deterministic weight) ──
-  // weight 0 LIGHT  : 1 tiny warm dust, no ring         (normal tap — extremely clean)
-  // weight 1 MEDIUM : 2 debris + 1 warm spark + soft ring   (combo milestone)
-  // weight 2 HEAVY  : 3 debris + bigger (still < BREAK) ring (CRITICAL — read mostly via
-  //                   the larger ring + brighter rim + stronger recoil, not spark spam)
-  // Avg particle count is LOW: most taps are 1 dust; the ring/sparks only appear when
-  // gameplay (crit / combo milestone) earns them. Procedural jitter keeps taps alive.
+  // ── NORMAL COMBAT — the quietest possible hit ─────────────────────────────
+  // Every non-OD / non-bomb tap (normal, crit, combo milestone) spawns EXACTLY ONE
+  // tiny red dust mote — and nothing else. No ring, no warm "energy" spark, no debris
+  // escalation. Impact is read via boss movement (recoil) + the damage number; CRIT
+  // adds only the boss rim light (set in processHit), never an extra battlefield
+  // particle. One node, one timeout — the cheapest possible per-hit FX. Large rings /
+  // spark bursts stay reserved for BREAK / Boss Skills / Devil Tax / Mythic / Overdrive.
   if(!isGun && !isBomb){
-    const w = weight|0;
-    const frag=document.createDocumentFragment();
-    const debris = w===2 ? 3 : w===1 ? 2 : 1;       // budget spent only on earned beats
-    const baseAng=Math.random()*Math.PI*2;
-    for(let i=0;i<debris;i++){
-      const p=_getParticle();
-      const ang=baseAng + i*(Math.PI*2/debris) + (Math.random()-0.5)*0.7;
-      const dist=(20 + w*9)+Math.random()*22;        // heavier hits throw a little farther
-      const sz=(w===0?3:4)+Math.random()*1.5;        // light = tiny dust; heavier = bigger
-      const life=(0.15 + w*0.03)+Math.random()*0.05; // most debris fades fast (calmer screen)
-      // one warm "spark" on medium/heavy reads as energy; the rest stay red debris.
-      const col=(w>=1 && i===0) ? '#ffb070' : '#ff3344';
-      p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${col};--dx:${Math.cos(ang)*dist}px;--dy:${Math.sin(ang)*dist}px;animation:particle ${life}s forwards;`;
-      frag.appendChild(p);
-      setTimeout(()=>{ p.remove(); _retParticle(p); },300);
-    }
-    if(!skipRing && w>=1){
-      const ring=_getRing();
-      // MEDIUM = soft rim; HEAVY = a bigger, slightly brighter rim ("that hit was bigger")
-      // — both still much smaller/dimmer than the BREAK / boss-skill rings.
-      ring.className = w===2 ? 'impact soft hv' : 'impact soft';
-      const rc = w===2 ? 'rgba(255,190,140,0.6)' : 'rgba(255,178,128,0.5)';
-      const ra = w===2 ? 'impactSoftHv 0.16s' : 'impactSoft 0.13s';
-      ring.style.cssText=`left:${x}px;top:${y}px;border-color:${rc};animation:${ra} forwards;`;
-      frag.appendChild(ring);
-      setTimeout(()=>{ ring.remove(); _retRing(ring); }, w===2?180:150);
-    }
-    fx.appendChild(frag);
+    const p=_getParticle();
+    const ang=Math.random()*Math.PI*2;
+    const dist=20+Math.random()*20;
+    const sz=3+Math.random()*1.2;                    // tiny dust — same for normal & crit
+    const life=0.15+Math.random()*0.05;              // fades fast (calm screen)
+    p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:#ff3344;--dx:${Math.cos(ang)*dist}px;--dy:${Math.sin(ang)*dist}px;animation:particle ${life}s forwards;`;
+    fx.appendChild(p);
+    setTimeout(()=>{ p.remove(); _retParticle(p); },300);
     return;
   }
   // ── GUN (OD) / BOMB (AK47) — big moments, unchanged ──

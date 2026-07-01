@@ -3138,31 +3138,11 @@
     0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
     100%{opacity:0; transform:translate(-50%,-50%) scale(4);}
   }
-  /* ── NORMAL-TAP "soft" ring ──────────────────────────────────────────────
-     Art-direction hierarchy: the normal-tap ring must SUPPORT the hit, never
-     become the hit. Smaller (20→max ~51px ≈ −36% vs the old 80px), thinner
-     (1.5px stroke), shorter-lived (130ms) than the full .impact ring, which is
-     reserved for crit / BREAK / OD / boss-skill big moments. Border-color (warm,
-     low-alpha) is set inline by spawnFX. */
-  .impact.soft {
-    border-width:1.5px;
-    animation:impactSoft 0.13s forwards;
-  }
-  @keyframes impactSoft {
-    0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
-    100%{opacity:0; transform:translate(-50%,-50%) scale(2.55);}
-  }
-  /* CRITICAL ring: present but restrained (~12% smaller than before, max ~56px) — the
-     crit READ is carried by boss recoil + rim light + damage number, the ring only
-     supports. Still well under the BREAK / boss-skill rings (80px+). */
-  .impact.soft.hv {
-    border-width:2px;
-    animation:impactSoftHv 0.16s forwards;
-  }
-  @keyframes impactSoftHv {
-    0%  {opacity:1; transform:translate(-50%,-50%) scale(1);}
-    100%{opacity:0; transform:translate(-50%,-50%) scale(2.8);}
-  }
+  /* NOTE: normal combat draws NO impact ring at all now — not on normal hits, not on
+     combo milestones, and not on crits (crit's only extra signal is the boss rim light).
+     The old `.impact.soft` / `.impact.soft.hv` accent rings + their keyframes were removed
+     as dead CSS. The base `.impact` ring above stays ONLY for Overdrive's big-moment gun
+     path; large rings otherwise belong to BREAK / Boss Skills / Devil Tax / Mythic. */
   .particle {
     position:absolute; border-radius:50%;
     transform:translate(-50%,-50%);
