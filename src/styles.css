@@ -3170,6 +3170,14 @@
     0%{transform:translate(0,0);}20%{transform:translate(-4px,3px);}40%{transform:translate(4px,-3px);}
     60%{transform:translate(-3px,2px);}80%{transform:translate(2px,-1px);}100%{transform:translate(0,0);}
   }
+  /* BREAK SUCCESS shake — สั้น กระแทกแบบ "crack" (แรงกว่า weak-point แต่เบากว่า AK47 BOMB/บอสตาย).
+     transform-only (ไม่หมุน/ไม่ซูม), decay เร็ว + overshoot เล็กน้อยช่วงท้ายก่อนนิ่ง. */
+  #gameRoot.shake-break { animation:screenShakeBreak 0.15s ease-out; }
+  @keyframes screenShakeBreak {
+    0%{transform:translate(0,0);}15%{transform:translate(-5px,4px);}30%{transform:translate(5px,-4px);}
+    45%{transform:translate(-4px,3px);}60%{transform:translate(3px,-2px);}75%{transform:translate(-2px,2px);}
+    88%{transform:translate(1px,-1px);}100%{transform:translate(0,0);}
+  }
   /* ── BOSS DEATH CAMERA: freeze / hit-stop ── ดันเข้าเล็กน้อยแล้วค้างสั้น ๆ ก่อนคลาย
      (ลายเซ็นกล้องของบอสอีเทอเรียล holy/moon/void/assassin). transform เท่านั้น, scale ขึ้น
      จึงไม่เผยขอบจอ. gate ครบเหมือน shake (reduce-flash/flash-low/flash-off/reduced-motion) */
@@ -3732,6 +3740,7 @@
   body.reduce-flash #gameRoot.shake,
   body.reduce-flash #gameRoot.shake-wp,
   body.reduce-flash #gameRoot.shake-wp2,
+  body.reduce-flash #gameRoot.shake-break,
   body.reduce-flash #gameRoot.boss-cam-freeze,
   body.reduce-flash #gameRoot.pressure-impact-freeze { animation:none !important; }
   body.reduce-flash #weakPoint { animation:wpPulseSoft 1.2s ease-in-out infinite alternate; box-shadow:0 0 10px 3px rgba(255,34,51,0.35); }
@@ -4719,7 +4728,8 @@
      This is the key LOW vs OFF difference — OFF kills shake, LOW softens it. */
   body.flash-low #gameRoot.shake { animation:screenShakeLow 0.45s ease-out !important; }
   body.flash-low #gameRoot.shake-wp,
-  body.flash-low #gameRoot.shake-wp2 { animation:screenShakeLow 0.28s ease-out !important; }
+  body.flash-low #gameRoot.shake-wp2,
+  body.flash-low #gameRoot.shake-break { animation:screenShakeLow 0.28s ease-out !important; }
   body.flash-low #gameRoot.pressure-impact-freeze { animation:none !important; }
   @keyframes screenShakeLow {
     0%{transform:translate(0,0);}
@@ -4801,6 +4811,7 @@
   body.flash-off #gameRoot.shake,
   body.flash-off #gameRoot.shake-wp,
   body.flash-off #gameRoot.shake-wp2,
+  body.flash-off #gameRoot.shake-break,
   body.flash-off #gameRoot.boss-cam-freeze,
   body.flash-off #gameRoot.pressure-impact-freeze {
     animation: none !important;
@@ -4973,6 +4984,7 @@
     #gameRoot.shake,
     #gameRoot.shake-wp,
     #gameRoot.shake-wp2,
+    #gameRoot.shake-break,
     #gameRoot.boss-cam-freeze { animation: none !important; }
     /* juice bounces: คงฟีดแบ็ก (เลขยังอัปเดต/เปลี่ยนสี) แต่ตัดการเด้งสเกล */
     #comboWrap.combo-pop-a, #comboWrap.combo-pop-b,

@@ -7894,6 +7894,20 @@ function pressureSuccess() {
   PRESSURE.rage = Math.max(0, PRESSURE.rage - relief);
   pressureUpdateRageUI();
   _barrierShatter();
+  // BREAK SUCCESS camera (prio 2) — short, impactful "crack" shake: harder than a per-hit
+  // weak-point nudge (prio 1) but softer than the climactic AK47 BOMB / boss-death shake (prio 3).
+  // cameraClaim(2,…) yields to any climactic shake already playing (Boss KO stays untouched) and
+  // claims dominance so per-hit shakes yield during its brief window — no stacking within a frame.
+  // Reduced-motion / flash-off / flash-low gating is inherited from the .shake-break CSS rules.
+  if(cameraClaim(2, 180)) {
+    const _gr = $('gameRoot');
+    if(_gr && _gr.classList) {
+      _gr.classList.remove('shake-break'); void _gr.offsetWidth;
+      _gr.classList.add('shake-break');
+      clearTimeout(PRESSURE._breakShakeTO);
+      PRESSURE._breakShakeTO = setTimeout(()=>_gr.classList.remove('shake-break'), 180);
+    }
+  }
   pressureHide();
   pressureReleaseBossAura(false);
   pressurePlaySuccessRelease(PRESSURE.resolvePoint);
