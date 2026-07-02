@@ -1229,6 +1229,23 @@ function updateShopCoinUI() {
   if ($('arenaCoinNum')) $('arenaCoinNum').textContent = formatNum(save.coins);
 }
 
+// ── Can't-afford feedback for shop BUY buttons (OCA / items / boss & arena skins) ──
+// Mirrors the card-slot reroll pattern (_csShowRerollFeedback): shake the button +
+// briefly flash its price red, so tapping a disabled BUY never fails silently.
+function _shopCantAffordFeedback(btnEl, priceEl) {
+  if (btnEl) {
+    btnEl.classList.remove('cs-reroll-shake');
+    void btnEl.offsetWidth;
+    btnEl.classList.add('cs-reroll-shake');
+    setTimeout(() => btnEl.classList.remove('cs-reroll-shake'), 380);
+  }
+  if (priceEl) {
+    const _origColor = priceEl.style.color;
+    priceEl.style.color = '#ff4444';
+    setTimeout(() => { priceEl.style.color = _origColor; }, 450);
+  }
+}
+
 function renderShop() {
   $('shopCoinNum').textContent = formatNum(save.coins);
   const body = $('shopBody');
@@ -1253,7 +1270,7 @@ function renderShop() {
             <div style="display:flex;align-items:center;gap:4px;font-family:'Oswald',sans-serif;font-size:13px;color:${canAfford?'var(--gold)':'#444'};letter-spacing:1px;">
               <span class="css-coin" style="background:${canAfford?'var(--gold)':'#444'}"></span>${def.cost}
             </div>
-            <button class="oca-buy-btn ${canAfford?'':'cant-afford'}" onclick="buyOCA()">BUY</button>
+            <button class="oca-buy-btn ${canAfford?'':'cant-afford'}" onclick="buyOCA(this)">BUY</button>
           </div>
         </div>
       `;
@@ -1300,7 +1317,7 @@ function renderShop() {
       } else if (isNext) {
         rightHtml = `
           <div class="slr-cost ${canAfford ? '' : 'cant'}"><span class="css-coin" style="background:${canAfford?'var(--cyan)':'#333'}"></span> ${lvDef.cost}</div>
-          <button class="slr-buy-btn ${canAfford ? '' : 'cant-afford'}" onclick="buyItem('${def.id}',${lv},${lvDef.cost})">BUY</button>
+          <button class="slr-buy-btn ${canAfford ? '' : 'cant-afford'}" onclick="buyItem('${def.id}',${lv},${lvDef.cost},this)">BUY</button>
         `;
       } else if (isLocked) {
         rightHtml = `<div class="slr-cost cant"><span class='css-coin' style='background:#333'></span> ${lvDef.cost}</div>`;
@@ -1343,9 +1360,13 @@ function _openOcaDraw(result, onDone) {
   $('cardDrawScreen').style.display = 'flex';
 }
 
-function buyOCA() {
+function buyOCA(btnEl) {
   const cost = SHOP_DEF.find(d=>d.id==='oca').cost;
   const canAfford = save.coins >= cost;
+  if (!canAfford) {
+    _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
+    return;
+  }
   const modal = $('ocaConfirmModal');
   $('ocaConfirmCost').innerHTML = `<span class="css-coin"></span>${cost} ZENY`;
   $('ocaConfirmBox').querySelector('.oca-btn-confirm').className = 'oca-btn-confirm' + (canAfford ? '' : ' cant-afford');
@@ -1387,8 +1408,11 @@ function confirmOCA() {
   );
 }
 
-function buyItem(id, lv, cost) {
-  if (save.coins < cost) return;
+function buyItem(id, lv, cost, btnEl) {
+  if (save.coins < cost) {
+    _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
+    return;
+  }
   if (itemLv(id) >= lv) return;
   save.coins -= cost;
   if (!save.items) save.items = {};
@@ -1561,7 +1585,7 @@ function renderBossShop() {
     } else {
       actionHtml = `
         <div style="font-size:11px;color:${canAfford?'var(--cyan)':'#444'};letter-spacing:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;justify-content:center;"><span class="css-coin" style="background:${canAfford?'var(--cyan)':'#444'}"></span> ${skin.cost.toLocaleString()}</div>
-        <button class="boss-skin-action ${canAfford?'':'cant-afford'}" onclick="buyBossSkin('${skin.id}')">BUY</button>
+        <button class="boss-skin-action ${canAfford?'':'cant-afford'}" onclick="buyBossSkin('${skin.id}',this)">BUY</button>
       `;
     }
 
@@ -1590,9 +1614,13 @@ function closeBossSkinPreview() {
   $('bossSkinModal').style.display = 'none';
 }
 
-function buyBossSkin(id) {
+function buyBossSkin(id, btnEl) {
   const skin = BOSS_SKINS.find(s => s.id === id);
-  if (!skin || save.coins < skin.cost) return;
+  if (!skin) return;
+  if (save.coins < skin.cost) {
+    _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
+    return;
+  }
   save.coins -= skin.cost;
   if (!save.ownedSkins) save.ownedSkins = ['default'];
   if (!save.ownedSkins.includes(id)) save.ownedSkins.push(id);
@@ -1730,7 +1758,7 @@ function renderArenaShop() {
     } else {
       actionHtml = `
         <div style="font-size:11px;color:${canAfford?'#00b4ff':'#444'};letter-spacing:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;justify-content:center;"><span class="css-coin" style="background:${canAfford?'#00b4ff':'#444'}"></span> ${arena.cost.toLocaleString()}</div>
-        <button class="arena-skin-action ${canAfford?'':'cant-afford'}" onclick="buyArena('${arena.id}')">BUY</button>
+        <button class="arena-skin-action ${canAfford?'':'cant-afford'}" onclick="buyArena('${arena.id}',this)">BUY</button>
       `;
     }
 
@@ -1762,9 +1790,13 @@ function renderArenaShop() {
   });
 }
 
-function buyArena(id) {
+function buyArena(id, btnEl) {
   const arena = ARENA_SKINS.find(a => a.id === id);
-  if (!arena || save.coins < arena.cost) return;
+  if (!arena) return;
+  if (save.coins < arena.cost) {
+    _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
+    return;
+  }
   save.coins -= arena.cost;
   if (!save.ownedArenas) save.ownedArenas = ['default'];
   if (!save.ownedArenas.includes(id)) save.ownedArenas.push(id);
@@ -1797,6 +1829,8 @@ let combo, lastHitTime, lastIndex;
 
 // Overdrive
 let godLevel, canEnterGod, godTimeout, godInterval, godHitCount;
+// Run-scoped count of OD activations (Lv1 entries) this run — result-screen display only.
+let odActivations;
 
 // ── Infinite Tap Ramp ──
 // Normal taps (including OD extra hits) accumulate bossTapCount.
@@ -1829,7 +1863,7 @@ function initState() {
   bossHP = bossMaxHP = 0;
   isBoss = false; bossPhase = 1;
   combo = 1; lastHitTime = 0; lastIndex = -1;
-  godLevel = 0; canEnterGod = true; godHitCount = 0;
+  godLevel = 0; canEnterGod = true; godHitCount = 0; odActivations = 0;
   bossTapCount = 0; lastTapTime = 0;
   ko = 0; score = 0; maxCombo = 0; annihilationCount = 0; roundCoins = 0;
   // BAPHOBET DEVIL TAX: clear any cinematic state from a prior run
@@ -1860,6 +1894,12 @@ function initState() {
   _resetOdBadge();
   updateOdScreenAura(0);
   updateUI();
+  // HUD RESET: force the timer/combo/multi-badge DOM text to the fresh values
+  // set above — without this the previous run's numbers stay on screen through
+  // the whole GET READY → GO! countdown, only snapping once play actually starts.
+  renderTimer();
+  updateComboUI();
+  _el.multiBadge.classList.remove('show');
   rebuildStatCache();
   _resetHpTier();
   // Hit-number pool: prewarm nodes on first run, reset aggregation state on every run
@@ -8023,8 +8063,22 @@ function pressureAddRage(amount, reason) {
   if(PRESSURE.rage >= 100 && PRESSURE.phase === 'idle') {
     PRESSURE.rage = 100;
     pressureUpdateRageUI();
-    if(gameRunning) endGame({gameOver:true});
+    if(gameRunning) _triggerRageMaxKO();
   }
+}
+
+// RAGE MAX explanation splash — freezes the run immediately (no extra taps/score
+// land during it) and shows a brief cause-and-effect beat before the cut to
+// GAME OVER, instead of dropping straight to the result screen with no context.
+function _triggerRageMaxKO() {
+  gameRunning = false;
+  INPUT.stop();
+  clearInterval(timerInterval);
+  clearTimeout(godTimeout);
+  clearInterval(godInterval);
+  clearTimeout(wpSchedule); clearTimeout(wpTimeout);
+  showBigSplash('RAGE MAX!', 'The boss became uncontrollable.', '#ff2233', true);
+  setTimeout(() => endGame({gameOver:true}), 850);
 }
 
 function pressureBreakBonusPct() {
@@ -8278,6 +8332,12 @@ function endGame(opts = {}) {
     $('res-hs-num').textContent = formatNum(save.stats.highScore);
     $('newRecordBanner').style.display = isNewRecord ? 'block' : 'none';
     $('res-highscore').style.color = isNewRecord ? 'var(--gold)' : '#555';
+    // Run stats — reuses tracked run counters, no new statistics introduced
+    if ($('res-ko'))       $('res-ko').textContent       = formatNum(ko);
+    if ($('res-maxcombo')) $('res-maxcombo').textContent = formatNum(maxCombo);
+    if ($('res-break'))    $('res-break').textContent    = formatNum(pressureSummary.successes || 0);
+    if ($('res-wp'))       $('res-wp').textContent       = formatNum(wpCompletions);
+    if ($('res-od'))       $('res-od').textContent       = formatNum(odActivations || 0);
 
     // ── RUN CARD: render the card used this run ──
     // activeCard is captured at endGame() entry; null if no card was equipped.
@@ -9341,6 +9401,7 @@ function activateGodLevel(lv) {
   _triggerBossSkillVfx(lv); // บอสสกิล VFX เฉพาะตัว (คอสเมติก)
 
   if(lv===1){
+    odActivations = (odActivations || 0) + 1;
     const sp=$('godSplash');
     sp.classList.remove('showSplash'); void sp.offsetWidth; sp.classList.add('showSplash');
   }
@@ -9471,7 +9532,7 @@ function updateGodLevelUI() {
   // ป้ายลอย = ชื่อโหมด + เวลา (ไม่ใช่เลขเลเวลกำกวมอีกต่อไป)
   _el.godLevelName.textContent = gd.name;
   _el.godLevelName.style.color = gd.color;
-  _el.godTimer2.textContent = godSecondsLeft>0 ? godSecondsLeft+'s' : '';
+  _el.godTimer2.textContent = godSecondsLeft>0 ? godSecondsLeft.toFixed(1)+'s' : '';
   _el.godLevelWrap.classList.remove('od-lv1','od-lv2','od-lv3');
   if(godLevel>0) _el.godLevelWrap.classList.add('od-lv'+Math.min(godLevel,3));
   updateOdScreenAura(godLevel);
