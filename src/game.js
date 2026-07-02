@@ -1408,6 +1408,7 @@ function confirmOCA() {
   );
 }
 
+let _shopBuyPopFlip = false;
 function buyItem(id, lv, cost, btnEl) {
   if (save.coins < cost) {
     _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
@@ -1424,6 +1425,9 @@ function buyItem(id, lv, cost, btnEl) {
   renderShop();
   $('shopCoinNum').textContent = formatNum(save.coins);
   if ($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
+  // A successful buy had strictly less feedback than the can't-afford shake —
+  // reuse the same "reward feel" scale-punch already used for score/KO/coin.
+  _hudPop($('shopCoinNum'), (_shopBuyPopFlip = !_shopBuyPopFlip));
 }
 
 // ══════════════════════════════════════════
