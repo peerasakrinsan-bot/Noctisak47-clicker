@@ -1875,13 +1875,19 @@ let _koMilestoneIdx = 0;
 // `_rmResetRun()`, called from `initState()`).
 const RARE_MOMENT_GOLDEN_BOSS_CHANCE = 0.005; // ~1 in 200 boss spawns
 const RARE_MOMENT_BUZZER_BEATER_WINDOW = 0.7; // seconds left on the run clock
+const RARE_MOMENT_AK47_FLAWLESS_WINDOW_MS = 2600; // 1st→5th WP collect; needs a spawn-speed card + fast reflexes
 const RARE_MOMENT_COIN_MULT = { goldenBoss: 3 }; // reuses the bossCoins pipeline in bossKO()
-let _goldenBossActive = false; // true while the CURRENT boss is a Golden Boss
-const _rmFired = { goldenBoss: false, buzzerBeater: false };
+let _goldenBossActive = false;      // true while the CURRENT boss is a Golden Boss
+let _wpChainStartTime = 0;          // perf.now() of the current AK47 chain's 1st collect
+let _pendingFlawlessReload = false; // set by onWeakPointHit(), consumed by triggerBombExplosion()
+const _rmFired = { goldenBoss: false, buzzerBeater: false, flawlessReload: false };
 function _rmResetRun() {
   _rmFired.goldenBoss = false;
   _rmFired.buzzerBeater = false;
+  _rmFired.flawlessReload = false;
   _goldenBossActive = false;
+  _wpChainStartTime = 0;
+  _pendingFlawlessReload = false;
 }
 // Shared celebration beat: splash + a camera-arbitrated shake, same recipe as
 // _triggerBerserkFx() / KO milestones. Wrapped so a cosmetic bug can never
@@ -2203,8 +2209,18 @@ function onWeakPointHit(x, y, baseDmg, customMult) {
 
   // เพิ่ม counter
   wpCollected++;
+  // RARE MOMENT: FLAWLESS RELOAD — start timing this chain on its 1st collect.
+  if(wpCollected === 1) _wpChainStartTime = performance.now();
   updateWpCounter();
   if(wpCollected >= WP_MAX) {
+    // RARE MOMENT: FLAWLESS RELOAD — full chain collected fast enough via real
+    // sequential taps (this path only; completeWeakPointRequirementInstant()'s
+    // BREAK-success shortcut never sets _wpChainStartTime, so it can't false-fire
+    // here). Once per run.
+    if(!_rmFired.flawlessReload && (performance.now() - _wpChainStartTime) <= RARE_MOMENT_AK47_FLAWLESS_WINDOW_MS) {
+      _rmFired.flawlessReload = true;
+      _pendingFlawlessReload = true;
+    }
     setTimeout(()=>{ if(gameRunning) triggerBombExplosion(); }, 200);
   }
 
@@ -2339,6 +2355,16 @@ function triggerBombExplosion() {
     roundColors[currentRound-1],
     currentRound === 5
   );
+
+  // RARE MOMENT: FLAWLESS RELOAD — layered as a follow-up beat once the AK47
+  // BOMB splash above finishes (~850ms), so it never fights that splash node
+  // for screen time. Presentation only: no extra reward, no gameplay change.
+  if(_pendingFlawlessReload) {
+    _pendingFlawlessReload = false;
+    setTimeout(() => {
+      if(gameRunning) _rmCelebrate('FLAWLESS RELOAD', 'PERFECT AK47 CHAIN', '#00ffee', false);
+    }, 900);
+  }
 
   // เล่นเสียงตามรอบ
   if(currentRound < 5) {
