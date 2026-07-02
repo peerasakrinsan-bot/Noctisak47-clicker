@@ -10098,32 +10098,47 @@ async function _cloudUploadCore(payload, opts) {
 
   // Conflict check READ — only when explicitly requested (startup, manual, conflict suspected).
   // Auto-sync uses PATCH with secret_key filter; Supabase returns 0 rows on mismatch (safe).
+  //
+  // SECURITY: never request the secret_key column back from Supabase. Ownership is
+  // verified by filtering (player_id AND secret_key) server-side — if the filter
+  // doesn't match, PostgREST returns zero rows and the real secret is never exposed
+  // in a response body. A second, existence-only probe (selecting just player_id)
+  // is used solely to tell "no row yet" apart from "row owned by a different secret"
+  // for the abort branch below — it never selects secret_key either.
   let cloudRow = null;
   if (opts.forceConflictCheck) {
     try {
       const chkRes = await _fetchWithTimeout(
-        `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
+        `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,uploaded_at`,
         { headers: _cloudHeaders() }, 10000
       );
       if (chkRes.ok) {
         const rows = await chkRes.json();
         cloudRow = rows && rows[0] || null;
         saveState.lastRemoteCheckedAt = Date.now();
+
+        if (!cloudRow) {
+          const existsRes = await _fetchWithTimeout(
+            `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=player_id`,
+            { headers: _cloudHeaders() }, 10000
+          );
+          if (existsRes.ok) {
+            const existsRows = await existsRes.json().catch(() => []);
+            if (Array.isArray(existsRows) && existsRows.length > 0) {
+              DEV_LOG('[upload] secret key mismatch — abort');
+              return false;
+            }
+          }
+        }
       }
     } catch(e) {
       if (_isLikelyNetworkFetchError(e) || e.name === 'AbortError') throw e;
       DEV_LOG('[upload] conflict-check error (non-fatal):', e);
     }
 
-    if (cloudRow) {
-      if (cloudRow.secret_key && cloudRow.secret_key !== key) {
-        DEV_LOG('[upload] secret key mismatch — abort');
-        return false;
-      }
-      if (!_isLocalNewer(payload, cloudRow.save_data || {})) {
-        DEV_LOG('[upload] cloud equal/newer — skip. cloudSV:', (cloudRow.save_data||{}).saveVersion, 'localSV:', payload.saveVersion);
-        return false;
-      }
+    if (cloudRow && !_isLocalNewer(payload, cloudRow.save_data || {})) {
+      DEV_LOG('[upload] cloud equal/newer — skip. cloudSV:', (cloudRow.save_data||{}).saveVersion, 'localSV:', payload.saveVersion);
+      return false;
     }
   }
 
@@ -10416,8 +10431,13 @@ async function startupCloudRestore() {
   };
 
   try {
+    // SECURITY: never request the secret_key column back from Supabase — ownership is
+    // verified by filtering (player_id AND secret_key) server-side. If that filter
+    // matches nothing, a second existence-only probe (selecting just player_id, never
+    // secret_key) tells "no cloud save yet" apart from "this id belongs to a
+    // different secret" for the two branches below.
     const res = await _restoreFetch(
-      `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
+      `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,uploaded_at`,
       { headers: _cloudHeaders() }
     );
     if (!res.ok) { _hideToast(); DEV_LOG('[restore] fetch failed:', res.status); return; }
@@ -10425,18 +10445,22 @@ async function startupCloudRestore() {
     const rows = await res.json();
     const row  = rows && rows[0];
     if (!row || !row.save_data) {
+      const existsRes = await _restoreFetch(
+        `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=player_id`,
+        { headers: _cloudHeaders() }
+      );
+      const existsRows = existsRes.ok ? await existsRes.json().catch(() => []) : [];
+      if (Array.isArray(existsRows) && existsRows.length > 0) {
+        // Row exists under this player_id but not under our secret — abort silently.
+        _hideToast();
+        DEV_LOG('[restore] secret key mismatch on restore — abort');
+        return;
+      }
       // No cloud save yet — local is canonical, schedule upload
       showSaveToast('localonly');
       DEV_LOG('[restore] no cloud save found — local is canonical');
       markSaveDirty('startup_no_cloud');
       scheduleCloudSync('startup_no_cloud');
-      return;
-    }
-
-    // Validate secret
-    if (row.secret_key && row.secret_key !== key) {
-      _hideToast();
-      DEV_LOG('[restore] secret key mismatch on restore — abort');
       return;
     }
 
@@ -10879,15 +10903,30 @@ async function svCloudUpload() {
   btn.disabled  = true;
 
   try {
-    const existingUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=secret_key,save_data,uploaded_at`;
-    const existingRes = await fetch(existingUrl, { headers: _cloudHeaders() });
-    if (!existingRes.ok) { svShowMsg(saveMsg, `❌ ตรวจสอบ ID ไม่สำเร็จ (${existingRes.status})`, 'err'); return; }
+    // SECURITY: never request the secret_key column back from Supabase. Ownership is
+    // verified by filtering (player_id AND secret_key) server-side — a wrong/unknown
+    // key simply matches zero rows. A second existence-only probe (selecting just
+    // player_id) tells "id free" apart from "id owned by a different secret" without
+    // ever exposing that secret to the client.
+    const ownUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,uploaded_at`;
+    const ownRes = await fetch(ownUrl, { headers: _cloudHeaders() });
+    if (!ownRes.ok) { svShowMsg(saveMsg, `❌ ตรวจสอบ ID ไม่สำเร็จ (${ownRes.status})`, 'err'); return; }
 
-    const existing = await existingRes.json();
-    const row = existing && existing[0];
-    if (row && row.secret_key && row.secret_key !== key) {
-      svShowMsg(saveMsg, `❌ ID "${id}" ถูกใช้แล้ว — เปลี่ยน ID ใหม่`, 'err');
-      return;
+    const ownRows = await ownRes.json();
+    const row = ownRows && ownRows[0];
+
+    if (!row) {
+      const existsRes = await fetch(
+        `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=player_id`,
+        { headers: _cloudHeaders() }
+      );
+      if (existsRes.ok) {
+        const existsRows = await existsRes.json().catch(() => []);
+        if (Array.isArray(existsRows) && existsRows.length > 0) {
+          svShowMsg(saveMsg, `❌ ID "${id}" ถูกใช้แล้ว — เปลี่ยน ID ใหม่`, 'err');
+          return;
+        }
+      }
     }
 
     // ── Conflict guard: if cloud has newer data, warn player ──
