@@ -1408,6 +1408,7 @@ function confirmOCA() {
   );
 }
 
+let _shopBuyPopFlip = false;
 function buyItem(id, lv, cost, btnEl) {
   if (save.coins < cost) {
     _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
@@ -1424,6 +1425,9 @@ function buyItem(id, lv, cost, btnEl) {
   renderShop();
   $('shopCoinNum').textContent = formatNum(save.coins);
   if ($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
+  // A successful buy had strictly less feedback than the can't-afford shake —
+  // reuse the same "reward feel" scale-punch already used for score/KO/coin.
+  _hudPop($('shopCoinNum'), (_shopBuyPopFlip = !_shopBuyPopFlip));
 }
 
 // ══════════════════════════════════════════
@@ -8077,6 +8081,15 @@ function _triggerRageMaxKO() {
   clearTimeout(godTimeout);
   clearInterval(godInterval);
   clearTimeout(wpSchedule); clearTimeout(wpTimeout);
+  // RAGE MAX used to be all text — no shake, no flash — for a death whose whole
+  // point is "the boss became uncontrollable". Reuses the same climactic flash +
+  // shake AK47 BOMB / Annihilation use so it hits like a KO, not a fade.
+  triggerFlash('flash-boss');
+  const _grRageMax = document.getElementById('gameRoot');
+  if (_grRageMax && _grRageMax.classList && cameraClaim(3, 500)) {
+    _grRageMax.classList.remove('shake'); void _grRageMax.offsetWidth; _grRageMax.classList.add('shake');
+    setTimeout(() => { if (_grRageMax && _grRageMax.classList) _grRageMax.classList.remove('shake'); }, 500);
+  }
   showBigSplash('RAGE MAX!', 'The boss became uncontrollable.', '#ff2233', true);
   setTimeout(() => endGame({gameOver:true}), 850);
 }
@@ -9081,6 +9094,7 @@ function processHit(e, now) {
     if(isBoss){
       if(bossHP <= bossMaxHP*0.5 && bossPhase === 1){
         bossPhase = 2;
+        _triggerBerserkFx();
         showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
       }
       if(bossHP <= 0) bossKO();
@@ -9168,6 +9182,7 @@ function applyDamage(dmg,e,isCrit,fxWeight) {
   if(isBoss){
     if(bossHP<=bossMaxHP*0.5&&bossPhase===1){
       bossPhase=2;
+      _triggerBerserkFx();
       showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
     }
     if(bossHP<=0) bossKO();
@@ -9238,6 +9253,21 @@ function csOnBossKO() {
   if(cs.cs_devilingo) cs._devilingoCombatStart = Date.now();
 }
 
+// BERSERK phase-shift feedback (boss crosses the 50% HP threshold) — this used
+// to be a text splash only, with zero shake/flash for a real power-spike moment.
+// Reuses the existing boss-arrival flash + WP-weight camera shake so it reads as
+// a physical event instead of just a label. Cosmetic only — no gameplay change.
+function _triggerBerserkFx() {
+  triggerFlash('flash-boss');
+  if (cameraClaim(2, 300)) {
+    const gr = document.getElementById('gameRoot');
+    if (gr && gr.classList) {
+      gr.classList.remove('shake-wp'); void gr.offsetWidth; gr.classList.add('shake-wp');
+      setTimeout(() => { if (gr && gr.classList) gr.classList.remove('shake-wp'); }, 300);
+    }
+  }
+}
+
 function bossKO() {
   csOnBossKO();
   isBoss=false; ko++;
@@ -9271,6 +9301,7 @@ function bossKO() {
   spawnCoinPopup(bossCoins);
   showBigSplash('BOSS KO','+'+bossCoins+' COIN','#ffcc00');
   showKOFlash(true);
+  playWpBall(); // Boss KO had zero SFX despite the heavy visual payoff — reuse the existing "success ding"
   _triggerBossDeathVfx(); // ฉากตายเฉพาะตัวต่อบอส + กล้องประจำบอส (คอสเมติก)
   csOnKO();
 }
@@ -9445,6 +9476,15 @@ function activateGodLevel(lv) {
 
 function exitGodMode() {
   csOnOdEnd();
+  // OD Lv1/Lv2 used to vanish with zero punctuation (Lv3 already gets a loud
+  // finalAnnihilation ending) — reuse the same boss-portrait pulse fired at OD
+  // activation so the power dropping off reads as a beat, not a silent cut.
+  if (boxer && boxer.classList) {
+    boxer.classList.remove('boss-skill-pulse');
+    void boxer.offsetWidth;
+    boxer.classList.add('boss-skill-pulse');
+    setTimeout(() => { if (boxer && boxer.classList) boxer.classList.remove('boss-skill-pulse'); }, 520);
+  }
   godLevel=0; canEnterGod=false;
   gun.style.display='none';
   combo=1; lastHitTime=0;
