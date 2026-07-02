@@ -916,14 +916,12 @@ const ASSETS = {
     // they lazily load on-demand when the arena shop opens (_drawArenaPreview) or
     // the arena is equipped (_applyArenaBg, CSS url), and the SW caches them then.
     'title_bg.png','default_bg.webp',
-    // XUANG skin
-    'xuang_icon.webp','xuang.png','xuang_hit1.png','xuang_hit2.png','xuang_hit3.png','xuang_hit4.png',
-    // default skin
+    // default skin — the only skin every player has by default; the currently
+    // EQUIPPED skin (whichever it is) is always freshly preloaded on demand by
+    // initState()/applySkin() regardless of this list, so purchasable skins
+    // (XUANG/JAKKADUN/SORNSIT SPIRIT/etc.) don't need an unconditional eager
+    // preload here — they behave the same as the other purchasable skins already do.
     'boxer.png','boxer_hit1.png','boxer_hit2.png','boxer_hit3.png','boxer_hit4.png',
-    // JAKKADUN skin
-    'jakkadun_icon.webp','jakkadun.png','jakkadun_hit1.png','jakkadun_hit2.png','jakkadun_hit3.png','jakkadun_hit4.png',
-    // SORNSIT SPIRIT skin
-    'sornsit_icon.webp','sornsit.png','sornsit_hit1.png','sornsit_hit2.png','sornsit_hit3.png','sornsit_hit4.png',
     // game UI critical
     'ak47.png','noobak47.png','wp5.png','break_core.png','break_barrier.png','weak.webp',
     'transfer.png','card.png','shop.png','play.png','arena.png','pause.png',
