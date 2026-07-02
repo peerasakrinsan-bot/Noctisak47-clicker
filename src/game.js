@@ -9081,6 +9081,7 @@ function processHit(e, now) {
     if(isBoss){
       if(bossHP <= bossMaxHP*0.5 && bossPhase === 1){
         bossPhase = 2;
+        _triggerBerserkFx();
         showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
       }
       if(bossHP <= 0) bossKO();
@@ -9168,6 +9169,7 @@ function applyDamage(dmg,e,isCrit,fxWeight) {
   if(isBoss){
     if(bossHP<=bossMaxHP*0.5&&bossPhase===1){
       bossPhase=2;
+      _triggerBerserkFx();
       showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
     }
     if(bossHP<=0) bossKO();
@@ -9236,6 +9238,21 @@ function csOnBossKO() {
   cs._weebvilBossBreakUsed = false;
   // DEVILINGO: reset per-boss timer so each boss fight is judged independently
   if(cs.cs_devilingo) cs._devilingoCombatStart = Date.now();
+}
+
+// BERSERK phase-shift feedback (boss crosses the 50% HP threshold) — this used
+// to be a text splash only, with zero shake/flash for a real power-spike moment.
+// Reuses the existing boss-arrival flash + WP-weight camera shake so it reads as
+// a physical event instead of just a label. Cosmetic only — no gameplay change.
+function _triggerBerserkFx() {
+  triggerFlash('flash-boss');
+  if (cameraClaim(2, 300)) {
+    const gr = document.getElementById('gameRoot');
+    if (gr && gr.classList) {
+      gr.classList.remove('shake-wp'); void gr.offsetWidth; gr.classList.add('shake-wp');
+      setTimeout(() => { if (gr && gr.classList) gr.classList.remove('shake-wp'); }, 300);
+    }
+  }
 }
 
 function bossKO() {
