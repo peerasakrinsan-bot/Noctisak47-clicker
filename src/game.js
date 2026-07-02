@@ -9288,6 +9288,7 @@ function bossKO() {
   spawnCoinPopup(bossCoins);
   showBigSplash('BOSS KO','+'+bossCoins+' COIN','#ffcc00');
   showKOFlash(true);
+  playWpBall(); // Boss KO had zero SFX despite the heavy visual payoff — reuse the existing "success ding"
   _triggerBossDeathVfx(); // ฉากตายเฉพาะตัวต่อบอส + กล้องประจำบอส (คอสเมติก)
   csOnKO();
 }
