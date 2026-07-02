@@ -1229,6 +1229,23 @@ function updateShopCoinUI() {
   if ($('arenaCoinNum')) $('arenaCoinNum').textContent = formatNum(save.coins);
 }
 
+// ── Can't-afford feedback for shop BUY buttons (OCA / items / boss & arena skins) ──
+// Mirrors the card-slot reroll pattern (_csShowRerollFeedback): shake the button +
+// briefly flash its price red, so tapping a disabled BUY never fails silently.
+function _shopCantAffordFeedback(btnEl, priceEl) {
+  if (btnEl) {
+    btnEl.classList.remove('cs-reroll-shake');
+    void btnEl.offsetWidth;
+    btnEl.classList.add('cs-reroll-shake');
+    setTimeout(() => btnEl.classList.remove('cs-reroll-shake'), 380);
+  }
+  if (priceEl) {
+    const _origColor = priceEl.style.color;
+    priceEl.style.color = '#ff4444';
+    setTimeout(() => { priceEl.style.color = _origColor; }, 450);
+  }
+}
+
 function renderShop() {
   $('shopCoinNum').textContent = formatNum(save.coins);
   const body = $('shopBody');
@@ -1253,7 +1270,7 @@ function renderShop() {
             <div style="display:flex;align-items:center;gap:4px;font-family:'Oswald',sans-serif;font-size:13px;color:${canAfford?'var(--gold)':'#444'};letter-spacing:1px;">
               <span class="css-coin" style="background:${canAfford?'var(--gold)':'#444'}"></span>${def.cost}
             </div>
-            <button class="oca-buy-btn ${canAfford?'':'cant-afford'}" onclick="buyOCA()">BUY</button>
+            <button class="oca-buy-btn ${canAfford?'':'cant-afford'}" onclick="buyOCA(this)">BUY</button>
           </div>
         </div>
       `;
@@ -1300,7 +1317,7 @@ function renderShop() {
       } else if (isNext) {
         rightHtml = `
           <div class="slr-cost ${canAfford ? '' : 'cant'}"><span class="css-coin" style="background:${canAfford?'var(--cyan)':'#333'}"></span> ${lvDef.cost}</div>
-          <button class="slr-buy-btn ${canAfford ? '' : 'cant-afford'}" onclick="buyItem('${def.id}',${lv},${lvDef.cost})">BUY</button>
+          <button class="slr-buy-btn ${canAfford ? '' : 'cant-afford'}" onclick="buyItem('${def.id}',${lv},${lvDef.cost},this)">BUY</button>
         `;
       } else if (isLocked) {
         rightHtml = `<div class="slr-cost cant"><span class='css-coin' style='background:#333'></span> ${lvDef.cost}</div>`;
@@ -1343,9 +1360,13 @@ function _openOcaDraw(result, onDone) {
   $('cardDrawScreen').style.display = 'flex';
 }
 
-function buyOCA() {
+function buyOCA(btnEl) {
   const cost = SHOP_DEF.find(d=>d.id==='oca').cost;
   const canAfford = save.coins >= cost;
+  if (!canAfford) {
+    _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
+    return;
+  }
   const modal = $('ocaConfirmModal');
   $('ocaConfirmCost').innerHTML = `<span class="css-coin"></span>${cost} ZENY`;
   $('ocaConfirmBox').querySelector('.oca-btn-confirm').className = 'oca-btn-confirm' + (canAfford ? '' : ' cant-afford');
@@ -1387,8 +1408,11 @@ function confirmOCA() {
   );
 }
 
-function buyItem(id, lv, cost) {
-  if (save.coins < cost) return;
+function buyItem(id, lv, cost, btnEl) {
+  if (save.coins < cost) {
+    _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
+    return;
+  }
   if (itemLv(id) >= lv) return;
   save.coins -= cost;
   if (!save.items) save.items = {};
@@ -1561,7 +1585,7 @@ function renderBossShop() {
     } else {
       actionHtml = `
         <div style="font-size:11px;color:${canAfford?'var(--cyan)':'#444'};letter-spacing:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;justify-content:center;"><span class="css-coin" style="background:${canAfford?'var(--cyan)':'#444'}"></span> ${skin.cost.toLocaleString()}</div>
-        <button class="boss-skin-action ${canAfford?'':'cant-afford'}" onclick="buyBossSkin('${skin.id}')">BUY</button>
+        <button class="boss-skin-action ${canAfford?'':'cant-afford'}" onclick="buyBossSkin('${skin.id}',this)">BUY</button>
       `;
     }
 
@@ -1590,9 +1614,13 @@ function closeBossSkinPreview() {
   $('bossSkinModal').style.display = 'none';
 }
 
-function buyBossSkin(id) {
+function buyBossSkin(id, btnEl) {
   const skin = BOSS_SKINS.find(s => s.id === id);
-  if (!skin || save.coins < skin.cost) return;
+  if (!skin) return;
+  if (save.coins < skin.cost) {
+    _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
+    return;
+  }
   save.coins -= skin.cost;
   if (!save.ownedSkins) save.ownedSkins = ['default'];
   if (!save.ownedSkins.includes(id)) save.ownedSkins.push(id);
@@ -1730,7 +1758,7 @@ function renderArenaShop() {
     } else {
       actionHtml = `
         <div style="font-size:11px;color:${canAfford?'#00b4ff':'#444'};letter-spacing:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;justify-content:center;"><span class="css-coin" style="background:${canAfford?'#00b4ff':'#444'}"></span> ${arena.cost.toLocaleString()}</div>
-        <button class="arena-skin-action ${canAfford?'':'cant-afford'}" onclick="buyArena('${arena.id}')">BUY</button>
+        <button class="arena-skin-action ${canAfford?'':'cant-afford'}" onclick="buyArena('${arena.id}',this)">BUY</button>
       `;
     }
 
@@ -1762,9 +1790,13 @@ function renderArenaShop() {
   });
 }
 
-function buyArena(id) {
+function buyArena(id, btnEl) {
   const arena = ARENA_SKINS.find(a => a.id === id);
-  if (!arena || save.coins < arena.cost) return;
+  if (!arena) return;
+  if (save.coins < arena.cost) {
+    _shopCantAffordFeedback(btnEl, btnEl && btnEl.previousElementSibling);
+    return;
+  }
   save.coins -= arena.cost;
   if (!save.ownedArenas) save.ownedArenas = ['default'];
   if (!save.ownedArenas.includes(id)) save.ownedArenas.push(id);

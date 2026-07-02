@@ -328,7 +328,7 @@
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   }
   .slr-buy-btn:active { background:rgba(0,255,238,0.1); transform:var(--ui-press-down); }
-  .slr-buy-btn.cant-afford { border-color:#333; color:#444; pointer-events:none; }
+  .slr-buy-btn.cant-afford { border-color:#333; color:#444; cursor:not-allowed; }
   .slr-current-tag {
     position:absolute; left:14px; top:50%; transform:translateY(-50%);
     font-size:9px; letter-spacing:2px; color:var(--gold);
@@ -382,7 +382,7 @@
   }
   .arena-skin-action:active { background:rgba(0,180,255,0.1); transform:var(--ui-press-down); }
   .arena-skin-action.apply-arena-btn { border-color:#00b4ff; color:#00b4ff; }
-  .arena-skin-action.cant-afford { border-color:#333; color:#444; pointer-events:none; }
+  .arena-skin-action.cant-afford { border-color:#333; color:#444; cursor:not-allowed; }
   /* arenaBackBtn uses .back-btn */
 
   /* ══ BOSS SKIN SCREEN ══ */
@@ -429,7 +429,7 @@
   .boss-skin-action:active { background:rgba(0,255,238,0.1); transform:var(--ui-press-down); }
   .boss-skin-action.apply-btn { border-color:var(--gold); color:var(--gold); }
   .boss-skin-action.apply-btn:active { background:rgba(255,204,0,0.1); transform:var(--ui-press-down); }
-  .boss-skin-action.cant-afford { border-color:#333; color:#444; pointer-events:none; }
+  .boss-skin-action.cant-afford { border-color:#333; color:#444; cursor:not-allowed; }
   .boss-skin-locked { font-size:10px; letter-spacing:2px; color:#ff2233; margin-top:2px; }
 
   /* back button — card slot */
@@ -884,7 +884,7 @@
     transition:background 0.15s;
   }
   .oca-buy-btn:active { background:rgba(0,180,255,0.15); transform:var(--ui-press-down); }
-  .oca-buy-btn.cant-afford { border-color:#333; color:#444; pointer-events:none; }
+  .oca-buy-btn.cant-afford { border-color:#333; color:#444; cursor:not-allowed; }
 
   /* ══ CARD COLLECTION SCREEN ══ */
   #cardCollectionScreen {
