@@ -1981,6 +1981,13 @@
   .result-grid-sub .result-cell { padding:clamp(6px,1.6vh,10px) 6px; }
   .result-cell-val.small { font-size:clamp(15px,4.5vw,22px); text-shadow:none; }
   #res-highscore { font-size:10px !important; }
+
+  /* ── RESULT HIGHLIGHT REEL — a few contextual lines, reuses existing stats only ── */
+  #res-highlights { display:flex; flex-direction:column; align-items:center; gap:2px; margin:2px 0 4px; min-height:0; }
+  .res-highlight-line { font-size:10px; letter-spacing:2px; color:#888; }
+  .res-highlight-line.gold { color:var(--gold); text-shadow:0 0 12px rgba(255,204,0,0.4); }
+  .res-highlight-line.cyan { color:var(--cyan); }
+
   #coinsEarned {
     font-size:clamp(15px,5vw,20px); color:var(--gold); letter-spacing:2px;
     padding:clamp(7px,1.8vh,11px) 20px;
@@ -2756,6 +2763,11 @@
   }
   body.reduce-flash #boxer.boss-skill-pulse { animation:none; }
 
+  /* ── GOLDEN ENEMY — visual tint only, existing sprite/canvas, no new art ── */
+  #boxer.golden-enemy {
+    filter: sepia(0.55) saturate(2.6) hue-rotate(-18deg) brightness(1.18) drop-shadow(0 0 14px rgba(255,204,0,0.55));
+  }
+
   /* ── TOEI ENIGMA AURA ── */
   #fighter.toei-enigma-aura::before {
     content:'';
@@ -3065,6 +3077,19 @@
     20%{opacity:1;transform:translate(-50%,-50%) scale(1);}
     70%{opacity:1;} 100%{opacity:0;}
   }
+
+  /* ══ LAST SPURT (final 10s of the round) — pure presentation ══
+     Reuses the existing inset-box-shadow "screen aura" technique (same trick as
+     #odScreenAura) for a red edge vignette, and the existing @keyframes flash
+     (already driving #timerDisplay.urgent) for the pulse — no new animation system. */
+  #lastSpurtAura {
+    position:fixed; inset:0; z-index:28; pointer-events:none; opacity:0;
+    box-shadow: inset 0 0 60px rgba(255,34,51,.38), inset 0 0 130px rgba(255,34,51,.20);
+    transition: opacity .25s ease;
+  }
+  #lastSpurtAura.last-spurt-active { opacity:1; animation:flash 0.5s infinite alternate; }
+  /* whole-screen intensity bump — same filter:saturate() knob already used by od-aura-lv1-3 */
+  #gameRoot.last-spurt { filter:saturate(1.08); }
 
   /* ══ SCREEN FLASH ══ */
   #screenFlash { position:absolute; top:0; left:0; right:0; bottom:0; z-index:30; pointer-events:none; opacity:0; }
@@ -3729,6 +3754,7 @@
     opacity:1;
     text-shadow:0 0 8px rgba(255,34,51,0.28);
   }
+  body.reduce-flash #lastSpurtAura.last-spurt-active { animation:none !important; opacity:0.6; }
   body.reduce-flash .flash-punch,
   body.reduce-flash .flash-crit,
   body.reduce-flash .flash-god,
@@ -4766,6 +4792,7 @@
   /* Timer/combo: keep subtle static glow — readable, non-strobing */
   body.flash-low #timerDisplay.urgent,
   body.flash-low .combo-max #bigCombo { animation:none !important; opacity:1; text-shadow:0 0 8px rgba(255,34,51,0.22); }
+  body.flash-low #lastSpurtAura.last-spurt-active { animation:none !important; opacity:0.35; }
 
   /* Xuang particles: reduce opacity/scale but keep them alive — clear LOW vs OFF difference */
   body.flash-low .xuang-particle     { opacity:0.28 !important; filter:none !important; }
@@ -4809,6 +4836,9 @@
   body.flash-off #bombFlash { opacity:0 !important; animation:none !important; }
 
   body.flash-off #screenFlash { opacity:0 !important; animation:none !important; }
+
+  body.flash-off #lastSpurtAura { opacity:0 !important; animation:none !important; }
+  body.flash-off #gameRoot.last-spurt { filter:none !important; }
 
   /* Shake: cancel all shake animations on #gameRoot — animation only, NO transform override */
   body.flash-off #gameRoot.shake,

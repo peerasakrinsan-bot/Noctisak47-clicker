@@ -1852,6 +1852,17 @@ let ko, score, maxCombo, annihilationCount, roundCoins;
 // Timer & loop
 let gameRunning, gamePaused = false, timerInterval, timeLeft, godSecondsLeft, waveKO;
 
+// GOLDEN ENEMY — very rare, presentation-only enemy variant (tint + bonus reward
+// on that one KO). Reuses the existing #boxer sprite/canvas; no new mechanic.
+const GOLDEN_ENEMY_CHANCE = 0.03;
+const GOLDEN_ENEMY_COIN_MULT = 4;
+const GOLDEN_ENEMY_SCORE_BONUS = 300;
+let _goldenActive = false;
+
+// KO MILESTONES — celebrated once per run at these per-run KO counts.
+const KO_MILESTONES = [50, 100, 250, 500, 1000];
+let _koMilestoneIdx = 0;
+
 // Weak Point system
 let wpActive = false, wpTimeout = null, wpSchedule = null;
 let wpCollected = 0, wpRound = 1, wpCompletions = 0, wp5FirstDone = false;
@@ -1893,6 +1904,8 @@ function initState() {
   _preloadImg(_sk.files.idle); _sk.files.hits.forEach(_preloadImg);
   boxerSetImg(_sk.files.idle);
   _applyBossSkinAura(_sk.id);
+  _rollGoldenEnemy(); // fresh roll for the first enemy of the run
+  _koMilestoneIdx = 0;
   _el.bossBar.style.display = 'none';
   _el.godLevelWrap.style.display = 'none';
   _resetOdBadge();
@@ -8241,12 +8254,13 @@ function startTimer() {
 }
 // FIX 3: cache timer child nodes once; use textContent instead of innerHTML
 // to avoid DOM parse + child node churn 20×/sec.
-let _timerSecEl = null, _timerMsEl = null, _timerDisplayEl = null;
+let _timerSecEl = null, _timerMsEl = null, _timerDisplayEl = null, _lastSpurtAuraEl = null;
 let _lastTimerSec = -1, _lastTimerMs = '', _lastTimerUrgent = -1;
 function _initTimerEls() {
   if (!_timerSecEl) { _timerSecEl = document.getElementById('timerSec'); }
   if (!_timerMsEl)  { _timerMsEl  = document.getElementById('timerMs');  }
   if (!_timerDisplayEl) { _timerDisplayEl = document.getElementById('timerDisplay'); }
+  if (!_lastSpurtAuraEl) { _lastSpurtAuraEl = document.getElementById('lastSpurtAura'); }
 }
 function renderTimer() {
   _initTimerEls();
@@ -8268,6 +8282,13 @@ function renderTimer() {
   if (_lastTimerUrgent !== urgent) {
     _lastTimerUrgent = urgent;
     if (_timerDisplayEl) _timerDisplayEl.classList.toggle('urgent', urgent === 1);
+    // LAST SPURT (final 10s) — pure presentation, reuses this same flip-only check:
+    // edge vignette + a slight whole-screen saturate bump (same filter knob as OD aura),
+    // plus a one-shot cue (existing countdown asset) exactly on the 0→1 transition.
+    const gr = document.getElementById('gameRoot');
+    if (gr) gr.classList.toggle('last-spurt', urgent === 1);
+    if (_lastSpurtAuraEl) _lastSpurtAuraEl.classList.toggle('last-spurt-active', urgent === 1);
+    if (urgent === 1) _playSfxEl('countdownSound', 0.6);
   }
 }
 function endGame(opts = {}) {
@@ -8299,6 +8320,8 @@ function endGame(opts = {}) {
   // save stats + coins — เฉพาะจบเกมปกติ (ไม่ใช่ quit)
   const prevHS = save.stats.highScore || 0;
   const isNewRecord = score > prevHS;
+  const prevMaxCombo = save.stats.maxCombo || 0;
+  const isNewComboRecord = maxCombo > prevMaxCombo;
   save.stats.totalKO=(save.stats.totalKO||0)+ko;
   save.stats.maxCombo=Math.max(save.stats.maxCombo||0,maxCombo);
   save.stats.highScore=Math.max(prevHS,score);
@@ -8324,6 +8347,10 @@ function endGame(opts = {}) {
   commitWeeklyProgress(); // ── Weekly Challenge: commit run stats once ──
   _csLastCards = null;
 
+  // NEW RECORD EVENT — fire once here (endGame runs once per run) while the game
+  // view is still visible, before it gets hidden below. Pure presentation.
+  if (isNewRecord) _triggerNewRecordCelebration(score);
+
   // hide game elements
   $('topUI').style.display='none';
   $('fighter').style.display='none';
@@ -8336,6 +8363,9 @@ function endGame(opts = {}) {
   $('wpCounter').style.display='none';
   $('lodCardDisplay').style.display='none';
   $('rageMeter').classList.remove('show');
+  // LAST SPURT: clear so the vignette/saturate filter don't linger under the result screen
+  document.getElementById('gameRoot').classList.remove('last-spurt');
+  if (_lastSpurtAuraEl) _lastSpurtAuraEl.classList.remove('last-spurt-active');
 
   function _showResultScreen() {
     const h2 = $('resultScreen').querySelector('h2');
@@ -8351,6 +8381,37 @@ function endGame(opts = {}) {
     if ($('res-break'))    $('res-break').textContent    = formatNum(pressureSummary.successes || 0);
     if ($('res-wp'))       $('res-wp').textContent       = formatNum(wpCompletions);
     if ($('res-od'))       $('res-od').textContent       = formatNum(odActivations || 0);
+
+    // ── RESULT HIGHLIGHT REEL — a few contextual lines built entirely from stats
+    // already tracked this run (isNewRecord/isNewComboRecord/prevHS reuse the exact
+    // same save.stats comparison already computed above; window._bossesDefeated is
+    // the existing per-run boss counter used for boss HP scaling; save.weeklyChallenge
+    // is the existing weekly-progress object). No new gameplay statistics introduced.
+    (function _renderHighlights() {
+      const box = $('res-highlights');
+      if (!box) return;
+      const lines = [];
+      if (isNewRecord) lines.push({ text: '🏆 NEW SCORE RECORD', cls: 'gold' });
+      if (isNewComboRecord && maxCombo > 0) lines.push({ text: '🔥 NEW BEST COMBO x' + formatNum(maxCombo), cls: 'gold' });
+      if ((window._bossesDefeated || 0) > 0) lines.push({ text: formatNum(window._bossesDefeated) + ' BOSSES DEFEATED', cls: 'cyan' });
+      if (!isNewRecord && prevHS > 0) {
+        const gap = prevHS - score;
+        if (gap > 0 && gap <= Math.max(50, prevHS * 0.15)) {
+          lines.push({ text: formatNum(gap) + ' PTS FROM YOUR BEST', cls: '' });
+        }
+      }
+      const wq = save.weeklyChallenge;
+      if (wq && wq.claimed) {
+        let goalText = '';
+        if (!wq.claimed.tier1 && !wqTierIsComplete(1)) goalText = 'WEEKLY I: ' + formatNum(wq.runsCompleted || 0) + '/5 RUNS';
+        else if (!wq.claimed.tier2 && !wqTierIsComplete(2)) goalText = 'WEEKLY II: ' + formatNum(wq.totalKO || 0) + '/3,000 KO';
+        else if (!wq.claimed.tier3 && !wqTierIsComplete(3)) goalText = 'WEEKLY III: ' + formatNum(wq.breakSuccess || 0) + '/40 BREAK';
+        if (goalText) lines.push({ text: goalText, cls: '' });
+      }
+      box.innerHTML = lines.slice(0, 3).map(l =>
+        '<div class="res-highlight-line' + (l.cls ? ' ' + l.cls : '') + '">' + l.text + '</div>'
+      ).join('');
+    })();
 
     // ── RUN CARD: render the card used this run ──
     // activeCard is captured at endGame() entry; null if no card was equipped.
@@ -8427,11 +8488,22 @@ function endGame(opts = {}) {
     window.dispatchEvent(new CustomEvent('noctis:first-run-complete'));
   }
 
-  // score >= 10k → ลุ้นการ์ด
-  if(score >= 10000) {
-    openCardDraw(()=>{ _showResultScreen(); });
+  function _proceedToResultScreen() {
+    // score >= 10k → ลุ้นการ์ด
+    if(score >= 10000) {
+      openCardDraw(()=>{ _showResultScreen(); });
+    } else {
+      _showResultScreen();
+    }
+  }
+
+  // NEW RECORD: let the celebration beat (freeze/flash/shake/splash) land on the
+  // still-visible game view before the result modal (z-index 997) covers it.
+  // Non-record runs are completely unaffected — zero added delay.
+  if (isNewRecord) {
+    setTimeout(_proceedToResultScreen, 650);
   } else {
-    _showResultScreen();
+    _proceedToResultScreen();
   }
 }
 
@@ -9195,12 +9267,43 @@ function applyDamage(dmg,e,isCrit,fxWeight) {
   }
 }
 
+// GOLDEN ENEMY — rolled for the *next* normal enemy at each spawn point
+// (initState / after a normal KO / after a boss KO). Visual tint only (existing
+// #boxer sprite + CSS filter); reward is a flat multiplier applied on that one KO.
+function _rollGoldenEnemy() {
+  _goldenActive = Math.random() < GOLDEN_ENEMY_CHANCE;
+  const el = $('boxer');
+  if (el) el.classList.toggle('golden-enemy', _goldenActive);
+}
+function _clearGoldenEnemy() {
+  _goldenActive = false;
+  const el = $('boxer');
+  if (el) el.classList.remove('golden-enemy');
+}
+
+// KO MILESTONES — non-blocking celebration beat at per-run KO thresholds.
+// Reuses _triggerBerserkFx() (the existing mid-impact flash+shake beat, camera
+// priority 2 — below climactic prio-3 moments like boss death/AK47 bomb/new
+// record, so it never steals the show if one lands on the same tick).
+function _checkKoMilestone() {
+  while (_koMilestoneIdx < KO_MILESTONES.length && ko >= KO_MILESTONES[_koMilestoneIdx]) {
+    const n = KO_MILESTONES[_koMilestoneIdx];
+    _koMilestoneIdx++;
+    try {
+      showBigSplash(formatNum(n) + ' KO!', 'RAMPAGE MILESTONE', '#00ffcc');
+      _triggerBerserkFx();
+      playWpBall();
+    } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
+  }
+}
+
 // ══════════════════════════════════════════
 // KO & BOSS
 // ══════════════════════════════════════════
 function normalKO() {
   ko++; waveKO++;
   window._wqRunKO = (window._wqRunKO || 0) + 1; // weekly per-run KO counter
+  const _wasGolden = _goldenActive; // capture before the next-enemy roll below overwrites it
   let baseCoins = Math.round((1 + Math.floor(combo * 0.05)) * (1.25 + (_sc.coinMult||0)));
   // DORK LORD: KO Zeny -15% (documented tradeoff). Turtle Shogun no longer shares this.
   if(window._csState && window._csState.cs_dorkLord) baseCoins = Math.round(baseCoins * 0.85);
@@ -9208,12 +9311,15 @@ function normalKO() {
   // ── Zeny KO reduction (late-game economy rebalance) ──
   // Applied per-KO at earn time so totalRunZeny is never reduced retroactively.
   baseCoins = Math.round(baseCoins * getZenyKoMultiplier((save && save.stats && save.stats.totalKO) || 0));
+  // GOLDEN ENEMY reward — flat multiplier/bonus on this one KO only, no new mechanic
+  if(_wasGolden) baseCoins = Math.round(baseCoins * GOLDEN_ENEMY_COIN_MULT);
   roundCoins+=baseCoins;
   score+=100+combo*8;
   // Moonlight Flower: +500 score per KO
   if(window._csState && window._csState.cs_moonlightflower) score += 500;
   // RSX-0806: +500 score per KO (Pure Execution)
   if(window._csState && window._csState.cs_rsx0806) score += 500;
+  if(_wasGolden) score += GOLDEN_ENEMY_SCORE_BONUS;
   hp=maxHP;
   // chip resets instantly on HP restore — no trail on refill
   const _chip = _getHpChip();
@@ -9221,8 +9327,11 @@ function normalKO() {
   updateUI(); // sync hpFill to 100% immediately after respawn
   showKOFlash(false);
   spawnCoinPopup(baseCoins);
+  if(_wasGolden) { showBigSplash('GOLDEN KO!', '+' + GOLDEN_ENEMY_SCORE_BONUS + ' BONUS', '#ffd700'); playWpBall(); }
   csOnKO();
   if(waveKO>=10){waveKO=0;spawnBoss();}
+  if(!isBoss) _rollGoldenEnemy(); else _clearGoldenEnemy();
+  _checkKoMilestone();
 }
 
 function spawnBoss() {
@@ -9303,6 +9412,8 @@ function bossKO() {
   showKOFlash(true);
   playWpBall(); // Boss KO had zero SFX despite the heavy visual payoff — reuse the existing "success ding"
   _triggerBossDeathVfx(); // ฉากตายเฉพาะตัวต่อบอส + กล้องประจำบอส (คอสเมติก)
+  _rollGoldenEnemy(); // the next enemy after a boss is always a normal one — may be golden
+  _checkKoMilestone();
   csOnKO();
 }
 
@@ -9388,6 +9499,34 @@ function _triggerBossDeathVfx() {
     if (CV && typeof CV.spawnBossDeathVfx === 'function') CV.spawnBossDeathVfx(skinId, { x: c.x, y: c.y });
     const meta = (CV && CV.BOSS_VFX) ? CV.BOSS_VFX[skinId] : null;
     _applyBossCamera((meta && meta.camera) || 'shake');
+  } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
+}
+
+// NEW RECORD EVENT — fires once per run (endGame runs once), pure presentation.
+// Reuses: _applyBossCamera('freeze') for the hitstop beat, the existing #bombFlash
+// gold-flash element (same one AK47 BOMB uses) + #gameRoot.shake for the flash/shake,
+// showBigSplash for the splash text, playWpBall for the stinger (same "success ding"
+// already reused for Boss KO), and CanvasVFX's existing coinBurst for the gold burst.
+function _triggerNewRecordCelebration(finalScore) {
+  try {
+    _applyBossCamera('freeze');
+    setTimeout(() => {
+      const bf = $('bombFlash');
+      if (bf) { bf.className = ''; void bf.offsetWidth; bf.className = 'boom'; }
+      const gr = document.getElementById('gameRoot');
+      if (gr && gr.classList) {
+        cameraClaim(3, 600);
+        gr.classList.remove('shake'); void gr.offsetWidth; gr.classList.add('shake');
+        setTimeout(() => { if (gr && gr.classList) gr.classList.remove('shake'); }, 600);
+      }
+      showBigSplash('NEW RECORD!', formatNum(finalScore) + ' PTS', '#ffcc00', true);
+      playWpBall();
+      if (window.CanvasVFX && typeof window.CanvasVFX.spawnCanvasVfx === 'function') {
+        const el = $('scoreDisplay');
+        const pos = el ? el.getBoundingClientRect() : null;
+        window.CanvasVFX.spawnCanvasVfx('coinBurst', pos ? { x: pos.left + pos.width / 2, y: pos.top + pos.height / 2 } : {});
+      }
+    }, 260);
   } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
 }
 
