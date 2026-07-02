@@ -9471,7 +9471,7 @@ function updateGodLevelUI() {
   // ป้ายลอย = ชื่อโหมด + เวลา (ไม่ใช่เลขเลเวลกำกวมอีกต่อไป)
   _el.godLevelName.textContent = gd.name;
   _el.godLevelName.style.color = gd.color;
-  _el.godTimer2.textContent = godSecondsLeft>0 ? godSecondsLeft+'s' : '';
+  _el.godTimer2.textContent = godSecondsLeft>0 ? godSecondsLeft.toFixed(1)+'s' : '';
   _el.godLevelWrap.classList.remove('od-lv1','od-lv2','od-lv3');
   if(godLevel>0) _el.godLevelWrap.classList.add('od-lv'+Math.min(godLevel,3));
   updateOdScreenAura(godLevel);
