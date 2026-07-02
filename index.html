@@ -863,10 +863,14 @@ if ('serviceWorker' in navigator) {
         if (!urls.length || urls.some(url => new URL(url).pathname === SW_PATH)) continue;
         await reg.unregister();
       }
-      // ล้าง cache เก่าให้ตรงกับ version ใน sw.js
+      // ล้าง cache เก่าที่ไม่ตรง version ปัจจุบัน — เทียบแบบ prefix เพราะ postbuild-sw.js
+      // ต่อท้าย build tag ให้ CACHE_NAME จริง (เช่น "noctisak47-2026.07.01.5-abc123")
+      // การเทียบแบบ exact-match เดิมจะลบ cache ที่ใช้งานอยู่จริงทุกครั้งที่โหลดหน้า
       if ('caches' in window) {
         const keys = await caches.keys();
-        await Promise.all(keys.filter(k => k !== APP_CACHE_NAME).map(k => caches.delete(k)));
+        await Promise.all(
+          keys.filter(k => /^noctisak47[-_]/.test(k) && !k.startsWith(APP_CACHE_NAME)).map(k => caches.delete(k))
+        );
       }
       // register SW ใหม่
       const swUrl = './sw.js?v=' + encodeURIComponent(window.NOCTISAK47_APP_VERSION || '2026.05.18.1');
