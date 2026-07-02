@@ -2763,6 +2763,11 @@
   }
   body.reduce-flash #boxer.boss-skill-pulse { animation:none; }
 
+  /* ── GOLDEN ENEMY — visual tint only, existing sprite/canvas, no new art ── */
+  #boxer.golden-enemy {
+    filter: sepia(0.55) saturate(2.6) hue-rotate(-18deg) brightness(1.18) drop-shadow(0 0 14px rgba(255,204,0,0.55));
+  }
+
   /* ── TOEI ENIGMA AURA ── */
   #fighter.toei-enigma-aura::before {
     content:'';

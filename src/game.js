@@ -1852,6 +1852,13 @@ let ko, score, maxCombo, annihilationCount, roundCoins;
 // Timer & loop
 let gameRunning, gamePaused = false, timerInterval, timeLeft, godSecondsLeft, waveKO;
 
+// GOLDEN ENEMY — very rare, presentation-only enemy variant (tint + bonus reward
+// on that one KO). Reuses the existing #boxer sprite/canvas; no new mechanic.
+const GOLDEN_ENEMY_CHANCE = 0.03;
+const GOLDEN_ENEMY_COIN_MULT = 4;
+const GOLDEN_ENEMY_SCORE_BONUS = 300;
+let _goldenActive = false;
+
 // Weak Point system
 let wpActive = false, wpTimeout = null, wpSchedule = null;
 let wpCollected = 0, wpRound = 1, wpCompletions = 0, wp5FirstDone = false;
@@ -1893,6 +1900,7 @@ function initState() {
   _preloadImg(_sk.files.idle); _sk.files.hits.forEach(_preloadImg);
   boxerSetImg(_sk.files.idle);
   _applyBossSkinAura(_sk.id);
+  _rollGoldenEnemy(); // fresh roll for the first enemy of the run
   _el.bossBar.style.display = 'none';
   _el.godLevelWrap.style.display = 'none';
   _resetOdBadge();
@@ -9254,12 +9262,27 @@ function applyDamage(dmg,e,isCrit,fxWeight) {
   }
 }
 
+// GOLDEN ENEMY — rolled for the *next* normal enemy at each spawn point
+// (initState / after a normal KO / after a boss KO). Visual tint only (existing
+// #boxer sprite + CSS filter); reward is a flat multiplier applied on that one KO.
+function _rollGoldenEnemy() {
+  _goldenActive = Math.random() < GOLDEN_ENEMY_CHANCE;
+  const el = $('boxer');
+  if (el) el.classList.toggle('golden-enemy', _goldenActive);
+}
+function _clearGoldenEnemy() {
+  _goldenActive = false;
+  const el = $('boxer');
+  if (el) el.classList.remove('golden-enemy');
+}
+
 // ══════════════════════════════════════════
 // KO & BOSS
 // ══════════════════════════════════════════
 function normalKO() {
   ko++; waveKO++;
   window._wqRunKO = (window._wqRunKO || 0) + 1; // weekly per-run KO counter
+  const _wasGolden = _goldenActive; // capture before the next-enemy roll below overwrites it
   let baseCoins = Math.round((1 + Math.floor(combo * 0.05)) * (1.25 + (_sc.coinMult||0)));
   // DORK LORD: KO Zeny -15% (documented tradeoff). Turtle Shogun no longer shares this.
   if(window._csState && window._csState.cs_dorkLord) baseCoins = Math.round(baseCoins * 0.85);
@@ -9267,12 +9290,15 @@ function normalKO() {
   // ── Zeny KO reduction (late-game economy rebalance) ──
   // Applied per-KO at earn time so totalRunZeny is never reduced retroactively.
   baseCoins = Math.round(baseCoins * getZenyKoMultiplier((save && save.stats && save.stats.totalKO) || 0));
+  // GOLDEN ENEMY reward — flat multiplier/bonus on this one KO only, no new mechanic
+  if(_wasGolden) baseCoins = Math.round(baseCoins * GOLDEN_ENEMY_COIN_MULT);
   roundCoins+=baseCoins;
   score+=100+combo*8;
   // Moonlight Flower: +500 score per KO
   if(window._csState && window._csState.cs_moonlightflower) score += 500;
   // RSX-0806: +500 score per KO (Pure Execution)
   if(window._csState && window._csState.cs_rsx0806) score += 500;
+  if(_wasGolden) score += GOLDEN_ENEMY_SCORE_BONUS;
   hp=maxHP;
   // chip resets instantly on HP restore — no trail on refill
   const _chip = _getHpChip();
@@ -9280,8 +9306,10 @@ function normalKO() {
   updateUI(); // sync hpFill to 100% immediately after respawn
   showKOFlash(false);
   spawnCoinPopup(baseCoins);
+  if(_wasGolden) { showBigSplash('GOLDEN KO!', '+' + GOLDEN_ENEMY_SCORE_BONUS + ' BONUS', '#ffd700'); playWpBall(); }
   csOnKO();
   if(waveKO>=10){waveKO=0;spawnBoss();}
+  if(!isBoss) _rollGoldenEnemy(); else _clearGoldenEnemy();
 }
 
 function spawnBoss() {
@@ -9362,6 +9390,7 @@ function bossKO() {
   showKOFlash(true);
   playWpBall(); // Boss KO had zero SFX despite the heavy visual payoff — reuse the existing "success ding"
   _triggerBossDeathVfx(); // ฉากตายเฉพาะตัวต่อบอส + กล้องประจำบอส (คอสเมติก)
+  _rollGoldenEnemy(); // the next enemy after a boss is always a normal one — may be golden
   csOnKO();
 }
 
