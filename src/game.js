@@ -7247,7 +7247,6 @@ function pauseGoMainMenu() {
   wpActive = false;
   $('weakPoint').style.display = 'none';
   $('pauseScreen').style.display = 'none';
-  $('pauseBtn').textContent = '⏸';
   showMainMenu();
 }
 
