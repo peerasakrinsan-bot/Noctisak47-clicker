@@ -55,7 +55,7 @@
     position: absolute; top:0; left:0; right:0; bottom:0; z-index: 0;
     background:
       radial-gradient(ellipse at 50% 80%, rgba(26,0,0,0.15), rgba(0,0,0,0.22)),
-      url("/default_bg.png") center/cover no-repeat;
+      url("/default_bg.webp") center/cover no-repeat;
     will-change: background-image;
   }
   #bg::after { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.02); }

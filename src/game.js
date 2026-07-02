@@ -278,7 +278,6 @@ const SFX_FILES = {
 
 // unlock AudioContext + โหลด SFX ทั้งหมดหลัง user gesture ครั้งแรก
 let audioWarmedUp = false;
-function initVolumes() {} // stub — Web Audio handles volume per-play
 function warmUpAudio() {
   if(audioWarmedUp) return;
   audioWarmedUp = true;
@@ -287,8 +286,10 @@ function warmUpAudio() {
   if(ctx.state === 'suspended') ctx.resume();
   // โหลด SFX ทั้งหมด
   Object.entries(SFX_FILES).forEach(([id, url]) => _loadSfx(id, url));
-  // preload collect.mp3 buffer ไว้ใช้ทันที
-  fetch('collect.mp3').then(r=>r.arrayBuffer()).then(ab=>_getActx().decodeAudioData(ab)).then(buf=>{ window._collectBuf = buf; }).catch(()=>{});
+  // เริ่มบัฟเฟอร์ collect.mp3 ล่วงหน้าผ่าน <audio> element ธรรมดา (เหมือน fight BGM) —
+  // ไม่ decode เป็น AudioBuffer ค้างหน่วยความจำอีกต่อไป (เพลง ~39 วิ = PCM ~13MB ถ้า decode)
+  const cbEl = $('collectBgm');
+  if(cbEl && cbEl.preload === 'none') { cbEl.preload = 'auto'; cbEl.load(); }
 }
 
 function _musicGain(base) { return gameSettings.musicOn ? base * gameSettings.musicVolume : 0; }
@@ -299,9 +300,7 @@ function applyAudioSettings() {
   const bgm = $('bgmSound'); if(bgm) bgm.volume = _musicGain(TITLE_BGM_VOLUME);
   [1,2,3,4].forEach(i=>{ const t=$('fightBgm'+i); if(t) t.volume = _musicGain(FIGHT_BGM_VOLUME); });
   const cd = $('countdownSound'); if(cd) cd.volume = _sfxGain(1.0);
-  if(window._collectAudio && window._collectAudio.gain) {
-    window._collectAudio.gain.gain.value = _musicGain(COLLECT_BGM_VOLUME);
-  }
+  const cb = $('collectBgm'); if(cb) cb.volume = _musicGain(COLLECT_BGM_VOLUME);
   document.body.classList.toggle('reduce-flash', !!gameSettings.reduceFlash);
   applyFlashEffectSetting();
   syncSettingsUI();
@@ -380,19 +379,7 @@ function setSettingVolume(type, value) {
   persistSettings();
 }
 
-function applyMute(muted) {
-  gameSettings.musicOn = !muted;
-  gameSettings.sfxOn = !muted;
-  applyAudioSettings();
-}
 function _syncSoundBtns() { syncSettingsUI(); }
-function toggleSound() {
-  const next = !(gameSettings.musicOn || gameSettings.sfxOn);
-  gameSettings.musicOn = next;
-  gameSettings.sfxOn = next;
-  applyAudioSettings();
-  persistSettings();
-}
 
 // เล่นเสียง SFX ที่เป็น <audio> element (เช่น countdown) ผ่าน gate เดียวกับ _playSfx
 // ใช้ตัวกลางตัวเดียวกัน: เคารพ sfxOn + sfxVolume และมี fallback กัน error
@@ -465,8 +452,10 @@ function normalizeSaveData(d) {
   d.ownedSkins = Array.from(new Set(d.ownedSkins.filter(id => typeof id === 'string' && id)));
   if (!d.ownedSkins.includes('default')) d.ownedSkins.unshift('default');
   if (!Array.isArray(d.ownedArenas)) d.ownedArenas = ['default'];
+  d.ownedArenas = Array.from(new Set(d.ownedArenas.filter(id => typeof id === 'string' && id)));
+  if (!d.ownedArenas.includes('default')) d.ownedArenas.unshift('default');
   if (!d.activeSkin || !d.ownedSkins.includes(d.activeSkin)) d.activeSkin = 'default';
-  if (!d.activeArena) d.activeArena = 'default';
+  if (!d.activeArena || !d.ownedArenas.includes(d.activeArena)) d.activeArena = 'default';
   if (!d.savedCards) d.savedCards = null;
   if (!Array.isArray(d.unlockedCards)) d.unlockedCards = ['po','lu','fa','co','pp'];
   d.gamesCompleted = Math.max(0, Math.floor(Number(d.gamesCompleted) || 0));
@@ -856,7 +845,7 @@ function computeStableSaveHash(d) {
     : '';
   // Settings: only values that affect gameplay or cloud identity
   const settingsKey = d.settings
-    ? ['sfxVol','bgmVol','sfxMuted','bgmMuted','flashEffect']
+    ? ['musicOn','musicVolume','sfxOn','sfxVolume','flashEffect']
         .map(k => k + ':' + (d.settings[k] !== undefined ? d.settings[k] : ''))
         .join(',')
     : '';
@@ -926,18 +915,16 @@ const ASSETS = {
     // Purchasable arena bgs (one_bg / colosseum_bg) are NOT eagerly preloaded —
     // they lazily load on-demand when the arena shop opens (_drawArenaPreview) or
     // the arena is equipped (_applyArenaBg, CSS url), and the SW caches them then.
-    'title_bg.png','default_bg.png',
-    // XUANG skin
-    'xuang_icon.webp','xuang.png','xuang_hit1.png','xuang_hit2.png','xuang_hit3.png','xuang_hit4.png',
-    // default skin
+    'title_bg.png','default_bg.webp',
+    // default skin — the only skin every player has by default; the currently
+    // EQUIPPED skin (whichever it is) is always freshly preloaded on demand by
+    // initState()/applySkin() regardless of this list, so purchasable skins
+    // (XUANG/JAKKADUN/SORNSIT SPIRIT/etc.) don't need an unconditional eager
+    // preload here — they behave the same as the other purchasable skins already do.
     'boxer.png','boxer_hit1.png','boxer_hit2.png','boxer_hit3.png','boxer_hit4.png',
-    // JAKKADUN skin
-    'jakkadun_icon.webp','jakkadun.png','jakkadun_hit1.png','jakkadun_hit2.png','jakkadun_hit3.png','jakkadun_hit4.png',
-    // SORNSIT SPIRIT skin
-    'sornsit_icon.webp','sornsit.png','sornsit_hit1.png','sornsit_hit2.png','sornsit_hit3.png','sornsit_hit4.png',
     // game UI critical
     'ak47.png','noobak47.png','wp5.png','break_core.png','break_barrier.png','weak.webp',
-    'sound_on.png','sound_off.png','transfer.png','card.png','shop.png','play.png','arena.png','pause.png',
+    'transfer.png','card.png','shop.png','play.png','arena.png','pause.png',
     'void_main.png','best_main.png',
     CARD_HIDDEN_IMG,'card_back.png','logo.png',
     // shop/OCA item art (optional, non-blocking; preload keeps renamed assets warm)
@@ -1009,7 +996,6 @@ let _preloadEnterStarted = false;
 function onAllLoaded() {
   if(_allLoadedCalled) return;
   _allLoadedCalled = true;
-  initVolumes();
   // ให้ progress bar animate ไปถึง 100% ก่อน แล้วค่อยแสดง TAP TO START
   const loadBar  = document.getElementById('loadBar');
   const loadPct  = document.getElementById('loadPct');
@@ -1105,10 +1091,6 @@ function _cacheEls() {
    'bigCombo','comboWrap','multiBadge','multiNum'].forEach(id => {
     _el[id] = document.getElementById(id);
   });
-  // stub ที่ลบออกไปแล้ว — ป้องกัน null error
-  _el.bossHpFill  = { style:{} };
-  _el.bossName    = { style:{}, textContent:'' };
-  _el.bossPhaseTag= { textContent:'' };
 }
 _cacheEls();
 
@@ -1242,13 +1224,13 @@ function showMainMenu() {
 
 function updateShopCoinUI() {
   if ($('menuCoinNum'))  $('menuCoinNum').textContent  = formatNum(save.coins);
-  if ($('shopCoinNum'))  $('shopCoinNum').textContent  = save.coins;
-  if ($('bossCoinNum'))  $('bossCoinNum').textContent  = save.coins;
-  if ($('arenaCoinNum')) $('arenaCoinNum').textContent = save.coins;
+  if ($('shopCoinNum'))  $('shopCoinNum').textContent  = formatNum(save.coins);
+  if ($('bossCoinNum'))  $('bossCoinNum').textContent  = formatNum(save.coins);
+  if ($('arenaCoinNum')) $('arenaCoinNum').textContent = formatNum(save.coins);
 }
 
 function renderShop() {
-  $('shopCoinNum').textContent = save.coins;
+  $('shopCoinNum').textContent = formatNum(save.coins);
   const body = $('shopBody');
   body.innerHTML = '';
 
@@ -1416,7 +1398,7 @@ function buyItem(id, lv, cost) {
   scheduleCloudSync('shop_purchase');
   rebuildStatCache();
   renderShop();
-  $('shopCoinNum').textContent = save.coins;
+  $('shopCoinNum').textContent = formatNum(save.coins);
   if ($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
 }
 
@@ -1557,7 +1539,7 @@ function closeBossShop() {
 }
 
 function renderBossShop() {
-  $('bossCoinNum').textContent = save.coins;
+  $('bossCoinNum').textContent = formatNum(save.coins);
   const grid = $('bossSkinGrid');
   grid.innerHTML = '';
   const activeSkinId = getActiveSkinId();
@@ -1618,7 +1600,7 @@ function buyBossSkin(id) {
   doSave();
   scheduleCloudSync('shop_purchase');
   renderBossShop();
-  $('bossCoinNum').textContent = save.coins;
+  $('bossCoinNum').textContent = formatNum(save.coins);
 }
 
 function applySkin(id) {
@@ -1664,16 +1646,16 @@ const ARENA_SKINS = [
     id: 'default',
     name: 'RAJADAMNERN\nSTADIUM',
     sub: 'Default Arena',
-    preview: 'default_bg.png',
-    bg: 'default_bg.png',
+    preview: 'default_bg.webp',
+    bg: 'default_bg.webp',
     cost: 0,
   },
   {
     id: 'one_championship',
     name: 'ONE\nCHAMPIONSHIP',
     sub: '500 ZENY',
-    preview: 'one_bg.png',
-    bg: 'one_bg.png',
+    preview: 'one_bg.webp',
+    bg: 'one_bg.webp',
     cost: 500,
   },
   {
@@ -1681,7 +1663,7 @@ const ARENA_SKINS = [
     name: 'COLOSSEUM',
     sub: '500 ZENY',
     preview: 'colosseum_bg.webp',
-    bg: 'colosseum_bg.png',
+    bg: 'colosseum_bg.webp',
     cost: 500,
   },
 ];
@@ -1730,7 +1712,7 @@ function _drawArenaPreview(canvasEl, src) {
 }
 
 function renderArenaShop() {
-  $('arenaCoinNum').textContent = save.coins;
+  $('arenaCoinNum').textContent = formatNum(save.coins);
   const grid = $('arenaSkinGrid');
   grid.innerHTML = '';
   const activeArenaId = getActiveArenaId();
@@ -1791,10 +1773,10 @@ function buyArena(id) {
   scheduleCloudSync('shop_purchase');
   renderArenaShop();
   // sync coin display ทุกหน้า
-  $('arenaCoinNum').textContent = save.coins;
+  $('arenaCoinNum').textContent = formatNum(save.coins);
   if ($('menuCoinNum'))  $('menuCoinNum').textContent  = formatNum(save.coins);
-  if ($('shopCoinNum'))  $('shopCoinNum').textContent  = save.coins;
-  if ($('bossCoinNum'))  $('bossCoinNum').textContent  = save.coins;
+  if ($('shopCoinNum'))  $('shopCoinNum').textContent  = formatNum(save.coins);
+  if ($('bossCoinNum'))  $('bossCoinNum').textContent  = formatNum(save.coins);
 }
 
 function applyArena(id) {
@@ -1877,7 +1859,6 @@ function initState() {
   _el.godLevelWrap.style.display = 'none';
   _resetOdBadge();
   updateOdScreenAura(0);
-  _el.bossPhaseTag.textContent = '';
   updateUI();
   rebuildStatCache();
   _resetHpTier();
@@ -3535,9 +3516,9 @@ function executePreRunReroll() {
   if (cost > 0) {
     save.coins -= cost;
     if ($('menuCoinNum'))  $('menuCoinNum').textContent  = formatNum(save.coins);
-    if ($('shopCoinNum'))  $('shopCoinNum').textContent  = save.coins;
-    if ($('bossCoinNum'))  $('bossCoinNum').textContent  = save.coins;
-    if ($('arenaCoinNum')) $('arenaCoinNum').textContent = save.coins;
+    if ($('shopCoinNum'))  $('shopCoinNum').textContent  = formatNum(save.coins);
+    if ($('bossCoinNum'))  $('bossCoinNum').textContent  = formatNum(save.coins);
+    if ($('arenaCoinNum')) $('arenaCoinNum').textContent = formatNum(save.coins);
   }
 
   // Increment rerollCount BEFORE generating offers so the new count drives rarity weights
@@ -5756,44 +5737,28 @@ function openCardDraw(onDone) {
   _playCollectBGM();
 }
 
+// Plays via a plain <audio> element (like bgmSound / fightBgm1-4) instead of a
+// permanently-decoded Web Audio AudioBuffer — collect.mp3 is a ~39s music loop,
+// not a latency-critical SFX, so it doesn't need zero-latency BufferSource
+// playback; decoding it once held ~13MB of raw PCM in memory for the rest of
+// the session. warmUpAudio() already primes this element's buffering ahead of
+// time via preload="auto" + load(), same lead-time strategy as prefetchFightBGM().
 function _playCollectBGM() {
   _stopCollectBGM();
   if(!gameSettings.musicOn) return;
+  const el = $('collectBgm');
+  if(!el) return;
   try {
-    const ctx = _getActx();
-    if(ctx.state === 'suspended') ctx.resume();
-
-    function _startWithBuf(buf) {
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
-      const gain = ctx.createGain();
-      gain.gain.value = _musicGain(COLLECT_BGM_VOLUME);
-      src.connect(gain);
-      gain.connect(ctx.destination);
-      src.start(0);
-      window._collectAudio = { src, gain, stop: ()=>{ try{ src.stop(); }catch(e){} } };
-    }
-
-    if(window._collectBuf) {
-      // ใช้ buffer ที่ preload ไว้แล้ว — เล่นได้ทันที
-      _startWithBuf(window._collectBuf);
-    } else {
-      // fallback โหลดใหม่
-      fetch('collect.mp3')
-        .then(r => r.arrayBuffer())
-        .then(ab => ctx.decodeAudioData(ab))
-        .then(buf => { window._collectBuf = buf; if(gameSettings.musicOn) _startWithBuf(buf); })
-        .catch(e => console.warn('collect.mp3 fail', e));
-    }
+    el.volume = _musicGain(COLLECT_BGM_VOLUME);
+    el.currentTime = 0;
+    const p = el.play();
+    if(p && typeof p.catch === 'function') p.catch(()=>{});
   } catch(e) { console.warn('collect BGM error', e); }
 }
 
 function _stopCollectBGM() {
-  if(window._collectAudio) {
-    try { window._collectAudio.stop(); } catch(e) {}
-    window._collectAudio = null;
-  }
+  const el = $('collectBgm');
+  if(el && !el.paused) { el.pause(); el.currentTime = 0; }
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -7051,7 +7016,7 @@ function startGame() {
   $('tapZone').style.display='none';
   $('streakLabel').style.display='none';
   $('wpCounter').style.display='none';
-  initVolumes(); initState(); warmUpAudio();
+  initState(); warmUpAudio();
   csReset(false);
   openCardSlot(()=>{
     // แสดง UI หลังเลือกการ์ดแล้ว
@@ -7099,7 +7064,7 @@ function retryGame() {
   $('streakLabel').style.display='block';
   $('wpCounter').style.display='flex';
   _syncSoundBtns();
-  initVolumes(); initState();
+  initState();
   csReset(true); // ล้าง savedCards — retry สุ่มใหม่เสมอ
   // เล่น title BGM ระหว่างหน้า card slot
   playBGM();
@@ -7221,8 +7186,14 @@ function resumeGame() {
   scheduleWeakPoint();
   if(godLevel > 0 && godSecondsLeft > 0) {
     clearInterval(godInterval);
+    _lastOdTickAt = performance.now();
     godInterval = setInterval(()=>{
-      godSecondsLeft--;
+      // Wall-clock elapsed seconds since the previous tick — see the matching
+      // comment in activateGodLevel()'s godInterval for the full reasoning.
+      const _odNow = performance.now();
+      const _odRealDtSec = Math.min(2, Math.max(0, (_odNow - _lastOdTickAt) / 1000));
+      _lastOdTickAt = _odNow;
+      godSecondsLeft -= _odRealDtSec;
       updateGodLevelUI();
       if(godSecondsLeft <= 0){
         clearInterval(godInterval);
@@ -7247,7 +7218,6 @@ function pauseGoMainMenu() {
   wpActive = false;
   $('weakPoint').style.display = 'none';
   $('pauseScreen').style.display = 'none';
-  $('pauseBtn').textContent = '⏸';
   showMainMenu();
 }
 
@@ -8155,10 +8125,24 @@ function pressureIsBreak() { return PRESSURE.phase === 'break'; }
 // Lv0=1.0 (ปกติ), Lv1=0.75, Lv2=0.55, Lv3=0.35
 const GOD_TIME_RATE = [1.0, 0.75, 0.55, 0.35];
 
+// Wall-clock baseline for the round timer's setInterval tick — see startTimer().
+let _lastTimerTickAt = 0;
 function startTimer() {
   clearInterval(timerInterval);
+  _lastTimerTickAt = performance.now();
   timerInterval=setInterval(()=>{
-    pressureUpdate(50);
+    // Measure real elapsed time since the previous tick instead of assuming the
+    // nominal 50ms always elapsed. Under GC pauses, heavy VFX, or background-tab
+    // timer throttling, ticks can arrive late; the old fixed-0.05s-per-tick math
+    // then under-drained timeLeft relative to real wall-clock time, letting a
+    // round run longer in real time on exactly the devices struggling the most.
+    // Clamped to 200ms (4x nominal) so a single pathological stall can't skip an
+    // excessive chunk of round time in one tick — genuinely long gaps already
+    // pause the run entirely via the visibilitychange handler before this fires.
+    const _now = performance.now();
+    const _realDtMs = Math.min(200, Math.max(0, _now - _lastTimerTickAt));
+    _lastTimerTickAt = _now;
+    pressureUpdate(_realDtMs);
     const baseRate = performance.now() < (PRESSURE.successFreezeUntil || 0) ? 0.18 : (PRESSURE.phase === 'break' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0));
     const rate = baseRate * (1 + ((window._csState && window._csState._dorkTimerRateBonus) || 0)
       // DEVILINGO CURSED PANIC: after 15s from run start, timer drains 15% faster (all phases)
@@ -8166,7 +8150,7 @@ function startTimer() {
       // LORD OF DEBT: REQUIEM state — timer drains 30% faster
       + ((window._csState && window._csState.cs_lordofdeath && window._csState._lod_timerDrain) ? window._csState._lod_timerDrain : 0)
     );
-    const _timeDelta = 0.05 * Math.min(1.15, rate);
+    const _timeDelta = (_realDtMs / 1000) * Math.min(1.15, rate);
     timeLeft -= _timeDelta;
     // LORD OF DEBT: FINAL HOUR — prevent timer from increasing (clamp any external additions)
     if(_lodDebtFinalHourLock && window._csState && window._csState.cs_lordofdeath) {
@@ -8409,6 +8393,17 @@ const INPUT = (() => {
     return Math.sqrt(arr.map(x=>(x-mean)**2).reduce((a,b)=>a+b,0)/arr.length);
   }
 
+  // Prune finger-timestamp entries the per-finger rate limit no longer needs —
+  // Android can hand out ever-increasing touch identifiers across a long/rapid
+  // multi-touch session, so without this the Map grows unbounded for the run's
+  // duration. Only sweeps once the map gets large; cheap no-op otherwise.
+  function _pruneFingers(now) {
+    if(fingerTimestamps.size <= 50) return;
+    for(const [id, t] of fingerTimestamps) {
+      if(now - t > 5000) fingerTimestamps.delete(id);
+    }
+  }
+
   function checkBot(now) {
     // trim window
     while(recentTimestamps.length && now - recentTimestamps[0] > BOT_WINDOW_MS)
@@ -8449,7 +8444,10 @@ const INPUT = (() => {
     if(botPenalty && Math.random() > BOT_PENALTY_SCALE) return;
 
     // total rate cap — drop if over TOTAL_CAP_PER_SEC
-    const recentCount = recentTimestamps.filter(t => now - t < 1000).length;
+    let recentCount = 0;
+    for(let i = 0; i < recentTimestamps.length; i++) {
+      if(now - recentTimestamps[i] < 1000) recentCount++;
+    }
     if(recentCount > TOTAL_CAP_PER_SEC) return;
 
     // per-finger rate limit
@@ -8458,6 +8456,7 @@ const INPUT = (() => {
       const last = fingerTimestamps.get(id) || 0;
       if(now - last < MIN_INTERVAL_MS) return;
       fingerTimestamps.set(id, now);
+      _pruneFingers(now);
     }
 
     tapBuffer.push({ e, now });
@@ -9022,8 +9021,6 @@ function processHit(e, now) {
     if(isBoss){
       if(bossHP <= bossMaxHP*0.5 && bossPhase === 1){
         bossPhase = 2;
-        _el.bossPhaseTag.textContent = 'BERSERK NOCTIS';
-        _el.bossName.style.color = '#ff4400';
         showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
       }
       if(bossHP <= 0) bossKO();
@@ -9087,7 +9084,6 @@ function processHit(e, now) {
 function applyBossDamage(amount, source) {
   if (isBoss) {
     bossHP = Math.max(0, bossHP - amount);
-    _el.bossHpFill.style.width = (bossHP / bossMaxHP * 100) + '%';
   } else {
     hp = Math.max(0, hp - amount);
   }
@@ -9112,8 +9108,6 @@ function applyDamage(dmg,e,isCrit,fxWeight) {
   if(isBoss){
     if(bossHP<=bossMaxHP*0.5&&bossPhase===1){
       bossPhase=2;
-      _el.bossPhaseTag.textContent='BERSERK NOCTIS';
-      _el.bossName.style.color='#ff4400';
       showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
     }
     if(bossHP<=0) bossKO();
@@ -9166,9 +9160,6 @@ function spawnBoss() {
   bossMaxHP=Math.round(maxHP*5*scale);
   bossHP=bossMaxHP;
   _el.bossBar.style.display='block';
-  _el.bossHpFill.style.width='100%';
-  _el.bossPhaseTag.textContent='';
-  _el.bossName.style.color='var(--red)';
   updateUI(); // sync hpFill — now isBoss=true so ratio = bossHP/bossMaxHP = 1
   const arr=$('bossArrival');
   if(arr){ $('bossArrivalPhase').textContent='BOSS INCOMING'; arr.className=''; void arr.offsetWidth; arr.className='show'; }
@@ -9309,6 +9300,10 @@ function _triggerBossDeathVfx() {
   } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
 }
 
+// Wall-clock baseline shared by the two godInterval sites (activateGodLevel and
+// resumeGame) — only one of the two is ever running at a time, since both
+// clearInterval(godInterval) before creating a new one.
+let _lastOdTickAt = 0;
 function activateGodLevel(lv) {
   // FALLEN WECHAT: intercept Lv1 OD → trigger Overloaded BREAK instead
   if(lv === 1 && window._csState && window._csState.cs_fallenWechat) {
@@ -9364,12 +9359,20 @@ function activateGodLevel(lv) {
   godHitCount=0; // reset hit counter สำหรับ upgrade
 
   clearInterval(godInterval);
+  _lastOdTickAt = performance.now();
   godInterval=setInterval(()=>{
+    // Wall-clock elapsed seconds since the previous tick, not an assumed 1.0s —
+    // see startTimer()'s _lastTimerTickAt for the same reasoning. Clamped to 2s
+    // (2x nominal) so one pathological stall can't wipe out most of a short
+    // (as low as 4s at ANNIHILATION MODE) Overdrive window in a single tick.
+    const _odNow = performance.now();
+    const _odRealDtSec = Math.min(2, Math.max(0, (_odNow - _lastOdTickAt) / 1000));
+    _lastOdTickAt = _odNow;
     // LORD OF DEBT: OVERLOAD state — OD drains 1.5x faster
     const _overloadDrain = (window._csState && window._csState.cs_lordofdeath && window._csState._lod_odDrainFast) ? 2 : 1;
     // ORC BADDY tradeoff: OD drains 20% faster during active OD
     const _orcBaddyDrain = (window._csState && window._csState.cs_orcBaddy && window._csState.cs_orcBaddyDrain) ? 1.20 : 1;
-    godSecondsLeft -= _overloadDrain * _orcBaddyDrain;
+    godSecondsLeft -= _overloadDrain * _orcBaddyDrain * _odRealDtSec;
     updateGodLevelUI();
     if(godSecondsLeft<=0){
       clearInterval(godInterval);
@@ -10109,32 +10112,47 @@ async function _cloudUploadCore(payload, opts) {
 
   // Conflict check READ — only when explicitly requested (startup, manual, conflict suspected).
   // Auto-sync uses PATCH with secret_key filter; Supabase returns 0 rows on mismatch (safe).
+  //
+  // SECURITY: never request the secret_key column back from Supabase. Ownership is
+  // verified by filtering (player_id AND secret_key) server-side — if the filter
+  // doesn't match, PostgREST returns zero rows and the real secret is never exposed
+  // in a response body. A second, existence-only probe (selecting just player_id)
+  // is used solely to tell "no row yet" apart from "row owned by a different secret"
+  // for the abort branch below — it never selects secret_key either.
   let cloudRow = null;
   if (opts.forceConflictCheck) {
     try {
       const chkRes = await _fetchWithTimeout(
-        `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
+        `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,uploaded_at`,
         { headers: _cloudHeaders() }, 10000
       );
       if (chkRes.ok) {
         const rows = await chkRes.json();
         cloudRow = rows && rows[0] || null;
         saveState.lastRemoteCheckedAt = Date.now();
+
+        if (!cloudRow) {
+          const existsRes = await _fetchWithTimeout(
+            `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=player_id`,
+            { headers: _cloudHeaders() }, 10000
+          );
+          if (existsRes.ok) {
+            const existsRows = await existsRes.json().catch(() => []);
+            if (Array.isArray(existsRows) && existsRows.length > 0) {
+              DEV_LOG('[upload] secret key mismatch — abort');
+              return false;
+            }
+          }
+        }
       }
     } catch(e) {
       if (_isLikelyNetworkFetchError(e) || e.name === 'AbortError') throw e;
       DEV_LOG('[upload] conflict-check error (non-fatal):', e);
     }
 
-    if (cloudRow) {
-      if (cloudRow.secret_key && cloudRow.secret_key !== key) {
-        DEV_LOG('[upload] secret key mismatch — abort');
-        return false;
-      }
-      if (!_isLocalNewer(payload, cloudRow.save_data || {})) {
-        DEV_LOG('[upload] cloud equal/newer — skip. cloudSV:', (cloudRow.save_data||{}).saveVersion, 'localSV:', payload.saveVersion);
-        return false;
-      }
+    if (cloudRow && !_isLocalNewer(payload, cloudRow.save_data || {})) {
+      DEV_LOG('[upload] cloud equal/newer — skip. cloudSV:', (cloudRow.save_data||{}).saveVersion, 'localSV:', payload.saveVersion);
+      return false;
     }
   }
 
@@ -10427,8 +10445,13 @@ async function startupCloudRestore() {
   };
 
   try {
+    // SECURITY: never request the secret_key column back from Supabase — ownership is
+    // verified by filtering (player_id AND secret_key) server-side. If that filter
+    // matches nothing, a second existence-only probe (selecting just player_id, never
+    // secret_key) tells "no cloud save yet" apart from "this id belongs to a
+    // different secret" for the two branches below.
     const res = await _restoreFetch(
-      `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=save_data,uploaded_at,secret_key`,
+      `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,uploaded_at`,
       { headers: _cloudHeaders() }
     );
     if (!res.ok) { _hideToast(); DEV_LOG('[restore] fetch failed:', res.status); return; }
@@ -10436,18 +10459,22 @@ async function startupCloudRestore() {
     const rows = await res.json();
     const row  = rows && rows[0];
     if (!row || !row.save_data) {
+      const existsRes = await _restoreFetch(
+        `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=player_id`,
+        { headers: _cloudHeaders() }
+      );
+      const existsRows = existsRes.ok ? await existsRes.json().catch(() => []) : [];
+      if (Array.isArray(existsRows) && existsRows.length > 0) {
+        // Row exists under this player_id but not under our secret — abort silently.
+        _hideToast();
+        DEV_LOG('[restore] secret key mismatch on restore — abort');
+        return;
+      }
       // No cloud save yet — local is canonical, schedule upload
       showSaveToast('localonly');
       DEV_LOG('[restore] no cloud save found — local is canonical');
       markSaveDirty('startup_no_cloud');
       scheduleCloudSync('startup_no_cloud');
-      return;
-    }
-
-    // Validate secret
-    if (row.secret_key && row.secret_key !== key) {
-      _hideToast();
-      DEV_LOG('[restore] secret key mismatch on restore — abort');
       return;
     }
 
@@ -10552,12 +10579,10 @@ function _isFightBgmPlaying() {
   return _fightBgmActive && !!(_fightBgmCurrent && !_fightBgmCurrent.paused);
 }
 
-/** Returns true if the WebAudio collect BGM is active. */
+/** Returns true if the collect BGM <audio> element is currently playing. */
 function _isCollectBgmPlaying() {
-  if (!window._collectAudio) return false;
-  // WebAudio BufferSourceNode has no .paused — if the object exists and _actx
-  // is running, we treat it as playing.
-  try { return _actx && _actx.state === 'running'; } catch(e) { return false; }
+  const el = $('collectBgm');
+  return !!(el && !el.paused);
 }
 
 /** Pause all BGM tracks for backgrounding. Preserves currentTime. */
@@ -10575,20 +10600,20 @@ function pauseAllBgmForBackground() {
     // Keep _fightBgmActive true and _fightBgmCurrent reference so resume works
   }
 
-  // Collect BGM (WebAudio — suspend the context)
-  if (window._collectAudio && _actx) {
-    try { _actx.suspend(); } catch(e) {}
-  }
+  // Collect BGM (HTMLAudioElement)
+  const collectEl = $('collectBgm');
+  if (collectEl && !collectEl.paused) collectEl.pause();
 }
 
 /** Resume BGM tracks after returning from background. Respects mute settings. */
 function resumeCurrentBgmIfAllowed() {
   if (!gameSettings.musicOn) return; // user has music muted — don't resume anything
 
-  // Collect BGM (WebAudio — resume context first)
-  if (_collectBgmWasPlayingBeforeHidden && window._collectAudio && _actx) {
-    try { _actx.resume().catch(() => {}); } catch(e) {}
-    return; // collect BGM context holds everything; don't layer fight/title on top
+  // Collect BGM
+  if (_collectBgmWasPlayingBeforeHidden) {
+    const collectEl = $('collectBgm');
+    if (collectEl && collectEl.paused) collectEl.play().catch(() => {});
+    return; // collect BGM owns the moment; don't layer fight/title on top
   }
 
   // Fight BGM
@@ -10620,7 +10645,7 @@ function pauseAudioForBackground() {
 
   // Also silence short-lived SFX elements to avoid stray sounds on resume
   // (these reset currentTime — they are fire-and-forget, not looping BGM)
-  ['akSound','punchSound','countdownSound'].forEach(id => {
+  ['countdownSound'].forEach(id => {
     try { const s = $(id); if(s && !s.paused){ s.pause(); s.currentTime = 0; } } catch(e) {}
   });
 }
@@ -10890,15 +10915,30 @@ async function svCloudUpload() {
   btn.disabled  = true;
 
   try {
-    const existingUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=secret_key,save_data,uploaded_at`;
-    const existingRes = await fetch(existingUrl, { headers: _cloudHeaders() });
-    if (!existingRes.ok) { svShowMsg(saveMsg, `❌ ตรวจสอบ ID ไม่สำเร็จ (${existingRes.status})`, 'err'); return; }
+    // SECURITY: never request the secret_key column back from Supabase. Ownership is
+    // verified by filtering (player_id AND secret_key) server-side — a wrong/unknown
+    // key simply matches zero rows. A second existence-only probe (selecting just
+    // player_id) tells "id free" apart from "id owned by a different secret" without
+    // ever exposing that secret to the client.
+    const ownUrl = `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&secret_key=eq.${encodeURIComponent(key)}&select=save_data,uploaded_at`;
+    const ownRes = await fetch(ownUrl, { headers: _cloudHeaders() });
+    if (!ownRes.ok) { svShowMsg(saveMsg, `❌ ตรวจสอบ ID ไม่สำเร็จ (${ownRes.status})`, 'err'); return; }
 
-    const existing = await existingRes.json();
-    const row = existing && existing[0];
-    if (row && row.secret_key && row.secret_key !== key) {
-      svShowMsg(saveMsg, `❌ ID "${id}" ถูกใช้แล้ว — เปลี่ยน ID ใหม่`, 'err');
-      return;
+    const ownRows = await ownRes.json();
+    const row = ownRows && ownRows[0];
+
+    if (!row) {
+      const existsRes = await fetch(
+        `${_SUPA_URL}/rest/v1/cloud_saves?player_id=eq.${encodeURIComponent(id)}&select=player_id`,
+        { headers: _cloudHeaders() }
+      );
+      if (existsRes.ok) {
+        const existsRows = await existsRes.json().catch(() => []);
+        if (Array.isArray(existsRows) && existsRows.length > 0) {
+          svShowMsg(saveMsg, `❌ ID "${id}" ถูกใช้แล้ว — เปลี่ยน ID ใหม่`, 'err');
+          return;
+        }
+      }
     }
 
     // ── Conflict guard: if cloud has newer data, warn player ──
@@ -11979,6 +12019,7 @@ Object.assign(window, {
   // ── save / cloud ──
   openSaveModal, closeSaveModal, svSwitchTab,
   svCloudUpload, svCloudDownload, svConfirmReset, svToggleSecret, svToggleLoadKey,
+  svCloudOnIdChange, svSecretKeydown,
   // ── settings ──
   toggleSetting, setSettingVolume, setFlashEffect,
 });

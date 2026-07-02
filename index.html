@@ -98,7 +98,7 @@
 <meta name="twitter:description" content="กดให้แรง กดให้เร็ว ก่อนเวลาจะหมด ⚡ เกม Action Clicker สาย Overdrive + การ์ดสุ่มสุดปั่น เล่นฟรีบนมือถือ">
 <!-- preload critical assets -->
 <link rel="preload" href="/logo.png" as="image">
-<link rel="preload" href="/default_bg.png"      as="image">
+<link rel="preload" href="/default_bg.webp"      as="image">
 <link rel="preload" href="/title_bg.png" as="image">
 <link rel="preload" href="/break_barrier.png" as="image">
 <link rel="preload" href="/weak.webp" as="image">
@@ -108,7 +108,6 @@
 <link rel="preload" href="/transfer.png" as="image">
 <link rel="preload" href="/void_main.png" as="image">
 <link rel="preload" href="/best_main.png" as="image">
-<link rel="preload" href="/47title.mp3" as="audio" type="audio/mpeg">
 <link rel="preload" href="/suang_icon.webp" as="image">
 <link rel="preload" href="/morgan_icon.webp" as="image">
 <link rel="preload" href="/old-cringe-album.webp" as="image">
@@ -841,6 +840,7 @@
 <audio id="fightBgm2" src="/fight2.mp3"  preload="none"></audio>
 <audio id="fightBgm3" src="/fight3.mp3"  preload="none"></audio>
 <audio id="fightBgm4" src="/fight4.mp3"  preload="none"></audio>
+<audio id="collectBgm" src="/collect.mp3" preload="none" loop></audio>
 
 <!-- WP5 ROUND SPLASH (เหมือน godSplash) -->
 <img src="/wp5.png" id="wp5Splash" alt="" decoding="async">
@@ -863,10 +863,14 @@ if ('serviceWorker' in navigator) {
         if (!urls.length || urls.some(url => new URL(url).pathname === SW_PATH)) continue;
         await reg.unregister();
       }
-      // ล้าง cache เก่าให้ตรงกับ version ใน sw.js
+      // ล้าง cache เก่าที่ไม่ตรง version ปัจจุบัน — เทียบแบบ prefix เพราะ postbuild-sw.js
+      // ต่อท้าย build tag ให้ CACHE_NAME จริง (เช่น "noctisak47-2026.07.01.5-abc123")
+      // การเทียบแบบ exact-match เดิมจะลบ cache ที่ใช้งานอยู่จริงทุกครั้งที่โหลดหน้า
       if ('caches' in window) {
         const keys = await caches.keys();
-        await Promise.all(keys.filter(k => k !== APP_CACHE_NAME).map(k => caches.delete(k)));
+        await Promise.all(
+          keys.filter(k => /^noctisak47[-_]/.test(k) && !k.startsWith(APP_CACHE_NAME)).map(k => caches.delete(k))
+        );
       }
       // register SW ใหม่
       const swUrl = './sw.js?v=' + encodeURIComponent(window.NOCTISAK47_APP_VERSION || '2026.05.18.1');

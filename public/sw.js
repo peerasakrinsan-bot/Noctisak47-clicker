@@ -1,4 +1,4 @@
-// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker 2026.06.07.1
+// NOCTISAK47: OVERDRIVE RAMPAGE — Service Worker
 const APP_VERSION = '2026.07.01.5';
 const CACHE_NAME = 'noctisak47-' + APP_VERSION;
 
@@ -16,7 +16,7 @@ const PRECACHE_ASSETS = [
   // Purchasable arenas (ONE Championship / Colosseum) are NOT precached — their
   // backgrounds cache on demand via the cache-first fetch handler when the arena
   // is previewed/equipped, mirroring the boss-skin policy. Keeps install ~1.8MB lighter.
-  './default_bg.png',
+  './default_bg.webp',
   './title_bg.png',
   './collect_bg.png',
   // Audio — title + first fight track (extra tracks load on demand)
@@ -44,8 +44,6 @@ const PRECACHE_ASSETS = [
   './ak47.png',
   './noobak47.png',
   './wp5.png',
-  './sound_on.png',
-  './sound_off.png',
   './card_back.png',
   './card.png',
   './card_hidden.png',
