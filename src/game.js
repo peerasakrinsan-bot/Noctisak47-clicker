@@ -11979,6 +11979,7 @@ Object.assign(window, {
   // ── save / cloud ──
   openSaveModal, closeSaveModal, svSwitchTab,
   svCloudUpload, svCloudDownload, svConfirmReset, svToggleSecret, svToggleLoadKey,
+  svCloudOnIdChange, svSecretKeydown,
   // ── settings ──
   toggleSetting, setSettingVolume, setFlashEffect,
 });
