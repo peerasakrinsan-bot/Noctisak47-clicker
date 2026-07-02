@@ -1863,6 +1863,40 @@ let _goldenActive = false;
 const KO_MILESTONES = [50, 100, 250, 500, 1000];
 let _koMilestoneIdx = 0;
 
+// ══════════════════════════════════════════════════════════════════════
+// RARE MOMENTS — Pack 1 (cosmetic celebration layer, presentation only)
+// ══════════════════════════════════════════════════════════════════════
+// Each moment is a "wow" beat layered on an EXISTING event (boss spawn, boss
+// KO, AK47 chain complete). None adds a new mechanic, currency, or save
+// field. GOLDEN BOSS is the only one that touches a reward number, and it
+// does so exactly like GOLDEN_ENEMY_COIN_MULT already does — a flat
+// multiplier applied to the coin variable the KO path already computes.
+// Every moment is hard-capped at once per run via `_rmFired` (reset by
+// `_rmResetRun()`, called from `initState()`).
+const RARE_MOMENT_GOLDEN_BOSS_CHANCE = 0.005; // ~1 in 200 boss spawns
+const RARE_MOMENT_COIN_MULT = { goldenBoss: 3 }; // reuses the bossCoins pipeline in bossKO()
+let _goldenBossActive = false; // true while the CURRENT boss is a Golden Boss
+const _rmFired = { goldenBoss: false };
+function _rmResetRun() {
+  _rmFired.goldenBoss = false;
+  _goldenBossActive = false;
+}
+// Shared celebration beat: splash + a camera-arbitrated shake, same recipe as
+// _triggerBerserkFx() / KO milestones. Wrapped so a cosmetic bug can never
+// break the run (same discipline as _checkKoMilestone).
+function _rmCelebrate(main, sub, color, center) {
+  try {
+    showBigSplash(main, sub, color, !!center);
+    if (cameraClaim(2, 300)) {
+      const gr = document.getElementById('gameRoot');
+      if (gr && gr.classList) {
+        gr.classList.remove('shake-wp'); void gr.offsetWidth; gr.classList.add('shake-wp');
+        setTimeout(() => { if (gr && gr.classList) gr.classList.remove('shake-wp'); }, 300);
+      }
+    }
+  } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
+}
+
 // Weak Point system
 let wpActive = false, wpTimeout = null, wpSchedule = null;
 let wpCollected = 0, wpRound = 1, wpCompletions = 0, wp5FirstDone = false;
@@ -1906,6 +1940,7 @@ function initState() {
   _applyBossSkinAura(_sk.id);
   _rollGoldenEnemy(); // fresh roll for the first enemy of the run
   _koMilestoneIdx = 0;
+  _rmResetRun(); // RARE MOMENTS: clear once-per-run caps for the new run
   _el.bossBar.style.display = 'none';
   _el.godLevelWrap.style.display = 'none';
   _resetOdBadge();
@@ -9278,7 +9313,9 @@ function _rollGoldenEnemy() {
 function _clearGoldenEnemy() {
   _goldenActive = false;
   const el = $('boxer');
-  if (el) el.classList.remove('golden-enemy');
+  // RARE MOMENT: GOLDEN BOSS reuses this same CSS class on the boss sprite —
+  // don't let the (unrelated) normal-enemy golden roll clear it mid-fight.
+  if (el && !_goldenBossActive) el.classList.remove('golden-enemy');
 }
 
 // KO MILESTONES — non-blocking celebration beat at per-run KO thresholds.
@@ -9343,10 +9380,22 @@ function spawnBoss() {
   const scale = Math.pow(_hpMult, window._bossesDefeated||0);
   bossMaxHP=Math.round(maxHP*5*scale);
   bossHP=bossMaxHP;
+  // RARE MOMENT: GOLDEN BOSS — very rare boss variant. Same boss, same HP/
+  // damage/rewards pipeline, reuses the Golden Enemy visual language
+  // (.golden-enemy tint) on the SAME sprite. Hard cap: once per run.
+  _goldenBossActive = !_rmFired.goldenBoss && Math.random() < RARE_MOMENT_GOLDEN_BOSS_CHANCE;
+  if (_goldenBossActive) _rmFired.goldenBoss = true;
+  const _boxerEl = $('boxer');
+  if (_boxerEl) _boxerEl.classList.toggle('golden-enemy', _goldenBossActive);
   _el.bossBar.style.display='block';
   updateUI(); // sync hpFill — now isBoss=true so ratio = bossHP/bossMaxHP = 1
   const arr=$('bossArrival');
-  if(arr){ $('bossArrivalPhase').textContent='BOSS INCOMING'; arr.className=''; void arr.offsetWidth; arr.className='show'; }
+  if(arr){
+    const phaseEl = $('bossArrivalPhase');
+    phaseEl.textContent = _goldenBossActive ? 'GOLDEN BOSS INCOMING' : 'BOSS INCOMING';
+    phaseEl.style.color = _goldenBossActive ? '#ffd700' : '';
+    arr.className=''; void arr.offsetWidth; arr.className='show';
+  }
   triggerFlash('flash-boss');
 }
 
@@ -9379,6 +9428,8 @@ function _triggerBerserkFx() {
 
 function bossKO() {
   csOnBossKO();
+  const _wasGoldenBoss = _goldenBossActive; // capture before reset below
+  _goldenBossActive = false;
   isBoss=false; ko++;
   window._wqRunKO = (window._wqRunKO || 0) + 1; // weekly per-run KO counter
   bossTapCount = 0; lastTapTime = 0; // reset tap ramp on boss KO
@@ -9395,6 +9446,10 @@ function bossKO() {
   // ── Zeny KO reduction (late-game economy rebalance) ──
   // Applied after all card mods so card bonuses are also scaled down proportionally.
   bossCoins = Math.round(bossCoins * getZenyKoMultiplier((save && save.stats && save.stats.totalKO) || 0));
+  // RARE MOMENT: GOLDEN BOSS reward — flat multiplier on this one boss KO only,
+  // same technique as GOLDEN_ENEMY_COIN_MULT. No new mechanic; this is the same
+  // bossCoins variable already flowing through the existing coin pipeline.
+  if(_wasGoldenBoss) bossCoins = Math.round(bossCoins * RARE_MOMENT_COIN_MULT.goldenBoss);
   roundCoins+=bossCoins;
   score+=500+combo*15;
   // Moonlight Flower: +500 score per KO
@@ -9408,7 +9463,16 @@ function bossKO() {
   updateUI(); // isBoss is now false — hpFill snaps to 100% for next enemy
   _el.bossBar.style.display='none';
   spawnCoinPopup(bossCoins);
-  showBigSplash('BOSS KO','+'+bossCoins+' COIN','#ffcc00');
+  if(_wasGoldenBoss) {
+    // RARE MOMENT: GOLDEN BOSS payoff — same splash system, gold coin burst
+    // (reuses the CanvasVFX coinBurst primitive already used by NEW RECORD).
+    showBigSplash('GOLDEN BOSS KO!', '+'+bossCoins+' COIN (x'+RARE_MOMENT_COIN_MULT.goldenBoss+')', '#ffd700', true);
+    if (window.CanvasVFX && typeof window.CanvasVFX.spawnCanvasVfx === 'function') {
+      window.CanvasVFX.spawnCanvasVfx('coinBurst', _bossSkillCoords());
+    }
+  } else {
+    showBigSplash('BOSS KO','+'+bossCoins+' COIN','#ffcc00');
+  }
   showKOFlash(true);
   playWpBall(); // Boss KO had zero SFX despite the heavy visual payoff — reuse the existing "success ding"
   _triggerBossDeathVfx(); // ฉากตายเฉพาะตัวต่อบอส + กล้องประจำบอส (คอสเมติก)
