@@ -19,9 +19,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    // ปิด minify ชั่วคราวระหว่างย้ายโค้ด (Stage 2A/2B) เพื่อให้ production รันโค้ดเกม
-    // verbatim เหมือนเดิมเป๊ะ ๆ — ตัด minifier ออกจากตัวแปรเสี่ยงจนกว่าจะมี regression
-    // test บนเบราว์เซอร์ครบ แล้วค่อยเปิด minify เพื่อลดขนาด.
-    minify: false,
+    // Production hardening (Phase 2): minify + dead-code elimination is now enabled.
+    // Stage 2A/2B kept this off so early production diffs stayed readable; the
+    // card-audit / card-vfx-audit / smoke scripts plus manual regression passes now
+    // give enough coverage to ship minified output. This project runs on
+    // rolldown-vite (Vite 8), whose bundled minifier is "oxc" (a native Rust
+    // minifier) — the plain esbuild/terser npm packages are not installed, so
+    // "oxc" is the correct built-in value here (not "esbuild"). Source maps stay on
+    // so a production stack trace or devtools breakpoint still resolves back to the
+    // original (unminified, commented) source — they are separate .js.map/.css.map
+    // files the service worker never precaches (postbuild-sw.js only matches bundle
+    // files ending in .js/.css) and ordinary players never fetch.
+    minify: 'oxc',
+    sourcemap: true,
   },
 });
