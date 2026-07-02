@@ -8332,6 +8332,10 @@ function endGame(opts = {}) {
   commitWeeklyProgress(); // ── Weekly Challenge: commit run stats once ──
   _csLastCards = null;
 
+  // NEW RECORD EVENT — fire once here (endGame runs once per run) while the game
+  // view is still visible, before it gets hidden below. Pure presentation.
+  if (isNewRecord) _triggerNewRecordCelebration(score);
+
   // hide game elements
   $('topUI').style.display='none';
   $('fighter').style.display='none';
@@ -8438,11 +8442,22 @@ function endGame(opts = {}) {
     window.dispatchEvent(new CustomEvent('noctis:first-run-complete'));
   }
 
-  // score >= 10k → ลุ้นการ์ด
-  if(score >= 10000) {
-    openCardDraw(()=>{ _showResultScreen(); });
+  function _proceedToResultScreen() {
+    // score >= 10k → ลุ้นการ์ด
+    if(score >= 10000) {
+      openCardDraw(()=>{ _showResultScreen(); });
+    } else {
+      _showResultScreen();
+    }
+  }
+
+  // NEW RECORD: let the celebration beat (freeze/flash/shake/splash) land on the
+  // still-visible game view before the result modal (z-index 997) covers it.
+  // Non-record runs are completely unaffected — zero added delay.
+  if (isNewRecord) {
+    setTimeout(_proceedToResultScreen, 650);
   } else {
-    _showResultScreen();
+    _proceedToResultScreen();
   }
 }
 
@@ -9399,6 +9414,34 @@ function _triggerBossDeathVfx() {
     if (CV && typeof CV.spawnBossDeathVfx === 'function') CV.spawnBossDeathVfx(skinId, { x: c.x, y: c.y });
     const meta = (CV && CV.BOSS_VFX) ? CV.BOSS_VFX[skinId] : null;
     _applyBossCamera((meta && meta.camera) || 'shake');
+  } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
+}
+
+// NEW RECORD EVENT — fires once per run (endGame runs once), pure presentation.
+// Reuses: _applyBossCamera('freeze') for the hitstop beat, the existing #bombFlash
+// gold-flash element (same one AK47 BOMB uses) + #gameRoot.shake for the flash/shake,
+// showBigSplash for the splash text, playWpBall for the stinger (same "success ding"
+// already reused for Boss KO), and CanvasVFX's existing coinBurst for the gold burst.
+function _triggerNewRecordCelebration(finalScore) {
+  try {
+    _applyBossCamera('freeze');
+    setTimeout(() => {
+      const bf = $('bombFlash');
+      if (bf) { bf.className = ''; void bf.offsetWidth; bf.className = 'boom'; }
+      const gr = document.getElementById('gameRoot');
+      if (gr && gr.classList) {
+        cameraClaim(3, 600);
+        gr.classList.remove('shake'); void gr.offsetWidth; gr.classList.add('shake');
+        setTimeout(() => { if (gr && gr.classList) gr.classList.remove('shake'); }, 600);
+      }
+      showBigSplash('NEW RECORD!', formatNum(finalScore) + ' PTS', '#ffcc00', true);
+      playWpBall();
+      if (window.CanvasVFX && typeof window.CanvasVFX.spawnCanvasVfx === 'function') {
+        const el = $('scoreDisplay');
+        const pos = el ? el.getBoundingClientRect() : null;
+        window.CanvasVFX.spawnCanvasVfx('coinBurst', pos ? { x: pos.left + pos.width / 2, y: pos.top + pos.height / 2 } : {});
+      }
+    }, 260);
   } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
 }
 
