@@ -286,8 +286,10 @@ function warmUpAudio() {
   if(ctx.state === 'suspended') ctx.resume();
   // โหลด SFX ทั้งหมด
   Object.entries(SFX_FILES).forEach(([id, url]) => _loadSfx(id, url));
-  // preload collect.mp3 buffer ไว้ใช้ทันที
-  fetch('collect.mp3').then(r=>r.arrayBuffer()).then(ab=>_getActx().decodeAudioData(ab)).then(buf=>{ window._collectBuf = buf; }).catch(()=>{});
+  // เริ่มบัฟเฟอร์ collect.mp3 ล่วงหน้าผ่าน <audio> element ธรรมดา (เหมือน fight BGM) —
+  // ไม่ decode เป็น AudioBuffer ค้างหน่วยความจำอีกต่อไป (เพลง ~39 วิ = PCM ~13MB ถ้า decode)
+  const cbEl = $('collectBgm');
+  if(cbEl && cbEl.preload === 'none') { cbEl.preload = 'auto'; cbEl.load(); }
 }
 
 function _musicGain(base) { return gameSettings.musicOn ? base * gameSettings.musicVolume : 0; }
@@ -298,9 +300,7 @@ function applyAudioSettings() {
   const bgm = $('bgmSound'); if(bgm) bgm.volume = _musicGain(TITLE_BGM_VOLUME);
   [1,2,3,4].forEach(i=>{ const t=$('fightBgm'+i); if(t) t.volume = _musicGain(FIGHT_BGM_VOLUME); });
   const cd = $('countdownSound'); if(cd) cd.volume = _sfxGain(1.0);
-  if(window._collectAudio && window._collectAudio.gain) {
-    window._collectAudio.gain.gain.value = _musicGain(COLLECT_BGM_VOLUME);
-  }
+  const cb = $('collectBgm'); if(cb) cb.volume = _musicGain(COLLECT_BGM_VOLUME);
   document.body.classList.toggle('reduce-flash', !!gameSettings.reduceFlash);
   applyFlashEffectSetting();
   syncSettingsUI();
@@ -5737,44 +5737,28 @@ function openCardDraw(onDone) {
   _playCollectBGM();
 }
 
+// Plays via a plain <audio> element (like bgmSound / fightBgm1-4) instead of a
+// permanently-decoded Web Audio AudioBuffer — collect.mp3 is a ~39s music loop,
+// not a latency-critical SFX, so it doesn't need zero-latency BufferSource
+// playback; decoding it once held ~13MB of raw PCM in memory for the rest of
+// the session. warmUpAudio() already primes this element's buffering ahead of
+// time via preload="auto" + load(), same lead-time strategy as prefetchFightBGM().
 function _playCollectBGM() {
   _stopCollectBGM();
   if(!gameSettings.musicOn) return;
+  const el = $('collectBgm');
+  if(!el) return;
   try {
-    const ctx = _getActx();
-    if(ctx.state === 'suspended') ctx.resume();
-
-    function _startWithBuf(buf) {
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
-      const gain = ctx.createGain();
-      gain.gain.value = _musicGain(COLLECT_BGM_VOLUME);
-      src.connect(gain);
-      gain.connect(ctx.destination);
-      src.start(0);
-      window._collectAudio = { src, gain, stop: ()=>{ try{ src.stop(); }catch(e){} } };
-    }
-
-    if(window._collectBuf) {
-      // ใช้ buffer ที่ preload ไว้แล้ว — เล่นได้ทันที
-      _startWithBuf(window._collectBuf);
-    } else {
-      // fallback โหลดใหม่
-      fetch('collect.mp3')
-        .then(r => r.arrayBuffer())
-        .then(ab => ctx.decodeAudioData(ab))
-        .then(buf => { window._collectBuf = buf; if(gameSettings.musicOn) _startWithBuf(buf); })
-        .catch(e => console.warn('collect.mp3 fail', e));
-    }
+    el.volume = _musicGain(COLLECT_BGM_VOLUME);
+    el.currentTime = 0;
+    const p = el.play();
+    if(p && typeof p.catch === 'function') p.catch(()=>{});
   } catch(e) { console.warn('collect BGM error', e); }
 }
 
 function _stopCollectBGM() {
-  if(window._collectAudio) {
-    try { window._collectAudio.stop(); } catch(e) {}
-    window._collectAudio = null;
-  }
+  const el = $('collectBgm');
+  if(el && !el.paused) { el.pause(); el.currentTime = 0; }
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -10563,12 +10547,10 @@ function _isFightBgmPlaying() {
   return _fightBgmActive && !!(_fightBgmCurrent && !_fightBgmCurrent.paused);
 }
 
-/** Returns true if the WebAudio collect BGM is active. */
+/** Returns true if the collect BGM <audio> element is currently playing. */
 function _isCollectBgmPlaying() {
-  if (!window._collectAudio) return false;
-  // WebAudio BufferSourceNode has no .paused — if the object exists and _actx
-  // is running, we treat it as playing.
-  try { return _actx && _actx.state === 'running'; } catch(e) { return false; }
+  const el = $('collectBgm');
+  return !!(el && !el.paused);
 }
 
 /** Pause all BGM tracks for backgrounding. Preserves currentTime. */
@@ -10586,20 +10568,20 @@ function pauseAllBgmForBackground() {
     // Keep _fightBgmActive true and _fightBgmCurrent reference so resume works
   }
 
-  // Collect BGM (WebAudio — suspend the context)
-  if (window._collectAudio && _actx) {
-    try { _actx.suspend(); } catch(e) {}
-  }
+  // Collect BGM (HTMLAudioElement)
+  const collectEl = $('collectBgm');
+  if (collectEl && !collectEl.paused) collectEl.pause();
 }
 
 /** Resume BGM tracks after returning from background. Respects mute settings. */
 function resumeCurrentBgmIfAllowed() {
   if (!gameSettings.musicOn) return; // user has music muted — don't resume anything
 
-  // Collect BGM (WebAudio — resume context first)
-  if (_collectBgmWasPlayingBeforeHidden && window._collectAudio && _actx) {
-    try { _actx.resume().catch(() => {}); } catch(e) {}
-    return; // collect BGM context holds everything; don't layer fight/title on top
+  // Collect BGM
+  if (_collectBgmWasPlayingBeforeHidden) {
+    const collectEl = $('collectBgm');
+    if (collectEl && collectEl.paused) collectEl.play().catch(() => {});
+    return; // collect BGM owns the moment; don't layer fight/title on top
   }
 
   // Fight BGM
