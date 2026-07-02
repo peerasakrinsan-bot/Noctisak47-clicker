@@ -8307,6 +8307,8 @@ function endGame(opts = {}) {
   // save stats + coins — เฉพาะจบเกมปกติ (ไม่ใช่ quit)
   const prevHS = save.stats.highScore || 0;
   const isNewRecord = score > prevHS;
+  const prevMaxCombo = save.stats.maxCombo || 0;
+  const isNewComboRecord = maxCombo > prevMaxCombo;
   save.stats.totalKO=(save.stats.totalKO||0)+ko;
   save.stats.maxCombo=Math.max(save.stats.maxCombo||0,maxCombo);
   save.stats.highScore=Math.max(prevHS,score);
@@ -8366,6 +8368,37 @@ function endGame(opts = {}) {
     if ($('res-break'))    $('res-break').textContent    = formatNum(pressureSummary.successes || 0);
     if ($('res-wp'))       $('res-wp').textContent       = formatNum(wpCompletions);
     if ($('res-od'))       $('res-od').textContent       = formatNum(odActivations || 0);
+
+    // ── RESULT HIGHLIGHT REEL — a few contextual lines built entirely from stats
+    // already tracked this run (isNewRecord/isNewComboRecord/prevHS reuse the exact
+    // same save.stats comparison already computed above; window._bossesDefeated is
+    // the existing per-run boss counter used for boss HP scaling; save.weeklyChallenge
+    // is the existing weekly-progress object). No new gameplay statistics introduced.
+    (function _renderHighlights() {
+      const box = $('res-highlights');
+      if (!box) return;
+      const lines = [];
+      if (isNewRecord) lines.push({ text: '🏆 NEW SCORE RECORD', cls: 'gold' });
+      if (isNewComboRecord && maxCombo > 0) lines.push({ text: '🔥 NEW BEST COMBO x' + formatNum(maxCombo), cls: 'gold' });
+      if ((window._bossesDefeated || 0) > 0) lines.push({ text: formatNum(window._bossesDefeated) + ' BOSSES DEFEATED', cls: 'cyan' });
+      if (!isNewRecord && prevHS > 0) {
+        const gap = prevHS - score;
+        if (gap > 0 && gap <= Math.max(50, prevHS * 0.15)) {
+          lines.push({ text: formatNum(gap) + ' PTS FROM YOUR BEST', cls: '' });
+        }
+      }
+      const wq = save.weeklyChallenge;
+      if (wq && wq.claimed) {
+        let goalText = '';
+        if (!wq.claimed.tier1 && !wqTierIsComplete(1)) goalText = 'WEEKLY I: ' + formatNum(wq.runsCompleted || 0) + '/5 RUNS';
+        else if (!wq.claimed.tier2 && !wqTierIsComplete(2)) goalText = 'WEEKLY II: ' + formatNum(wq.totalKO || 0) + '/3,000 KO';
+        else if (!wq.claimed.tier3 && !wqTierIsComplete(3)) goalText = 'WEEKLY III: ' + formatNum(wq.breakSuccess || 0) + '/40 BREAK';
+        if (goalText) lines.push({ text: goalText, cls: '' });
+      }
+      box.innerHTML = lines.slice(0, 3).map(l =>
+        '<div class="res-highlight-line' + (l.cls ? ' ' + l.cls : '') + '">' + l.text + '</div>'
+      ).join('');
+    })();
 
     // ── RUN CARD: render the card used this run ──
     // activeCard is captured at endGame() entry; null if no card was equipped.

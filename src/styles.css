@@ -1981,6 +1981,13 @@
   .result-grid-sub .result-cell { padding:clamp(6px,1.6vh,10px) 6px; }
   .result-cell-val.small { font-size:clamp(15px,4.5vw,22px); text-shadow:none; }
   #res-highscore { font-size:10px !important; }
+
+  /* ── RESULT HIGHLIGHT REEL — a few contextual lines, reuses existing stats only ── */
+  #res-highlights { display:flex; flex-direction:column; align-items:center; gap:2px; margin:2px 0 4px; min-height:0; }
+  .res-highlight-line { font-size:10px; letter-spacing:2px; color:#888; }
+  .res-highlight-line.gold { color:var(--gold); text-shadow:0 0 12px rgba(255,204,0,0.4); }
+  .res-highlight-line.cyan { color:var(--cyan); }
+
   #coinsEarned {
     font-size:clamp(15px,5vw,20px); color:var(--gold); letter-spacing:2px;
     padding:clamp(7px,1.8vh,11px) 20px;
