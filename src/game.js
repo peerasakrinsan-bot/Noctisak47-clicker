@@ -1829,6 +1829,8 @@ let combo, lastHitTime, lastIndex;
 
 // Overdrive
 let godLevel, canEnterGod, godTimeout, godInterval, godHitCount;
+// Run-scoped count of OD activations (Lv1 entries) this run — result-screen display only.
+let odActivations;
 
 // ── Infinite Tap Ramp ──
 // Normal taps (including OD extra hits) accumulate bossTapCount.
@@ -1861,7 +1863,7 @@ function initState() {
   bossHP = bossMaxHP = 0;
   isBoss = false; bossPhase = 1;
   combo = 1; lastHitTime = 0; lastIndex = -1;
-  godLevel = 0; canEnterGod = true; godHitCount = 0;
+  godLevel = 0; canEnterGod = true; godHitCount = 0; odActivations = 0;
   bossTapCount = 0; lastTapTime = 0;
   ko = 0; score = 0; maxCombo = 0; annihilationCount = 0; roundCoins = 0;
   // BAPHOBET DEVIL TAX: clear any cinematic state from a prior run
@@ -8330,6 +8332,12 @@ function endGame(opts = {}) {
     $('res-hs-num').textContent = formatNum(save.stats.highScore);
     $('newRecordBanner').style.display = isNewRecord ? 'block' : 'none';
     $('res-highscore').style.color = isNewRecord ? 'var(--gold)' : '#555';
+    // Run stats — reuses tracked run counters, no new statistics introduced
+    if ($('res-ko'))       $('res-ko').textContent       = formatNum(ko);
+    if ($('res-maxcombo')) $('res-maxcombo').textContent = formatNum(maxCombo);
+    if ($('res-break'))    $('res-break').textContent    = formatNum(pressureSummary.successes || 0);
+    if ($('res-wp'))       $('res-wp').textContent       = formatNum(wpCompletions);
+    if ($('res-od'))       $('res-od').textContent       = formatNum(odActivations || 0);
 
     // ── RUN CARD: render the card used this run ──
     // activeCard is captured at endGame() entry; null if no card was equipped.
@@ -9393,6 +9401,7 @@ function activateGodLevel(lv) {
   _triggerBossSkillVfx(lv); // บอสสกิล VFX เฉพาะตัว (คอสเมติก)
 
   if(lv===1){
+    odActivations = (odActivations || 0) + 1;
     const sp=$('godSplash');
     sp.classList.remove('showSplash'); void sp.offsetWidth; sp.classList.add('showSplash');
   }

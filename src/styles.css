@@ -1977,6 +1977,9 @@
   .result-cell-val { font-size:clamp(28px,9vw,46px); color:var(--gold); font-family:'Oswald',sans-serif; letter-spacing:2px; text-shadow:0 0 30px rgba(255,204,0,0.55), 0 2px 0 rgba(0,0,0,0.8); line-height:1; }
   .result-cell-val.gold { color:var(--gold); }
   .result-cell-val.cyan { color:var(--cyan); }
+  .result-grid-sub { grid-template-columns:repeat(3,1fr); gap:6px; width:min(320px,90vw); margin:8px auto 0; }
+  .result-grid-sub .result-cell { padding:clamp(6px,1.6vh,10px) 6px; }
+  .result-cell-val.small { font-size:clamp(15px,4.5vw,22px); text-shadow:none; }
   #res-highscore { font-size:10px !important; }
   #coinsEarned {
     font-size:clamp(15px,5vw,20px); color:var(--gold); letter-spacing:2px;

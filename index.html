@@ -616,6 +616,29 @@
   </div>
   <div id="res-highscore" style="font-size:11px;letter-spacing:3px;color:#555;margin:4px 0 2px;display:flex;align-items:center;justify-content:center;gap:6px;"><span class="css-trophy"></span>BEST: <span id="res-hs-num">0</span></div>
   <div id="coinsEarned">+0 ZENY</div>
+  <!-- Run stats — reuses tracked run counters (ko / maxCombo / BREAK successes / AK47 chains / OD activations) -->
+  <div class="result-grid result-grid-sub">
+    <div class="result-cell">
+      <div class="result-cell-label">BOSS KO</div>
+      <div class="result-cell-val cyan small" id="res-ko">0</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-cell-label">MAX COMBO</div>
+      <div class="result-cell-val cyan small" id="res-maxcombo">0</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-cell-label">BREAK</div>
+      <div class="result-cell-val cyan small" id="res-break">0</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-cell-label">WP CHAIN</div>
+      <div class="result-cell-val cyan small" id="res-wp">0</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-cell-label">OD ACTIVATED</div>
+      <div class="result-cell-val cyan small" id="res-od">0</div>
+    </div>
+  </div>
   <!-- RUN CARD: populated by _showResultScreen() -->
   <div id="res-run-card" class="no-card">
     <div id="res-run-card-icon">🃏</div>
