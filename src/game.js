@@ -9463,6 +9463,15 @@ function activateGodLevel(lv) {
 
 function exitGodMode() {
   csOnOdEnd();
+  // OD Lv1/Lv2 used to vanish with zero punctuation (Lv3 already gets a loud
+  // finalAnnihilation ending) — reuse the same boss-portrait pulse fired at OD
+  // activation so the power dropping off reads as a beat, not a silent cut.
+  if (boxer && boxer.classList) {
+    boxer.classList.remove('boss-skill-pulse');
+    void boxer.offsetWidth;
+    boxer.classList.add('boss-skill-pulse');
+    setTimeout(() => { if (boxer && boxer.classList) boxer.classList.remove('boss-skill-pulse'); }, 520);
+  }
   godLevel=0; canEnterGod=false;
   gun.style.display='none';
   combo=1; lastHitTime=0;
