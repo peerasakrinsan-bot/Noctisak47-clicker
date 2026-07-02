@@ -8077,6 +8077,15 @@ function _triggerRageMaxKO() {
   clearTimeout(godTimeout);
   clearInterval(godInterval);
   clearTimeout(wpSchedule); clearTimeout(wpTimeout);
+  // RAGE MAX used to be all text — no shake, no flash — for a death whose whole
+  // point is "the boss became uncontrollable". Reuses the same climactic flash +
+  // shake AK47 BOMB / Annihilation use so it hits like a KO, not a fade.
+  triggerFlash('flash-boss');
+  const _grRageMax = document.getElementById('gameRoot');
+  if (_grRageMax && _grRageMax.classList && cameraClaim(3, 500)) {
+    _grRageMax.classList.remove('shake'); void _grRageMax.offsetWidth; _grRageMax.classList.add('shake');
+    setTimeout(() => { if (_grRageMax && _grRageMax.classList) _grRageMax.classList.remove('shake'); }, 500);
+  }
   showBigSplash('RAGE MAX!', 'The boss became uncontrollable.', '#ff2233', true);
   setTimeout(() => endGame({gameOver:true}), 850);
 }
