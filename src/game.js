@@ -465,8 +465,10 @@ function normalizeSaveData(d) {
   d.ownedSkins = Array.from(new Set(d.ownedSkins.filter(id => typeof id === 'string' && id)));
   if (!d.ownedSkins.includes('default')) d.ownedSkins.unshift('default');
   if (!Array.isArray(d.ownedArenas)) d.ownedArenas = ['default'];
+  d.ownedArenas = Array.from(new Set(d.ownedArenas.filter(id => typeof id === 'string' && id)));
+  if (!d.ownedArenas.includes('default')) d.ownedArenas.unshift('default');
   if (!d.activeSkin || !d.ownedSkins.includes(d.activeSkin)) d.activeSkin = 'default';
-  if (!d.activeArena) d.activeArena = 'default';
+  if (!d.activeArena || !d.ownedArenas.includes(d.activeArena)) d.activeArena = 'default';
   if (!d.savedCards) d.savedCards = null;
   if (!Array.isArray(d.unlockedCards)) d.unlockedCards = ['po','lu','fa','co','pp'];
   d.gamesCompleted = Math.max(0, Math.floor(Number(d.gamesCompleted) || 0));
