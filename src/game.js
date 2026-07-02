@@ -915,7 +915,7 @@ const ASSETS = {
     // Purchasable arena bgs (one_bg / colosseum_bg) are NOT eagerly preloaded —
     // they lazily load on-demand when the arena shop opens (_drawArenaPreview) or
     // the arena is equipped (_applyArenaBg, CSS url), and the SW caches them then.
-    'title_bg.png','default_bg.png',
+    'title_bg.png','default_bg.webp',
     // XUANG skin
     'xuang_icon.webp','xuang.png','xuang_hit1.png','xuang_hit2.png','xuang_hit3.png','xuang_hit4.png',
     // default skin
@@ -1648,16 +1648,16 @@ const ARENA_SKINS = [
     id: 'default',
     name: 'RAJADAMNERN\nSTADIUM',
     sub: 'Default Arena',
-    preview: 'default_bg.png',
-    bg: 'default_bg.png',
+    preview: 'default_bg.webp',
+    bg: 'default_bg.webp',
     cost: 0,
   },
   {
     id: 'one_championship',
     name: 'ONE\nCHAMPIONSHIP',
     sub: '500 ZENY',
-    preview: 'one_bg.png',
-    bg: 'one_bg.png',
+    preview: 'one_bg.webp',
+    bg: 'one_bg.webp',
     cost: 500,
   },
   {
@@ -1665,7 +1665,7 @@ const ARENA_SKINS = [
     name: 'COLOSSEUM',
     sub: '500 ZENY',
     preview: 'colosseum_bg.webp',
-    bg: 'colosseum_bg.png',
+    bg: 'colosseum_bg.webp',
     cost: 500,
   },
 ];
