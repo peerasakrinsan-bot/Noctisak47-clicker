@@ -278,7 +278,6 @@ const SFX_FILES = {
 
 // unlock AudioContext + โหลด SFX ทั้งหมดหลัง user gesture ครั้งแรก
 let audioWarmedUp = false;
-function initVolumes() {} // stub — Web Audio handles volume per-play
 function warmUpAudio() {
   if(audioWarmedUp) return;
   audioWarmedUp = true;
@@ -380,19 +379,7 @@ function setSettingVolume(type, value) {
   persistSettings();
 }
 
-function applyMute(muted) {
-  gameSettings.musicOn = !muted;
-  gameSettings.sfxOn = !muted;
-  applyAudioSettings();
-}
 function _syncSoundBtns() { syncSettingsUI(); }
-function toggleSound() {
-  const next = !(gameSettings.musicOn || gameSettings.sfxOn);
-  gameSettings.musicOn = next;
-  gameSettings.sfxOn = next;
-  applyAudioSettings();
-  persistSettings();
-}
 
 // เล่นเสียง SFX ที่เป็น <audio> element (เช่น countdown) ผ่าน gate เดียวกับ _playSfx
 // ใช้ตัวกลางตัวเดียวกัน: เคารพ sfxOn + sfxVolume และมี fallback กัน error
@@ -1011,7 +998,6 @@ let _preloadEnterStarted = false;
 function onAllLoaded() {
   if(_allLoadedCalled) return;
   _allLoadedCalled = true;
-  initVolumes();
   // ให้ progress bar animate ไปถึง 100% ก่อน แล้วค่อยแสดง TAP TO START
   const loadBar  = document.getElementById('loadBar');
   const loadPct  = document.getElementById('loadPct');
@@ -1107,10 +1093,6 @@ function _cacheEls() {
    'bigCombo','comboWrap','multiBadge','multiNum'].forEach(id => {
     _el[id] = document.getElementById(id);
   });
-  // stub ที่ลบออกไปแล้ว — ป้องกัน null error
-  _el.bossHpFill  = { style:{} };
-  _el.bossName    = { style:{}, textContent:'' };
-  _el.bossPhaseTag= { textContent:'' };
 }
 _cacheEls();
 
@@ -1879,7 +1861,6 @@ function initState() {
   _el.godLevelWrap.style.display = 'none';
   _resetOdBadge();
   updateOdScreenAura(0);
-  _el.bossPhaseTag.textContent = '';
   updateUI();
   rebuildStatCache();
   _resetHpTier();
@@ -7053,7 +7034,7 @@ function startGame() {
   $('tapZone').style.display='none';
   $('streakLabel').style.display='none';
   $('wpCounter').style.display='none';
-  initVolumes(); initState(); warmUpAudio();
+  initState(); warmUpAudio();
   csReset(false);
   openCardSlot(()=>{
     // แสดง UI หลังเลือกการ์ดแล้ว
@@ -7101,7 +7082,7 @@ function retryGame() {
   $('streakLabel').style.display='block';
   $('wpCounter').style.display='flex';
   _syncSoundBtns();
-  initVolumes(); initState();
+  initState();
   csReset(true); // ล้าง savedCards — retry สุ่มใหม่เสมอ
   // เล่น title BGM ระหว่างหน้า card slot
   playBGM();
@@ -9023,8 +9004,6 @@ function processHit(e, now) {
     if(isBoss){
       if(bossHP <= bossMaxHP*0.5 && bossPhase === 1){
         bossPhase = 2;
-        _el.bossPhaseTag.textContent = 'BERSERK NOCTIS';
-        _el.bossName.style.color = '#ff4400';
         showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
       }
       if(bossHP <= 0) bossKO();
@@ -9088,7 +9067,6 @@ function processHit(e, now) {
 function applyBossDamage(amount, source) {
   if (isBoss) {
     bossHP = Math.max(0, bossHP - amount);
-    _el.bossHpFill.style.width = (bossHP / bossMaxHP * 100) + '%';
   } else {
     hp = Math.max(0, hp - amount);
   }
@@ -9113,8 +9091,6 @@ function applyDamage(dmg,e,isCrit,fxWeight) {
   if(isBoss){
     if(bossHP<=bossMaxHP*0.5&&bossPhase===1){
       bossPhase=2;
-      _el.bossPhaseTag.textContent='BERSERK NOCTIS';
-      _el.bossName.style.color='#ff4400';
       showBigSplash('BERSERK!','NOCTIS ENRAGED','#ff4400');
     }
     if(bossHP<=0) bossKO();
@@ -9167,9 +9143,6 @@ function spawnBoss() {
   bossMaxHP=Math.round(maxHP*5*scale);
   bossHP=bossMaxHP;
   _el.bossBar.style.display='block';
-  _el.bossHpFill.style.width='100%';
-  _el.bossPhaseTag.textContent='';
-  _el.bossName.style.color='var(--red)';
   updateUI(); // sync hpFill — now isBoss=true so ratio = bossHP/bossMaxHP = 1
   const arr=$('bossArrival');
   if(arr){ $('bossArrivalPhase').textContent='BOSS INCOMING'; arr.className=''; void arr.offsetWidth; arr.className='show'; }
@@ -10621,7 +10594,7 @@ function pauseAudioForBackground() {
 
   // Also silence short-lived SFX elements to avoid stray sounds on resume
   // (these reset currentTime — they are fire-and-forget, not looping BGM)
-  ['akSound','punchSound','countdownSound'].forEach(id => {
+  ['countdownSound'].forEach(id => {
     try { const s = $(id); if(s && !s.paused){ s.pause(); s.currentTime = 0; } } catch(e) {}
   });
 }
