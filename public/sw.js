@@ -44,8 +44,6 @@ const PRECACHE_ASSETS = [
   './ak47.png',
   './noobak47.png',
   './wp5.png',
-  './sound_on.png',
-  './sound_off.png',
   './card_back.png',
   './card.png',
   './card_hidden.png',

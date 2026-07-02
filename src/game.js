@@ -926,7 +926,7 @@ const ASSETS = {
     'sornsit_icon.webp','sornsit.png','sornsit_hit1.png','sornsit_hit2.png','sornsit_hit3.png','sornsit_hit4.png',
     // game UI critical
     'ak47.png','noobak47.png','wp5.png','break_core.png','break_barrier.png','weak.webp',
-    'sound_on.png','sound_off.png','transfer.png','card.png','shop.png','play.png','arena.png','pause.png',
+    'transfer.png','card.png','shop.png','play.png','arena.png','pause.png',
     'void_main.png','best_main.png',
     CARD_HIDDEN_IMG,'card_back.png','logo.png',
     // shop/OCA item art (optional, non-blocking; preload keeps renamed assets warm)
@@ -8391,6 +8391,17 @@ const INPUT = (() => {
     return Math.sqrt(arr.map(x=>(x-mean)**2).reduce((a,b)=>a+b,0)/arr.length);
   }
 
+  // Prune finger-timestamp entries the per-finger rate limit no longer needs —
+  // Android can hand out ever-increasing touch identifiers across a long/rapid
+  // multi-touch session, so without this the Map grows unbounded for the run's
+  // duration. Only sweeps once the map gets large; cheap no-op otherwise.
+  function _pruneFingers(now) {
+    if(fingerTimestamps.size <= 50) return;
+    for(const [id, t] of fingerTimestamps) {
+      if(now - t > 5000) fingerTimestamps.delete(id);
+    }
+  }
+
   function checkBot(now) {
     // trim window
     while(recentTimestamps.length && now - recentTimestamps[0] > BOT_WINDOW_MS)
@@ -8431,7 +8442,10 @@ const INPUT = (() => {
     if(botPenalty && Math.random() > BOT_PENALTY_SCALE) return;
 
     // total rate cap — drop if over TOTAL_CAP_PER_SEC
-    const recentCount = recentTimestamps.filter(t => now - t < 1000).length;
+    let recentCount = 0;
+    for(let i = 0; i < recentTimestamps.length; i++) {
+      if(now - recentTimestamps[i] < 1000) recentCount++;
+    }
     if(recentCount > TOTAL_CAP_PER_SEC) return;
 
     // per-finger rate limit
@@ -8440,6 +8454,7 @@ const INPUT = (() => {
       const last = fingerTimestamps.get(id) || 0;
       if(now - last < MIN_INTERVAL_MS) return;
       fingerTimestamps.set(id, now);
+      _pruneFingers(now);
     }
 
     tapBuffer.push({ e, now });
