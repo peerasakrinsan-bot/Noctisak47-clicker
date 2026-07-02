@@ -8241,12 +8241,13 @@ function startTimer() {
 }
 // FIX 3: cache timer child nodes once; use textContent instead of innerHTML
 // to avoid DOM parse + child node churn 20×/sec.
-let _timerSecEl = null, _timerMsEl = null, _timerDisplayEl = null;
+let _timerSecEl = null, _timerMsEl = null, _timerDisplayEl = null, _lastSpurtAuraEl = null;
 let _lastTimerSec = -1, _lastTimerMs = '', _lastTimerUrgent = -1;
 function _initTimerEls() {
   if (!_timerSecEl) { _timerSecEl = document.getElementById('timerSec'); }
   if (!_timerMsEl)  { _timerMsEl  = document.getElementById('timerMs');  }
   if (!_timerDisplayEl) { _timerDisplayEl = document.getElementById('timerDisplay'); }
+  if (!_lastSpurtAuraEl) { _lastSpurtAuraEl = document.getElementById('lastSpurtAura'); }
 }
 function renderTimer() {
   _initTimerEls();
@@ -8268,6 +8269,13 @@ function renderTimer() {
   if (_lastTimerUrgent !== urgent) {
     _lastTimerUrgent = urgent;
     if (_timerDisplayEl) _timerDisplayEl.classList.toggle('urgent', urgent === 1);
+    // LAST SPURT (final 10s) — pure presentation, reuses this same flip-only check:
+    // edge vignette + a slight whole-screen saturate bump (same filter knob as OD aura),
+    // plus a one-shot cue (existing countdown asset) exactly on the 0→1 transition.
+    const gr = document.getElementById('gameRoot');
+    if (gr) gr.classList.toggle('last-spurt', urgent === 1);
+    if (_lastSpurtAuraEl) _lastSpurtAuraEl.classList.toggle('last-spurt-active', urgent === 1);
+    if (urgent === 1) _playSfxEl('countdownSound', 0.6);
   }
 }
 function endGame(opts = {}) {
@@ -8336,6 +8344,9 @@ function endGame(opts = {}) {
   $('wpCounter').style.display='none';
   $('lodCardDisplay').style.display='none';
   $('rageMeter').classList.remove('show');
+  // LAST SPURT: clear so the vignette/saturate filter don't linger under the result screen
+  document.getElementById('gameRoot').classList.remove('last-spurt');
+  if (_lastSpurtAuraEl) _lastSpurtAuraEl.classList.remove('last-spurt-active');
 
   function _showResultScreen() {
     const h2 = $('resultScreen').querySelector('h2');
