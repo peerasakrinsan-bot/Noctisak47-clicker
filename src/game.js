@@ -1860,6 +1860,12 @@ function initState() {
   _resetOdBadge();
   updateOdScreenAura(0);
   updateUI();
+  // HUD RESET: force the timer/combo/multi-badge DOM text to the fresh values
+  // set above — without this the previous run's numbers stay on screen through
+  // the whole GET READY → GO! countdown, only snapping once play actually starts.
+  renderTimer();
+  updateComboUI();
+  _el.multiBadge.classList.remove('show');
   rebuildStatCache();
   _resetHpTier();
   // Hit-number pool: prewarm nodes on first run, reset aggregation state on every run
