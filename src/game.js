@@ -1226,13 +1226,13 @@ function showMainMenu() {
 
 function updateShopCoinUI() {
   if ($('menuCoinNum'))  $('menuCoinNum').textContent  = formatNum(save.coins);
-  if ($('shopCoinNum'))  $('shopCoinNum').textContent  = save.coins;
-  if ($('bossCoinNum'))  $('bossCoinNum').textContent  = save.coins;
-  if ($('arenaCoinNum')) $('arenaCoinNum').textContent = save.coins;
+  if ($('shopCoinNum'))  $('shopCoinNum').textContent  = formatNum(save.coins);
+  if ($('bossCoinNum'))  $('bossCoinNum').textContent  = formatNum(save.coins);
+  if ($('arenaCoinNum')) $('arenaCoinNum').textContent = formatNum(save.coins);
 }
 
 function renderShop() {
-  $('shopCoinNum').textContent = save.coins;
+  $('shopCoinNum').textContent = formatNum(save.coins);
   const body = $('shopBody');
   body.innerHTML = '';
 
@@ -1400,7 +1400,7 @@ function buyItem(id, lv, cost) {
   scheduleCloudSync('shop_purchase');
   rebuildStatCache();
   renderShop();
-  $('shopCoinNum').textContent = save.coins;
+  $('shopCoinNum').textContent = formatNum(save.coins);
   if ($('menuCoinNum')) $('menuCoinNum').textContent = formatNum(save.coins);
 }
 
@@ -1541,7 +1541,7 @@ function closeBossShop() {
 }
 
 function renderBossShop() {
-  $('bossCoinNum').textContent = save.coins;
+  $('bossCoinNum').textContent = formatNum(save.coins);
   const grid = $('bossSkinGrid');
   grid.innerHTML = '';
   const activeSkinId = getActiveSkinId();
@@ -1602,7 +1602,7 @@ function buyBossSkin(id) {
   doSave();
   scheduleCloudSync('shop_purchase');
   renderBossShop();
-  $('bossCoinNum').textContent = save.coins;
+  $('bossCoinNum').textContent = formatNum(save.coins);
 }
 
 function applySkin(id) {
@@ -1714,7 +1714,7 @@ function _drawArenaPreview(canvasEl, src) {
 }
 
 function renderArenaShop() {
-  $('arenaCoinNum').textContent = save.coins;
+  $('arenaCoinNum').textContent = formatNum(save.coins);
   const grid = $('arenaSkinGrid');
   grid.innerHTML = '';
   const activeArenaId = getActiveArenaId();
@@ -1775,10 +1775,10 @@ function buyArena(id) {
   scheduleCloudSync('shop_purchase');
   renderArenaShop();
   // sync coin display ทุกหน้า
-  $('arenaCoinNum').textContent = save.coins;
+  $('arenaCoinNum').textContent = formatNum(save.coins);
   if ($('menuCoinNum'))  $('menuCoinNum').textContent  = formatNum(save.coins);
-  if ($('shopCoinNum'))  $('shopCoinNum').textContent  = save.coins;
-  if ($('bossCoinNum'))  $('bossCoinNum').textContent  = save.coins;
+  if ($('shopCoinNum'))  $('shopCoinNum').textContent  = formatNum(save.coins);
+  if ($('bossCoinNum'))  $('bossCoinNum').textContent  = formatNum(save.coins);
 }
 
 function applyArena(id) {
@@ -3518,9 +3518,9 @@ function executePreRunReroll() {
   if (cost > 0) {
     save.coins -= cost;
     if ($('menuCoinNum'))  $('menuCoinNum').textContent  = formatNum(save.coins);
-    if ($('shopCoinNum'))  $('shopCoinNum').textContent  = save.coins;
-    if ($('bossCoinNum'))  $('bossCoinNum').textContent  = save.coins;
-    if ($('arenaCoinNum')) $('arenaCoinNum').textContent = save.coins;
+    if ($('shopCoinNum'))  $('shopCoinNum').textContent  = formatNum(save.coins);
+    if ($('bossCoinNum'))  $('bossCoinNum').textContent  = formatNum(save.coins);
+    if ($('arenaCoinNum')) $('arenaCoinNum').textContent = formatNum(save.coins);
   }
 
   // Increment rerollCount BEFORE generating offers so the new count drives rarity weights
