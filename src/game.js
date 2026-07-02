@@ -856,7 +856,7 @@ function computeStableSaveHash(d) {
     : '';
   // Settings: only values that affect gameplay or cloud identity
   const settingsKey = d.settings
-    ? ['sfxVol','bgmVol','sfxMuted','bgmMuted','flashEffect']
+    ? ['musicOn','musicVolume','sfxOn','sfxVolume','flashEffect']
         .map(k => k + ':' + (d.settings[k] !== undefined ? d.settings[k] : ''))
         .join(',')
     : '';
