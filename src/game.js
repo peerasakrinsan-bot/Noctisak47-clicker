@@ -1874,11 +1874,13 @@ let _koMilestoneIdx = 0;
 // Every moment is hard-capped at once per run via `_rmFired` (reset by
 // `_rmResetRun()`, called from `initState()`).
 const RARE_MOMENT_GOLDEN_BOSS_CHANCE = 0.005; // ~1 in 200 boss spawns
+const RARE_MOMENT_BUZZER_BEATER_WINDOW = 0.7; // seconds left on the run clock
 const RARE_MOMENT_COIN_MULT = { goldenBoss: 3 }; // reuses the bossCoins pipeline in bossKO()
 let _goldenBossActive = false; // true while the CURRENT boss is a Golden Boss
-const _rmFired = { goldenBoss: false };
+const _rmFired = { goldenBoss: false, buzzerBeater: false };
 function _rmResetRun() {
   _rmFired.goldenBoss = false;
+  _rmFired.buzzerBeater = false;
   _goldenBossActive = false;
 }
 // Shared celebration beat: splash + a camera-arbitrated shake, same recipe as
@@ -9430,6 +9432,10 @@ function bossKO() {
   csOnBossKO();
   const _wasGoldenBoss = _goldenBossActive; // capture before reset below
   _goldenBossActive = false;
+  // RARE MOMENT: BUZZER BEATER — boss KO lands with the run clock almost out.
+  // Presentation only: no score/coin bonus, reuses the existing splash/flash/
+  // shake/SFX exactly as a normal Boss KO does, just with bigger flavor text.
+  const _isBuzzerBeater = !_rmFired.buzzerBeater && timeLeft > 0 && timeLeft <= RARE_MOMENT_BUZZER_BEATER_WINDOW;
   isBoss=false; ko++;
   window._wqRunKO = (window._wqRunKO || 0) + 1; // weekly per-run KO counter
   bossTapCount = 0; lastTapTime = 0; // reset tap ramp on boss KO
@@ -9470,6 +9476,12 @@ function bossKO() {
     if (window.CanvasVFX && typeof window.CanvasVFX.spawnCanvasVfx === 'function') {
       window.CanvasVFX.spawnCanvasVfx('coinBurst', _bossSkillCoords());
     }
+  } else if(_isBuzzerBeater) {
+    // RARE MOMENT: BUZZER BEATER payoff — same coin number, same splash system,
+    // one extra reused flash beat (existing boss-arrival flash) for emphasis.
+    _rmFired.buzzerBeater = true;
+    showBigSplash('BUZZER BEATER!', '+'+bossCoins+' COIN — LAST-SECOND KO', '#ffcc00', true);
+    triggerFlash('flash-boss');
   } else {
     showBigSplash('BOSS KO','+'+bossCoins+' COIN','#ffcc00');
   }
