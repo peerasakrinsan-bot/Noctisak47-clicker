@@ -1859,6 +1859,10 @@ const GOLDEN_ENEMY_COIN_MULT = 4;
 const GOLDEN_ENEMY_SCORE_BONUS = 300;
 let _goldenActive = false;
 
+// KO MILESTONES — celebrated once per run at these per-run KO counts.
+const KO_MILESTONES = [50, 100, 250, 500, 1000];
+let _koMilestoneIdx = 0;
+
 // Weak Point system
 let wpActive = false, wpTimeout = null, wpSchedule = null;
 let wpCollected = 0, wpRound = 1, wpCompletions = 0, wp5FirstDone = false;
@@ -1901,6 +1905,7 @@ function initState() {
   boxerSetImg(_sk.files.idle);
   _applyBossSkinAura(_sk.id);
   _rollGoldenEnemy(); // fresh roll for the first enemy of the run
+  _koMilestoneIdx = 0;
   _el.bossBar.style.display = 'none';
   _el.godLevelWrap.style.display = 'none';
   _resetOdBadge();
@@ -9276,6 +9281,22 @@ function _clearGoldenEnemy() {
   if (el) el.classList.remove('golden-enemy');
 }
 
+// KO MILESTONES — non-blocking celebration beat at per-run KO thresholds.
+// Reuses _triggerBerserkFx() (the existing mid-impact flash+shake beat, camera
+// priority 2 — below climactic prio-3 moments like boss death/AK47 bomb/new
+// record, so it never steals the show if one lands on the same tick).
+function _checkKoMilestone() {
+  while (_koMilestoneIdx < KO_MILESTONES.length && ko >= KO_MILESTONES[_koMilestoneIdx]) {
+    const n = KO_MILESTONES[_koMilestoneIdx];
+    _koMilestoneIdx++;
+    try {
+      showBigSplash(formatNum(n) + ' KO!', 'RAMPAGE MILESTONE', '#00ffcc');
+      _triggerBerserkFx();
+      playWpBall();
+    } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
+  }
+}
+
 // ══════════════════════════════════════════
 // KO & BOSS
 // ══════════════════════════════════════════
@@ -9310,6 +9331,7 @@ function normalKO() {
   csOnKO();
   if(waveKO>=10){waveKO=0;spawnBoss();}
   if(!isBoss) _rollGoldenEnemy(); else _clearGoldenEnemy();
+  _checkKoMilestone();
 }
 
 function spawnBoss() {
@@ -9391,6 +9413,7 @@ function bossKO() {
   playWpBall(); // Boss KO had zero SFX despite the heavy visual payoff — reuse the existing "success ding"
   _triggerBossDeathVfx(); // ฉากตายเฉพาะตัวต่อบอส + กล้องประจำบอส (คอสเมติก)
   _rollGoldenEnemy(); // the next enemy after a boss is always a normal one — may be golden
+  _checkKoMilestone();
   csOnKO();
 }
 
