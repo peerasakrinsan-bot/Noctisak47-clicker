@@ -7186,8 +7186,14 @@ function resumeGame() {
   scheduleWeakPoint();
   if(godLevel > 0 && godSecondsLeft > 0) {
     clearInterval(godInterval);
+    _lastOdTickAt = performance.now();
     godInterval = setInterval(()=>{
-      godSecondsLeft--;
+      // Wall-clock elapsed seconds since the previous tick — see the matching
+      // comment in activateGodLevel()'s godInterval for the full reasoning.
+      const _odNow = performance.now();
+      const _odRealDtSec = Math.min(2, Math.max(0, (_odNow - _lastOdTickAt) / 1000));
+      _lastOdTickAt = _odNow;
+      godSecondsLeft -= _odRealDtSec;
       updateGodLevelUI();
       if(godSecondsLeft <= 0){
         clearInterval(godInterval);
@@ -8119,10 +8125,24 @@ function pressureIsBreak() { return PRESSURE.phase === 'break'; }
 // Lv0=1.0 (ปกติ), Lv1=0.75, Lv2=0.55, Lv3=0.35
 const GOD_TIME_RATE = [1.0, 0.75, 0.55, 0.35];
 
+// Wall-clock baseline for the round timer's setInterval tick — see startTimer().
+let _lastTimerTickAt = 0;
 function startTimer() {
   clearInterval(timerInterval);
+  _lastTimerTickAt = performance.now();
   timerInterval=setInterval(()=>{
-    pressureUpdate(50);
+    // Measure real elapsed time since the previous tick instead of assuming the
+    // nominal 50ms always elapsed. Under GC pauses, heavy VFX, or background-tab
+    // timer throttling, ticks can arrive late; the old fixed-0.05s-per-tick math
+    // then under-drained timeLeft relative to real wall-clock time, letting a
+    // round run longer in real time on exactly the devices struggling the most.
+    // Clamped to 200ms (4x nominal) so a single pathological stall can't skip an
+    // excessive chunk of round time in one tick — genuinely long gaps already
+    // pause the run entirely via the visibilitychange handler before this fires.
+    const _now = performance.now();
+    const _realDtMs = Math.min(200, Math.max(0, _now - _lastTimerTickAt));
+    _lastTimerTickAt = _now;
+    pressureUpdate(_realDtMs);
     const baseRate = performance.now() < (PRESSURE.successFreezeUntil || 0) ? 0.18 : (PRESSURE.phase === 'break' ? 0.25 : (GOD_TIME_RATE[godLevel] || 1.0));
     const rate = baseRate * (1 + ((window._csState && window._csState._dorkTimerRateBonus) || 0)
       // DEVILINGO CURSED PANIC: after 15s from run start, timer drains 15% faster (all phases)
@@ -8130,7 +8150,7 @@ function startTimer() {
       // LORD OF DEBT: REQUIEM state — timer drains 30% faster
       + ((window._csState && window._csState.cs_lordofdeath && window._csState._lod_timerDrain) ? window._csState._lod_timerDrain : 0)
     );
-    const _timeDelta = 0.05 * Math.min(1.15, rate);
+    const _timeDelta = (_realDtMs / 1000) * Math.min(1.15, rate);
     timeLeft -= _timeDelta;
     // LORD OF DEBT: FINAL HOUR — prevent timer from increasing (clamp any external additions)
     if(_lodDebtFinalHourLock && window._csState && window._csState.cs_lordofdeath) {
@@ -9280,6 +9300,10 @@ function _triggerBossDeathVfx() {
   } catch (e) { /* คอสเมติกต้องไม่ทำเกมพัง */ }
 }
 
+// Wall-clock baseline shared by the two godInterval sites (activateGodLevel and
+// resumeGame) — only one of the two is ever running at a time, since both
+// clearInterval(godInterval) before creating a new one.
+let _lastOdTickAt = 0;
 function activateGodLevel(lv) {
   // FALLEN WECHAT: intercept Lv1 OD → trigger Overloaded BREAK instead
   if(lv === 1 && window._csState && window._csState.cs_fallenWechat) {
@@ -9335,12 +9359,20 @@ function activateGodLevel(lv) {
   godHitCount=0; // reset hit counter สำหรับ upgrade
 
   clearInterval(godInterval);
+  _lastOdTickAt = performance.now();
   godInterval=setInterval(()=>{
+    // Wall-clock elapsed seconds since the previous tick, not an assumed 1.0s —
+    // see startTimer()'s _lastTimerTickAt for the same reasoning. Clamped to 2s
+    // (2x nominal) so one pathological stall can't wipe out most of a short
+    // (as low as 4s at ANNIHILATION MODE) Overdrive window in a single tick.
+    const _odNow = performance.now();
+    const _odRealDtSec = Math.min(2, Math.max(0, (_odNow - _lastOdTickAt) / 1000));
+    _lastOdTickAt = _odNow;
     // LORD OF DEBT: OVERLOAD state — OD drains 1.5x faster
     const _overloadDrain = (window._csState && window._csState.cs_lordofdeath && window._csState._lod_odDrainFast) ? 2 : 1;
     // ORC BADDY tradeoff: OD drains 20% faster during active OD
     const _orcBaddyDrain = (window._csState && window._csState.cs_orcBaddy && window._csState.cs_orcBaddyDrain) ? 1.20 : 1;
-    godSecondsLeft -= _overloadDrain * _orcBaddyDrain;
+    godSecondsLeft -= _overloadDrain * _orcBaddyDrain * _odRealDtSec;
     updateGodLevelUI();
     if(godSecondsLeft<=0){
       clearInterval(godInterval);
