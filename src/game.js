@@ -8061,8 +8061,22 @@ function pressureAddRage(amount, reason) {
   if(PRESSURE.rage >= 100 && PRESSURE.phase === 'idle') {
     PRESSURE.rage = 100;
     pressureUpdateRageUI();
-    if(gameRunning) endGame({gameOver:true});
+    if(gameRunning) _triggerRageMaxKO();
   }
+}
+
+// RAGE MAX explanation splash — freezes the run immediately (no extra taps/score
+// land during it) and shows a brief cause-and-effect beat before the cut to
+// GAME OVER, instead of dropping straight to the result screen with no context.
+function _triggerRageMaxKO() {
+  gameRunning = false;
+  INPUT.stop();
+  clearInterval(timerInterval);
+  clearTimeout(godTimeout);
+  clearInterval(godInterval);
+  clearTimeout(wpSchedule); clearTimeout(wpTimeout);
+  showBigSplash('RAGE MAX!', 'The boss became uncontrollable.', '#ff2233', true);
+  setTimeout(() => endGame({gameOver:true}), 850);
 }
 
 function pressureBreakBonusPct() {
